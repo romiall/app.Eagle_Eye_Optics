@@ -1,28 +1,8 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
+import { activeServiceWorkerScope, foreignRequests, recordRequests } from './support/browser'
 import { startLaravelServer } from './support/laravel-server'
-
-const OFFLINE_PORT = Number(process.env['EEO_E2E_PORT'] ?? 8123) + 1
-
-/** Attend que le service worker soit actif et retourne sa portée. */
-async function activeServiceWorkerScope(page: Page): Promise<string> {
-  return page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready
-    return registration.scope
-  })
-}
-
-/** URL de toutes les requêtes émises par le contexte : pages, iframes et service worker compris. */
-function recordRequests(context: BrowserContext): string[] {
-  const urls: string[] = []
-  context.on('request', (request) => urls.push(request.url()))
-  return urls
-}
-
-/** Requêtes réseau (http, https, ws, wss) dont l’origine n’est pas celle de l’application. */
-function foreignRequests(urls: readonly string[], origin: string): string[] {
-  return urls.filter((url) => /^(?:https?|wss?):/.test(url) && new URL(url).origin !== origin)
-}
+import { OFFLINE_PORT } from './support/ports'
 
 test.describe('application construite : coquille, PWA et API', () => {
   test('charge la coquille en français sans erreur de console', async ({ page }) => {

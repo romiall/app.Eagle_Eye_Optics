@@ -1,5 +1,13 @@
-# Analyse statique PHP : PHPStan + Larastan, configuration versionnée (fichier 25 : « composer run lint »).
-# Lancer : composer run analyse  (ou composer run lint, qui enchaîne Pint puis cette analyse).
+# Analyse statique PHP : PHPStan + Larastan, configuration versionnée et verrouillée (fichier 25 :
+# « composer run lint » = style + analyse statique). Les versions sont celles de composer.lock.
+#
+#   composer run analyse    analyse seule
+#   composer run lint       Pint (sans modification) puis cette analyse
+#
+# Niveau 8 : types nullables et unions vérifiés, sans le zèle des niveaux 9 et 10 (mixed strict) qui
+# ralentirait inutilement le code de lecture de configuration, de requêtes et de lignes SQL ; à
+# relever par une tâche dédiée si l'équipe le souhaite. Aucune erreur n'est ignorée ni mise en
+# baseline : un nouveau constat se corrige dans le code.
 includes:
     - vendor/larastan/larastan/extension.neon
 
@@ -10,7 +18,10 @@ parameters:
         - bootstrap
         - config
         - routes
+        - database/factories
+        - database/seeders
     excludePaths:
         # Fichiers générés par « package:discover » : ignorés par git, différents d'un poste à l'autre.
         - bootstrap/cache
+    # Cache de l'analyse, ignoré par git (/.phpstan.cache).
     tmpDir: .phpstan.cache

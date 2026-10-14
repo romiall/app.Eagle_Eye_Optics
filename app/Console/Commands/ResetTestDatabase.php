@@ -24,7 +24,7 @@ final class ResetTestDatabase extends Command
         $option = $this->option('database');
         $connection = is_string($option) && $option !== '' ? $option : (string) config('database.default');
 
-        $guard = IsolatedDatabaseGuard::forConnection(app()->environment(), $connection);
+        $guard = IsolatedDatabaseGuard::forConnection((string) app()->environment(), $connection);
 
         if (! $guard->allows()) {
             $this->components->error('Remise à zéro refusée : la connexion « '.$connection.' » n\'est pas une base de test isolée.');

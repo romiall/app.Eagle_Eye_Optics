@@ -1,7 +1,8 @@
-# Contrôles de qualité : PHP (Pint + PHPUnit sur MySQL 8.4 réel), frontend (types, lint, Vitest, build)
-# et e2e Playwright sur l'application construite. Aucun secret : les mots de passe ci-dessous sont des
-# valeurs fictives de services éphémères du runner, sans accès à rien d'autre. Les journaux n'affichent
-# aucune donnée patient ; seules des données fictives existent dans le dépôt.
+# Contrôles de qualité : PHP (Pint, analyse statique PHPStan + Larastan, PHPUnit sur MySQL 8.4 réel),
+# frontend (types, lint, Vitest, build) et e2e Playwright sur l'application construite. Aucun secret :
+# les mots de passe ci-dessous sont des valeurs fictives de services éphémères du runner, sans accès à
+# rien d'autre. Les journaux n'affichent aucune donnée patient ; seules des données fictives existent
+# dans le dépôt.
 name: Qualité
 
 on:
@@ -23,7 +24,7 @@ env:
 
 jobs:
   php:
-    name: PHP (Pint, PHPUnit, MySQL 8.4)
+    name: PHP (Pint, Larastan, PHPUnit, MySQL 8.4)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
@@ -70,7 +71,12 @@ jobs:
             SELECT VERSION();"
 
       - name: Style PHP (Pint)
-        run: composer run lint
+        run: composer run lint:style
+
+      # Même contrôle que « composer run lint » (style puis analyse), en deux étapes pour un diagnostic
+      # lisible. Larastan démarre l'application : aucune base ni .env nécessaire.
+      - name: Analyse statique PHP (PHPStan niveau 8 + Larastan)
+        run: composer run analyse
 
       - name: PHPUnit - Unit
         run: composer run test:unit

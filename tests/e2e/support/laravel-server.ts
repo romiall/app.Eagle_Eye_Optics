@@ -29,8 +29,14 @@ async function waitUntilReady(url: string, process: ChildProcess): Promise<void>
  * Démarre l'application Laravel (public/build) sur un port dédié, avec le même fichier .env.e2e que
  * le serveur principal. Les tests de coupure doivent l'arrêter eux-mêmes : Playwright ne simule pas
  * l'absence de réseau pour les requêtes émises par le service worker.
+ *
+ * `environment` surcharge des variables du fichier .env.e2e (une variable d'environnement du
+ * processus l'emporte sur le fichier), par exemple APP_URL=https://… comme en production.
  */
-export async function startLaravelServer(port: number): Promise<RunningServer> {
+export async function startLaravelServer(
+  port: number,
+  environment: Readonly<Record<string, string>> = {},
+): Promise<RunningServer> {
   const router = join(
     ROOT,
     'vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php',
@@ -38,7 +44,7 @@ export async function startLaravelServer(port: number): Promise<RunningServer> {
   // Comme « artisan serve » : répertoire courant = public/, que le routeur de Laravel utilise.
   const server = spawn('php', ['-S', `127.0.0.1:${port}`, router], {
     cwd: join(ROOT, 'public'),
-    env: { ...process.env, APP_ENV: 'e2e' },
+    env: { ...process.env, ...environment, APP_ENV: 'e2e' },
     stdio: 'ignore',
     // Groupe de processus dédié : l'arrêt supprime aussi d'éventuels processus enfants.
     detached: true,

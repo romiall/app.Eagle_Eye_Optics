@@ -45,8 +45,13 @@
         "test:unit": "phpunit --testsuite=Unit",
         "test:mysql": "phpunit --testsuite=Feature",
         "test:concurrency": "phpunit --testsuite=Concurrency",
-        "lint": "pint --test",
+        "lint": [
+            "@lint:style",
+            "@analyse"
+        ],
+        "lint:style": "pint --test",
         "lint:fix": "pint",
+        "analyse": "phpstan analyse --memory-limit=1G --no-progress",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
@@ -63,8 +68,10 @@
         "test:unit": "Regles pures et garde de base de donnees, sans MySQL.",
         "test:mysql": "Suite Feature : application et MySQL 8.4 reel (base eeo_test).",
         "test:concurrency": "Suite Concurrency : plusieurs connexions MySQL reelles a la fois.",
-        "lint": "Controle de style PHP (Pint) sans modification.",
-        "lint:fix": "Applique le style PHP (Pint)."
+        "lint": "Controle PHP complet : style (Pint, sans modification) puis analyse statique (PHPStan + Larastan).",
+        "lint:style": "Controle de style PHP (Pint) sans modification.",
+        "lint:fix": "Applique le style PHP (Pint).",
+        "analyse": "Analyse statique PHP (PHPStan niveau 8 + Larastan, configuration phpstan.neon)."
     },
     "extra": {
         "laravel": {

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Enchaîne tous les contrôles locaux : Pint, PHPUnit, TypeScript, ESLint, Prettier, Vitest et build.
+# Enchaîne tous les contrôles locaux : Pint, analyse statique PHP (Larastan), PHPUnit, TypeScript, ESLint,
+# Prettier, Vitest et build.
 #
 #   tools/dev/check-all.sh              contrôles locaux (les tests MySQL sont IGNORÉS si MySQL est injoignable)
 #   tools/dev/check-all.sh --strict     MySQL obligatoire : un MySQL injoignable fait échouer (comme la CI)
@@ -48,7 +49,7 @@ else
   echo "ATTENTION : MySQL de test injoignable. Les tests MySQL seront IGNORÉS (lancer tools/dev/mysql-up.sh)." >&2
 fi
 
-step "Style PHP (Pint)"
+step "Style et analyse statique PHP (Pint, puis PHPStan + Larastan)"
 composer run lint
 
 step "PHPUnit (Unit, Feature, Concurrency)"

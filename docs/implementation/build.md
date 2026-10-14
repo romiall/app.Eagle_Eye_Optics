@@ -46,6 +46,8 @@ php artisan view:cache
 
 Ne jamais versionner `.env`. `.env.example` ne contient aucun secret. En production : `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://…` (sous-domaine HTTPS dédié), `SESSION_SECURE_COOKIE=true`, `PRODUCTION_DOCUMENTS_ENABLED=false` tant que les mentions légales ne sont pas validées, `MAIL_MAILER` et intégrations selon les lots (aucun fournisseur réel avant L2/L3).
 
+`APP_URL` sert aux URL produites **hors requête** (commandes artisan, files d'attente, courriels). Il ne pilote **ni les URL des assets de la coquille ni le schéma des requêtes web** : Laravel les déduit de la requête reçue (voir « Derrière un proxy ou un CDN qui termine TLS »).
+
 ## Développement local
 
 ```text
@@ -68,7 +70,7 @@ En développement (`npm run dev`), le service worker n'est pas enregistré : tes
 | `storage/` | Oui, structure vide | Droits d'écriture pour le serveur web ; les `.gitignore` de chaque sous-dossier gardent l'arborescence |
 | `composer.json`, `composer.lock` | Oui | Traçabilité et `composer audit` |
 | `.env` | Créé **sur le serveur** | Jamais dans une archive ni dans git |
-| `node_modules/`, `package*.json`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `vitest.config.ts`, `playwright.config.ts` | Non | Outils de construction |
+| `node_modules/`, `package*.json`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `vitest.config.ts`, `playwright.config.ts`, `phpstan.neon` | Non | Outils de construction et de contrôle |
 | `resources/frontend/` (sources Vue/TypeScript) | Non nécessaire | Remplacé par `public/build/`. S'il est présent, il ne doit pas être servi (racine web = `public/`) |
 | `tests/`, `tools/`, `specifications/`, `docs/`, `.github/`, `.spec-work/` | Non | Développement et documentation |
 | `.env.e2e`, `test-results/`, `playwright-report/`, `.phpunit.cache/` | Non | Fichiers locaux ignorés par git |
@@ -77,23 +79,34 @@ En développement (`npm run dev`), le service worker n'est pas enregistré : tes
 
 - Le service worker est généré dans `public/build/sw.js` mais **servi à `/sw.js`** par une route Laravel (`routes/spa.php`) avec `Service-Worker-Allowed: /` et `Cache-Control: no-cache`, afin que sa portée couvre toute l'origine. Le manifeste est servi à `/manifest.webmanifest`. Sans `public/build/`, ces deux URL répondent 404 : le build fait partie du déploiement.
 - Les requêtes qui ne correspondent pas à un fichier doivent atteindre `public/index.php` (réécriture fournie par `public/.htaccess` pour Apache ; sous nginx : `try_files $uri /index.php?$query_string`).
+- `/up` est une route maison (`HealthController`), non le `health:` de Laravel : la vue par défaut de ce dernier charge un script Tailwind depuis `cdn.jsdelivr.net` et des fontes depuis `fonts.bunny.net`, sur la même origine que la SPA, le service worker et le futur coffre local. Un test e2e vérifie qu'aucune requête ne sort de l'origine.
 - Le service worker ne met **jamais** en cache `/api` (stratégie `NetworkOnly` explicite) et ne sert jamais la coquille SPA pour `/api`, `/up`, `/build/`, `/storage/` ni pour une URL ressemblant à un fichier. Il précache seulement la coquille `/`, les icônes locales et les fichiers versionnés de `public/build/assets/`. Les mises à jour attendent une confirmation (`registerType: 'prompt'`) : un nouveau service worker ne prend pas le contrôle d'une session ouverte (une commande locale en attente ne doit jamais être interrompue).
 - HTTPS est obligatoire : les service workers, Web Crypto et les cookies `Secure` exigent un contexte sécurisé.
 - La coquille est servie **hors du groupe middleware `web`** : pas de session, pas de cookie, réponse identique pour tous.
 
+### Derrière un proxy ou un CDN qui termine TLS
+
+Selon l'hébergeur, ou si un CDN est placé devant le site, le navigateur parle HTTPS à un proxy ou à un répartiteur de charge et PHP ne reçoit que du HTTP simple (avec, au mieux, un en-tête `X-Forwarded-Proto: https`). La coquille fonctionne dans ce cas **sans aucun réglage** : `@vite` y écrit des chemins depuis la racine du site (`/build/assets/main-….js`) et jamais d'URL absolue (`AppServiceProvider`, `Vite::createAssetPathsUsing`). Ces chemins se résolvent contre l'origine du document, quels que soient le schéma et l'hôte vus par PHP, et la réponse est identique pour tous (précachable).
+
+- **Défaut corrigé.** Laravel écrivait des URL d'assets absolues déduites de la requête (helper `asset()`). Derrière un proxy TLS, la page HTTPS référençait `http://…/build/assets/main-….js` : Chromium bloquait le script (« Mixed Content »), `#app` restait vide et le service worker n'était jamais enregistré. `APP_URL=https://…` n'y changeait rien, seul `ASSET_URL` le contournait ; et un en-tête `Host` arbitraire faisait pointer les assets vers cet hôte.
+- **`ASSET_URL` est sans effet sur la coquille, volontairement.** Un hôte d'assets distinct sortirait de l'origine unique exigée par le fichier 23 (portée du service worker, précache, isolation du coffre local). Ne pas le renseigner.
+- **Contrepartie.** Des chemins depuis la racine supposent l'application à la racine de son sous-domaine dédié, comme le service worker (portée `/`) et le manifeste (`start_url: /`) : une installation dans un sous-dossier (`https://exemple.cm/cabinet/`) n'est pas prévue.
+- **`trustProxies` n'est pas nécessaire à la coquille.** Il le deviendra pour ce que Laravel déduit encore de la requête : URL générées par `url()`, `route()`, redirections ou URL signées, et adresse IP du client dans le journal d'audit. Le moment venu (avec l'audit de l'hébergeur, Q01), déclarer les adresses du proxy (`$middleware->trustProxies(at: [...])` dans `bootstrap/app.php`) et jamais `'*'` si le serveur d'origine reste joignable sans passer par le proxy : n'importe quel client pourrait alors falsifier `X-Forwarded-For`, `-Host` et `-Proto`. Aucun `trustProxies` n'est configuré à ce stade.
+- **Preuves.** `tests/Feature/Http/SpaShellOriginTest.php` (dix formes de requête : HTTPS direct, proxy approuvé ou non, `Host`, `X-Forwarded-Host` et `X-Forwarded-Prefix` arbitraires, `ASSET_URL`, URL profonde du routeur ; corps identique à la référence et aucune URL absolue) et `tests/e2e/https-origin.spec.ts` (Chromium réel sur `https://cabinet.eeo-e2e.test:<port>` derrière un proxy TLS Node, serveur PHP en HTTP simple et `APP_URL` en HTTPS : coquille rendue, console vide, service worker actif, aucune requête en `http:`). Les autres tests e2e tournent en `http://127.0.0.1`, que Chromium exempte des règles de contenu mixte : ils ne peuvent pas détecter ce défaut.
+
 ## Vérifier un déploiement
 
-1. `curl -fsS https://<domaine>/up` répond 200.
+1. `curl -fsS https://<domaine>/up` répond 200 avec le corps `{"status":"ok"}` : JSON minimal, jamais mis en cache, sans page HTML, sans cookie et sans ressource externe. En cas d'échec d'un contrôle de disponibilité, 500 `{"status":"error"}` sans message d'exception. La sonde reste joignable en mode maintenance.
 2. `curl -sS -o /dev/null -w "%{http_code} %{content_type}\n" https://<domaine>/api/v1/inconnu` répond `404 application/json` (jamais la page HTML).
-3. Ouvrir `/` : titre « Eagle’s Eye Optics — Gestion du cabinet ».
+3. Ouvrir `/` : titre « Eagle’s Eye Optics — Gestion du cabinet », console du navigateur vide (aucun « Mixed Content »). En ligne de commande : `curl -fsS https://<domaine>/ | grep -Eo '(src|href)="[^"]*/build/[^"]*"'` ne retourne que des attributs dont la valeur commence par `/build/assets/` (aucun `http://`, aucun nom d'hôte).
 4. Outils de développement du navigateur, Application, Service Workers : script `/sw.js`, portée `/`, état « activated ».
 5. Couper le réseau et recharger `/` : la coquille s'affiche (précache) ; `/api/…` n'affiche jamais la coquille.
 
-Les tests automatisés équivalents sont dans `tests/Feature/Http/SpaShellTest.php` et `tests/e2e/smoke.spec.ts` (voir `testing.md`).
+Les tests automatisés équivalents sont dans `tests/Feature/Http/SpaShellTest.php`, `tests/Feature/Http/SpaShellOriginTest.php`, `tests/e2e/smoke.spec.ts` et `tests/e2e/https-origin.spec.ts` (voir `testing.md`).
 
 ## Limites connues de F02
 
 - Les icônes de `public/icons/` sont des icônes **provisoires** (aucun logo réel fourni : Q03). À remplacer avant la production.
-- Aucune fonte distante : la pile de fontes système est utilisée ; les fontes des documents PDF seront locales (tâches de documents).
-- L'analyse statique PHP (Larastan/PHPStan) n'est pas installée : son paquet `phpstan/phpstan` n'est pas téléchargeable depuis l'environnement de développement cloud (téléchargement de l'archive GitHub refusé par la politique réseau). À ajouter depuis un poste ou une CI ordinaire (`composer require --dev larastan/larastan`) puis un script `composer run analyse`.
+- Aucune fonte ni script distant, sonde `/up` comprise : la pile de fontes système est utilisée ; les fontes des documents PDF seront locales (tâches de documents).
+- L'analyse statique PHP (PHPStan niveau 8 + Larastan) est installée et verrouillée (`larastan/larastan` en `require-dev`, `phpstan.neon`, `composer run analyse`). Dans l'environnement cloud dont le réseau refuse l'API GitHub, l'archive de `phpstan/phpstan` (seule forme disponible dans le verrou) doit être préparée par `tools/dev/seed-composer-cache.sh` avant `composer install --prefer-source` ; ce n'est pas une limite de la CI. Détails : `testing.md`.
 - Les contrôles de métadonnées de schéma (`php artisan eagle:verify-schema`), les contrats (`test:contracts`) et les vecteurs de règles (`npm run test:domain`) du fichier 25 appartiennent à F04, F06 et F08 : ils n'existent pas encore.

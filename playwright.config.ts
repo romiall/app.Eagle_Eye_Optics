@@ -1,33 +1,9 @@
-import { existsSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
-
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = Number(process.env['EEO_E2E_PORT'] ?? 8123)
-const BASE_URL = `http://127.0.0.1:${PORT}`
+import { chromiumLaunchOptions } from './tests/e2e/support/chromium'
+import { MAIN_PORT } from './tests/e2e/support/ports'
 
-/**
- * Chromium local : variable PLAYWRIGHT_CHROMIUM_EXECUTABLE, sinon le Chromium préinstallé de
- * /opt/pw-browsers (poste de développement cloud), sinon le navigateur installé par Playwright
- * (CI : « npx playwright install --with-deps chromium »). Aucun téléchargement n'est lancé ici.
- */
-function chromiumExecutable(): string | undefined {
-  const fromEnvironment = process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE']
-  if (fromEnvironment) return fromEnvironment
-
-  const root = process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '/opt/pw-browsers'
-  if (!existsSync(root)) return undefined
-
-  const candidates = readdirSync(root)
-    .filter((name) => /^chromium-\d+$/.test(name))
-    .sort()
-    .reverse()
-    .map((name) => join(root, name, 'chrome-linux', 'chrome'))
-
-  return candidates.find((candidate) => existsSync(candidate))
-}
-
-const executablePath = chromiumExecutable()
+const BASE_URL = `http://127.0.0.1:${MAIN_PORT}`
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -52,18 +28,16 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          ...(executablePath ? { executablePath } : {}),
-          // Les conteneurs de CI et de développement cloud n'offrent pas le bac à sable de Chromium.
-          args: process.env['CI'] || executablePath ? ['--no-sandbox'] : [],
-        },
+        // Navigateur : variable PLAYWRIGHT_CHROMIUM_EXECUTABLE, Chromium préinstallé ou navigateur
+        // de Playwright (voir tests/e2e/support/chromium.ts). Jamais de téléchargement ici.
+        launchOptions: chromiumLaunchOptions(),
       },
     },
   ],
   // Application Laravel construite (public/build) servie par artisan sur une seule origine, avec la
   // base de test isolée et aucun fournisseur réel (fichier .env.e2e généré, jamais versionné).
   webServer: {
-    command: `node tests/e2e/prepare-env.mjs && php artisan serve --host=127.0.0.1 --port=${PORT} --no-reload`,
+    command: `node tests/e2e/prepare-env.mjs && php artisan serve --host=127.0.0.1 --port=${MAIN_PORT} --no-reload`,
     url: `${BASE_URL}/up`,
     reuseExistingServer: !process.env['CI'],
     timeout: 60_000,

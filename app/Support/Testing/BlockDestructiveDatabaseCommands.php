@@ -36,7 +36,7 @@ final class BlockDestructiveDatabaseCommands
         }
 
         IsolatedDatabaseGuard::forConnection(
-            app()->environment(),
+            (string) app()->environment(),
             $this->connectionName($event->input),
         )->assertAllows($event->command);
     }

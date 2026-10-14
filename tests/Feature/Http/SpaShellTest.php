@@ -4,6 +4,7 @@ namespace Tests\Feature\Http;
 
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\UsesTemporaryPublicDirectory;
 use Tests\TestCase;
 
 /**
@@ -12,6 +13,8 @@ use Tests\TestCase;
  */
 final class SpaShellTest extends TestCase
 {
+    use UsesTemporaryPublicDirectory;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -23,6 +26,23 @@ final class SpaShellTest extends TestCase
     public function test_l_application_demarre_et_repond_a_la_sonde_de_sante(): void
     {
         $this->get('/up')->assertOk();
+    }
+
+    public function test_aucune_vue_blade_ne_charge_de_script_de_fonte_ou_de_style_tiers(): void
+    {
+        // Une seule origine (fichier 09) : aucune URL absolue ni « // » dans les attributs de chargement
+        // ni dans les url()/@import des vues. Les vues par défaut de Laravel (welcome, health-up) en
+        // contiennent : elles ne doivent jamais être rendues par une route de l'application.
+        $external = '~(?:\b(?:src|href|action|poster|data)\s*=\s*|url\(\s*|@import\s+)["\']?\s*(?:https?:)?//~i';
+        $violations = [];
+
+        foreach (File::allFiles(resource_path('views')) as $view) {
+            if (preg_match($external, $view->getContents()) === 1) {
+                $violations[] = $view->getRelativePathname();
+            }
+        }
+
+        $this->assertSame([], $violations, 'Vue(s) chargeant une ressource hors de l\'origine : '.implode(', ', $violations));
     }
 
     public function test_la_racine_sert_la_coquille_spa_en_francais(): void
@@ -160,15 +180,5 @@ final class SpaShellTest extends TestCase
 
         $this->get('/sw.js')->assertNotFound();
         $this->get('/manifest.webmanifest')->assertNotFound();
-    }
-
-    private function temporaryPublicDirectory(): string
-    {
-        $directory = sys_get_temp_dir().'/eeo-public-'.bin2hex(random_bytes(6));
-        File::ensureDirectoryExists($directory);
-        $this->app->usePublicPath($directory);
-        $this->beforeApplicationDestroyed(static fn () => File::deleteDirectory($directory));
-
-        return $directory;
     }
 }

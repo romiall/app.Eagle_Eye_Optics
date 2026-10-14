@@ -25,9 +25,16 @@
     "tests/Feature/ConfigurationContractTest.php",
     "tests/Feature/Http/SpaShellTest.php",
     "tests/e2e/smoke.spec.ts",
-    "docs/implementation/progress.md"
+    "docs/implementation/progress.md",
+    "app/Http/Controllers/HealthController.php",
+    "tests/Feature/Http/HealthProbeTest.php",
+    "phpstan.neon",
+    "app/Providers/AppServiceProvider.php",
+    "tests/Feature/Http/SpaShellOriginTest.php",
+    "tests/e2e/https-origin.spec.ts",
+    "tests/e2e/support/tls-proxy.ts"
    ],
-   "notes": "Build PHP/frontend reproductible depuis les lockfiles (copie propre vérifiée) ; aucun serveur Node en production ; aucun secret suivi. Larastan non installable dans l'environnement cloud (voir progress.md). | Point d'étape 2026-10-14 10:40 UTC : vérification adverse en cours (défauts majeurs relevés : sonde /up chargeant un script tiers, analyse statique PHP absente, migrate:rollback non bloqué) ; DONE seulement après correction et re-vérification."
+   "notes": "Build PHP/frontend reproductible depuis les lockfiles (copie propre vérifiée) ; aucun serveur Node en production ; aucun secret suivi. | Corrections du 2026-10-14 après vérification adverse (voir progress.md) : sonde /up maison sans script ni fonte tiers (aucune requête hors origine, vérifié sous Playwright), analyse statique PHPStan niveau 8 + Larastan installée et verrouillée (la mention « non installable » était inexacte). Seconde vérification adverse (2026-10-14) : coquille opérationnelle derrière un proxy ou un CDN qui termine TLS (assets en chemins depuis la racine, Vite::createAssetPathsUsing ; tests PHP SpaShellOriginTest et e2e https-origin.spec.ts, voir progress.md). Reste à faire avant DONE : re-vérification adverse. CSP et en-têtes de sécurité hors de ce lot."
   },
   "F03": {
    "status": "IN_REVIEW",
@@ -43,14 +50,21 @@
     "tests/Unit/Support/Testing/IsolatedDatabaseGuardTest.php",
     "tests/Feature/Database/DestructiveCommandsBlockedTest.php",
     "tests/Feature/Database/ResetTestDatabaseCommandTest.php",
-    "docs/implementation/progress.md"
+    "docs/implementation/progress.md",
+    "phpstan.neon",
+    "app/Support/Testing/BlockDestructiveDatabaseCommands.php",
+    "tests/Feature/Database/MigrateRollbackGuardTest.php",
+    "tools/dev/seed-composer-cache.sh",
+    "tests/Support/UsesTemporaryPublicDirectory.php",
+    "tests/e2e/support/chromium.ts",
+    "tests/e2e/support/ports.ts"
    ],
-   "notes": "Suites PHPUnit/Vitest/Playwright exécutées localement (96/30/5 tests). Passe à DONE après la première exécution constatée du workflow GitHub Actions."
+   "notes": "Suites exécutées localement après correction (check-all --strict --with-e2e) : PHPUnit 132 tests, Vitest 30, Playwright 13 (dont 4 sur origine HTTPS derrière un proxy TLS), PHPStan niveau 8 sans erreur. Garde étendue à migrate:rollback (preuve sur MySQL réel : down() non exécuté, table intacte). Passe à DONE après re-vérification adverse et la première exécution constatée du workflow GitHub Actions."
   },
   "F04": {
    "status": "NOT_STARTED",
    "evidence": [],
-   "notes": ""
+   "notes": "Contrats hérités de la revue F03 : les down() des migrations des tables métier refusent l'exécution (fichier 23), avec test dédié (la garde de commande migrate:rollback ne le remplace pas) ; le code ajouté doit passer composer run lint (PHPStan niveau 8, sans baseline). Bac à sable cloud : tools/dev/seed-composer-cache.sh && composer install --prefer-source."
   },
   "G0": {
    "status": "NOT_STARTED",
