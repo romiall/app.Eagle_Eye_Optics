@@ -1,0 +1,13 @@
+{
+  "schema": "commands/StartConsultation.v1.json",
+  "valid": false,
+  "description": "Ni frais payés ni dérogation : refusé (EXAM_PAYMENT_REQUIRED)",
+  "base": "commands/start-consultation.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/exam_invoice_id",
+      "value": null
+    }
+  ]
+}

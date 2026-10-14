@@ -1,0 +1,15 @@
+{
+  "schema": "commands/RecordContactAttempt.v1.json",
+  "valid": true,
+  "description": "Appel sans réponse, nouvelle tentative planifiée",
+  "data": {
+    "attempt_id": "01J9ZXK4M2Q8R7S6T5V4W3005M",
+    "task_id": "01J9ZXK4M2Q8R7S6T5V4W3005N",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "result": "NO_RESPONSE",
+    "appointment_id": null,
+    "administrative_note": null,
+    "next_status": "NO_RESPONSE",
+    "next_attempt_at": "2026-10-15T09:30:00.000Z"
+  }
+}

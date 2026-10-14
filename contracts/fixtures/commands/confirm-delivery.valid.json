@@ -1,0 +1,23 @@
+{
+  "schema": "commands/ConfirmDelivery.v1.json",
+  "valid": true,
+  "description": "Remise d'une ligne réservée, sortie de stock identifiée par le poste",
+  "data": {
+    "delivery_id": "01J9ZXK4M2Q8R7S6T5V4W30042",
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "delivered_at": "2026-10-14T09:30:00.000Z",
+    "credit_delivery_approval_id": null,
+    "lines": [
+      {
+        "delivery_line_id": "01J9ZXK4M2Q8R7S6T5V4W30043",
+        "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+        "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+        "quantity": "1",
+        "stock_position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+        "stock_lot_id": null,
+        "reservation_id": "01J9ZXK4M2Q8R7S6T5V4W3002G",
+        "stock_movement_id": "01J9ZXK4M2Q8R7S6T5V4W30044"
+      }
+    ]
+  }
+}

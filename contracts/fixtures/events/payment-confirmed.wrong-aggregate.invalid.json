@@ -1,0 +1,13 @@
+{
+  "schema": "events/envelope.json",
+  "valid": false,
+  "description": "Agrégat incohérent avec le type d'événement",
+  "base": "events/payment-confirmed.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/aggregate_type",
+      "value": "payments"
+    }
+  ]
+}

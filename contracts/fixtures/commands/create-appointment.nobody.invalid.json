@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreateAppointment.v1.json",
+  "valid": false,
+  "description": "Rendez-vous sans patient ni prospect",
+  "base": "commands/create-appointment.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/patient_id",
+      "value": null
+    }
+  ]
+}

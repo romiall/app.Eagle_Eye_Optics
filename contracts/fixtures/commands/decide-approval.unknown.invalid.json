@@ -1,0 +1,13 @@
+{
+  "schema": "commands/DecideApproval.v1.json",
+  "valid": false,
+  "description": "Décision hors liste",
+  "base": "commands/decide-approval.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/decision",
+      "value": "MAYBE"
+    }
+  ]
+}

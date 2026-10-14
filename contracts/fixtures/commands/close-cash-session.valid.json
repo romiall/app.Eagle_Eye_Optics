@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CloseCashSession.v1.json",
+  "valid": true,
+  "description": "Clôture avec écart motivé (attendu recalculé par le serveur)",
+  "data": {
+    "cash_session_id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+    "closed_at": "2026-10-14T18:00:00.000Z",
+    "counted_amount": 105000,
+    "expected_amount": 105500,
+    "variance": -500,
+    "variance_reason": "Écart de monnaie constaté (fictif)"
+  }
+}

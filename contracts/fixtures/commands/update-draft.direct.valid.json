@@ -1,0 +1,23 @@
+{
+  "schema": "commands/UpdateDraft.v1.json#/$defs/DirectRequest",
+  "valid": true,
+  "description": "Modification du brouillon avec sa version brouillon",
+  "data": {
+    "expected_version": 2,
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+    "due_date": "2026-10-31",
+    "lines": [
+      {
+        "line_id": "01J9ZXK4M2Q8R7S6T5V4W3001W",
+        "position": 1,
+        "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+        "description": "Examen de vue (fictif)",
+        "quantity": "1",
+        "unit_price_gross": 15000,
+        "discount_gross": 0,
+        "prescription_id": null
+      }
+    ]
+  }
+}

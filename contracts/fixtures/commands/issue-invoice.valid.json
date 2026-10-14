@@ -1,0 +1,26 @@
+{
+  "schema": "commands/IssueInvoice.v1.json",
+  "valid": true,
+  "description": "Émission locale : numéro de la plage, réserve sous quota, document en attente",
+  "data": {
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "number_usage_id": "01J9ZXK4M2Q8R7S6T5V4W30027",
+    "number": "TEST-FAC-000001",
+    "issued_at": "2026-10-14T09:30:00.000Z",
+    "total_gross": 80000,
+    "write_owner_id": "01J9ZXK4M2Q8R7S6T5V4W30028",
+    "catalog_snapshot_sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "reservations": [
+      {
+        "reservation_id": "01J9ZXK4M2Q8R7S6T5V4W3002G",
+        "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+        "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+        "stock_position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+        "stock_lot_id": null,
+        "device_allocation_id": "01J9ZXK4M2Q8R7S6T5V4W3002J",
+        "quantity": "1"
+      }
+    ],
+    "document_id": "01J9ZXK4M2Q8R7S6T5V4W30029"
+  }
+}

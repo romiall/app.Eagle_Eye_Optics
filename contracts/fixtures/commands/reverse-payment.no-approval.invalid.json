@@ -1,0 +1,13 @@
+{
+  "schema": "commands/ReversePayment.v1.json",
+  "valid": false,
+  "description": "Contre-écriture sans approbation",
+  "base": "commands/reverse-payment.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/approval_id",
+      "value": null
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": false,
+  "description": "Téléphone absent sans motif : refusé",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/phone_primary",
+      "value": null
+    }
+  ]
+}

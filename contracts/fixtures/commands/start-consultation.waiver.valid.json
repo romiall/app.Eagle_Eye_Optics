@@ -1,0 +1,18 @@
+{
+  "schema": "commands/StartConsultation.v1.json",
+  "valid": true,
+  "description": "Démarrage sur dérogation gérante exacte",
+  "base": "commands/start-consultation.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/exam_invoice_id",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/exam_waiver_approval_id",
+      "value": "01J9ZXK4M2Q8R7S6T5V4W3000Z"
+    }
+  ]
+}

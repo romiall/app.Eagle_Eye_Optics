@@ -1,0 +1,13 @@
+{
+  "schema": "commands/UpdatePatient.v1.json",
+  "valid": false,
+  "description": "Aucun changement : refusé",
+  "base": "commands/update-patient.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/changes",
+      "value": {}
+    }
+  ]
+}

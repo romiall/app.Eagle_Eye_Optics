@@ -1,0 +1,19 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "Charge d'une autre commande sous le nom CreatePatient",
+  "base": "sync/push-request.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/commands/0/core/payload",
+      "value": {
+        "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+        "visit_id": null,
+        "due_date": null,
+        "lines": []
+      }
+    }
+  ]
+}

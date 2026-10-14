@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/ConsultationCompleted.v1.json",
+  "title": "ConsultationCompleted (charge v1)",
+  "description": "Consultation finalisée : révision 1 immuable écrite (aucune donnée clinique dans la charge). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "consultations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "consultation_id",
+    "patient_id",
+    "visit_id",
+    "revision_id",
+    "revision_no",
+    "completed_at"
+  ],
+  "properties": {
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "visit_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "revision_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "revision_no": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "completed_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}

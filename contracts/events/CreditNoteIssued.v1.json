@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/CreditNoteIssued.v1.json",
+  "title": "CreditNoteIssued (charge v1)",
+  "description": "Avoir émis sur une facture (agrégat : la facture). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "credit_note_id",
+    "invoice_id",
+    "number",
+    "amount_gross",
+    "currency",
+    "issued_at"
+  ],
+  "properties": {
+    "credit_note_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "amount_gross": {
+      "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "issued_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}

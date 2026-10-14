@@ -1,0 +1,18 @@
+{
+  "schema": "commands/RegisterStockMovement.v1.json",
+  "valid": false,
+  "description": "Mouvement de quantité nulle",
+  "base": "commands/register-stock-movement.breakage.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/kind",
+      "value": "ADJUSTMENT"
+    },
+    {
+      "op": "replace",
+      "path": "/signed_quantity",
+      "value": "0.000"
+    }
+  ]
+}

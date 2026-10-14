@@ -1,0 +1,13 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "Création de patient par le journal sans plage de numéros",
+  "base": "sync/push-request.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/commands/0/core/number_allocation_id",
+      "value": null
+    }
+  ]
+}

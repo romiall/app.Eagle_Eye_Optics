@@ -1,0 +1,13 @@
+{
+  "schema": "commands/UpdatePatient.v1.json",
+  "valid": false,
+  "description": "Le numéro de dossier ne se modifie pas",
+  "base": "commands/update-patient.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/changes/record_number",
+      "value": "X-1"
+    }
+  ]
+}

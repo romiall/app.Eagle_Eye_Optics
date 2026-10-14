@@ -1,0 +1,12 @@
+{
+  "schema": "commands/UpdatePatient.v1.json",
+  "valid": true,
+  "description": "Modification d'identité : seuls les champs modifiés",
+  "data": {
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "changes": {
+      "phone_primary": "+237 600 00 00 02",
+      "phone_missing_reason": null
+    }
+  }
+}

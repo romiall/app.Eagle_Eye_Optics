@@ -1,0 +1,13 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "schema_version inconnue pour cette commande",
+  "base": "sync/push-request.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/commands/0/core/schema_version",
+      "value": "2"
+    }
+  ]
+}

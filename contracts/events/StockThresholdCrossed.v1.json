@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/StockThresholdCrossed.v1.json",
+  "title": "StockThresholdCrossed (charge v1)",
+  "description": "Alerte de stock ouverte : seuil bas ou péremption proche. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "stock_alerts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stock_alert_id",
+    "item_id",
+    "location_id",
+    "lot_id",
+    "kind",
+    "detected_at",
+    "due_on"
+  ],
+  "properties": {
+    "stock_alert_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "item_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "location_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "lot_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "kind": {
+      "$ref": "../schemas/enums.json#/$defs/stock_alerts.kind"
+    },
+    "detected_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "due_on": {
+      "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+    }
+  }
+}

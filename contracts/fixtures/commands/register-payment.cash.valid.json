@@ -1,0 +1,23 @@
+{
+  "schema": "commands/RegisterPayment.v1.json",
+  "valid": true,
+  "description": "Espèces dans la session de caisse ouverte",
+  "base": "commands/register-payment.mobile-money.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/method",
+      "value": "CASH"
+    },
+    {
+      "op": "replace",
+      "path": "/reference",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/cash_session_id",
+      "value": "01J9ZXK4M2Q8R7S6T5V4W3002Y"
+    }
+  ]
+}

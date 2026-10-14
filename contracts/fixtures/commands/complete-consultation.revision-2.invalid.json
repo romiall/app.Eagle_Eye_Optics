@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CompleteConsultation.v1.json",
+  "valid": false,
+  "description": "La finalisation écrit toujours la révision 1",
+  "base": "commands/complete-consultation.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/revision_no",
+      "value": 2
+    }
+  ]
+}

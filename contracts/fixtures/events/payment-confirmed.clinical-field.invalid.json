@@ -1,0 +1,15 @@
+{
+  "schema": "events/envelope.json",
+  "valid": false,
+  "description": "Champ clinique ajouté à la charge : refusé (charge minimale)",
+  "base": "events/payment-confirmed.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/payload/refraction",
+      "value": {
+        "od": "-1.25"
+      }
+    }
+  ]
+}

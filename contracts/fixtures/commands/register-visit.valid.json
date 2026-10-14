@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterVisit.v1.json",
+  "valid": true,
+  "description": "Arrivée pour examen",
+  "data": {
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "reason": "EXAM",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "appointment_id": null,
+    "administrative_note": null
+  }
+}

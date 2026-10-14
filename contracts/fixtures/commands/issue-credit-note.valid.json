@@ -1,0 +1,24 @@
+{
+  "schema": "commands/IssueCreditNote.v1.json",
+  "valid": true,
+  "description": "Avoir de 10 000 XAF lié à une ligne d'origine",
+  "data": {
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "credit_note_id": "01J9ZXK4M2Q8R7S6T5V4W30034",
+    "number_usage_id": "01J9ZXK4M2Q8R7S6T5V4W30035",
+    "number": "TEST-AV-000001",
+    "amount_gross": 10000,
+    "reason": "Remise commerciale accordée (fictif)",
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W30036",
+    "document_id": "01J9ZXK4M2Q8R7S6T5V4W30037",
+    "lines": [
+      {
+        "credit_note_line_id": "01J9ZXK4M2Q8R7S6T5V4W30038",
+        "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+        "quantity": null,
+        "amount_gross": 10000,
+        "reason": null
+      }
+    ]
+  }
+}

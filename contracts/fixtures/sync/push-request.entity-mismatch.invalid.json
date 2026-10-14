@@ -1,0 +1,13 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "entity_type ne correspond pas à la commande (CreatePatient → patient_records)",
+  "base": "sync/push-request.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/commands/0/core/entity_type",
+      "value": "invoices"
+    }
+  ]
+}

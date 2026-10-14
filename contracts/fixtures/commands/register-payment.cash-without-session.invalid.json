@@ -1,0 +1,18 @@
+{
+  "schema": "commands/RegisterPayment.v1.json",
+  "valid": false,
+  "description": "Espèces sans session de caisse (CHECK de payments)",
+  "base": "commands/register-payment.mobile-money.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/method",
+      "value": "CASH"
+    },
+    {
+      "op": "replace",
+      "path": "/reference",
+      "value": null
+    }
+  ]
+}

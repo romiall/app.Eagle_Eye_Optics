@@ -1,0 +1,33 @@
+{
+  "schema": "commands/CreateInvoiceDraft.v1.json",
+  "valid": true,
+  "description": "Brouillon à deux lignes, identifiants de lignes fournis par le poste",
+  "data": {
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+    "due_date": null,
+    "lines": [
+      {
+        "line_id": "01J9ZXK4M2Q8R7S6T5V4W3001W",
+        "position": 1,
+        "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+        "description": "Examen de vue (fictif)",
+        "quantity": "1",
+        "unit_price_gross": 15000,
+        "discount_gross": 0,
+        "prescription_id": null
+      },
+      {
+        "line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+        "position": 2,
+        "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+        "description": "Monture fictive",
+        "quantity": "1.125",
+        "unit_price_gross": 1001,
+        "discount_gross": 0,
+        "prescription_id": "01J9ZXK4M2Q8R7S6T5V4W3001J"
+      }
+    ]
+  }
+}

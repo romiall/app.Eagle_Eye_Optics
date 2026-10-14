@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eeo.invalid/contracts/commands/RegisterStockMovement.v1.json",
   "title": "RegisterStockMovement (charge v1)",
-  "description": "Mouvement hors vente (ouverture, casse, ajustement) avec motif et approbation hors vente. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "description": "Mouvement hors vente (casse, ajustement) avec motif et approbation hors vente (CHECK de stock_movements). Le stock initial passe par POST /stock/opening (I00), les sorties de vente par ConfirmDelivery, les retours par RegisterPhysicalReturn. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
   "x-entity-type": "stock_movements",
   "x-entity-id-field": "movement_id",
   "x-permission": "stock.adjust",
@@ -38,13 +38,22 @@
     "kind": {
       "type": "string",
       "enum": [
-        "OPENING",
         "BREAKAGE",
         "ADJUSTMENT"
       ]
     },
     "signed_quantity": {
-      "$ref": "../schemas/common.json#/$defs/SignedQuantity"
+      "allOf": [
+        {
+          "$ref": "../schemas/common.json#/$defs/SignedQuantity"
+        },
+        {
+          "not": {
+            "type": "string",
+            "pattern": "^-?0(\\.0{1,3})?$"
+          }
+        }
+      ]
     },
     "unit_cost": {
       "anyOf": [
@@ -57,7 +66,7 @@
       ]
     },
     "approval_id": {
-      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+      "$ref": "../schemas/common.json#/$defs/Ulid"
     },
     "reason": {
       "$ref": "../schemas/common.json#/$defs/Reason"
@@ -66,6 +75,28 @@
       "$ref": "../schemas/common.json#/$defs/Instant"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "BREAKAGE"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "signed_quantity": {
+            "type": "string",
+            "pattern": "^-"
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "DirectRequest": {
       "description": "Corps de la route directe POST /stock/movements : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
@@ -103,13 +134,22 @@
         "kind": {
           "type": "string",
           "enum": [
-            "OPENING",
             "BREAKAGE",
             "ADJUSTMENT"
           ]
         },
         "signed_quantity": {
-          "$ref": "../schemas/common.json#/$defs/SignedQuantity"
+          "allOf": [
+            {
+              "$ref": "../schemas/common.json#/$defs/SignedQuantity"
+            },
+            {
+              "not": {
+                "type": "string",
+                "pattern": "^-?0(\\.0{1,3})?$"
+              }
+            }
+          ]
         },
         "unit_cost": {
           "anyOf": [
@@ -122,7 +162,7 @@
           ]
         },
         "approval_id": {
-          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+          "$ref": "../schemas/common.json#/$defs/Ulid"
         },
         "reason": {
           "$ref": "../schemas/common.json#/$defs/Reason"
@@ -130,7 +170,29 @@
         "occurred_at": {
           "$ref": "../schemas/common.json#/$defs/Instant"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "BREAKAGE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "signed_quantity": {
+                "type": "string",
+                "pattern": "^-"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

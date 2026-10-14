@@ -1,0 +1,13 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": false,
+  "description": "Sphère en nombre JSON au lieu d'une chaîne exacte",
+  "base": "commands/save-clinical-step.refraction.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/step/data/measurements/0/sphere",
+      "value": -1.25
+    }
+  ]
+}

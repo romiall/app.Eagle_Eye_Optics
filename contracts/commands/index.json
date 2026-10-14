@@ -184,16 +184,6 @@
       "direct_route": "POST /cash-sessions/{id}/close",
       "number_type": null
     },
-    "ReserveStock": {
-      "schema": "commands/ReserveStock.v1.json",
-      "schema_version": "1",
-      "entity_type": "stock_reservations",
-      "entity_id_field": "reservation_id",
-      "permission": "invoice.issue",
-      "expected_version": "none",
-      "direct_route": "POST /stock/reservations",
-      "number_type": null
-    },
     "ConfirmDelivery": {
       "schema": "commands/ConfirmDelivery.v1.json",
       "schema_version": "1",

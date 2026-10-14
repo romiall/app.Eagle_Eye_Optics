@@ -1,0 +1,16 @@
+{
+  "schema": "commands/CreateAppointment.v1.json",
+  "valid": true,
+  "description": "Rendez-vous de suivi pour un patient (à confirmer s'il est pris hors-ligne)",
+  "data": {
+    "appointment_id": "01J9ZXK4M2Q8R7S6T5V4W3005A",
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "prospect_contact_id": null,
+    "follow_up_id": "01J9ZXK4M2Q8R7S6T5V4W30050",
+    "resource_id": "01J9ZXK4M2Q8R7S6T5V4W3005B",
+    "service_id": "01J9ZXK4M2Q8R7S6T5V4W3005C",
+    "starts_at": "2027-10-14T08:00:00.000Z",
+    "ends_at": "2027-10-14T08:30:00.000Z",
+    "administrative_reason": null
+  }
+}

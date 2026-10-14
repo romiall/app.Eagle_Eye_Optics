@@ -1,0 +1,14 @@
+{
+  "schema": "commands/StartConsultation.v1.json",
+  "valid": true,
+  "description": "Démarrage sur frais d'examen payés (pièce de frais de cette visite)",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "effective_at": "2026-10-14T09:30:00.000Z",
+    "date_change_reason": null,
+    "exam_invoice_id": "01J9ZXK4M2Q8R7S6T5V4W3000Y",
+    "exam_waiver_approval_id": null
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/PrescriptionValidated.v1.json",
+  "title": "PrescriptionValidated (charge v1)",
+  "description": "Prescription validée par le professionnel ; document préparé. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "optical_prescriptions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prescription_id",
+    "patient_id",
+    "consultation_id",
+    "origin",
+    "version_no",
+    "validated_at",
+    "document_id"
+  ],
+  "properties": {
+    "prescription_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "origin": {
+      "$ref": "../schemas/enums.json#/$defs/optical_prescriptions.origin"
+    },
+    "version_no": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "validated_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "document_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    }
+  }
+}

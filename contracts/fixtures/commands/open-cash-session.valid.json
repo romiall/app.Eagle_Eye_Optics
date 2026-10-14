@@ -1,0 +1,11 @@
+{
+  "schema": "commands/OpenCashSession.v1.json",
+  "valid": true,
+  "description": "Ouverture avec fond de caisse",
+  "data": {
+    "cash_session_id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+    "cash_register_id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+    "opening_amount": 25000,
+    "opened_at": "2026-10-14T09:30:00.000Z"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": false,
+  "description": "Clé optionnelle omise au lieu de null : refusée (hash reproductible)",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/address"
+    }
+  ]
+}

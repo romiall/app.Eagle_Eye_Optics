@@ -1,0 +1,13 @@
+{
+  "schema": "commands/AmendConsultation.v1.json",
+  "valid": false,
+  "description": "Motif trop court",
+  "base": "commands/amend-consultation.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/reason",
+      "value": "ok"
+    }
+  ]
+}

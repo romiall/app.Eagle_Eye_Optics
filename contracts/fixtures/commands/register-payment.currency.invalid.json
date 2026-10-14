@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterPayment.v1.json",
+  "valid": false,
+  "description": "Monnaie autre que XAF",
+  "base": "commands/register-payment.mobile-money.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/currency",
+      "value": "EUR"
+    }
+  ]
+}

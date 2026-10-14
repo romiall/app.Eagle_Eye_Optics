@@ -1,0 +1,12 @@
+{
+  "schema": "commands/UpdatePatient.v1.json#/$defs/DirectRequest",
+  "valid": true,
+  "description": "Route directe avec version attendue de l'agrégat",
+  "data": {
+    "expected_version": 3,
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "changes": {
+      "address": "Nouveau quartier fictif"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "commands/RegisterStockMovement.v1.json",
+  "valid": true,
+  "description": "Casse approuvée : quantité négative",
+  "data": {
+    "movement_id": "01J9ZXK4M2Q8R7S6T5V4W3004P",
+    "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+    "position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+    "lot_id": null,
+    "kind": "BREAKAGE",
+    "signed_quantity": "-1",
+    "unit_cost": null,
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004Q",
+    "reason": "Monture cassée en vitrine (fictif)",
+    "occurred_at": "2026-10-14T09:30:00.000Z"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "commands/CreatePrescription.v1.json",
+  "valid": false,
+  "description": "Une seule ligne d'œil : le modèle DP en exige deux",
+  "base": "commands/create-prescription.internal.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/eyes/1"
+    }
+  ]
+}

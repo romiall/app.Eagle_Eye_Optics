@@ -1,0 +1,24 @@
+{
+  "schema": "commands/AmendConsultation.v1.json",
+  "valid": true,
+  "description": "Correction motivée : nouvelle révision, la précédente reste intacte",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "revision_id": "01J9ZXK4M2Q8R7S6T5V4W3000P",
+    "revision_no": 2,
+    "previous_revision_id": "01J9ZXK4M2Q8R7S6T5V4W3000N",
+    "reason": "Correction de l'axe saisi (fictif)",
+    "snapshot_sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "steps": [
+      {
+        "step": "CONCLUSION",
+        "data": {
+          "conclusion": "Conclusion corrigée (fictif)",
+          "referral": false,
+          "referral_urgency": null,
+          "referral_reasons": []
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 """Charges des commandes du journal local et des requêtes directes équivalentes (F06).
 
-Source unique des 27 commandes jouables hors-ligne (fichiers 08, 19, 23) : chaque commande produit
+Source unique des 26 commandes jouables hors-ligne (fichiers 08, 19, 23) : chaque commande produit
 contracts/commands/<Nom>.v1.json avec
   - la charge synchronisée (racine du schéma : objet strict, toutes les clés présentes, null explicite),
   - `$defs/DirectRequest` : la même charge plus `expected_version` pour la route HTTP directe
@@ -107,6 +107,7 @@ N_DIOPTER = ref('NullableDiopter')
 N_DATE = ref('NullableCivilDate')
 AXIS = nullable(integer(0, 180))
 TERM = obj({'id': ULID, 'term_code': ref('Code'), 'other_text': N_TEXT})
+NON_ZERO_SIGNED_QUANTITY = {'allOf': [ref('SignedQuantity'), {'not': {'type': 'string', 'pattern': '^-?0(\\.0{1,3})?$'}}]}
 
 INVOICE_LINE = obj({
     'line_id': ULID,
@@ -119,6 +120,8 @@ INVOICE_LINE = obj({
     'prescription_id': N_ULID,
 }, {'description': 'Ligne de brouillon : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise).'})
 
+# Réserve écrite par IssueInvoice (I00 : même service transactionnel pour l'émission et la remise ;
+# aucune route de réservation séparée).
 RESERVATION = obj({
     'reservation_id': ULID,
     'invoice_line_id': ULID,
@@ -312,10 +315,6 @@ COMMANDS = {
         {'cash_session_id': ULID, 'closed_at': INSTANT, 'counted_amount': MONEY, 'expected_amount': MONEY,
          'variance': ref('SignedMoneyXaf'), 'variance_reason': N_TEXT},
         []),
-    'ReserveStock': ('stock_reservations', 'invoice.issue', 'none', 'POST /stock/reservations',
-        'Réserve sur une ligne émise (quota local ou disponible central), jamais une sortie de stock.',
-        {**RESERVATION['properties']},
-        []),
     'ConfirmDelivery': ('deliveries', 'delivery.confirm', 'none', 'POST /invoices/{id}/deliveries',
         'Remise liée à la vente : quantités non remises, lot vendable non expiré au jour local, approbation si dette.',
         {'delivery_id': ULID, 'invoice_id': ULID, 'delivered_at': INSTANT, 'credit_delivery_approval_id': N_ULID,
@@ -330,11 +329,11 @@ COMMANDS = {
          'occurred_at': INSTANT, 'reason': REASON, 'credit_note_id': N_ULID, 'stock_movement_id': N_ULID},
         []),
     'RegisterStockMovement': ('stock_movements', 'stock.adjust', 'none', 'POST /stock/movements',
-        'Mouvement hors vente (ouverture, casse, ajustement) avec motif et approbation hors vente.',
+        'Mouvement hors vente (casse, ajustement) avec motif et approbation hors vente (CHECK de stock_movements). Le stock initial passe par POST /stock/opening (I00), les sorties de vente par ConfirmDelivery, les retours par RegisterPhysicalReturn.',
         {'movement_id': ULID, 'item_id': ULID, 'position_id': ULID, 'lot_id': N_ULID,
-         'kind': {'type': 'string', 'enum': ['OPENING', 'BREAKAGE', 'ADJUSTMENT']}, 'signed_quantity': ref('SignedQuantity'),
-         'unit_cost': nullable(MONEY), 'approval_id': N_ULID, 'reason': REASON, 'occurred_at': INSTANT},
-        []),
+         'kind': {'type': 'string', 'enum': ['BREAKAGE', 'ADJUSTMENT']}, 'signed_quantity': NON_ZERO_SIGNED_QUANTITY,
+         'unit_cost': nullable(MONEY), 'approval_id': ULID, 'reason': REASON, 'occurred_at': INSTANT},
+        [require_when_const('kind', 'BREAKAGE', 'signed_quantity', {'type': 'string', 'pattern': '^-'})]),
     'CreateFollowUp': ('follow_up_plans', 'follow_up.write', 'none', 'POST /follow-ups',
         'Contrôle recommandé : date calculée ou saisie par le professionnel (Q09), rappel interne ; aucun envoi externe.',
         {'follow_up_plan_id': ULID, 'consultation_id': ULID, 'patient_id': ULID, 'reason': enum('follow_up_plans.reason'),
@@ -380,7 +379,7 @@ ENTITY_ID_FIELD = {
     'AmendConsultation': 'consultation_id', 'CreatePrescription': 'prescription_id', 'ValidatePrescription': 'prescription_id',
     'CreateInvoiceDraft': 'invoice_id', 'UpdateDraft': 'invoice_id', 'IssueInvoice': 'invoice_id',
     'RegisterPayment': 'invoice_id', 'ReversePayment': 'invoice_id', 'IssueCreditNote': 'invoice_id', 'RefundCredit': 'invoice_id',
-    'OpenCashSession': 'cash_session_id', 'CloseCashSession': 'cash_session_id', 'ReserveStock': 'reservation_id',
+    'OpenCashSession': 'cash_session_id', 'CloseCashSession': 'cash_session_id',
     'ConfirmDelivery': 'delivery_id', 'RegisterPhysicalReturn': 'physical_return_id', 'RegisterStockMovement': 'movement_id',
     'CreateFollowUp': 'follow_up_plan_id', 'CreateAppointment': 'appointment_id', 'RecordContactAttempt': 'task_id',
     'RequestApproval': 'approval_id', 'DecideApproval': 'approval_id',

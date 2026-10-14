@@ -1,0 +1,19 @@
+{
+  "schema": "commands/RefundCredit.v1.json",
+  "valid": true,
+  "description": "Remboursement en espèces d'un crédit disponible",
+  "data": {
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "refund_id": "01J9ZXK4M2Q8R7S6T5V4W3003E",
+    "credit_note_id": "01J9ZXK4M2Q8R7S6T5V4W30034",
+    "number_usage_id": "01J9ZXK4M2Q8R7S6T5V4W3003F",
+    "number": "TEST-RB-000001",
+    "amount": 10000,
+    "method": "CASH",
+    "reference": null,
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3003G",
+    "effective_at": "2026-10-14T09:30:00.000Z",
+    "cash_session_id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+    "document_id": "01J9ZXK4M2Q8R7S6T5V4W3003H"
+  }
+}

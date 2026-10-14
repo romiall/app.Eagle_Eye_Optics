@@ -1,0 +1,18 @@
+{
+  "schema": "commands/RegisterPhysicalReturn.v1.json",
+  "valid": true,
+  "description": "Retour physique inspecté, remis en stock vendable",
+  "data": {
+    "physical_return_id": "01J9ZXK4M2Q8R7S6T5V4W3004C",
+    "delivery_line_id": "01J9ZXK4M2Q8R7S6T5V4W30043",
+    "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+    "quantity": "1",
+    "condition_code": "SELLABLE",
+    "accepted_for_restock": true,
+    "approved_by": "01J9ZXK4M2Q8R7S6T5V4W3004D",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "reason": "Monture non convenable, intacte (fictif)",
+    "credit_note_id": null,
+    "stock_movement_id": "01J9ZXK4M2Q8R7S6T5V4W3004E"
+  }
+}

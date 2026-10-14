@@ -1,0 +1,24 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Anamnèse : texte saisi, réponses non posées à null",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "ANAMNESIS",
+      "data": {
+        "symptoms": "Gêne en vision de près (fictif)",
+        "wears_glasses": true,
+        "glasses_duration": "3 ans",
+        "previous_correction_available": null,
+        "complaints": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001B",
+            "term_code": "VISION_DECLINE",
+            "other_text": null
+          }
+        ]
+      }
+    }
+  }
+}

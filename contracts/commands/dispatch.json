@@ -572,37 +572,6 @@
       "if": {
         "properties": {
           "command_name": {
-            "const": "ReserveStock"
-          }
-        },
-        "required": [
-          "command_name"
-        ]
-      },
-      "then": {
-        "properties": {
-          "schema_version": {
-            "const": "1"
-          },
-          "entity_type": {
-            "const": "stock_reservations"
-          },
-          "expected_version": {
-            "type": "null"
-          },
-          "number_allocation_id": {
-            "type": "null"
-          },
-          "payload": {
-            "$ref": "ReserveStock.v1.json"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "command_name": {
             "const": "ConfirmDelivery"
           }
         },
@@ -871,7 +840,6 @@
         "RefundCredit",
         "OpenCashSession",
         "CloseCashSession",
-        "ReserveStock",
         "ConfirmDelivery",
         "RegisterPhysicalReturn",
         "RegisterStockMovement",

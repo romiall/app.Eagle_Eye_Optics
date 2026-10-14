@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterVisit.v1.json",
+  "valid": false,
+  "description": "Motif de visite hors catalogue",
+  "base": "commands/register-visit.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/reason",
+      "value": "SHOPPING"
+    }
+  ]
+}

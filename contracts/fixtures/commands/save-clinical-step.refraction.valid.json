@@ -1,0 +1,41 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Réfraction : mesures exactes en chaînes, non mesuré à null",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "REFRACTION",
+      "data": {
+        "measurements": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30018",
+            "stage": "SUBJECTIVE",
+            "eye": "OD",
+            "sphere": "-1.25",
+            "cylinder": "-0.50",
+            "axis": 90,
+            "addition": null
+          },
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30019",
+            "stage": "SUBJECTIVE",
+            "eye": "OG",
+            "sphere": "0.00",
+            "cylinder": null,
+            "axis": null,
+            "addition": null
+          }
+        ],
+        "refraction_observations": null,
+        "ametropias": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001A",
+            "term_code": "MYOPIA",
+            "other_text": null
+          }
+        ]
+      }
+    }
+  }
+}

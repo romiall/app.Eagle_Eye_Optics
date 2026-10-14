@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": false,
+  "description": "Sexe hors du catalogue",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/sex",
+      "value": "X"
+    }
+  ]
+}

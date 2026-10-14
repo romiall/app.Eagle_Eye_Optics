@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/FollowUpScheduled.v1.json",
+  "title": "FollowUpScheduled (charge v1)",
+  "description": "Contrôle recommandé enregistré : date et préférence de rappel, sans motif clinique. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "follow_up_plans",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "follow_up_plan_id",
+    "patient_id",
+    "consultation_id",
+    "recommended_date",
+    "reminder_enabled",
+    "preferred_channel"
+  ],
+  "properties": {
+    "follow_up_plan_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "recommended_date": {
+      "$ref": "../schemas/common.json#/$defs/CivilDate"
+    },
+    "reminder_enabled": {
+      "type": "boolean"
+    },
+    "preferred_channel": {
+      "$ref": "../schemas/enums.json#/$defs/follow_up_plans.preferred_channel"
+    }
+  }
+}

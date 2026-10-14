@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": false,
+  "description": "clinic_id dans la charge : jamais accepté du poste (décidé par le grant)",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/clinic_id",
+      "value": "01J9ZXK4M2Q8R7S6T5V4W300W4"
+    }
+  ]
+}

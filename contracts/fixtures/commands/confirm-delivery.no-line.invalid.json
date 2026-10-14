@@ -1,0 +1,13 @@
+{
+  "schema": "commands/ConfirmDelivery.v1.json",
+  "valid": false,
+  "description": "Remise sans ligne",
+  "base": "commands/confirm-delivery.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/lines",
+      "value": []
+    }
+  ]
+}

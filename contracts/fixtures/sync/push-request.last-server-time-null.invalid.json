@@ -1,0 +1,13 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "Dernière heure serveur absente (colonne NOT NULL)",
+  "base": "sync/push-request.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/commands/0/core/last_server_time",
+      "value": null
+    }
+  ]
+}

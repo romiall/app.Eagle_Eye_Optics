@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterStockMovement.v1.json",
+  "valid": false,
+  "description": "Mouvement hors vente sans approbation",
+  "base": "commands/register-stock-movement.breakage.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/approval_id",
+      "value": null
+    }
+  ]
+}

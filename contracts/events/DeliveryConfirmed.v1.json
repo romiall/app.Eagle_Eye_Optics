@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/DeliveryConfirmed.v1.json",
+  "title": "DeliveryConfirmed (charge v1)",
+  "description": "Remise liée à une vente confirmée (sorties de stock écrites). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "deliveries",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "delivery_id",
+    "invoice_id",
+    "delivered_at",
+    "line_count"
+  ],
+  "properties": {
+    "delivery_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "delivered_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "line_count": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

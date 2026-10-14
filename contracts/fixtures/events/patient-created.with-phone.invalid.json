@@ -1,0 +1,13 @@
+{
+  "schema": "events/envelope.json",
+  "valid": false,
+  "description": "Coordonnées patient dans la charge d'outbox : refusées",
+  "base": "events/patient-created.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/payload/phone_primary",
+      "value": "+237 600 00 00 01"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "commands/IssueCreditNote.v1.json",
+  "valid": false,
+  "description": "Avoir sans ligne d'origine",
+  "base": "commands/issue-credit-note.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/lines",
+      "value": []
+    }
+  ]
+}

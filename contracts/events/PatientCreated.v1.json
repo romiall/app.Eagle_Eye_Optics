@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/PatientCreated.v1.json",
+  "title": "PatientCreated (charge v1)",
+  "description": "Dossier créé (en ligne ou par synchronisation d'une commande locale). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "patient_records",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "record_number",
+    "legacy_record",
+    "source_device_id"
+  ],
+  "properties": {
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "record_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "legacy_record": {
+      "type": "boolean"
+    },
+    "source_device_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    }
+  }
+}

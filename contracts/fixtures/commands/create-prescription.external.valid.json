@@ -1,0 +1,28 @@
+{
+  "schema": "commands/CreatePrescription.v1.json",
+  "valid": true,
+  "description": "Transcription d'une ordonnance externe identifiée (A13)",
+  "base": "commands/create-prescription.internal.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/origin",
+      "value": "EXTERNAL"
+    },
+    {
+      "op": "replace",
+      "path": "/consultation_id",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/external_prescriber",
+      "value": "Dr PRESCRIPTEUR FICTIF"
+    },
+    {
+      "op": "replace",
+      "path": "/external_prescribed_on",
+      "value": "2026-10-01"
+    }
+  ]
+}

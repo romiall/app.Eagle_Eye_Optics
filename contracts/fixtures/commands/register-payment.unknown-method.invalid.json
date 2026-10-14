@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterPayment.v1.json",
+  "valid": false,
+  "description": "Mode de paiement hors catalogue",
+  "base": "commands/register-payment.mobile-money.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/method",
+      "value": "BITCOIN"
+    }
+  ]
+}

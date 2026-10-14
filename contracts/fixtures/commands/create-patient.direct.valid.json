@@ -1,0 +1,26 @@
+{
+  "schema": "commands/CreatePatient.v1.json#/$defs/DirectRequest",
+  "valid": true,
+  "description": "Route directe : numéro central attribué par le serveur (null), version attendue null",
+  "data": {
+    "expected_version": null,
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "record_number_usage_id": "01J9ZXK4M2Q8R7S6T5V4W30002",
+    "record_number": null,
+    "last_name": "PATIENT FICTIF",
+    "first_names": "Élodie Marie",
+    "sex": "F",
+    "birth_date": "1990-05-17",
+    "birth_date_missing_reason": null,
+    "phone_primary": "+237 600 00 00 01",
+    "phone_secondary": null,
+    "phone_missing_reason": null,
+    "address": "Quartier fictif, Douala",
+    "profession": null,
+    "guardian_contact": null,
+    "legacy_record": false,
+    "first_known_visit_on": null,
+    "first_visit_certified": false,
+    "legacy_record_number": null
+  }
+}

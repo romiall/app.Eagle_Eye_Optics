@@ -1,0 +1,18 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": true,
+  "description": "Date de naissance absente justifiée par un motif (CHECK de patient_records)",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/birth_date",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/birth_date_missing_reason",
+      "value": "Patient sans pièce, âge déclaré approximatif (fictif)"
+    }
+  ]
+}

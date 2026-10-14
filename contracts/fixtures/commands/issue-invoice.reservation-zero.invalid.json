@@ -1,0 +1,13 @@
+{
+  "schema": "commands/IssueInvoice.v1.json",
+  "valid": false,
+  "description": "Réserve de quantité nulle",
+  "base": "commands/issue-invoice.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/reservations/0/quantity",
+      "value": "0"
+    }
+  ]
+}

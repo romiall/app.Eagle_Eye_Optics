@@ -1,0 +1,10 @@
+{
+  "schema": "commands/DecideApproval.v1.json",
+  "valid": true,
+  "description": "Décision de la gérante présente",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W30036",
+    "decision": "APPROVED",
+    "reason": null
+  }
+}

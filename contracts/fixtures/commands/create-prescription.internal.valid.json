@@ -1,0 +1,51 @@
+{
+  "schema": "commands/CreatePrescription.v1.json",
+  "valid": true,
+  "description": "Prescription interne liée à la consultation, deux lignes OD/OG",
+  "data": {
+    "prescription_id": "01J9ZXK4M2Q8R7S6T5V4W3001J",
+    "series_id": "01J9ZXK4M2Q8R7S6T5V4W3001N",
+    "version_no": 1,
+    "supersedes_id": null,
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "origin": "INTERNAL",
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "external_prescriber": null,
+    "external_prescribed_on": null,
+    "external_file_id": null,
+    "usage_code": null,
+    "usage_other": null,
+    "lens_type_code": null,
+    "lens_type_other": null,
+    "lens_index": "1.60",
+    "lens_index_other": null,
+    "pd_total": "63.0",
+    "pd_od": "31.5",
+    "pd_og": "31.5",
+    "pd_inconsistency_reason": null,
+    "notes": null,
+    "eyes": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3001K",
+        "eye": "OD",
+        "no_correction": false,
+        "sphere": "-1.25",
+        "cylinder": "-0.50",
+        "axis": 90,
+        "addition": null,
+        "fitting_height": null
+      },
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3001M",
+        "eye": "OG",
+        "no_correction": false,
+        "sphere": "-1.00",
+        "cylinder": null,
+        "axis": null,
+        "addition": null,
+        "fitting_height": null
+      }
+    ],
+    "treatments": []
+  }
+}

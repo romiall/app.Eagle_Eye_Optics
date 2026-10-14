@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json#/$defs/DirectRequest",
+  "valid": false,
+  "description": "Route directe : un numéro fourni par le client est refusé (numéro central)",
+  "base": "commands/create-patient.direct.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/record_number",
+      "value": "TEST-P-000002"
+    }
+  ]
+}

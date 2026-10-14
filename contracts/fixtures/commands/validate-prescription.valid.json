@@ -1,0 +1,9 @@
+{
+  "schema": "commands/ValidatePrescription.v1.json",
+  "valid": true,
+  "description": "Validation explicite, document préparé",
+  "data": {
+    "prescription_id": "01J9ZXK4M2Q8R7S6T5V4W3001J",
+    "document_id": "01J9ZXK4M2Q8R7S6T5V4W3001P"
+  }
+}

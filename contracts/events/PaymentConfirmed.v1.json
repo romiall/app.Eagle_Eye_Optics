@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/PaymentConfirmed.v1.json",
+  "title": "PaymentConfirmed (charge v1)",
+  "description": "Encaissement confirmé et reçu numéroté émis (agrégat : la facture, dont la version ledger avance). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "payment_id",
+    "invoice_id",
+    "receipt_id",
+    "receipt_number",
+    "amount",
+    "currency",
+    "method",
+    "effective_at"
+  ],
+  "properties": {
+    "payment_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "amount": {
+      "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "method": {
+      "$ref": "../schemas/enums.json#/$defs/payments.method"
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  }
+}

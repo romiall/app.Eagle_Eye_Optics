@@ -1,0 +1,13 @@
+{
+  "schema": "commands/OpenCashSession.v1.json",
+  "valid": false,
+  "description": "Fond de caisse négatif",
+  "base": "commands/open-cash-session.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/opening_amount",
+      "value": -1
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json#/$defs/DirectRequest",
+  "valid": false,
+  "description": "Création : expected_version doit valoir null",
+  "base": "commands/create-patient.direct.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/expected_version",
+      "value": 1
+    }
+  ]
+}

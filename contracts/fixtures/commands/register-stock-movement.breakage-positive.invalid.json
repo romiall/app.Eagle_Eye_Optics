@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterStockMovement.v1.json",
+  "valid": false,
+  "description": "Casse avec quantité positive (CHECK de stock_movements)",
+  "base": "commands/register-stock-movement.breakage.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/signed_quantity",
+      "value": "1"
+    }
+  ]
+}

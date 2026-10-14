@@ -1,0 +1,13 @@
+{
+  "schema": "commands/ReversePayment.v1.json",
+  "valid": true,
+  "description": "Contre-écriture partielle avec approbation exacte",
+  "data": {
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+    "reversal_id": "01J9ZXK4M2Q8R7S6T5V4W3002Z",
+    "amount": 10000,
+    "reason": "Montant saisi en double (fictif)",
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W30030"
+  }
+}

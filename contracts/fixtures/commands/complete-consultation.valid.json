@@ -1,0 +1,12 @@
+{
+  "schema": "commands/CompleteConsultation.v1.json",
+  "valid": true,
+  "description": "Finalisation : révision 1, empreinte recalculée par le serveur",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "revision_id": "01J9ZXK4M2Q8R7S6T5V4W3000N",
+    "revision_no": 1,
+    "snapshot_sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "finalization_missing_data_reason": null
+  }
+}

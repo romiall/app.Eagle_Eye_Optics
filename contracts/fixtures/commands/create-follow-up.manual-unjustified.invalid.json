@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreateFollowUp.v1.json",
+  "valid": false,
+  "description": "Date saisie manuellement sans motif",
+  "base": "commands/create-follow-up.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/date_origin",
+      "value": "MANUAL"
+    }
+  ]
+}

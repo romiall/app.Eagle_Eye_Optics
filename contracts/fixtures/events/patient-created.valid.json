@@ -1,0 +1,22 @@
+{
+  "schema": "events/envelope.json",
+  "valid": true,
+  "description": "Dossier créé par synchronisation d'une commande locale",
+  "data": {
+    "event_id": "01J9ZXK4M2Q8R7S6T5V4W3006B",
+    "event_type": "PatientCreated",
+    "event_version": 1,
+    "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "aggregate_type": "patient_records",
+    "aggregate_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "aggregate_version": 1,
+    "correlation_id": "sync-01J9ZXK4M2Q8R7S6T5V4W3006C",
+    "payload": {
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+      "record_number": "TEST-P-000001",
+      "legacy_record": false,
+      "source_device_id": "01J9ZXK4M2Q8R7S6T5V4W3006D"
+    }
+  }
+}

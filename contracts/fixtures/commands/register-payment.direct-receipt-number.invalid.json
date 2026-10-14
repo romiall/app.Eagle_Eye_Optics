@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterPayment.v1.json#/$defs/DirectRequest",
+  "valid": false,
+  "description": "Route directe : numéro de reçu fourni par le client",
+  "base": "commands/register-payment.direct.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/receipt_number",
+      "value": "TEST-REC-000002"
+    }
+  ]
+}

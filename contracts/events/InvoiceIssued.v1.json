@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/InvoiceIssued.v1.json",
+  "title": "InvoiceIssued (charge v1)",
+  "description": "Facture émise (numéro définitif, pièce immuable). Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_id",
+    "patient_id",
+    "number",
+    "issued_at",
+    "total_gross",
+    "currency",
+    "source_device_id"
+  ],
+  "properties": {
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "issued_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "total_gross": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "source_device_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    }
+  }
+}

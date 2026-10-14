@@ -1,0 +1,26 @@
+{
+  "schema": "events/envelope.json",
+  "valid": true,
+  "description": "Événement de paiement confirmé : identifiants et montant, aucune donnée clinique",
+  "data": {
+    "event_id": "01J9ZXK4M2Q8R7S6T5V4W30068",
+    "event_type": "PaymentConfirmed",
+    "event_version": 1,
+    "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "aggregate_type": "invoices",
+    "aggregate_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "aggregate_version": 2,
+    "correlation_id": "hors-requete-01J9ZXK4M2Q8R7S6T5V4W3006A",
+    "payload": {
+      "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002V",
+      "receipt_number": "TEST-REC-000001",
+      "amount": 30000,
+      "currency": "XAF",
+      "method": "MTN_MOMO",
+      "effective_at": "2026-10-14T09:30:00.000Z"
+    }
+  }
+}

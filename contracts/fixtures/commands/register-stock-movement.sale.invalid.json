@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RegisterStockMovement.v1.json",
+  "valid": false,
+  "description": "Sortie de vente par mouvement libre : passe par ConfirmDelivery",
+  "base": "commands/register-stock-movement.breakage.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/kind",
+      "value": "SALE_DELIVERY"
+    }
+  ]
+}

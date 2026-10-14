@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePatient.v1.json",
+  "valid": false,
+  "description": "Date de naissance absente sans motif : refusée comme par le CHECK",
+  "base": "commands/create-patient.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/birth_date",
+      "value": null
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/events/envelope.json",
+  "title": "Enveloppe d'un événement interne (fichier 08)",
+  "description": "Correspond à une ligne outbox_events : event_id = id, aggregate_type/aggregate_id/aggregate_version = source_type/source_id/source_version, occurred_at = created_at. Livraison au moins une fois, déduplication par event_id chez le consommateur. Généré par contracts/tools/build_events.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "clinic_id",
+    "occurred_at",
+    "aggregate_type",
+    "aggregate_id",
+    "aggregate_version",
+    "correlation_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "event_type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "clinic_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "aggregate_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z_]{1,63}$"
+    },
+    "aggregate_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "aggregate_version": {
+      "$ref": "../schemas/common.json#/$defs/Version"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 100
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "PatientCreated"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "patient_records"
+          },
+          "payload": {
+            "$ref": "PatientCreated.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ConsultationCompleted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "consultations"
+          },
+          "payload": {
+            "$ref": "ConsultationCompleted.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "PrescriptionValidated"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "optical_prescriptions"
+          },
+          "payload": {
+            "$ref": "PrescriptionValidated.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "FollowUpScheduled"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "follow_up_plans"
+          },
+          "payload": {
+            "$ref": "FollowUpScheduled.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AppointmentConfirmed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "appointments"
+          },
+          "payload": {
+            "$ref": "AppointmentConfirmed.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AppointmentRescheduled"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "appointments"
+          },
+          "payload": {
+            "$ref": "AppointmentRescheduled.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "AppointmentCancelled"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "appointments"
+          },
+          "payload": {
+            "$ref": "AppointmentCancelled.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "InvoiceIssued"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "invoices"
+          },
+          "payload": {
+            "$ref": "InvoiceIssued.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "PaymentConfirmed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "invoices"
+          },
+          "payload": {
+            "$ref": "PaymentConfirmed.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "CreditNoteIssued"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "invoices"
+          },
+          "payload": {
+            "$ref": "CreditNoteIssued.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "DeliveryConfirmed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "deliveries"
+          },
+          "payload": {
+            "$ref": "DeliveryConfirmed.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "StockThresholdCrossed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "stock_alerts"
+          },
+          "payload": {
+            "$ref": "StockThresholdCrossed.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "WorkshopReady"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_version": {
+            "const": 1
+          },
+          "aggregate_type": {
+            "const": "workshop_orders"
+          },
+          "payload": {
+            "$ref": "WorkshopReady.v1.json"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "EventType": {
+      "description": "Événements de la version 1 (fichier 08).",
+      "type": "string",
+      "enum": [
+        "PatientCreated",
+        "ConsultationCompleted",
+        "PrescriptionValidated",
+        "FollowUpScheduled",
+        "AppointmentConfirmed",
+        "AppointmentRescheduled",
+        "AppointmentCancelled",
+        "InvoiceIssued",
+        "PaymentConfirmed",
+        "CreditNoteIssued",
+        "DeliveryConfirmed",
+        "StockThresholdCrossed",
+        "WorkshopReady"
+      ]
+    }
+  }
+}

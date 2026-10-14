@@ -1,0 +1,23 @@
+{
+  "schema": "commands/CreateFollowUp.v1.json",
+  "valid": true,
+  "description": "Contrôle annuel calculé, rappel interne 7 jours avant",
+  "data": {
+    "follow_up_plan_id": "01J9ZXK4M2Q8R7S6T5V4W30050",
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+    "reason": "ROUTINE",
+    "anchor_kind": "CONSULTATION",
+    "anchor_date": "2026-10-14",
+    "interval_value": 12,
+    "interval_unit": "MONTH",
+    "recommended_date": "2027-10-14",
+    "date_origin": "CALCULATED",
+    "manual_reason": null,
+    "reminder_enabled": true,
+    "preferred_channel": "INTERNAL",
+    "advance_value": 7,
+    "advance_unit": "DAY",
+    "notes": null
+  }
+}

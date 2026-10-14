@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreatePrescription.v1.json",
+  "valid": false,
+  "description": "Prescription interne sans consultation",
+  "base": "commands/create-prescription.internal.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/consultation_id",
+      "value": null
+    }
+  ]
+}

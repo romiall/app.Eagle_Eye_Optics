@@ -1,0 +1,24 @@
+{
+  "schema": "events/envelope.json",
+  "valid": true,
+  "description": "Consultation finalisée sans aucune donnée clinique",
+  "data": {
+    "event_id": "01J9ZXK4M2Q8R7S6T5V4W3006E",
+    "event_type": "ConsultationCompleted",
+    "event_version": 1,
+    "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+    "occurred_at": "2026-10-14T09:30:00.000Z",
+    "aggregate_type": "consultations",
+    "aggregate_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "aggregate_version": 4,
+    "correlation_id": "hors-requete-01J9ZXK4M2Q8R7S6T5V4W3006F",
+    "payload": {
+      "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+      "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+      "revision_id": "01J9ZXK4M2Q8R7S6T5V4W3000N",
+      "revision_no": 1,
+      "completed_at": "2026-10-14T09:30:00.000Z"
+    }
+  }
+}

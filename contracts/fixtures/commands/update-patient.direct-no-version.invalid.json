@@ -1,0 +1,12 @@
+{
+  "schema": "commands/UpdatePatient.v1.json#/$defs/DirectRequest",
+  "valid": false,
+  "description": "Version attendue absente : refusée",
+  "base": "commands/update-patient.direct.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/expected_version"
+    }
+  ]
+}

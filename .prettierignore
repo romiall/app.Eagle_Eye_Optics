@@ -19,4 +19,5 @@ tools
 *.sql
 # Contrats générés (contracts/tools/*.py --check compare les octets) : ne pas reformater.
 contracts/commands
+contracts/events
 contracts/schemas/enums.json

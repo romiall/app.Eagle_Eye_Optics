@@ -1,0 +1,13 @@
+{
+  "schema": "commands/CreateInvoiceDraft.v1.json",
+  "valid": false,
+  "description": "Quantité avec virgule (parsing explicite à l'entrée seulement)",
+  "base": "commands/create-invoice-draft.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/lines/1/quantity",
+      "value": "1,125"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "commands/IssueInvoice.v1.json#/$defs/DirectRequest",
+  "valid": false,
+  "description": "Émission centrale : numéro fourni par le client refusé",
+  "base": "commands/issue-invoice.direct.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/number",
+      "value": "TEST-FAC-000009"
+    }
+  ]
+}
