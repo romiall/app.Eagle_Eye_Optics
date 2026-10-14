@@ -95,7 +95,7 @@
    "notes": "Gate de développement fictif ; n'autorise ni données réelles ni production. Manques : Q01–Q04, Q14."
   },
   "F05": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/access.md",
     "app/Domain/Access/",
@@ -110,12 +110,12 @@
     "tests/Contracts/ErrorCodeCatalogTest.php",
     "tests/e2e/auth-session.spec.ts"
    ],
-   "notes": "Revues attaque et conformité du commit 343a448 traitées (tableau dans access.md). check-all --strict --with-e2e après corrections : PHPUnit 283 / 21596 assertions (dont 4 entrelacements à processus séparés), PHPStan 0, Vitest 70, Playwright 18. DONE après CI verte du commit de corrections. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01/D02), écrans (F09), idempotence (F07). Écarts déclarés : matrice 09/seed, Policies de ressource, MFA (décision)."
+   "notes": "Corrections des revues attaque et conformité du commit 343a448 au commit ef7d5f6 (tableau dans access.md). CI GitHub verte : run 38588658627 sur 3912158 (contient ef7d5f6 ; PHPUnit Unit/Feature/Concurrency sur mysql:8.4.9, e2e). check-all --strict --with-e2e : PHPUnit 283 / 21596 assertions (dont 4 entrelacements à processus séparés), PHPStan 0, Vitest 70, Playwright 18. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01/D02), écrans (F09), idempotence (F07). Écarts déclarés : matrice 09/seed, Policies de ressource, MFA (décision)."
   },
   "F06": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Commits a3137ce, 3912158 : schémas communs, sync, 26 commandes, 13 événements, 96 fixtures (verdicts identiques PHP/TS). Restent OpenAPI, compatibility.json, types TS, CI."
   },
   "F07": {
    "status": "NOT_STARTED",
