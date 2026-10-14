@@ -24,12 +24,13 @@ env:
 
 jobs:
   php:
-    name: PHP (Pint, Larastan, PHPUnit, MySQL 8.4)
+    name: PHP (Pint, Larastan, PHPUnit, schéma, MySQL 8.4.9)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       mysql:
-        image: mysql:8.4
+        # Version exacte sur laquelle la baseline et database/baseline/metadata.json sont validées.
+        image: mysql:8.4.9
         env:
           MYSQL_ROOT_PASSWORD: ci-root-jetable
           MYSQL_DATABASE: eeo_test
@@ -86,6 +87,23 @@ jobs:
 
       - name: PHPUnit - Concurrency (plusieurs connexions MySQL)
         run: composer run test:concurrency
+
+      - name: Baseline - instructions des migrations identiques aux scripts SQL validés
+        run: python3 database/tools/build_migrations.py --check
+
+      # Import client mysql du SQL livré contre migrations, 41 assertions SQL sur la base migrée,
+      # adoption et refus (bases jetables eeo_*_test du service MySQL éphémère).
+      - name: Équivalence du schéma (F04)
+        run: tools/dev/schema-parity.sh --output=build/schema-parity.json
+
+      - name: Rapport d'équivalence du schéma (données fictives)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-parity
+          path: build/schema-parity.json
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Audit des dépendances Composer
         run: composer audit --locked --abandoned=report

@@ -1,6 +1,6 @@
 # Tests, contrôles de qualité et base MySQL isolée (F03)
 
-Ce document explique comment lancer chaque suite en local et en CI, comment la base de test est protégée, et les limites de l'environnement. Il couvre uniquement le socle F03 : les tests de règles métier, de contrats et de schéma arrivent avec les tâches suivantes (voir « Ce qui n'existe pas encore »).
+Ce document explique comment lancer chaque suite en local et en CI, comment la base de test est protégée, et les limites de l'environnement. Il couvre le socle F03 et les contrôles de schéma de F04 ; les tests de règles métier et de contrats arrivent avec les tâches suivantes (voir « Ce qui n'existe pas encore »).
 
 ## Vue d'ensemble
 
@@ -83,7 +83,7 @@ Le test `test_chaque_commande_migrate_et_db_est_classee_explicitement` parcourt 
 
 Limites à connaître : l'écouteur protège les invocations de commande de premier niveau (`php artisan …`, `Artisan::call(…)`), pas une commande appelée par une autre commande (`$this->call(…)`), ni du SQL écrit à la main, ni le client `php artisan db`. En production, aucune commande `migrate:fresh/refresh/reset/rollback` n'a sa place dans un runbook ; une correction passe par une migration additive.
 
-**Contrat à tenir en F04 (fichier 23).** La garde de commande ne suffit pas : elle ne couvre pas un `down()` appelé autrement que par ces commandes (code applicatif, outil externe). Les méthodes `down()` des migrations des tables métier doivent elles-mêmes **refuser** l'exécution automatique (exception explicite, jamais de `dropIfExists` d'une table métier) ; seules les tables techniques `fw_*` peuvent être supprimées par `down()`. La remise à zéro d'une base de test passe par `eeo:test-db:reset`, qui utilise `db:wipe` et n'appelle jamais `down()`. F04 doit ajouter le test correspondant (par exemple : appeler `down()` sur une base de sonde jetable et exiger l'exception, tables intactes).
+**Contrat tenu en F04 (fichier 23).** La garde de commande ne suffit pas : elle ne couvre pas un `down()` appelé autrement que par ces commandes (code applicatif, outil externe). Les méthodes `down()` des quatre migrations de baseline **refusent** toujours (`BaselineStateRefused`, aucun `dropIfExists` d'une table métier) ; celle des tables techniques `fw_*` n'agit qu'en base de test isolée. Les tables techniques étant migrées en premier, un `migrate:rollback` autorisé en base de test bute immédiatement sur la baseline sans rien supprimer. Preuves : `tests/Feature/Schema/BaselineMigrationsTest.php` (`down()` de chaque étape, `migrate:rollback` refusé, schéma intact). La remise à zéro d'une base de test passe par `eeo:test-db:reset`, qui utilise `db:wipe` et n'appelle jamais `down()`.
 
 Réinitialiser la base de test depuis un terminal (la configuration doit viser la base isolée) :
 
@@ -156,4 +156,17 @@ Les mots de passe visibles dans le workflow sont des valeurs fictives d'un servi
 
 ## Ce qui n'existe pas encore (fichier 25)
 
-Ces commandes seront créées par les tâches propriétaires ; elles ne sont pas disponibles et ne doivent pas être annoncées comme réussies : `php artisan eagle:verify-schema` (F04), `composer run test:contracts` (F06), `npm run test:domain` (vecteurs communs PHP/TS, F08), tests de concurrence métier (F07/O03). L'analyse statique PHP, annoncée absente par erreur dans une version précédente, est en place (voir « Analyse statique PHP »). À créer en F04 : le contrat `down()` des migrations (voir « Commandes couvertes et limites »).
+Ces commandes seront créées par les tâches propriétaires ; elles ne sont pas disponibles et ne doivent pas être annoncées comme réussies : `composer run test:contracts` (F06), `npm run test:domain` (vecteurs communs PHP/TS, F08), tests de concurrence métier (F07/O03). L'analyse statique PHP est en place (voir « Analyse statique PHP »). `php artisan eagle:verify-schema` existe depuis F04 (voir « Schéma : équivalence de la baseline »).
+
+## Schéma : équivalence de la baseline (F04)
+
+Détails dans `docs/implementation/schema.md`. Contrôles disponibles :
+
+| Commande | Effet | Code de sortie |
+| --- | --- | --- |
+| `python3 database/tools/build_migrations.py --check` | Les instructions de `database/baseline/statements.json` redonnent octet pour octet les scripts SQL validés et le catalogue a l'empreinte du backlog | 0 si cohérent, 1 sinon |
+| `php artisan eagle:verify-schema [--json=…]` | Base courante comparée à `database/baseline/metadata.json` (117 tables, colonnes, index, CHECK, FK, vues, guards, référentiels), tables techniques inventoriées à part ; lecture seule | 0 sans écart, 1 au moindre écart |
+| `tools/dev/schema-parity.sh [--output=…] [--write-baseline] [--keep]` | Preuve complète sur bases jetables `eeo_*_test` : import client mysql du SQL livré contre migrations, 41 assertions SQL sur la base migrée, adoption acceptée/refusée, double exécution et retour arrière refusés ; écrit `docs/evidence/schema-parity.json` par défaut | 0 si les 22 contrôles passent |
+| `composer run test:unit` / `test:mysql` | `tests/Unit/Schema` (instructions, comparateur, catalogue ↔ métadonnées) et `tests/Feature/Schema` (migrations réelles, guards, adoption, refus ; environ 1 min 30) | PHPUnit |
+
+En CI, le job `php` exécute les trois premiers contrôles sur le service `mysql:8.4.9` et publie le rapport d'équivalence en artefact. Après une exécution locale de `specifications/developpement/verifier_plan.py`, restaurer son rapport (`git checkout -- specifications/developpement/validation-plan.json`) : le script le réécrit avec des fins de ligne différentes alors que le corpus de spécification ne doit pas changer.

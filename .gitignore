@@ -74,3 +74,6 @@ _ide_helper.php
 /exports/
 npm-debug.log*
 yarn-error.log*
+
+# Rapports produits localement par les scripts de contrôle (ex. tools/dev/schema-parity.sh --output=build/…)
+/build/
