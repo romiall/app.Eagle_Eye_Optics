@@ -1,0 +1,175 @@
+# Contrôles de qualité : PHP (Pint + PHPUnit sur MySQL 8.4 réel), frontend (types, lint, Vitest, build)
+# et e2e Playwright sur l'application construite. Aucun secret : les mots de passe ci-dessous sont des
+# valeurs fictives de services éphémères du runner, sans accès à rien d'autre. Les journaux n'affichent
+# aucune donnée patient ; seules des données fictives existent dans le dépôt.
+name: Qualité
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualite-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # En CI, un MySQL injoignable est un échec, jamais un test ignoré.
+  EEO_REQUIRE_MYSQL: '1'
+  COMPOSER_NO_INTERACTION: '1'
+
+jobs:
+  php:
+    name: PHP (Pint, PHPUnit, MySQL 8.4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-jetable
+          MYSQL_DATABASE: eeo_test
+          MYSQL_USER: eeo_test
+          MYSQL_PASSWORD: eeo_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-jetable"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_mysql, sodium, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - run: composer install --no-progress --prefer-dist
+
+      - name: Préparer MySQL (droits des bases de test jetables, triggers sous journal binaire)
+        env:
+          MYSQL_PWD: ci-root-jetable
+        run: |
+          mysql -h 127.0.0.1 -uroot -e "
+            GRANT ALL PRIVILEGES ON \`eeo\_%\_test\`.* TO 'eeo_test'@'%';
+            SET GLOBAL log_bin_trust_function_creators = 1;
+            SELECT VERSION();"
+
+      - name: Style PHP (Pint)
+        run: composer run lint
+
+      - name: PHPUnit - Unit
+        run: composer run test:unit
+
+      - name: PHPUnit - Feature (MySQL réel)
+        run: composer run test:mysql
+
+      - name: PHPUnit - Concurrency (plusieurs connexions MySQL)
+        run: composer run test:concurrency
+
+      - name: Audit des dépendances Composer
+        run: composer audit --locked --abandoned=report
+
+  frontend:
+    name: Frontend (types, lint, Vitest, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript strict
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: Vitest
+        run: npm test
+
+      - name: Build (assets statiques et service worker)
+        run: npm run build
+
+      - name: Audit des dépendances npm (production)
+        run: npm audit --omit=dev --audit-level=high
+
+  e2e:
+    name: E2E Playwright (Chromium)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_mysql, sodium, zip
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Le serveur de test n'a besoin que des dépendances de production.
+      - run: composer install --no-progress --prefer-dist --no-dev --optimize-autoloader
+      - run: npm ci
+      - run: npm run build
+
+      - name: Version de Playwright
+        id: playwright
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache du navigateur Playwright
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # L'installation du navigateur est autorisée en CI uniquement (jamais sur les postes de développement).
+      - name: Installer Chromium et ses dépendances système
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Dépendances système de Chromium (navigateur en cache)
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # La coquille et le service worker ne nécessitent pas de base ; le service MySQL sera ajouté avec
+      # les parcours authentifiés (G1).
+      - name: Tests e2e
+        run: npx playwright test
+
+      - name: Traces Playwright (échec uniquement, données fictives)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

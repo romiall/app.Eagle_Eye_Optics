@@ -1,0 +1,55 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "eagle-eye-optics-medical",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SPA/PWA Vue 3 d'Eagle's Eye Optics Medical, construite en fichiers statiques servis par Laravel (aucun serveur Node en production).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:run": "playwright test"
+  },
+  "dependencies": {
+    "dexie": "^4.4.6",
+    "jspdf": "^4.2.1",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0",
+    "workbox-window": "^7.4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.5.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.11.1",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^17.13.0",
+    "jsdom": "^29.1.1",
+    "laravel-vite-plugin": "^3.2.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.4",
+    "vue-tsc": "^3.3.13",
+    "workbox-build": "^7.4.1"
+  }
+}

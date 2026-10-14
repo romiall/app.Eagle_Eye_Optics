@@ -3,3 +3,19 @@
 *.json -text
 *.log -text
 *.zip binary
+
+# Application Laravel / frontend
+*.php diff=php
+*.blade.php diff=html
+*.css diff=css
+*.md diff=markdown
+# Scripts et fichiers exécutés sous Linux : toujours des fins de ligne LF, même depuis Windows.
+*.sh text eol=lf
+artisan text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+# Verrous de dépendances : générés, jamais relus ligne à ligne.
+composer.lock -diff linguist-generated
+package-lock.json -diff linguist-generated
+*.png binary
+*.webmanifest text eol=lf

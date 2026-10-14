@@ -11,14 +11,41 @@
    "notes": "Audit hébergeur non réalisable sans accès : checklist fournie ; non bloquant local."
   },
   "F02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/build.md",
+    "composer.json",
+    "composer.lock",
+    "package.json",
+    "package-lock.json",
+    "vite.config.ts",
+    "tsconfig.json",
+    ".env.example",
+    "tests/Feature/EnvExampleTest.php",
+    "tests/Feature/ConfigurationContractTest.php",
+    "tests/Feature/Http/SpaShellTest.php",
+    "tests/e2e/smoke.spec.ts",
+    "docs/implementation/progress.md"
+   ],
+   "notes": "Build PHP/frontend reproductible depuis les lockfiles (copie propre vérifiée) ; aucun serveur Node en production ; aucun secret suivi. Larastan non installable dans l'environnement cloud (voir progress.md). | Point d'étape 2026-10-14 10:40 UTC : vérification adverse en cours (défauts majeurs relevés : sonde /up chargeant un script tiers, analyse statique PHP absente, migrate:rollback non bloqué) ; DONE seulement après correction et re-vérification."
   },
   "F03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/testing.md",
+    "phpunit.xml",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    ".github/workflows/quality.yml",
+    "tools/dev/mysql-up.sh",
+    "tools/dev/check-all.sh",
+    "app/Support/Testing/IsolatedDatabaseGuard.php",
+    "tests/Unit/Support/Testing/IsolatedDatabaseGuardTest.php",
+    "tests/Feature/Database/DestructiveCommandsBlockedTest.php",
+    "tests/Feature/Database/ResetTestDatabaseCommandTest.php",
+    "docs/implementation/progress.md"
+   ],
+   "notes": "Suites PHPUnit/Vitest/Playwright exécutées localement (96/30/5 tests). Passe à DONE après la première exécution constatée du workflow GitHub Actions."
   },
   "F04": {
    "status": "NOT_STARTED",

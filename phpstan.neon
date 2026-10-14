@@ -1,0 +1,16 @@
+# Analyse statique PHP : PHPStan + Larastan, configuration versionnée (fichier 25 : « composer run lint »).
+# Lancer : composer run analyse  (ou composer run lint, qui enchaîne Pint puis cette analyse).
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - app
+        - bootstrap
+        - config
+        - routes
+    excludePaths:
+        # Fichiers générés par « package:discover » : ignorés par git, différents d'un poste à l'autre.
+        - bootstrap/cache
+    tmpDir: .phpstan.cache

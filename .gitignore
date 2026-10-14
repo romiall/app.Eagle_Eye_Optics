@@ -15,11 +15,8 @@ Thumbs.db
 /public/build/
 /public/hot
 /storage/*.key
-/storage/app/private/
-/storage/logs/
-/storage/framework/cache/
-/storage/framework/sessions/
-/storage/framework/views/
+# storage/ : le contenu (logs, caches, sessions, vues compilées, fichiers privés) est ignoré par les
+# .gitignore de chaque sous-dossier, qui restent suivis pour que l'arborescence existe après un clone.
 
 # Configuration privée
 .env
@@ -28,3 +25,36 @@ Thumbs.db
 !.env.*.example
 *.pem
 *.key
+
+# Laravel : fichiers locaux et caches
+/public/storage
+/public/fonts-manifest.dev.json
+/bootstrap/cache/*.php
+/storage/pail
+*.sqlite
+*.sqlite-journal
+.env.backup
+/auth.json
+Homestead.json
+Homestead.yaml
+_ide_helper.php
+
+# Outils de test et de qualité
+/.phpunit.cache
+.phpunit.result.cache
+/.phpstan.cache
+/.eslintcache
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+*.tsbuildinfo
+
+# Éditeurs
+/.idea
+/.vscode
+/.zed
+/.nova
+/.cursor/
+/.codex
