@@ -46,7 +46,7 @@ php artisan view:cache
 
 Ne jamais versionner `.env`. `.env.example` ne contient aucun secret. En production : `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://…` (sous-domaine HTTPS dédié), `SESSION_SECURE_COOKIE=true`, `PRODUCTION_DOCUMENTS_ENABLED=false` tant que les mentions légales ne sont pas validées, `MAIL_MAILER` et intégrations selon les lots (aucun fournisseur réel avant L2/L3).
 
-`APP_URL` sert aux URL produites **hors requête** (commandes artisan, files d'attente, courriels). Il ne pilote **ni les URL des assets de la coquille ni le schéma des requêtes web** : Laravel les déduit de la requête reçue (voir « Derrière un proxy ou un CDN qui termine TLS »).
+`APP_URL` sert aux URL produites **hors requête** (commandes artisan, files d'attente, courriels). Il ne pilote **ni les URL des assets de la coquille ni le schéma des requêtes web** : les assets sont des chemins depuis la racine du site (`/build/assets/…`, indépendants de la requête et d'`ASSET_URL`), et les autres URL générées pendant une requête suivent le schéma et l'hôte reçus (voir « Derrière un proxy ou un CDN qui termine TLS »).
 
 ## Développement local
 

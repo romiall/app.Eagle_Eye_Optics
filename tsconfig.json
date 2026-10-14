@@ -23,6 +23,9 @@
     "skipLibCheck": true,
     "noEmit": true
   },
+  "vueCompilerOptions": {
+    "strictTemplates": true
+  },
   "include": [
     "resources/frontend/**/*.ts",
     "resources/frontend/**/*.vue",

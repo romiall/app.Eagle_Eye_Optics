@@ -1,6 +1,6 @@
 # Eagle’s Eye Optics Medical — socle de l’application
 
-Ce dépôt contient la conception complète de l’application métier et le plan de développement pour Claude. Le code applicatif reste à développer. La priorité de livraison porte sur les patients, la facturation, les reçus et l’impression réellement hors ligne, sur un hébergement web classique sans VPS.
+Ce dépôt contient la conception complète de l’application métier, le plan de développement pour Claude et le code applicatif en cours de réalisation (Laravel 13 et PWA Vue 3). L’état réel des tâches, des preuves et des gates est tenu dans [le journal d’exécution](docs/implementation/progress.md) ; aucune fonction n’y est annoncée livrée sans preuve. La priorité de livraison porte sur les patients, la facturation, les reçus et l’impression réellement hors ligne, sur un hébergement web classique sans VPS.
 
 ## Démarrer
 

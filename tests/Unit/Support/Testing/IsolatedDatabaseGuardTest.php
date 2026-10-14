@@ -60,6 +60,8 @@ final class IsolatedDatabaseGuardTest extends TestCase
             'majuscules' => ['testing', 'EEO_TEST', ['127.0.0.1'], 'ne se termine pas par « _test »'],
             'caractère non admis' => ['testing', 'eeo`; DROP DATABASE x; --_test', ['127.0.0.1'], 'caractères non admis'],
             'base vide' => ['testing', '', ['127.0.0.1'], 'ne se termine pas par « _test »'],
+            'saut de ligne final' => ['testing', "prod_test\n", ['127.0.0.1'], 'ne se termine pas par « _test »'],
+            'saut de ligne final sur eeo_test' => ['testing', "eeo_test\n", ['127.0.0.1'], 'ne se termine pas par « _test »'],
             'hôte distant' => ['testing', 'eeo_test', ['db.example.com'], 'l\'hôte « db.example.com » n\'est pas local'],
             'adresse privée distante' => ['testing', 'eeo_test', ['10.0.0.5'], 'n\'est pas local'],
             'adresse publique' => ['testing', 'eeo_test', ['203.0.113.10'], 'n\'est pas local'],

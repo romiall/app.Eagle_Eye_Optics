@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -31,6 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Session SPA Sanctum (cookie du seul domaine applicatif + CSRF), sans jeton d'API personnel.
         $middleware->statefulApi();
+
+        // En-têtes de protection sur toutes les réponses : CSP d'origine unique, API no-store (fichier 09).
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Toute erreur sous /api est du JSON, quel que soit l'en-tête Accept (jamais la coquille SPA).

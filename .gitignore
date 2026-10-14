@@ -58,3 +58,19 @@ _ide_helper.php
 /.nova
 /.cursor/
 /.codex
+
+# Dépôt public d'une application médicale : jamais de certificat, de sauvegarde ni de dump suivi.
+# (Les scripts SQL du socle sous database/ restent suivis : *.sql n'est pas ignoré globalement.)
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.dump
+*.sql.gz
+*.sql.zip
+*.bak
+/backups/
+/exports/
+npm-debug.log*
+yarn-error.log*

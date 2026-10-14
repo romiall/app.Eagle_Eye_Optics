@@ -23,7 +23,8 @@ final class IsolatedDatabaseGuard
     /** Hôtes considérés comme locaux ; « mysql » est le nom du service dans un conteneur de CI. */
     public const LOCAL_HOSTS = ['127.0.0.1', 'localhost', '::1', 'mysql'];
 
-    private const DATABASE_NAME_PATTERN = '/^[a-z0-9][a-z0-9_]*_test$/';
+    // \z et non $ : « $ » accepterait un saut de ligne final (« prod_test\n »).
+    private const DATABASE_NAME_PATTERN = '/^[a-z0-9][a-z0-9_]*_test\z/';
 
     /**
      * @param  list<string>  $hosts  Tous les hôtes de la connexion (lecture et écriture comprises).
