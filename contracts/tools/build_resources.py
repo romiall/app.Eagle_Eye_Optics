@@ -600,7 +600,8 @@ def snapshots():
               'patient': patient, 'payment': obj({'payment_id': ulid(), 'amount': ref('PositiveMoneyXaf'), 'currency': ref('Currency'),
                                                   'method': enum('payments.method'), 'reference': n_text(180)}),
               'paid_net_before': money(), 'paid_net_after': money(), 'balance_after': signed_money(),
-              'kind': {'type': 'string', 'enum': ['DEPOSIT', 'BALANCE_SETTLEMENT', 'OVERPAYMENT_CREDIT']},
+              'kind': {'type': 'string', 'enum': ['DEPOSIT', 'BALANCE_SETTLEMENT'],
+                       'description': 'Calculée : BALANCE_SETTLEMENT si le reste après ce paiement est nul, sinon DEPOSIT (un encaissement ne dépasse jamais le solde).'},
               'cashier': actor, 'clinic': clinic, 'template_version': text(64)}))
     snap('credit-note.json', 'Snapshot d\'un avoir (credit_notes.snapshot)',
          'Avoir (fichier 11) : facture source, lignes et montants corrigés, motif, taxes selon régime, auteur et autorisation, date.',

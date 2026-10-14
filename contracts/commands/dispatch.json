@@ -278,7 +278,7 @@
             "const": "optical_prescriptions"
           },
           "expected_version": {
-            "$ref": "../schemas/common.json#/$defs/Version"
+            "type": "null"
           },
           "number_allocation_id": {
             "type": "null"
@@ -557,7 +557,7 @@
             "const": "cash_sessions"
           },
           "expected_version": {
-            "$ref": "../schemas/common.json#/$defs/Version"
+            "type": "null"
           },
           "number_allocation_id": {
             "type": "null"
@@ -805,7 +805,7 @@
             "const": "approvals"
           },
           "expected_version": {
-            "$ref": "../schemas/common.json#/$defs/Version"
+            "type": "null"
           },
           "number_allocation_id": {
             "type": "null"

@@ -90,7 +90,7 @@
       "entity_type": "optical_prescriptions",
       "entity_id_field": "prescription_id",
       "permission": "clinical.complete",
-      "expected_version": "entity",
+      "expected_version": "state",
       "direct_route": "POST /prescriptions/{id}/validate",
       "number_type": null
     },
@@ -180,7 +180,7 @@
       "entity_type": "cash_sessions",
       "entity_id_field": "cash_session_id",
       "permission": "cash.own_session",
-      "expected_version": "entity",
+      "expected_version": "state",
       "direct_route": "POST /cash-sessions/{id}/close",
       "number_type": null
     },
@@ -260,7 +260,7 @@
       "entity_type": "approvals",
       "entity_id_field": "approval_id",
       "permission": "approval.decide",
-      "expected_version": "entity",
+      "expected_version": "state",
       "direct_route": "POST /approvals/{id}/decision",
       "number_type": null
     }

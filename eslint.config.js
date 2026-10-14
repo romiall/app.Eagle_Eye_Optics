@@ -89,7 +89,7 @@ export default defineConfig([
   },
 
   {
-    files: ['tests/e2e/**/*.{ts,mjs}', '*.ts', '*.js'],
+    files: ['tests/e2e/**/*.{ts,mjs}', 'contracts/tools/**/*.mjs', '*.ts', '*.js'],
     languageOptions: { globals: { ...globals.node } },
   },
 

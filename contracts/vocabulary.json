@@ -4,7 +4,7 @@
     "x-entity-type": "Agrégat principal visé par la commande : nom de table du catalogue (core.entity_type).",
     "x-entity-id-field": "Champ de la charge qui porte core.entity_id ; égalité contrôlée par le serveur.",
     "x-permission": "Code de permission exigé, pris parmi les 49 permissions seedées (table permissions).",
-    "x-expected-version": "Nature de expected_version : none (création, null), entity (colonne version), draft (invoices.version), ledger (ledger_version dérivée, contrat 23).",
+    "x-expected-version": "Nature de expected_version : none (création, null), state (transition d'état sous verrou sur une table sans colonne version, null), entity (colonne version), draft (invoices.version), ledger (ledger_version dérivée, contrat 23).",
     "x-direct-route": "Route HTTP directe (préfixe /api/v1) qui appelle la même action que la commande synchronisée.",
     "x-number-type": "Type de numéro consommé (document_number_allocations.document_type) : plage du poste par le journal local, numéro central par la route directe."
   },

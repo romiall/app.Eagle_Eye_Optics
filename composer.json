@@ -67,11 +67,11 @@
         ]
     },
     "scripts-descriptions": {
-        "test": "Toutes les suites PHPUnit (Unit, Feature, Concurrency). Les tests MySQL exigent la base isolee eeo_test.",
+        "test": "Toutes les suites PHPUnit (Unit, Feature, Concurrency, Contracts). Les tests MySQL exigent la base isolee eeo_test.",
         "test:unit": "Regles pures et garde de base de donnees, sans MySQL.",
         "test:mysql": "Suite Feature : application et MySQL 8.4 reel (base eeo_test).",
         "test:concurrency": "Suite Concurrency : plusieurs connexions MySQL reelles a la fois.",
-        "test:contracts": "Contrats F06 : schemas JSON 2020-12 et fixtures acceptees/refusees (memes fichiers que Vitest).",
+        "test:contracts": "Contrats F06 : fixtures acceptees/refusees (memes fichiers que Vitest), compatibilite, codes d'erreur, routes Laravel = operations IMPLEMENTED de l'OpenAPI.",
         "lint": "Controle PHP complet : style (Pint, sans modification) puis analyse statique (PHPStan + Larastan).",
         "lint:style": "Controle de style PHP (Pint) sans modification.",
         "lint:fix": "Applique le style PHP (Pint).",

@@ -26,3 +26,4 @@ contracts/schemas/resources
 contracts/schemas/requests
 contracts/snapshots
 contracts/openapi.yaml
+resources/frontend/domain/contracts/generated.ts

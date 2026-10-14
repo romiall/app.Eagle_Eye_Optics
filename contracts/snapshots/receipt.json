@@ -149,9 +149,9 @@
       "type": "string",
       "enum": [
         "DEPOSIT",
-        "BALANCE_SETTLEMENT",
-        "OVERPAYMENT_CREDIT"
-      ]
+        "BALANCE_SETTLEMENT"
+      ],
+      "description": "Calculée : BALANCE_SETTLEMENT si le reste après ce paiement est nul, sinon DEPOSIT (un encaissement ne dépasse jamais le solde)."
     },
     "cashier": {
       "type": "object",

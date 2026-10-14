@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:contracts": "vitest run tests/frontend/contracts.test.ts",
+    "test:contracts": "vitest run tests/frontend/contracts.test.ts tests/frontend/openapi.test.ts tests/frontend/contract-types.test.ts",
+    "contracts:types": "node contracts/tools/generate-types.mjs",
     "test:e2e": "npm run build && playwright test",
     "test:e2e:run": "playwright test"
   },

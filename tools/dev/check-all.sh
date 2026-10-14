@@ -52,8 +52,14 @@ fi
 step "Style et analyse statique PHP (Pint, puis PHPStan + Larastan)"
 composer run lint
 
-step "PHPUnit (Unit, Feature, Concurrency)"
+step "PHPUnit (Unit, Feature, Concurrency, Contracts)"
 composer run test
+
+step "Contrats : fichiers générés à jour (Python et types TypeScript)"
+for generator in build_enums build_commands build_events build_resources build_openapi; do
+  python3 "contracts/tools/${generator}.py" --check
+done
+node contracts/tools/generate-types.mjs --check
 
 step "TypeScript strict (vue-tsc)"
 npm run typecheck

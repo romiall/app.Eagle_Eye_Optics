@@ -88,6 +88,19 @@ jobs:
       - name: PHPUnit - Concurrency (plusieurs connexions MySQL)
         run: composer run test:concurrency
 
+      # Contrats F06 : fixtures exécutables (Opis), déclaration de compatibilité, codes d'erreur,
+      # routes Laravel identiques aux opérations IMPLEMENTED de l'OpenAPI.
+      - name: PHPUnit - Contracts
+        run: composer run test:contracts
+
+      - name: Contrats - fichiers générés à jour (énumérations, commandes, événements, ressources, OpenAPI)
+        run: |
+          python3 contracts/tools/build_enums.py --check
+          python3 contracts/tools/build_commands.py --check
+          python3 contracts/tools/build_events.py --check
+          python3 contracts/tools/build_resources.py --check
+          python3 contracts/tools/build_openapi.py --check
+
       - name: Baseline - instructions des migrations identiques aux scripts SQL validés
         run: python3 database/tools/build_migrations.py --check
 
@@ -131,6 +144,10 @@ jobs:
       - name: Prettier
         run: npm run format:check
 
+      - name: Contrats - types TypeScript générés à jour
+        run: node contracts/tools/generate-types.mjs --check
+
+      # Comprend les contrats : fixtures (Ajv strict), OpenAPI 3.1 (schéma officiel), types générés.
       - name: Vitest
         run: npm test
 

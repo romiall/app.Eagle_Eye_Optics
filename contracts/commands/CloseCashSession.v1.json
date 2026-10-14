@@ -6,7 +6,7 @@
   "x-entity-type": "cash_sessions",
   "x-entity-id-field": "cash_session_id",
   "x-permission": "cash.own_session",
-  "x-expected-version": "entity",
+  "x-expected-version": "state",
   "x-direct-route": "POST /cash-sessions/{id}/close",
   "type": "object",
   "additionalProperties": false,
@@ -48,7 +48,7 @@
   },
   "$defs": {
     "DirectRequest": {
-      "description": "Corps de la route directe POST /cash-sessions/{id}/close : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "description": "Corps de la route directe POST /cash-sessions/{id}/close : même charge + expected_version (Transition d'état contrôlée sous verrou (statut attendu vérifié par le serveur) ; la table n'a pas de colonne version, que le contrat 23 interdit d'inventer : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -62,7 +62,7 @@
       ],
       "properties": {
         "expected_version": {
-          "$ref": "../schemas/common.json#/$defs/Version"
+          "type": "null"
         },
         "cash_session_id": {
           "$ref": "../schemas/common.json#/$defs/Ulid"

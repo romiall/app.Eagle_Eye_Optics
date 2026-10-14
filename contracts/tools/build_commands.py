@@ -288,7 +288,7 @@ COMMANDS = {
         [require_when_const('origin', 'INTERNAL', 'consultation_id', ULID),
          require_when_const('origin', 'EXTERNAL', 'external_prescriber'),
          require_when_const('origin', 'EXTERNAL', 'external_prescribed_on', ref('CivilDate'))]),
-    'ValidatePrescription': ('optical_prescriptions', 'clinical.complete', 'entity', 'POST /prescriptions/{id}/validate',
+    'ValidatePrescription': ('optical_prescriptions', 'clinical.complete', 'state', 'POST /prescriptions/{id}/validate',
         'Validation explicite par le professionnel : version immuable, document PDF préparé (PENDING).',
         {'prescription_id': ULID, 'document_id': ULID},
         []),
@@ -333,7 +333,7 @@ COMMANDS = {
         'Ouverture de session : une seule session ouverte par caisse et par caissière.',
         {'cash_session_id': ULID, 'cash_register_id': ULID, 'opening_amount': MONEY, 'opened_at': INSTANT},
         []),
-    'CloseCashSession': ('cash_sessions', 'cash.own_session', 'entity', 'POST /cash-sessions/{id}/close',
+    'CloseCashSession': ('cash_sessions', 'cash.own_session', 'state', 'POST /cash-sessions/{id}/close',
         'Clôture : montant compté, attendu recalculé par le serveur, écart motivé ; session close immuable.',
         {'cash_session_id': ULID, 'closed_at': INSTANT, 'counted_amount': MONEY, 'expected_amount': MONEY,
          'variance': ref('SignedMoneyXaf'), 'variance_reason': N_TEXT},
@@ -381,7 +381,7 @@ COMMANDS = {
         {'approval_id': ULID, 'action_code': ref('PermissionCode'), 'target_type': {'type': 'string', 'pattern': '^[a-z][a-z_]{1,63}$'},
          'target_id': ULID, 'payload_hash': ref('Sha256Hex'), 'reason': REASON, 'expires_at': ref('NullableInstant')},
         []),
-    'DecideApproval': ('approvals', 'approval.decide', 'entity', 'POST /approvals/{id}/decision',
+    'DecideApproval': ('approvals', 'approval.decide', 'state', 'POST /approvals/{id}/decision',
         'Décision de la gérante présente (profil préparé ou réauthentification en ligne), consommable une fois.',
         {'approval_id': ULID, 'decision': {'type': 'string', 'enum': ['APPROVED', 'REFUSED']}, 'reason': N_TEXT},
         []),
@@ -390,6 +390,7 @@ COMMANDS = {
 EXPECTED_VERSION = {
     'none': 'Création : expected_version vaut null.',
     'entity': 'Version de l\'agrégat (colonne version).',
+    'state': 'Transition d\'état contrôlée sous verrou (statut attendu vérifié par le serveur) ; la table n\'a pas de colonne version, que le contrat 23 interdit d\'inventer : expected_version vaut null.',
     'draft': 'Version du brouillon (invoices.version), figée à l\'émission.',
     'ledger': 'ledger_version dérivée : 1 + paiements confirmés + contre-écritures + avoirs émis + remboursements (contrat 23).',
 }
@@ -429,7 +430,7 @@ def build_command(name, spec):
     payload = obj(copy.deepcopy(properties))
     if rules:
         payload['allOf'] = copy.deepcopy(rules)
-    version_schema = {'type': 'null'} if version_kind == 'none' else ref('Version')
+    version_schema = {'type': 'null'} if version_kind in ('none', 'state') else ref('Version')
     direct_properties = {'expected_version': version_schema, **copy.deepcopy(properties)}
     numbered = NUMBERED.get(name)
     if numbered:
@@ -467,7 +468,7 @@ def build_dispatch():
         then = {
             'schema_version': {'const': SCHEMA_VERSION},
             'entity_type': {'const': entity},
-            'expected_version': {'type': 'null'} if version_kind == 'none' else ref('Version'),
+            'expected_version': {'type': 'null'} if version_kind in ('none', 'state') else ref('Version'),
             'number_allocation_id': ULID if name in NUMBERED else {'type': 'null'},
             'payload': {'$ref': name + '.v' + SCHEMA_VERSION + '.json'},
         }

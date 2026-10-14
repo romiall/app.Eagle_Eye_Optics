@@ -6,7 +6,7 @@
   "x-entity-type": "optical_prescriptions",
   "x-entity-id-field": "prescription_id",
   "x-permission": "clinical.complete",
-  "x-expected-version": "entity",
+  "x-expected-version": "state",
   "x-direct-route": "POST /prescriptions/{id}/validate",
   "type": "object",
   "additionalProperties": false,
@@ -24,7 +24,7 @@
   },
   "$defs": {
     "DirectRequest": {
-      "description": "Corps de la route directe POST /prescriptions/{id}/validate : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "description": "Corps de la route directe POST /prescriptions/{id}/validate : même charge + expected_version (Transition d'état contrôlée sous verrou (statut attendu vérifié par le serveur) ; la table n'a pas de colonne version, que le contrat 23 interdit d'inventer : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -34,7 +34,7 @@
       ],
       "properties": {
         "expected_version": {
-          "$ref": "../schemas/common.json#/$defs/Version"
+          "type": "null"
         },
         "prescription_id": {
           "$ref": "../schemas/common.json#/$defs/Ulid"

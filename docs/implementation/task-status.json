@@ -113,9 +113,22 @@
    "notes": "Corrections des revues attaque et conformité du commit 343a448 au commit ef7d5f6 (tableau dans access.md). CI GitHub verte : run 38588658627 sur 3912158 (contient ef7d5f6 ; PHPUnit Unit/Feature/Concurrency sur mysql:8.4.9, e2e). check-all --strict --with-e2e : PHPUnit 283 / 21596 assertions (dont 4 entrelacements à processus séparés), PHPStan 0, Vitest 70, Playwright 18. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01/D02), écrans (F09), idempotence (F07). Écarts déclarés : matrice 09/seed, Policies de ressource, MFA (décision)."
   },
   "F06": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Commits a3137ce, 3912158 : schémas communs, sync, 26 commandes, 13 événements, 96 fixtures (verdicts identiques PHP/TS). Restent OpenAPI, compatibility.json, types TS, CI."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/contracts.md",
+    "contracts/openapi.yaml",
+    "contracts/commands/",
+    "contracts/events/",
+    "contracts/compatibility.json",
+    "contracts/fixtures/",
+    "resources/frontend/domain/contracts/generated.ts",
+    "tests/Contracts/",
+    "tests/Feature/Contracts/ImplementedRoutesContractTest.php",
+    "tests/frontend/contracts.test.ts",
+    "tests/frontend/openapi.test.ts",
+    "tests/frontend/contract-types.test.ts"
+   ],
+   "notes": "check-all --strict --with-e2e : PHPUnit 403 / 23950 assertions (Contracts 156), générateurs à jour, Vitest 192, Playwright 18. 26 commandes, 13 événements, 86 opérations OpenAPI, 150 fixtures (verdicts identiques PHP/TS). DONE après CI verte. Vecteurs F08/O02, coffre O01 et modèles D01/D02 à déclarer par leurs tâches."
   },
   "F07": {
    "status": "NOT_STARTED",
