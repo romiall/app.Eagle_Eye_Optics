@@ -9,7 +9,7 @@
     powershell -ExecutionPolicy Bypass -File tools\sync-local.ps1 -Once    # une seule synchronisation
 #>
 param(
-    [string]$Branch = 'claude/developpement-l0',
+    [string]$Branch = 'claude/developpement-l0-3pkhne',
     [int]$IntervalSeconds = 120,
     [switch]$Once
 )
