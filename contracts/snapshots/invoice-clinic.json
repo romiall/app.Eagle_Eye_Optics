@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/invoice-clinic.json",
+  "title": "Snapshot cabinet d'une facture (invoices.clinic_snapshot)",
+  "description": "En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "clinic_id",
+    "name",
+    "address",
+    "phone",
+    "email",
+    "tax_identifier",
+    "professional_mentions",
+    "document_settings",
+    "currency",
+    "timezone",
+    "test_document"
+  ],
+  "properties": {
+    "clinic_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180
+    },
+    "address": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "phone": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 32
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "email": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 254
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tax_identifier": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "professional_mentions": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "document_settings": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "timezone": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "test_document": {
+      "type": "boolean"
+    }
+  }
+}

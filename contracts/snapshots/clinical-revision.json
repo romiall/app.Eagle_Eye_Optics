@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/clinical-revision.json",
+  "title": "Snapshot d'une révision clinique (clinical_revisions.snapshot)",
+  "description": "Consultation figée à la finalisation ou à la correction : toutes les rubriques, auteur, motif ; clinical_revisions.sha256 = SHA-256 de JCS(snapshot). Jamais dans une outbox de communication. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "consultation_id",
+    "revision_no",
+    "recorded_at",
+    "author",
+    "patient",
+    "visit_id",
+    "effective_at",
+    "steps",
+    "finalization_missing_data_reason",
+    "previous_revision_id",
+    "amendment_reason"
+  ],
+  "properties": {
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "revision_no": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recorded_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "display_name"
+      ],
+      "properties": {
+        "user_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "patient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id",
+        "record_number",
+        "last_name",
+        "first_names"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "visit_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "steps": {
+      "$ref": "../schemas/clinical-steps.json#/$defs/AllSteps"
+    },
+    "finalization_missing_data_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "previous_revision_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "amendment_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

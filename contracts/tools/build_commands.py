@@ -6,8 +6,10 @@ contracts/commands/<Nom>.v1.json avec
   - `$defs/DirectRequest` : la même charge plus `expected_version` pour la route HTTP directe
     (fichier 08 : version attendue dans le corps, clé d'idempotence en en-tête),
 et contracts/commands/index.json (entité, champ entity_id, permission, nature de la version attendue,
-route directe, numéro consommé) ainsi que contracts/commands/dispatch.json (cohérence du cœur signé :
-command_name → charge, schema_version, entity_type, expected_version, plage de numéros).
+route directe, numéro consommé), contracts/commands/dispatch.json (cohérence du cœur signé :
+command_name → charge, schema_version, entity_type, expected_version, plage de numéros) et
+contracts/schemas/clinical-steps.json (rubriques du dossier, partagées avec les réponses et le snapshot
+de révision clinique).
 
 Règles de contrat :
   - les identifiants de TOUS les effets (lignes, reçus, documents, usages de numéro, réserves, révisions)
@@ -31,6 +33,7 @@ BASE = 'https://eeo.invalid/contracts/commands/'
 
 C = '../schemas/common.json#/$defs/'
 E = '../schemas/enums.json#/$defs/'
+STEPS = '../schemas/clinical-steps.json#/$defs/'
 
 
 def ref(name):
@@ -190,15 +193,35 @@ CLINICAL_STEPS = {
 }
 
 
+STEP_DEFS = {'ANAMNESIS': 'Anamnesis', 'HISTORIES': 'Histories', 'VISUAL_ACUITY': 'VisualAcuity', 'REFRACTION': 'Refraction',
+             'CENTERING': 'Centering', 'CONCLUSION': 'Conclusion'}
+
+
+def clinical_steps_schema():
+    """Données des rubriques du dossier (modèle DP), partagées par les commandes, les réponses et le snapshot
+    de révision clinique (contracts/schemas/clinical-steps.json)."""
+    return {
+        '$schema': 'https://json-schema.org/draft/2020-12/schema',
+        '$id': 'https://eeo.invalid/contracts/schemas/clinical-steps.json',
+        'title': 'Rubriques cliniques du dossier (modèle DP)',
+        'description': 'Valeurs non mesurées à null (jamais zéro par défaut), mesures en chaînes décimales exactes, termes du référentiel clinical_terms. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.',
+        '$defs': {
+            **{STEP_DEFS[name]: copy.deepcopy(schema) for name, schema in CLINICAL_STEPS.items()},
+            'StepName': {'type': 'string', 'enum': list(CLINICAL_STEPS)},
+            'AllSteps': obj({name: {'$ref': '#/$defs/' + STEP_DEFS[name]} for name in CLINICAL_STEPS}),
+        },
+    }
+
+
 def clinical_step():
     return {
         'type': 'object',
         'additionalProperties': False,
         'required': ['step', 'data'],
-        'properties': {'step': {'type': 'string', 'enum': list(CLINICAL_STEPS)}, 'data': {'type': 'object'}},
+        'properties': {'step': {'$ref': STEPS + 'StepName'}, 'data': {'type': 'object'}},
         'allOf': [
-            {'if': {'properties': {'step': {'const': name}}, 'required': ['step']}, 'then': {'properties': {'data': schema}}}
-            for name, schema in CLINICAL_STEPS.items()
+            {'if': {'properties': {'step': {'const': name}}, 'required': ['step']}, 'then': {'properties': {'data': {'$ref': STEPS + STEP_DEFS[name]}}}}
+            for name in CLINICAL_STEPS
         ],
     }
 
@@ -491,13 +514,24 @@ def build():
     return files
 
 
+def relocate(schema, prefix_from, prefix_to):
+    """Réécrit les $ref d'un schéma déplacé de contracts/commands/ vers contracts/schemas/."""
+    if isinstance(schema, dict):
+        return {key: (value.replace(prefix_from, prefix_to, 1) if key == '$ref' and isinstance(value, str) else relocate(value, prefix_from, prefix_to))
+                for key, value in schema.items()}
+    if isinstance(schema, list):
+        return [relocate(item, prefix_from, prefix_to) for item in schema]
+    return schema
+
+
 def main():
-    files = build()
+    files = {name: (OUT / name, schema) for name, schema in build().items()}
+    steps = relocate(clinical_steps_schema(), '../schemas/', '')
+    files['../schemas/clinical-steps.json'] = (ROOT / 'contracts' / 'schemas' / 'clinical-steps.json', steps)
     check = '--check' in sys.argv
     stale = []
-    for name, schema in files.items():
+    for name, (path, schema) in files.items():
         text = json.dumps(schema, ensure_ascii=False, indent=2) + '\n'
-        path = OUT / name
         if check:
             if not path.exists() or path.read_text(encoding='utf-8') != text:
                 stale.append(name)

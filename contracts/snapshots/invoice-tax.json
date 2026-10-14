@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/invoice-tax.json",
+  "title": "Snapshot fiscal d'une facture (invoices.tax_snapshot)",
+  "description": "Régime fiscal figé : aucune taxe inventée ; sans règle validée, NO_TAX_CONFIGURED et liste vide.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "regime",
+    "rules"
+  ],
+  "properties": {
+    "regime": {
+      "type": "string",
+      "enum": [
+        "NO_TAX_CONFIGURED",
+        "VALIDATED_RULES"
+      ]
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tax_rule_id",
+          "code",
+          "label",
+          "rate_percent",
+          "validated_at",
+          "legal_note"
+        ],
+        "properties": {
+          "tax_rule_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "rate_percent": {
+            "anyOf": [
+              {
+                "$ref": "../schemas/common.json#/$defs/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "validated_at": {
+            "$ref": "../schemas/common.json#/$defs/NullableInstant"
+          },
+          "legal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

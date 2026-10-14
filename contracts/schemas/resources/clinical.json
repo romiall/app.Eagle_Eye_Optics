@@ -1,0 +1,460 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/clinical.json",
+  "title": "Ressources : consultations et prescriptions",
+  "description": "Données cliniques réservées aux profils autorisés (fichier 09). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "ClinicalRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision_no",
+        "recorded_at",
+        "author_id",
+        "reason",
+        "previous_revision_id",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "author_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "previous_revision_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        }
+      }
+    },
+    "Consultation": {
+      "description": "Consultation complète : professionnel et gérante seulement (clinical.read).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "visit_id",
+        "patient_id",
+        "clinician_id",
+        "effective_at",
+        "date_change_reason",
+        "status",
+        "current_revision",
+        "completed_at",
+        "finalization_missing_data_reason",
+        "version",
+        "steps",
+        "revisions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "clinician_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "date_change_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+        },
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "finalization_missing_data_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "steps": {
+          "$ref": "../../schemas/clinical-steps.json#/$defs/AllSteps"
+        },
+        "revisions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "revision_no",
+              "recorded_at",
+              "author_id",
+              "reason",
+              "previous_revision_id",
+              "sha256"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "revision_no": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "recorded_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "author_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "previous_revision_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "sha256": {
+                "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Prescription": {
+      "description": "Prescription versionnée ; updated_at sert de jeton de concurrence pour PATCH d'un brouillon (optical_prescriptions n'a pas de colonne version).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "series_id",
+        "version_no",
+        "supersedes_id",
+        "patient_id",
+        "origin",
+        "consultation_id",
+        "external_prescriber",
+        "external_prescribed_on",
+        "external_file_id",
+        "status",
+        "usage_code",
+        "usage_other",
+        "lens_type_code",
+        "lens_type_other",
+        "lens_index",
+        "lens_index_other",
+        "pd_total",
+        "pd_od",
+        "pd_og",
+        "pd_inconsistency_reason",
+        "notes",
+        "eyes",
+        "treatments",
+        "validated_at",
+        "validated_by",
+        "document_id",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "series_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supersedes_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.origin"
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "external_prescriber": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "external_prescribed_on": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "external_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.status"
+        },
+        "usage_code": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Code"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usage_other": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_type_code": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Code"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_type_other": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_index": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]\\.[0-9]{1,2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lens_index_other": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pd_total": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_od": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_og": {
+          "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+        },
+        "pd_inconsistency_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eyes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "eye",
+              "no_correction",
+              "sphere",
+              "cylinder",
+              "axis",
+              "addition",
+              "fitting_height"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "eye": {
+                "$ref": "../../schemas/enums.json#/$defs/optical_prescription_eyes.eye"
+              },
+              "no_correction": {
+                "type": "boolean"
+              },
+              "sphere": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "cylinder": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "axis": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "addition": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              },
+              "fitting_height": {
+                "$ref": "../../schemas/common.json#/$defs/NullableDiopter"
+              }
+            }
+          },
+          "maxItems": 2
+        },
+        "treatments": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "term_code",
+              "other_text"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "term_code": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "other_text": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "validated_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "validated_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "document_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "ConsultationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Consultation"
+        }
+      }
+    },
+    "PrescriptionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Prescription"
+        }
+      }
+    }
+  }
+}

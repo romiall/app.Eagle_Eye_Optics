@@ -57,10 +57,17 @@ final class ContractFixturesTest extends TestCase
     {
         $files = [];
         foreach (self::SCHEMA_DIRECTORIES as $directory) {
-            foreach (glob(self::root().$directory.'/*.json') ?: [] as $file) {
-                $files[] = $file;
+            if (! is_dir(self::root().$directory)) {
+                continue;
+            }
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(self::root().$directory, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if ($file instanceof \SplFileInfo && $file->getExtension() === 'json') {
+                    $files[] = $file->getPathname();
+                }
             }
         }
+        sort($files);
 
         return $files;
     }

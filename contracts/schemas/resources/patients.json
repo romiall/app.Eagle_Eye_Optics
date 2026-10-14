@@ -1,0 +1,516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/patients.json",
+  "title": "Ressources : patients et visites",
+  "description": "Identité administrative, historique filtré par profil, visites. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "PatientSummary": {
+      "description": "Résultat de recherche : identité administrative minimale (tous profils autorisés).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "sex",
+        "birth_date",
+        "phone_primary",
+        "archived",
+        "merged_into_patient_id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "phone_primary": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "merged_into_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "Patient": {
+      "description": "Dossier administratif (identité durable) ; jamais de donnée clinique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "sex",
+        "birth_date",
+        "phone_primary",
+        "archived",
+        "merged_into_patient_id",
+        "version",
+        "birth_date_missing_reason",
+        "phone_secondary",
+        "phone_missing_reason",
+        "address",
+        "profession",
+        "guardian_contact",
+        "legacy_record",
+        "first_known_visit_on",
+        "first_visit_certified",
+        "legacy_record_number",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "phone_primary": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "merged_into_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "birth_date_missing_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_secondary": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_missing_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profession": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guardian_contact": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "legacy_record": {
+          "type": "boolean"
+        },
+        "first_known_visit_on": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "first_visit_certified": {
+          "type": "boolean"
+        },
+        "legacy_record_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PatientHistory": {
+      "description": "Historique : visites pour tout profil autorisé ; consultations seulement avec clinical.read ; pièces seulement avec invoice.read.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id",
+        "visits"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visits": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "reason",
+              "occurred_at",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "reason": {
+                "$ref": "../../schemas/enums.json#/$defs/visits.reason"
+              },
+              "occurred_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/visits.status"
+              }
+            }
+          }
+        },
+        "consultations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "visit_id",
+              "effective_at",
+              "status",
+              "current_revision",
+              "clinician_id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "visit_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "effective_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+              },
+              "current_revision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "clinician_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              }
+            }
+          }
+        },
+        "invoices": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "number",
+              "status",
+              "issued_at",
+              "total_gross",
+              "balance_due"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/invoices.status"
+              },
+              "issued_at": {
+                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              },
+              "total_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "balance_due": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              }
+            }
+          }
+        }
+      }
+    },
+    "PatientResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Patient"
+        }
+      }
+    },
+    "PatientPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PatientSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PatientHistoryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PatientHistory"
+        }
+      }
+    },
+    "Visit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "reason",
+        "occurred_at",
+        "status",
+        "appointment_id",
+        "exam_invoice_id",
+        "exam_waiver_approval_id",
+        "arrival_at",
+        "closed_at",
+        "administrative_note",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "$ref": "../../schemas/enums.json#/$defs/visits.reason"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/visits.status"
+        },
+        "appointment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "exam_invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "exam_waiver_approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "arrival_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "closed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "administrative_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "VisitResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Visit"
+        }
+      }
+    },
+    "VisitPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Visit"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    }
+  }
+}

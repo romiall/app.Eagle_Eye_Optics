@@ -21,3 +21,8 @@ tools
 contracts/commands
 contracts/events
 contracts/schemas/enums.json
+contracts/schemas/clinical-steps.json
+contracts/schemas/resources
+contracts/schemas/requests
+contracts/snapshots
+contracts/openapi.yaml

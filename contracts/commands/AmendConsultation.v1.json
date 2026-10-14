@@ -49,15 +49,7 @@
         ],
         "properties": {
           "step": {
-            "type": "string",
-            "enum": [
-              "ANAMNESIS",
-              "HISTORIES",
-              "VISUAL_ACUITY",
-              "REFRACTION",
-              "CENTERING",
-              "CONCLUSION"
-            ]
+            "$ref": "../schemas/clinical-steps.json#/$defs/StepName"
           },
           "data": {
             "type": "object"
@@ -78,92 +70,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "symptoms",
-                    "wears_glasses",
-                    "glasses_duration",
-                    "previous_correction_available",
-                    "complaints"
-                  ],
-                  "properties": {
-                    "symptoms": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "maxLength": 4000
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "wears_glasses": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "glasses_duration": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "maxLength": 4000
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "previous_correction_available": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "complaints": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 50,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "term_code",
-                          "other_text"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "term_code": {
-                            "$ref": "../schemas/common.json#/$defs/Code"
-                          },
-                          "other_text": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "maxLength": 4000
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Anamnesis"
                 }
               }
             }
@@ -182,84 +89,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "histories"
-                  ],
-                  "properties": {
-                    "histories": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 3,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "history_group",
-                          "known_none",
-                          "comments",
-                          "terms"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "history_group": {
-                            "$ref": "../schemas/enums.json#/$defs/consultation_histories.history_group"
-                          },
-                          "known_none": {
-                            "type": "boolean"
-                          },
-                          "comments": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "maxLength": 4000
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "terms": {
-                            "type": "array",
-                            "minItems": 0,
-                            "maxItems": 50,
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "id",
-                                "term_code",
-                                "other_text"
-                              ],
-                              "properties": {
-                                "id": {
-                                  "$ref": "../schemas/common.json#/$defs/Ulid"
-                                },
-                                "term_code": {
-                                  "$ref": "../schemas/common.json#/$defs/Code"
-                                },
-                                "other_text": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "maxLength": 4000
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Histories"
                 }
               }
             }
@@ -278,68 +108,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "acuities"
-                  ],
-                  "properties": {
-                    "acuities": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 48,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "context",
-                          "distance",
-                          "correction",
-                          "eye",
-                          "scale_id",
-                          "raw_value",
-                          "normalized_value"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "context": {
-                            "$ref": "../schemas/enums.json#/$defs/visual_acuities.context"
-                          },
-                          "distance": {
-                            "$ref": "../schemas/enums.json#/$defs/visual_acuities.distance"
-                          },
-                          "correction": {
-                            "$ref": "../schemas/enums.json#/$defs/visual_acuities.correction"
-                          },
-                          "eye": {
-                            "$ref": "../schemas/enums.json#/$defs/visual_acuities.eye"
-                          },
-                          "scale_id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "raw_value": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 100
-                          },
-                          "normalized_value": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "pattern": "^-?[0-9]{1,4}(\\.[0-9]{1,4})?$"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/VisualAcuity"
                 }
               }
             }
@@ -358,109 +127,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "measurements",
-                    "refraction_observations",
-                    "ametropias"
-                  ],
-                  "properties": {
-                    "measurements": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 6,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "stage",
-                          "eye",
-                          "sphere",
-                          "cylinder",
-                          "axis",
-                          "addition"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "stage": {
-                            "$ref": "../schemas/enums.json#/$defs/refraction_measurements.stage"
-                          },
-                          "eye": {
-                            "$ref": "../schemas/enums.json#/$defs/refraction_measurements.eye"
-                          },
-                          "sphere": {
-                            "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                          },
-                          "cylinder": {
-                            "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                          },
-                          "axis": {
-                            "anyOf": [
-                              {
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 180
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "addition": {
-                            "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                          }
-                        }
-                      }
-                    },
-                    "refraction_observations": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "maxLength": 4000
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "ametropias": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 20,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "term_code",
-                          "other_text"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "term_code": {
-                            "$ref": "../schemas/common.json#/$defs/Code"
-                          },
-                          "other_text": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "maxLength": 4000
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Refraction"
                 }
               }
             }
@@ -479,40 +146,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "centering_id",
-                    "pd_total",
-                    "pd_od",
-                    "pd_og",
-                    "inconsistency_reason"
-                  ],
-                  "properties": {
-                    "centering_id": {
-                      "$ref": "../schemas/common.json#/$defs/Ulid"
-                    },
-                    "pd_total": {
-                      "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                    },
-                    "pd_od": {
-                      "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                    },
-                    "pd_og": {
-                      "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                    },
-                    "inconsistency_reason": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "maxLength": 4000
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Centering"
                 }
               }
             }
@@ -531,80 +165,7 @@
             "then": {
               "properties": {
                 "data": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "conclusion",
-                    "referral",
-                    "referral_urgency",
-                    "referral_reasons"
-                  ],
-                  "properties": {
-                    "conclusion": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "maxLength": 4000
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "referral": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "referral_urgency": {
-                      "anyOf": [
-                        {
-                          "$ref": "../schemas/enums.json#/$defs/consultations.referral_urgency"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "referral_reasons": {
-                      "type": "array",
-                      "minItems": 0,
-                      "maxItems": 20,
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "term_code",
-                          "other_text"
-                        ],
-                        "properties": {
-                          "id": {
-                            "$ref": "../schemas/common.json#/$defs/Ulid"
-                          },
-                          "term_code": {
-                            "$ref": "../schemas/common.json#/$defs/Code"
-                          },
-                          "other_text": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "maxLength": 4000
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Conclusion"
                 }
               }
             }
@@ -664,15 +225,7 @@
             ],
             "properties": {
               "step": {
-                "type": "string",
-                "enum": [
-                  "ANAMNESIS",
-                  "HISTORIES",
-                  "VISUAL_ACUITY",
-                  "REFRACTION",
-                  "CENTERING",
-                  "CONCLUSION"
-                ]
+                "$ref": "../schemas/clinical-steps.json#/$defs/StepName"
               },
               "data": {
                 "type": "object"
@@ -693,92 +246,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "symptoms",
-                        "wears_glasses",
-                        "glasses_duration",
-                        "previous_correction_available",
-                        "complaints"
-                      ],
-                      "properties": {
-                        "symptoms": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "maxLength": 4000
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "wears_glasses": {
-                          "anyOf": [
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "glasses_duration": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "maxLength": 4000
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "previous_correction_available": {
-                          "anyOf": [
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "complaints": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 50,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "term_code",
-                              "other_text"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "term_code": {
-                                "$ref": "../schemas/common.json#/$defs/Code"
-                              },
-                              "other_text": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 4000
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Anamnesis"
                     }
                   }
                 }
@@ -797,84 +265,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "histories"
-                      ],
-                      "properties": {
-                        "histories": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 3,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "history_group",
-                              "known_none",
-                              "comments",
-                              "terms"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "history_group": {
-                                "$ref": "../schemas/enums.json#/$defs/consultation_histories.history_group"
-                              },
-                              "known_none": {
-                                "type": "boolean"
-                              },
-                              "comments": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 4000
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "terms": {
-                                "type": "array",
-                                "minItems": 0,
-                                "maxItems": 50,
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "id",
-                                    "term_code",
-                                    "other_text"
-                                  ],
-                                  "properties": {
-                                    "id": {
-                                      "$ref": "../schemas/common.json#/$defs/Ulid"
-                                    },
-                                    "term_code": {
-                                      "$ref": "../schemas/common.json#/$defs/Code"
-                                    },
-                                    "other_text": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string",
-                                          "maxLength": 4000
-                                        },
-                                        {
-                                          "type": "null"
-                                        }
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Histories"
                     }
                   }
                 }
@@ -893,68 +284,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "acuities"
-                      ],
-                      "properties": {
-                        "acuities": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 48,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "context",
-                              "distance",
-                              "correction",
-                              "eye",
-                              "scale_id",
-                              "raw_value",
-                              "normalized_value"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "context": {
-                                "$ref": "../schemas/enums.json#/$defs/visual_acuities.context"
-                              },
-                              "distance": {
-                                "$ref": "../schemas/enums.json#/$defs/visual_acuities.distance"
-                              },
-                              "correction": {
-                                "$ref": "../schemas/enums.json#/$defs/visual_acuities.correction"
-                              },
-                              "eye": {
-                                "$ref": "../schemas/enums.json#/$defs/visual_acuities.eye"
-                              },
-                              "scale_id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "raw_value": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 100
-                              },
-                              "normalized_value": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "pattern": "^-?[0-9]{1,4}(\\.[0-9]{1,4})?$"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/VisualAcuity"
                     }
                   }
                 }
@@ -973,109 +303,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "measurements",
-                        "refraction_observations",
-                        "ametropias"
-                      ],
-                      "properties": {
-                        "measurements": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 6,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "stage",
-                              "eye",
-                              "sphere",
-                              "cylinder",
-                              "axis",
-                              "addition"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "stage": {
-                                "$ref": "../schemas/enums.json#/$defs/refraction_measurements.stage"
-                              },
-                              "eye": {
-                                "$ref": "../schemas/enums.json#/$defs/refraction_measurements.eye"
-                              },
-                              "sphere": {
-                                "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                              },
-                              "cylinder": {
-                                "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                              },
-                              "axis": {
-                                "anyOf": [
-                                  {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 180
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "addition": {
-                                "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                              }
-                            }
-                          }
-                        },
-                        "refraction_observations": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "maxLength": 4000
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "ametropias": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 20,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "term_code",
-                              "other_text"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "term_code": {
-                                "$ref": "../schemas/common.json#/$defs/Code"
-                              },
-                              "other_text": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 4000
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Refraction"
                     }
                   }
                 }
@@ -1094,40 +322,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "centering_id",
-                        "pd_total",
-                        "pd_od",
-                        "pd_og",
-                        "inconsistency_reason"
-                      ],
-                      "properties": {
-                        "centering_id": {
-                          "$ref": "../schemas/common.json#/$defs/Ulid"
-                        },
-                        "pd_total": {
-                          "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                        },
-                        "pd_od": {
-                          "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                        },
-                        "pd_og": {
-                          "$ref": "../schemas/common.json#/$defs/NullableDiopter"
-                        },
-                        "inconsistency_reason": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "maxLength": 4000
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Centering"
                     }
                   }
                 }
@@ -1146,80 +341,7 @@
                 "then": {
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "conclusion",
-                        "referral",
-                        "referral_urgency",
-                        "referral_reasons"
-                      ],
-                      "properties": {
-                        "conclusion": {
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "maxLength": 4000
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "referral": {
-                          "anyOf": [
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "referral_urgency": {
-                          "anyOf": [
-                            {
-                              "$ref": "../schemas/enums.json#/$defs/consultations.referral_urgency"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "referral_reasons": {
-                          "type": "array",
-                          "minItems": 0,
-                          "maxItems": 20,
-                          "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "id",
-                              "term_code",
-                              "other_text"
-                            ],
-                            "properties": {
-                              "id": {
-                                "$ref": "../schemas/common.json#/$defs/Ulid"
-                              },
-                              "term_code": {
-                                "$ref": "../schemas/common.json#/$defs/Code"
-                              },
-                              "other_text": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "maxLength": 4000
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Conclusion"
                     }
                   }
                 }

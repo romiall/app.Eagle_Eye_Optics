@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/public.json",
+  "title": "Ressources : réservation publique (L2)",
+  "description": "Prestations réservables et créneaux administratifs, sans dossier ni nom de patient (fichier 08). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "PublicService": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "duration_minutes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "PublicServiceList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicService"
+          }
+        }
+      }
+    },
+    "PublicSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "resource_id",
+        "starts_at",
+        "ends_at"
+      ],
+      "properties": {
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PublicSlotList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PublicSlot"
+          }
+        }
+      }
+    },
+    "BookingReceipt": {
+      "description": "Référence publique distincte des identifiants internes ; ne révèle jamais l'existence d'un dossier.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_reference",
+        "status"
+      ],
+      "properties": {
+        "public_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RECEIVED",
+            "PENDING_CONFIRMATION"
+          ]
+        }
+      }
+    },
+    "BookingReceiptResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/BookingReceipt"
+        }
+      }
+    }
+  }
+}

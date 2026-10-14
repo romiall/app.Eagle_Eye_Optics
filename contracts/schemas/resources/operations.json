@@ -1,0 +1,1027 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/operations.json",
+  "title": "Ressources : postes, synchronisation, documents, exports et rapports",
+  "description": "Enrôlement et préparation des postes, santé, conflits, documents générés, exports privés, rapport financier. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "PublicJwk": {
+      "description": "Clé publique ES256 du poste (JWK, jamais de composante privée « d »).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kty",
+        "crv",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "kty": {
+          "const": "EC"
+        },
+        "crv": {
+          "const": "P-256"
+        },
+        "x": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43
+        },
+        "y": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43
+        }
+      }
+    },
+    "EnrolledDevice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "device_code",
+        "name",
+        "kid",
+        "status",
+        "enrolled_at",
+        "responsible_user_id",
+        "app_version"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "device_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "kid": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/enrolled_devices.status"
+        },
+        "enrolled_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "responsible_user_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "app_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "EnrolledDeviceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/EnrolledDevice"
+        }
+      }
+    },
+    "OfflineGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grant_id",
+        "user_id",
+        "permissions_snapshot",
+        "compartments",
+        "rules_version",
+        "catalog_version",
+        "issued_at",
+        "valid_until",
+        "signed_payload"
+      ],
+      "properties": {
+        "grant_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "user_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "permissions_snapshot": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/PermissionCode"
+          }
+        },
+        "compartments": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATIVE",
+              "CLINICAL",
+              "FINANCIAL",
+              "MANAGER"
+            ]
+          }
+        },
+        "rules_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "catalog_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "signed_payload": {
+          "$ref": "../../schemas/common.json#/$defs/CompactJws"
+        }
+      }
+    },
+    "NumberAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocation_id",
+        "document_type",
+        "document_year",
+        "range_start",
+        "range_end",
+        "last_consumed_value",
+        "status"
+      ],
+      "properties": {
+        "allocation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "document_type": {
+          "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.document_type"
+        },
+        "document_year": {
+          "type": "integer",
+          "minimum": 2000,
+          "maximum": 9999
+        },
+        "range_start": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "range_end": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "last_consumed_value": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Counter"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.status"
+        }
+      }
+    },
+    "StockQuota": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocation_id",
+        "stock_position_id",
+        "stock_lot_id",
+        "allocated_quantity",
+        "consumed_quantity",
+        "returned_quantity",
+        "status"
+      ],
+      "properties": {
+        "allocation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "stock_position_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "stock_lot_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "allocated_quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "consumed_quantity": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+          "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+        },
+        "returned_quantity": {
+          "type": "string",
+          "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+          "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/device_stock_allocations.status"
+        }
+      }
+    },
+    "Preparation": {
+      "description": "Préparation du poste (fichier 19) : grants signés par profil, plages de numéros, quotas, factures attribuées, catalogue versionné.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "grants",
+        "number_allocations",
+        "stock_allocations",
+        "write_owners",
+        "catalog",
+        "rules_version",
+        "server_time",
+        "last_accepted_sequence",
+        "last_accepted_hash"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "grants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grant_id",
+              "user_id",
+              "permissions_snapshot",
+              "compartments",
+              "rules_version",
+              "catalog_version",
+              "issued_at",
+              "valid_until",
+              "signed_payload"
+            ],
+            "properties": {
+              "grant_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "user_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "permissions_snapshot": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "$ref": "../../schemas/common.json#/$defs/PermissionCode"
+                }
+              },
+              "compartments": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "ADMINISTRATIVE",
+                    "CLINICAL",
+                    "FINANCIAL",
+                    "MANAGER"
+                  ]
+                }
+              },
+              "rules_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "catalog_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "issued_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "valid_until": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "signed_payload": {
+                "$ref": "../../schemas/common.json#/$defs/CompactJws"
+              }
+            }
+          }
+        },
+        "number_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "allocation_id",
+              "document_type",
+              "document_year",
+              "range_start",
+              "range_end",
+              "last_consumed_value",
+              "status"
+            ],
+            "properties": {
+              "allocation_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "document_type": {
+                "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.document_type"
+              },
+              "document_year": {
+                "type": "integer",
+                "minimum": 2000,
+                "maximum": 9999
+              },
+              "range_start": {
+                "$ref": "../../schemas/common.json#/$defs/Counter"
+              },
+              "range_end": {
+                "$ref": "../../schemas/common.json#/$defs/Counter"
+              },
+              "last_consumed_value": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Counter"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.status"
+              }
+            }
+          }
+        },
+        "stock_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "allocation_id",
+              "stock_position_id",
+              "stock_lot_id",
+              "allocated_quantity",
+              "consumed_quantity",
+              "returned_quantity",
+              "status"
+            ],
+            "properties": {
+              "allocation_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "stock_position_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "stock_lot_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "allocated_quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "consumed_quantity": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "returned_quantity": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/device_stock_allocations.status"
+              }
+            }
+          }
+        },
+        "write_owners": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "invoice_id",
+              "epoch"
+            ],
+            "properties": {
+              "invoice_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "catalog": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "catalog_version",
+            "snapshot_sha256",
+            "file_id"
+          ],
+          "properties": {
+            "catalog_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "snapshot_sha256": {
+              "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+            },
+            "file_id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            }
+          }
+        },
+        "rules_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "server_time": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "last_accepted_sequence": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "last_accepted_hash": {
+          "$ref": "../../schemas/common.json#/$defs/NullableSha256Hex"
+        }
+      }
+    },
+    "PreparationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Preparation"
+        }
+      }
+    },
+    "Release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "closed_number_allocations",
+        "returned_stock_allocations",
+        "closed_write_owners",
+        "released_at"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "closed_number_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "returned_stock_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "closed_write_owners": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "released_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "ReleaseResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Release"
+        }
+      }
+    },
+    "DeviceHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "status",
+        "last_sync_at",
+        "last_accepted_sequence",
+        "last_accepted_hash",
+        "pending_conflicts",
+        "app_version",
+        "grants_valid_until",
+        "number_ranges_low"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/enrolled_devices.status"
+        },
+        "last_sync_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "last_accepted_sequence": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "last_accepted_hash": {
+          "$ref": "../../schemas/common.json#/$defs/NullableSha256Hex"
+        },
+        "pending_conflicts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "app_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "grants_valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "number_ranges_low": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    },
+    "DeviceHealthResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/DeviceHealth"
+        }
+      }
+    },
+    "Conflict": {
+      "description": "Conflit de synchronisation : les instantanés chiffrés restent côté serveur ; seuls les profils autorisés les déchiffrent.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command_id",
+        "conflict_type",
+        "status",
+        "device_id",
+        "created_at",
+        "resolution",
+        "resolved_by",
+        "resolved_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "command_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "conflict_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/sync_conflicts.status"
+        },
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "resolved_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "ConflictPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Conflict"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "ConflictResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Conflict"
+        }
+      }
+    },
+    "GeneratedDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "document_type",
+        "source_key",
+        "revision_no",
+        "template_version",
+        "status",
+        "sha256",
+        "generated_at",
+        "failure_code"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "document_type": {
+          "$ref": "../../schemas/enums.json#/$defs/generated_documents.document_type"
+        },
+        "source_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "template_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/NullableSha256Hex"
+        },
+        "generated_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "GeneratedDocumentResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/GeneratedDocument"
+        }
+      }
+    },
+    "ExportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "export_type",
+        "patient_id",
+        "filters",
+        "status",
+        "requested_by",
+        "completed_at",
+        "expires_at",
+        "error_code"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "export_type": {
+          "$ref": "../../schemas/enums.json#/$defs/export_requests.export_type"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "filters": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/export_requests.status"
+        },
+        "requested_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "completed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "expires_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ExportRequestResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ExportRequest"
+        }
+      }
+    },
+    "FinancialReport": {
+      "description": "Gérante : chiffre d'affaires émis et encaissé distincts ; créances d'ouverture papier séparées ; postes non synchronisés signalés (totaux incomplets).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "issued_total",
+        "collected_total",
+        "credited_total",
+        "refunded_total",
+        "outstanding_total",
+        "collected_by_method",
+        "legacy_opening_balances",
+        "incomplete_devices"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "to": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "issued_total": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "collected_total": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "credited_total": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "refunded_total": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "outstanding_total": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "collected_by_method": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "amount"
+            ],
+            "properties": {
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.method"
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              }
+            }
+          }
+        },
+        "legacy_opening_balances": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "incomplete_devices": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "device_id",
+              "last_sync_at"
+            ],
+            "properties": {
+              "device_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "last_sync_at": {
+                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              }
+            }
+          }
+        }
+      }
+    },
+    "FinancialReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/FinancialReport"
+        }
+      }
+    },
+    "AuditEvent": {
+      "description": "Événement du journal append-only (lecture gérante, audit.read) ; aucun secret dans le diff.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actor_id",
+        "actor_name_snapshot",
+        "action",
+        "target_type",
+        "target_id",
+        "recorded_at",
+        "correlation_id",
+        "reason",
+        "sanitized_diff",
+        "event_hash"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "actor_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "actor_name_snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "target_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "target_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sanitized_diff": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_hash": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        }
+      }
+    },
+    "AuditEventPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/AuditEvent"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    }
+  }
+}

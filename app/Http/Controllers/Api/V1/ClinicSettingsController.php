@@ -11,8 +11,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Paramètres administratifs du cabinet : lecture par tout compte connecté (en-têtes des documents,
- * fuseau d'affichage), modification par la gérante réauthentifiée.
+ * Paramètres administratifs du cabinet, réservés à la gérante (contrat 23) : lecture avec users.manage,
+ * modification après réauthentification. Les autres profils reçoivent le nom, le fuseau et la monnaie du
+ * cabinet dans GET /auth/me.
  */
 final class ClinicSettingsController extends Controller
 {

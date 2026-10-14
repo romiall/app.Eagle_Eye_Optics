@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/delivery-patient.json",
+  "title": "Snapshot patient d'une remise (deliveries.patient_snapshot)",
+  "description": "Identité minimale du bénéficiaire de la remise. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "record_number",
+    "last_name",
+    "first_names"
+  ],
+  "properties": {
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "record_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "last_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "first_names": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

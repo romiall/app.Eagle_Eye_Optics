@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/refund.json",
+  "title": "Snapshot d'un remboursement (refunds.snapshot)",
+  "description": "Reçu de remboursement (fichier 11) : numéro, avoir et facture, montant, mode, référence, bénéficiaire vérifié. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "refund_id",
+    "number",
+    "effective_at",
+    "credit_note",
+    "invoice",
+    "beneficiary",
+    "amount",
+    "currency",
+    "method",
+    "reference",
+    "created_by",
+    "clinic",
+    "template_version"
+  ],
+  "properties": {
+    "refund_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "credit_note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credit_note_id",
+        "number"
+      ],
+      "properties": {
+        "credit_note_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "invoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_id",
+        "number",
+        "issued_at",
+        "total_gross"
+      ],
+      "properties": {
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issued_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "total_gross": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "beneficiary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id",
+        "record_number",
+        "last_name",
+        "first_names"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "amount": {
+      "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "method": {
+      "$ref": "../schemas/enums.json#/$defs/refunds.method"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "display_name"
+      ],
+      "properties": {
+        "user_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "clinic": {
+      "description": "En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clinic_id",
+        "name",
+        "address",
+        "phone",
+        "email",
+        "tax_identifier",
+        "professional_mentions",
+        "document_settings",
+        "currency",
+        "timezone",
+        "test_document"
+      ],
+      "properties": {
+        "clinic_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_identifier": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professional_mentions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_settings": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "$ref": "../schemas/common.json#/$defs/Currency"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "test_document": {
+          "type": "boolean"
+        }
+      }
+    },
+    "template_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

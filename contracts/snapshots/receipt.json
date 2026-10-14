@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/receipt.json",
+  "title": "Snapshot d'un reçu (receipts.snapshot)",
+  "description": "Contenu du reçu (fichier 11) : numéro, dates effective et d'émission, facture, patient, versement, cumul encaissé net, reste, utilisateur ; nature calculée, jamais saisie. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "receipt_number",
+    "issued_at",
+    "effective_at",
+    "invoice",
+    "patient",
+    "payment",
+    "paid_net_before",
+    "paid_net_after",
+    "balance_after",
+    "kind",
+    "cashier",
+    "clinic",
+    "template_version"
+  ],
+  "properties": {
+    "receipt_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "issued_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "invoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_id",
+        "number",
+        "issued_at",
+        "total_gross"
+      ],
+      "properties": {
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issued_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "total_gross": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "patient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_id",
+        "record_number",
+        "last_name",
+        "first_names"
+      ],
+      "properties": {
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "payment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payment_id",
+        "amount",
+        "currency",
+        "method",
+        "reference"
+      ],
+      "properties": {
+        "payment_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "currency": {
+          "$ref": "../schemas/common.json#/$defs/Currency"
+        },
+        "method": {
+          "$ref": "../schemas/enums.json#/$defs/payments.method"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "paid_net_before": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "paid_net_after": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "balance_after": {
+      "$ref": "../schemas/common.json#/$defs/SignedMoneyXaf"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "DEPOSIT",
+        "BALANCE_SETTLEMENT",
+        "OVERPAYMENT_CREDIT"
+      ]
+    },
+    "cashier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "display_name"
+      ],
+      "properties": {
+        "user_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "clinic": {
+      "description": "En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clinic_id",
+        "name",
+        "address",
+        "phone",
+        "email",
+        "tax_identifier",
+        "professional_mentions",
+        "document_settings",
+        "currency",
+        "timezone",
+        "test_document"
+      ],
+      "properties": {
+        "clinic_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_identifier": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professional_mentions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_settings": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "$ref": "../schemas/common.json#/$defs/Currency"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "test_document": {
+          "type": "boolean"
+        }
+      }
+    },
+    "template_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/invoice-patient.json",
+  "title": "Snapshot patient d'une facture (invoices.patient_snapshot)",
+  "description": "Identité facturée minimale et référence dossier (fichier 11). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "record_number",
+    "last_name",
+    "first_names"
+  ],
+  "properties": {
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "record_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "last_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "first_names": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

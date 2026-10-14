@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/scheduling.json",
+  "title": "Ressources : suivi, agenda et tâches de contact",
+  "description": "Agenda interne, contrôles recommandés et relances (L0 sans envoi externe). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "FollowUpPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "consultation_id",
+        "patient_id",
+        "reason",
+        "recommended_date",
+        "date_origin",
+        "reminder_enabled",
+        "preferred_channel",
+        "status",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.reason"
+        },
+        "recommended_date": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "date_origin": {
+          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.date_origin"
+        },
+        "reminder_enabled": {
+          "type": "boolean"
+        },
+        "preferred_channel": {
+          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.preferred_channel"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.status"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "FollowUpPlanResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/FollowUpPlan"
+        }
+      }
+    },
+    "Appointment": {
+      "description": "Rendez-vous ; un rendez-vous pris hors-ligne reste PENDING_CONFIRMATION jusqu'à validation serveur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "prospect_contact_id",
+        "follow_up_id",
+        "resource_id",
+        "service_id",
+        "starts_at",
+        "ends_at",
+        "status",
+        "source",
+        "administrative_reason",
+        "cancel_reason",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "follow_up_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/appointments.status"
+        },
+        "source": {
+          "$ref": "../../schemas/enums.json#/$defs/appointments.source"
+        },
+        "administrative_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancel_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "AppointmentResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Appointment"
+        }
+      }
+    },
+    "AppointmentPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Appointment"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "ContactTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "prospect_contact_id",
+        "follow_up_id",
+        "appointment_id",
+        "invoice_id",
+        "due_at",
+        "channel",
+        "status",
+        "next_attempt_at",
+        "assigned_to",
+        "administrative_notes",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "follow_up_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "appointment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "due_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "channel": {
+          "$ref": "../../schemas/enums.json#/$defs/contact_tasks.channel"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/contact_tasks.status"
+        },
+        "next_attempt_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "assigned_to": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "administrative_notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "ContactTaskPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ContactTask"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "ContactAttemptResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "task"
+      ],
+      "properties": {
+        "attempt_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "task": {
+          "$ref": "#/$defs/ContactTask"
+        }
+      }
+    },
+    "ContactAttemptResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ContactAttemptResult"
+        }
+      }
+    },
+    "ActivityReport": {
+      "description": "Activité administrative (accueil, gérante) : comptages, aucune donnée clinique ni financière.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "visits",
+        "new_patients",
+        "appointments",
+        "appointments_no_show",
+        "contact_tasks_due",
+        "contact_tasks_done"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "to": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "visits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "new_patients": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "appointments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "appointments_no_show": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contact_tasks_due": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contact_tasks_done": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ActivityReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ActivityReport"
+        }
+      }
+    },
+    "ClinicalReport": {
+      "description": "Statistiques cliniques agrégées (R02, statistics.clinical) : comptages seulement, aucun patient identifiable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "consultations_completed",
+        "prescriptions_validated",
+        "referrals",
+        "ametropias"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "to": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "consultations_completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prescriptions_validated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referrals": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ametropias": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "term_code",
+              "count"
+            ],
+            "properties": {
+              "term_code": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "ClinicalReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ClinicalReport"
+        }
+      }
+    }
+  }
+}

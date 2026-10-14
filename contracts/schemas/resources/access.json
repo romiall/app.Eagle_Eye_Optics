@@ -1,0 +1,427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/access.json",
+  "title": "Ressources : session, comptes et cabinet",
+  "description": "Réponses des routes F05 (implémentées). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "StaffMemberSummary": {
+      "description": "Compte dans une liste : sans les permissions effectives.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "login",
+        "display_name",
+        "email",
+        "active",
+        "version",
+        "roles"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "login": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "enum": [
+              "CASHIER",
+              "CLINICIAN",
+              "MANAGER",
+              "RECEPTION"
+            ]
+          },
+          "maxItems": 4
+        }
+      }
+    },
+    "StaffMember": {
+      "description": "Compte du personnel : profils actifs et permissions effectives (jamais de hash ni de secret MFA).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "login",
+        "display_name",
+        "email",
+        "active",
+        "version",
+        "roles",
+        "permissions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "login": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "enum": [
+              "CASHIER",
+              "CLINICIAN",
+              "MANAGER",
+              "RECEPTION"
+            ]
+          },
+          "maxItems": 4
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/PermissionCode"
+          }
+        }
+      }
+    },
+    "ClinicSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "timezone",
+        "currency",
+        "production_documents_enabled"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "currency": {
+          "$ref": "../../schemas/common.json#/$defs/Currency"
+        },
+        "production_documents_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Me": {
+      "description": "Compte connecté : profils, permissions effectives, cabinet (nom, fuseau, monnaie).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "login",
+        "display_name",
+        "email",
+        "active",
+        "version",
+        "roles",
+        "permissions",
+        "clinic"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "login": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "enum": [
+              "CASHIER",
+              "CLINICIAN",
+              "MANAGER",
+              "RECEPTION"
+            ]
+          },
+          "maxItems": 4
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/PermissionCode"
+          }
+        },
+        "clinic": {
+          "$ref": "#/$defs/ClinicSummary"
+        }
+      }
+    },
+    "ClinicSettings": {
+      "description": "Paramètres administratifs du cabinet (gérante).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "timezone",
+        "currency",
+        "address",
+        "phone",
+        "email",
+        "tax_identifier",
+        "professional_mentions",
+        "document_settings",
+        "production_documents_enabled"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "currency": {
+          "$ref": "../../schemas/common.json#/$defs/Currency"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_identifier": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professional_mentions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_settings": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "production_documents_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Reauthentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reauthenticated_until"
+      ],
+      "properties": {
+        "reauthenticated_until": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "StaffMemberResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/StaffMember"
+        }
+      }
+    },
+    "StaffMemberPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/StaffMemberSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "MeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Me"
+        }
+      }
+    },
+    "ClinicSettingsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ClinicSettings"
+        }
+      }
+    },
+    "ReauthenticationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Reauthentication"
+        }
+      }
+    }
+  }
+}

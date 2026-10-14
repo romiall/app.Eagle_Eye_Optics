@@ -1,0 +1,1779 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/resources/billing.json",
+  "title": "Ressources : catalogue, ventes, approbations, caisse et remises",
+  "description": "Pièces financières immuables, projections de solde, réponses des opérations financières. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "$defs": {
+    "CatalogItem": {
+      "description": "Article : prix de vente pour les profils autorisés ; purchase_cost présent seulement pour la gérante (fichier 08).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "reference",
+        "category_code",
+        "name",
+        "brand",
+        "model",
+        "unit_code",
+        "quantity_integer_only",
+        "sale_price",
+        "tax_rule_id",
+        "stock_mode",
+        "requires_expiry",
+        "active",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "category_code": {
+          "$ref": "../../schemas/common.json#/$defs/Code"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 120
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit_code": {
+          "$ref": "../../schemas/common.json#/$defs/Code"
+        },
+        "quantity_integer_only": {
+          "type": "boolean"
+        },
+        "sale_price": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "purchase_cost": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_rule_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "stock_mode": {
+          "$ref": "../../schemas/enums.json#/$defs/catalog_items.stock_mode"
+        },
+        "requires_expiry": {
+          "type": "boolean"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "CatalogPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CatalogItem"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CatalogItemResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CatalogItem"
+        }
+      }
+    },
+    "TaxRule": {
+      "description": "Règle fiscale saisie par la gérante ; jamais inventée : sans validation (validated_at), elle n'est pas appliquée aux documents de production.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "label",
+        "rate_percent",
+        "active",
+        "validated_by",
+        "validated_at",
+        "legal_note",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "rate_percent": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "validated_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "validated_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "legal_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "TaxRuleResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/TaxRule"
+        }
+      }
+    },
+    "TaxRuleList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/TaxRule"
+          }
+        }
+      }
+    },
+    "ImportReport": {
+      "description": "Rapport d'import contrôlé (X01) : aperçu sans écriture (dry_run) puis import ; une ligne refusée n'est jamais importée partiellement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dry_run",
+        "rows",
+        "accepted",
+        "rejected",
+        "created_ids"
+      ],
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line",
+              "field",
+              "message"
+            ],
+            "properties": {
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "field": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "created_ids": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    },
+    "ImportReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ImportReport"
+        }
+      }
+    },
+    "InvoiceLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "position",
+        "catalog_item_id",
+        "reference_snapshot",
+        "description_snapshot",
+        "category_snapshot",
+        "unit_snapshot",
+        "quantity",
+        "unit_price_gross",
+        "discount_gross",
+        "line_total_gross",
+        "tax_code_snapshot",
+        "tax_rate_snapshot",
+        "tax_amount",
+        "prescription_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "position": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "catalog_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reference_snapshot": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description_snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "category_snapshot": {
+          "$ref": "../../schemas/common.json#/$defs/Code"
+        },
+        "unit_snapshot": {
+          "$ref": "../../schemas/common.json#/$defs/Code"
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "unit_price_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "discount_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "line_total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "tax_code_snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "tax_rate_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prescription_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    },
+    "InvoiceBalance": {
+      "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_gross",
+        "paid_net",
+        "credited",
+        "refunded",
+        "balance_due",
+        "credit_available",
+        "settlement"
+      ],
+      "properties": {
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "paid_net": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "credited": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "refunded": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "balance_due": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "credit_available": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "settlement": {
+          "type": "string",
+          "enum": [
+            "NOT_ISSUED",
+            "UNPAID",
+            "PARTIALLY_PAID",
+            "SETTLED",
+            "IN_CREDIT"
+          ]
+        }
+      }
+    },
+    "InvoicePayment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "amount",
+        "method",
+        "reference",
+        "effective_at",
+        "confirmed_at",
+        "status",
+        "receipt_id",
+        "receipt_number",
+        "reversed_amount"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payments.method"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "confirmed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/payments.status"
+        },
+        "receipt_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "receipt_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reversed_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "DocumentState": {
+      "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "document_status"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "document_status": {
+          "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+        }
+      }
+    },
+    "Invoice": {
+      "description": "Facture : draft_version (version du brouillon, figée à l'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "visit_id",
+        "number",
+        "status",
+        "issued_at",
+        "issued_by",
+        "due_date",
+        "currency",
+        "total_gross",
+        "origin",
+        "legacy_reference",
+        "draft_version",
+        "ledger_version",
+        "balance",
+        "lines",
+        "payments",
+        "credit_notes",
+        "refunds",
+        "write_owner",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/invoices.status"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "issued_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "due_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "currency": {
+          "$ref": "../../schemas/common.json#/$defs/Currency"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/invoices.origin"
+        },
+        "legacy_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "draft_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "ledger_version": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "balance": {
+          "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_gross",
+            "paid_net",
+            "credited",
+            "refunded",
+            "balance_due",
+            "credit_available",
+            "settlement"
+          ],
+          "properties": {
+            "total_gross": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "paid_net": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "credited": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "refunded": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "balance_due": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "credit_available": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "settlement": {
+              "type": "string",
+              "enum": [
+                "NOT_ISSUED",
+                "UNPAID",
+                "PARTIALLY_PAID",
+                "SETTLED",
+                "IN_CREDIT"
+              ]
+            }
+          }
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "position",
+              "catalog_item_id",
+              "reference_snapshot",
+              "description_snapshot",
+              "category_snapshot",
+              "unit_snapshot",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross",
+              "line_total_gross",
+              "tax_code_snapshot",
+              "tax_rate_snapshot",
+              "tax_amount",
+              "prescription_id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "catalog_item_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "reference_snapshot": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description_snapshot": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "category_snapshot": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "unit_snapshot": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "line_total_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "tax_code_snapshot": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "tax_rate_snapshot": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Rate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tax_amount": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "prescription_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              }
+            }
+          }
+        },
+        "payments": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "amount",
+              "method",
+              "reference",
+              "effective_at",
+              "confirmed_at",
+              "status",
+              "receipt_id",
+              "receipt_number",
+              "reversed_amount"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+              },
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.method"
+              },
+              "reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "effective_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "confirmed_at": {
+                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.status"
+              },
+              "receipt_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "receipt_number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reversed_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              }
+            }
+          }
+        },
+        "credit_notes": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "number",
+              "status",
+              "amount_gross",
+              "issued_at"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/credit_notes.status"
+              },
+              "amount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "issued_at": {
+                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              }
+            }
+          }
+        },
+        "refunds": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "number",
+              "amount",
+              "method",
+              "effective_at"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+              },
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/refunds.method"
+              },
+              "effective_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              }
+            }
+          }
+        },
+        "write_owner": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "device_id",
+                "epoch",
+                "status"
+              ],
+              "properties": {
+                "device_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "epoch": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "status": {
+                  "$ref": "../../schemas/enums.json#/$defs/invoice_write_owners.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "InvoiceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "number",
+        "status",
+        "issued_at",
+        "total_gross",
+        "balance_due",
+        "draft_version",
+        "ledger_version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/invoices.status"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "balance_due": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "draft_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "ledger_version": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "InvoiceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Invoice"
+        }
+      }
+    },
+    "InvoicePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/InvoiceSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PaymentResult": {
+      "description": "Réponse confirmée d'encaissement (fichier 08) : références paiement/reçu, montant, solde recalculé, état du PDF.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payment_id",
+        "receipt_id",
+        "receipt_number",
+        "invoice_id",
+        "amount",
+        "currency",
+        "method",
+        "effective_at",
+        "recorded_at",
+        "ledger_version",
+        "balance",
+        "receipt_document"
+      ],
+      "properties": {
+        "payment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "receipt_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "receipt_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "currency": {
+          "$ref": "../../schemas/common.json#/$defs/Currency"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payments.method"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ledger_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "balance": {
+          "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_gross",
+            "paid_net",
+            "credited",
+            "refunded",
+            "balance_due",
+            "credit_available",
+            "settlement"
+          ],
+          "properties": {
+            "total_gross": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "paid_net": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "credited": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "refunded": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "balance_due": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "credit_available": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "settlement": {
+              "type": "string",
+              "enum": [
+                "NOT_ISSUED",
+                "UNPAID",
+                "PARTIALLY_PAID",
+                "SETTLED",
+                "IN_CREDIT"
+              ]
+            }
+          }
+        },
+        "receipt_document": {
+          "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document_id",
+            "document_status"
+          ],
+          "properties": {
+            "document_id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "document_status": {
+              "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+            }
+          }
+        }
+      }
+    },
+    "ReversalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reversal_id",
+        "payment_id",
+        "invoice_id",
+        "amount",
+        "recorded_at",
+        "ledger_version",
+        "balance"
+      ],
+      "properties": {
+        "reversal_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "payment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ledger_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "balance": {
+          "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_gross",
+            "paid_net",
+            "credited",
+            "refunded",
+            "balance_due",
+            "credit_available",
+            "settlement"
+          ],
+          "properties": {
+            "total_gross": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "paid_net": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "credited": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "refunded": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "balance_due": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "credit_available": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "settlement": {
+              "type": "string",
+              "enum": [
+                "NOT_ISSUED",
+                "UNPAID",
+                "PARTIALLY_PAID",
+                "SETTLED",
+                "IN_CREDIT"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "CreditNoteResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credit_note_id",
+        "number",
+        "invoice_id",
+        "amount_gross",
+        "issued_at",
+        "ledger_version",
+        "balance",
+        "document"
+      ],
+      "properties": {
+        "credit_note_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "amount_gross": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ledger_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "balance": {
+          "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_gross",
+            "paid_net",
+            "credited",
+            "refunded",
+            "balance_due",
+            "credit_available",
+            "settlement"
+          ],
+          "properties": {
+            "total_gross": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "paid_net": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "credited": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "refunded": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "balance_due": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "credit_available": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "settlement": {
+              "type": "string",
+              "enum": [
+                "NOT_ISSUED",
+                "UNPAID",
+                "PARTIALLY_PAID",
+                "SETTLED",
+                "IN_CREDIT"
+              ]
+            }
+          }
+        },
+        "document": {
+          "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document_id",
+            "document_status"
+          ],
+          "properties": {
+            "document_id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "document_status": {
+              "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+            }
+          }
+        }
+      }
+    },
+    "RefundResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "refund_id",
+        "number",
+        "invoice_id",
+        "credit_note_id",
+        "amount",
+        "method",
+        "effective_at",
+        "ledger_version",
+        "balance",
+        "document"
+      ],
+      "properties": {
+        "refund_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "credit_note_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/refunds.method"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ledger_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "balance": {
+          "description": "Projection calculée sous le verrou de la facture (contrat 23) : aucun statut PAID stocké.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_gross",
+            "paid_net",
+            "credited",
+            "refunded",
+            "balance_due",
+            "credit_available",
+            "settlement"
+          ],
+          "properties": {
+            "total_gross": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "paid_net": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "credited": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "refunded": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "balance_due": {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            "credit_available": {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            "settlement": {
+              "type": "string",
+              "enum": [
+                "NOT_ISSUED",
+                "UNPAID",
+                "PARTIALLY_PAID",
+                "SETTLED",
+                "IN_CREDIT"
+              ]
+            }
+          }
+        },
+        "document": {
+          "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "document_id",
+            "document_status"
+          ],
+          "properties": {
+            "document_id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "document_status": {
+              "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+            }
+          }
+        }
+      }
+    },
+    "PaymentResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PaymentResult"
+        }
+      }
+    },
+    "ReversalResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ReversalResult"
+        }
+      }
+    },
+    "CreditNoteResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CreditNoteResult"
+        }
+      }
+    },
+    "RefundResultResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/RefundResult"
+        }
+      }
+    },
+    "Approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "action_code",
+        "target_type",
+        "target_id",
+        "payload_hash",
+        "requested_by",
+        "reason",
+        "status",
+        "decided_by",
+        "decided_at",
+        "expires_at",
+        "consumed_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "action_code": {
+          "$ref": "../../schemas/common.json#/$defs/PermissionCode"
+        },
+        "target_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "target_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "payload_hash": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "requested_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/approvals.status"
+        },
+        "decided_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "decided_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "expires_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "consumed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    },
+    "ApprovalResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Approval"
+        }
+      }
+    },
+    "CashSession": {
+      "description": "Session de caisse ; collected_cash/refunded_cash sont des projections de la session.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "cash_register_id",
+        "cashier_id",
+        "opened_at",
+        "opening_amount",
+        "closed_at",
+        "counted_amount",
+        "expected_amount",
+        "variance",
+        "variance_reason",
+        "closed_by",
+        "collected_cash",
+        "refunded_cash"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_register_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cashier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "opened_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "opening_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "closed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "counted_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "closed_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "collected_cash": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "refunded_cash": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "CashSessionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashSession"
+        }
+      }
+    },
+    "CurrentCashSessionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CashSession"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "invoice_id",
+        "status",
+        "delivered_at",
+        "delivered_by",
+        "credit_delivery_approval_id",
+        "lines"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/deliveries.status"
+        },
+        "delivered_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "delivered_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "credit_delivery_approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "invoice_line_id",
+              "item_id",
+              "quantity",
+              "stock_position_id",
+              "stock_lot_id",
+              "reservation_id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "invoice_line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "item_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "stock_position_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "stock_lot_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "reservation_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DeliveryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Delivery"
+        }
+      }
+    }
+  }
+}
