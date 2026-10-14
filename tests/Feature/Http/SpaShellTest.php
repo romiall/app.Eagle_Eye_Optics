@@ -106,7 +106,9 @@ final class SpaShellTest extends TestCase
 
         $response->assertNotFound();
         $response->assertHeader('Content-Type', 'application/json');
-        $response->assertJsonStructure(['message']);
+        // Enveloppe d'erreur du fichier 08 : code stable, message français, identifiant de corrélation.
+        $response->assertJsonStructure(['error' => ['code', 'message'], 'correlation_id']);
+        $response->assertJsonPath('error.code', 'RESOURCE_NOT_FOUND');
         $this->assertStringNotContainsString('id="app"', (string) $response->getContent());
     }
 
@@ -120,7 +122,7 @@ final class SpaShellTest extends TestCase
 
     public function test_les_methodes_d_ecriture_sur_une_url_api_inconnue_repondent_aussi_en_json_404(): void
     {
-        $this->postJson('/api/v1/inconnu', [])->assertNotFound()->assertJsonStructure(['message']);
+        $this->postJson('/api/v1/inconnu', [])->assertNotFound()->assertJsonPath('error.code', 'RESOURCE_NOT_FOUND');
         $this->patchJson('/api/v1/inconnu', [])->assertNotFound();
         $this->deleteJson('/api/v1/inconnu')->assertNotFound();
     }

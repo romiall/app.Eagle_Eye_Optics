@@ -6,6 +6,7 @@ use App\Support\Testing\IsolatedDatabaseGuard;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Procédure dédiée de remise à zéro des bases de test (contrats 23 : « Réinitialiser uniquement les bases
@@ -15,7 +16,8 @@ use Illuminate\Console\Command;
  */
 #[Signature('eeo:test-db:reset
     {--database= : Nom de la connexion (par défaut : connexion par défaut)}
-    {--migrate : Rejoue les migrations après la remise à zéro}')]
+    {--migrate : Rejoue les migrations après la remise à zéro}
+    {--create : Crée la base de test isolée si elle n\'existe pas encore (droits de l\'utilisateur de test)}')]
 #[Description('Vide une base MySQL de test isolée (refusé partout ailleurs)')]
 final class ResetTestDatabase extends Command
 {
@@ -33,6 +35,10 @@ final class ResetTestDatabase extends Command
             return self::FAILURE;
         }
 
+        if ($this->option('create')) {
+            $this->createIfMissing($connection, $guard->database);
+        }
+
         $this->components->info(sprintf('Remise à zéro de la base de test isolée « %s ».', $guard->database));
 
         // La garde ci-dessus est le verrou de cette procédure ; db:wipe, appelé en sous-commande, ne
@@ -44,5 +50,23 @@ final class ResetTestDatabase extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Crée la base jetable avant de s'y connecter (connexion sans base sélectionnée). N'est appelé
+     * qu'après la garde : nom « *_test » vérifié par motif, environnement « testing », hôte local.
+     */
+    private function createIfMissing(string $connection, string $database): void
+    {
+        $serverOnly = 'eeo_test_db_server';
+        config(["database.connections.{$serverOnly}" => [...(array) config("database.connections.{$connection}"), 'database' => null]]);
+
+        try {
+            DB::connection($serverOnly)->statement(
+                'CREATE DATABASE IF NOT EXISTS `'.$database.'` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci',
+            );
+        } finally {
+            DB::purge($serverOnly);
+        }
     }
 }

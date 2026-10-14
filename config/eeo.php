@@ -17,6 +17,18 @@ return [
 
     'clinic_timezone' => env('CLINIC_TIMEZONE', 'Africa/Douala'),
 
+    /*
+    | Cabinet servi par l'installation (ULID). Vide : l'unique cabinet de la base est utilisé ; s'il en
+    | existe plusieurs, la connexion est refusée tant que la valeur n'est pas définie (contrat 23).
+    */
+    'clinic_id' => env('EEO_CLINIC_ID'),
+
+    /*
+    | Durée de validité d'une réauthentification pour les opérations sensibles (approbations, droits,
+    | exports globaux), en secondes (fichier 09).
+    */
+    'reauthentication_ttl' => (int) env('EEO_REAUTHENTICATION_TTL', 900),
+
     'clinic_currency' => env('CLINIC_CURRENCY', 'XAF'),
 
     /*

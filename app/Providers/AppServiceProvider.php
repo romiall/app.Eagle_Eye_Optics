@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Domain\Access\EffectivePermissions;
+use App\Models\User;
 use App\Support\Testing\BlockDestructiveDatabaseCommands;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Foundation\Console\Kernel as FoundationConsoleKernel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,7 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Permissions effectives relues en base une fois par requête (désactivation/révocation immédiates).
+        $this->app->scoped(EffectivePermissions::class);
     }
 
     /**
@@ -26,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->useRootRelativeAssetPaths();
+        $this->authorizePermissionCodes();
+        $this->limitAuthenticationAttempts();
 
         // Aucune commande destructive de base de données hors base de test isolée (contrats 23 et 25).
         Event::listen(CommandStarting::class, [BlockDestructiveDatabaseCommands::class, 'handle']);
@@ -33,6 +42,35 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->relayConsoleEvents();
         }
+    }
+
+    /**
+     * Limites de débit de l'authentification (fichier 09) : 20 connexions par minute et par adresse, en
+     * plus de la limite de 5 échecs par identifiant de l'action de connexion ; 5 réauthentifications par
+     * minute et par compte.
+     */
+    private function limitAuthenticationAttempts(): void
+    {
+        RateLimiter::for('eeo-login-ip', static fn (Request $request): Limit => Limit::perMinute(20)->by('ip:'.$request->ip()));
+        RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute(5)->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+    }
+
+    /**
+     * Chaque code du référentiel `permissions` (49 codes seedés, autorité des droits) est une capacité
+     * Gate : `Gate::allows('invoice.issue')`, `$user->can(...)`, middleware `can:`. Un compte désactivé
+     * n'a aucune permission. Les autres capacités restent décidées par les Policies de ressource.
+     */
+    private function authorizePermissionCodes(): void
+    {
+        Gate::before(static function (User $user, string $ability): ?bool {
+            $permissions = app(EffectivePermissions::class);
+
+            if (! str_contains($ability, '.') || ! $permissions->isKnown($ability)) {
+                return null;
+            }
+
+            return $permissions->has($user, $ability);
+        });
     }
 
     /**

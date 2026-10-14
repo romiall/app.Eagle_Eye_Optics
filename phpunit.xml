@@ -47,6 +47,9 @@
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
+        <!-- Requêtes de test « venant de la SPA » (Referer http://localhost) : session Sanctum comme en production. -->
+        <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost" force="true"/>
+        <env name="EEO_CLINIC_ID" value="" force="true"/>
         <env name="EEO_INTEGRATIONS_MODE" value="fake" force="true"/>
         <env name="PRODUCTION_DOCUMENTS_ENABLED" value="false" force="true"/>
     </php>

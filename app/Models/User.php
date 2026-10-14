@@ -2,12 +2,25 @@
 
 namespace App\Models;
 
+use App\Domain\Access\EffectivePermissions;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 /**
- * Compte individuel du cabinet (table `users` du catalogue : id ULID, login, display_name, password_hash,
- * active). Squelette de F02 aligné sur le catalogue ; F05 le complète (Policies, permissions, session
- * Sanctum, désactivation). Pas de table `users` Laravel par défaut : la migration vient de F04.
+ * Compte individuel du cabinet (table `users` du catalogue) : id ULID, login, display_name,
+ * password_hash, active, version. Jamais supprimé pour effacer un auteur : on le désactive.
+ *
+ * Aucune affectation de masse de clinic_id, password_hash, active ou version : ces champs ne sont écrits
+ * que par les actions du domaine Accès (contrat 23 : l'utilisateur ne choisit pas un clinic_id).
+ *
+ * @property string $id
+ * @property string $clinic_id
+ * @property string $display_name
+ * @property string $login
+ * @property string|null $email
+ * @property string $password_hash
+ * @property bool $active
+ * @property int $version
  */
 class User extends Authenticatable
 {
@@ -15,11 +28,13 @@ class User extends Authenticatable
 
     protected $keyType = 'string';
 
-    /** @var list<string> */
-    protected $fillable = ['clinic_id', 'display_name', 'login', 'email', 'password_hash', 'active'];
+    protected $dateFormat = 'Y-m-d H:i:s.u';
 
     /** @var list<string> */
-    protected $hidden = ['password_hash', 'mfa_secret_ciphertext'];
+    protected $fillable = ['display_name', 'email'];
+
+    /** @var list<string> */
+    protected $hidden = ['password_hash', 'mfa_secret_ciphertext', 'mfa_key_id'];
 
     /**
      * Le mot de passe est lu dans `password_hash` (jamais dans une colonne `password`).
@@ -30,12 +45,32 @@ class User extends Authenticatable
     }
 
     /**
-     * « Rester connecté » est désactivé tant qu'aucun stockage de jeton compatible n'est prévu :
-     * aucune colonne remember_token n'existe dans le catalogue.
+     * « Rester connecté » est désactivé : aucune colonne remember_token n'existe dans le catalogue.
      */
     public function getRememberTokenName(): string
     {
         return '';
+    }
+
+    /**
+     * @return BelongsTo<Clinic, $this>
+     */
+    public function clinic(): BelongsTo
+    {
+        return $this->belongsTo(Clinic::class);
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return app(EffectivePermissions::class)->has($this, $permission);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function permissionCodes(): array
+    {
+        return app(EffectivePermissions::class)->for($this);
     }
 
     /**
@@ -45,7 +80,8 @@ class User extends Authenticatable
     {
         return [
             'active' => 'boolean',
-            'last_login_at' => 'datetime',
+            'version' => 'integer',
+            'last_login_at' => 'immutable_datetime',
         ];
     }
 }

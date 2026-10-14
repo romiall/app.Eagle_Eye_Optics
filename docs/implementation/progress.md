@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0-3pkhne` (dépôt public : données fictives uniquement).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante : F05 (identité, permissions, bootstrap gérante).
+- Tâche courante : F05 (identité, permissions, bootstrap gérante) — IN_REVIEW.
 - Dernière preuve acquise : F04 — `docs/evidence/schema-parity.json` (22/22 au commit `3fe6e93`, MySQL 8.4.9) et installation neuve reproductible en mode production depuis un clone frais (`docs/evidence/G0.md`) ; `check-all.sh --strict --with-e2e` : PHPUnit 170 tests / 20 560 assertions, PHPStan niveau 8 sans erreur, Vitest 30, Playwright 13. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -115,3 +115,16 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 | Preuve | `docs/evidence/G0.md` : équivalence relue (22/22), installation neuve reproductible depuis un clone frais du dépôt distant en mode production, application servie (sonde, coquille, API 404 JSON no-store, fichiers sensibles non exposés), CI GitHub verte, `.env.example` sans secret, aucune activation financière réelle |
 | Manques pour la production | Q01–Q04, Q14 (et Q05–Q13, Q15 pour les lots concernés) : voir `G0.md` |
 | Reprise | F05 |
+
+### F05 — Adapter identité, permissions et bootstrap gérante
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | IN_REVIEW (revue de sécurité indépendante en cours) |
+| Objectif | Quatre profils démontrables ; URL/API/PDF refusés au mauvais rôle ; session invalidée sans perte des pièces |
+| Fichiers | `app/Domain/Access/*` (résolveur pur, permissions effectives, cabinet configuré, audit, profils, sessions, actions), `app/Domain/Shared/{Ulid,BusinessError}.php`, `app/Http/Errors/ApiErrorRenderer.php`, `app/Http/Middleware/{AssignCorrelationId,EnsureUserIsActive,RequireRecentReauthentication}.php`, `app/Http/Controllers/Api/V1/{AuthController,StaffController,ClinicSettingsController}.php`, `app/Models/{User,Clinic}.php`, `app/Console/Commands/{SetupClinic,CreateDemoAccounts}.php`, `lang/fr/validation.php`, `routes/api.php`, `docs/implementation/access.md` |
+| Contrats / tables | `clinics`, `users`, `user_roles`, `user_permissions`, `roles`, `permissions`, `role_permissions`, `audit_events`, `fw_sessions` ; routes `/api/v1/auth/*`, `/staff*`, `/clinic/settings` ; enveloppe d'erreur du fichier 08 avec `correlation_id` |
+| Tests exécutés | `check-all.sh --strict --with-e2e` (2026-10-14, MySQL 8.4.9) : PHPUnit **208 tests / 20 975 assertions** dont `tests/Unit/Access` (7) et `tests/Feature/Access` (30 : connexion, échecs indiscernables, 429, autre cabinet, 401/403/404/409/422/423, désactivation qui coupe les sessions `fw_sessions`, dernière gérante, profils et dérogations immédiats et expirés, réinitialisation, mise en service unique, comptes de démonstration aléatoires refusés en production) ; PHPStan niveau 8 sans erreur ; Vitest 30 ; Playwright **18** dont `auth-session.spec.ts` (session réelle + CSRF, `me` no-store, cookie HttpOnly, 419 sans Fetch Metadata/jeton et intersite, origine tierce sans session, 403 caisse / 200 gérante, `/api` authentifiée jamais servie hors ligne) |
+| Défauts ouverts | Hors F05 par dépendance : verrouillage du coffre local (O01), refus PDF par rôle (D01/D02), écrans et garde de navigation (F09), idempotence des mutations de comptes (F07) ; MFA gérante non implémentée (décision avant accès d'administration distant) ; `trustProxies` selon l'hébergeur (Q01) |
+| Décision nouvelle | CSRF : Laravel 13 accepte les écritures `Sec-Fetch-Site: same-origin` (Fetch Metadata) sinon exige `X-XSRF-TOKEN` — conservé, prouvé en e2e ; connexion refusée sans session SPA (400 `SESSION_REQUIRED`) ; réinitialisation par la gérante sans e-mail (pas de `fw_password_reset_tokens`) ; codes d'erreur ajoutés (`REAUTHENTICATION_REQUIRED` 423, `SESSION_REQUIRED` 400, `CLINIC_NOT_CONFIGURED` 503, `LAST_MANAGER_REQUIRED`/`SELF_*` 409) à reporter dans F06 ; chaîne `previous_hash` de l'audit non tenue (facultative, décision F07) |
+| Reprise | Revue de sécurité indépendante, corrections, puis DONE ; ensuite F06 |

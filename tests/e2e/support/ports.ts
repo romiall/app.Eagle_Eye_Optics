@@ -14,6 +14,9 @@ export const HTTPS_BACKEND_PORT = MAIN_PORT + 2
 /** Proxy TLS du test d'origine HTTPS : c'est lui que le navigateur interroge. */
 export const HTTPS_PROXY_PORT = MAIN_PORT + 3
 
+/** Serveur arrêté par le test « /api authentifiée jamais servie hors ligne ». */
+export const AUTH_OFFLINE_PORT = MAIN_PORT + 4
+
 /**
  * Nom d'hôte du cabinet pour le test d'origine HTTPS. Il se termine par « .test » (TLD réservé,
  * jamais résolu sur Internet) et playwright.config.ts le fait pointer vers 127.0.0.1 dans Chromium.

@@ -1,11 +1,49 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\StaffController;
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | API privée /api/v1
 |--------------------------------------------------------------------------
 |
-| Préfixe `api` appliqué par bootstrap/app.php. Aucune route métier à ce stade (F02/F03) :
-| les contrats OpenAPI et les actions arrivent avec F06 et les tâches suivantes. Toute URL
-| inconnue sous /api répond en JSON 404, jamais par la coquille SPA (routes/spa.php).
+| Préfixe `api` appliqué par bootstrap/app.php. Session SPA Sanctum (cookie du sous-domaine + CSRF,
+| jeton obtenu par GET /api/sanctum/csrf-cookie). Toute URL inconnue sous /api répond en JSON 404 dans
+| l'enveloppe du fichier 08, jamais par la coquille SPA (routes/spa.php).
 */
+
+Route::prefix('v1')->group(function (): void {
+    Route::post('auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:eeo-login-ip')
+        ->name('api.auth.login');
+
+    Route::middleware(['auth:sanctum', 'active'])->group(function (): void {
+        Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+        Route::get('auth/me', [AuthController::class, 'me'])->name('api.auth.me');
+        Route::post('auth/reauthenticate', [AuthController::class, 'reauthenticate'])
+            ->middleware('throttle:eeo-reauthenticate')
+            ->name('api.auth.reauthenticate');
+        Route::post('auth/password', [AuthController::class, 'changePassword'])->name('api.auth.password');
+
+        Route::get('clinic/settings', [ClinicSettingsController::class, 'show'])->name('api.clinic.settings.show');
+        Route::patch('clinic/settings', [ClinicSettingsController::class, 'update'])
+            ->middleware(['can:users.manage', 'reauthenticated'])
+            ->name('api.clinic.settings.update');
+
+        // Comptes du personnel : gérante seulement (users.manage), mutations après réauthentification.
+        Route::middleware('can:users.manage')->group(function (): void {
+            Route::get('staff', [StaffController::class, 'index'])->name('api.staff.index');
+            Route::get('staff/{id}', [StaffController::class, 'show'])->name('api.staff.show');
+
+            Route::middleware('reauthenticated')->group(function (): void {
+                Route::post('staff', [StaffController::class, 'store'])->name('api.staff.store');
+                Route::patch('staff/{id}', [StaffController::class, 'update'])->name('api.staff.update');
+                Route::post('staff/{id}/permissions', [StaffController::class, 'permissions'])->name('api.staff.permissions');
+                Route::post('staff/{id}/password', [StaffController::class, 'resetPassword'])->name('api.staff.password');
+            });
+        });
+    });
+});

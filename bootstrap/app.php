@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Http\Errors\ApiErrorRenderer;
+use App\Http\Middleware\AssignCorrelationId;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RequireRecentReauthentication;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -35,10 +39,24 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // En-têtes de protection sur toutes les réponses : CSP d'origine unique, API no-store (fichier 09).
         $middleware->append(SecurityHeaders::class);
+
+        // Identifiant de corrélation dès l'entrée : journaux, audit et réponses d'erreur (fichier 08).
+        $middleware->prepend(AssignCorrelationId::class);
+
+        $middleware->alias([
+            'active' => EnsureUserIsActive::class,
+            'reauthenticated' => RequireRecentReauthentication::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Toute erreur sous /api est du JSON, quel que soit l'en-tête Accept (jamais la coquille SPA).
+        // Toute erreur sous /api est du JSON, quel que soit l'en-tête Accept (jamais la coquille SPA),
+        // dans l'enveloppe du fichier 08 : error.code, error.message, error.fields, correlation_id.
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api', 'api/*') || $request->expectsJson(),
+        );
+        $exceptions->render(
+            fn (Throwable $exception, Request $request) => $request->is('api', 'api/*')
+                ? ApiErrorRenderer::render($exception, $request)
+                : null,
         );
     })->create();

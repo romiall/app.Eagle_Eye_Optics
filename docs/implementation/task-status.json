@@ -95,9 +95,19 @@
    "notes": "Gate de développement fictif ; n'autorise ni données réelles ni production. Manques : Q01–Q04, Q14."
   },
   "F05": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/access.md",
+    "app/Domain/Access/",
+    "app/Http/Controllers/Api/V1/AuthController.php",
+    "app/Http/Controllers/Api/V1/StaffController.php",
+    "app/Console/Commands/SetupClinic.php",
+    "app/Console/Commands/CreateDemoAccounts.php",
+    "tests/Unit/Access/PermissionResolverTest.php",
+    "tests/Feature/Access/",
+    "tests/e2e/auth-session.spec.ts"
+   ],
+   "notes": "check-all --strict --with-e2e : PHPUnit 208 / 20975 assertions, PHPStan 0, Vitest 30, Playwright 18. Revue de sécurité indépendante à faire avant DONE. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01), écrans (F09), idempotence (F07), MFA (décision)."
   },
   "F06": {
    "status": "NOT_STARTED",

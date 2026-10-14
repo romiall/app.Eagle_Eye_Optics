@@ -66,7 +66,8 @@ final class ConfigurationContractTest extends TestCase
 
     public function test_le_modele_utilisateur_suit_le_catalogue_et_non_les_valeurs_par_defaut_de_laravel(): void
     {
-        $user = new User(['login' => 'accueil', 'password_hash' => '$2y$04$fictifFictifFictifFictifFictifFictifFictifFictifFictifFi']);
+        // Écriture explicite (forceFill) comme dans les actions du domaine Accès : pas d'affectation de masse.
+        $user = (new User)->forceFill(['login' => 'accueil', 'password_hash' => '$2y$04$fictifFictifFictifFictifFictifFictifFictifFictifFictifFi']);
 
         $this->assertSame('password_hash', $user->getAuthPasswordName());
         $this->assertStringStartsWith('$2y$', $user->getAuthPassword());
@@ -75,5 +76,22 @@ final class ConfigurationContractTest extends TestCase
         $this->assertFalse($user->getIncrementing());
         $this->assertSame('string', $user->getKeyType());
         $this->assertArrayNotHasKey('password_hash', $user->toArray());
+    }
+
+    public function test_l_affectation_de_masse_ne_peut_pas_choisir_cabinet_hash_ni_statut(): void
+    {
+        $user = new User([
+            'display_name' => 'Nom',
+            'clinic_id' => '01HZZZZZZZZZZZZZZZZZZZZZZZ',
+            'password_hash' => 'x',
+            'active' => false,
+            'version' => 99,
+        ]);
+
+        $this->assertSame('Nom', $user->display_name);
+        $this->assertNull($user->getAttribute('clinic_id'), 'Le cabinet ne vient jamais d\'une saisie (contrat 23).');
+        $this->assertNull($user->getAttribute('password_hash'));
+        $this->assertNull($user->getAttribute('active'));
+        $this->assertNull($user->getAttribute('version'));
     }
 }
