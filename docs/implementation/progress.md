@@ -5,12 +5,12 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 ## État courant
 
 - Branche : `claude/developpement-l0-3pkhne` (dépôt public : données fictives uniquement).
-- Lot et gate visés : L0, G0 puis G1.
-- Tâche courante : F04 (migrations depuis le catalogue complet, 117 tables métier + tables `fw_*`).
-- Dernière preuve acquise : socle applicatif F02/F03 après correction de quatre défauts majeurs relevés par la vérification adverse (voir « Corrections après vérification adverse » et « Seconde vérification adverse ») : `tools/dev/check-all.sh --strict --with-e2e` réussi le 2026-10-14 (Pint, PHPStan niveau 8 + Larastan sans erreur, PHPUnit 132 tests / 671 assertions, vue-tsc, ESLint, Prettier, Vitest 30 tests, build, Playwright 13 tests dont 4 sur origine HTTPS ; `composer audit` sans alerte). La validation SQL existante (`database/VALIDATION.md`) reste **distincte d'une recette applicative** ; aucun gate n'est atteint.
-- Tâches DONE : F01. IN_REVIEW : F02 et F03 (re-vérification adverse des quatre corrections à faire ; F03 attend en plus la première exécution constatée du workflow GitHub Actions, jamais lancé à ce jour).
+- Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
+- Tâche courante : F05 (identité, permissions, bootstrap gérante).
+- Dernière preuve acquise : F04 — `docs/evidence/schema-parity.json` (22/22 au commit `3fe6e93`, MySQL 8.4.9) et installation neuve reproductible en mode production depuis un clone frais (`docs/evidence/G0.md`) ; `check-all.sh --strict --with-e2e` : PHPUnit 170 tests / 20 560 assertions, PHPStan niveau 8 sans erreur, Vitest 30, Playwright 13. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
+- Tâches DONE : F01, F02, F03, F04, G0.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : F04 — quatre migrations déterministes (tables/index/CHECK/colonnes générées, FK, référentiels/vues, guards) et commande `eagle:verify-schema` ; vérifier avant tout que l'utilisateur MySQL de migration peut créer des triggers (journal binaire actif : `log_bin_trust_function_creators`, voir `testing.md`). Contrat à tenir : les `down()` des migrations des tables métier **refusent** l'exécution (fichier 23) avec un test dédié ; la garde de commande (`migrate:rollback` compris) ne le remplace pas. Les nouvelles classes PHP doivent passer `composer run lint` (PHPStan niveau 8 sans baseline). Sur un clone neuf du bac à sable cloud : `tools/dev/seed-composer-cache.sh && composer install --prefer-source`.
+- Prochaine action concrète : F05 — adapter `User` (login, `password_hash`, ULID, `active`, sans `remember_token` ni affectation de masse de `clinic_id`/`password_hash`), permissions effectives depuis `user_roles`/`user_permissions` (révocations, dates), session Sanctum SPA (`/api/v1/auth/*`), commande `SetupClinic` sans mot de passe universel ; première route `/api` réelle pour la preuve e2e « jamais en cache ».
 
 ## Environnement de développement (cloud)
 
@@ -93,3 +93,25 @@ Les quatre vérificateurs indépendants concluent `pass=true` (reproductibilité
 `tools/dev/check-all.sh --strict --with-e2e` après durcissement : Pint, PHPStan niveau 8 (0 erreur), PHPUnit **138 tests / 714 assertions**, vue-tsc, ESLint, Prettier, Vitest 30, build, Playwright 13 ; `verifier_plan.py` : PASS, empreintes SQL validées inchangées.
 
 Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustHosts` selon l'hébergeur (Q01) ; affectation de masse de `User` (`clinic_id`, `password_hash`) à fermer en F05 ; preuve e2e « /api jamais en cache » avec une vraie route `/api` 200 (première route en F05) ; profil de configuration « recette » à documenter avec H01 ; `composer run test:contracts` et `npm run test:domain` (fichier 25) arrivent avec F06 et F08 ; avertissements EBADENGINE (Node 22.22.0 local).
+
+### F04 — Traduire le schéma complet et prouver son équivalence
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | DONE |
+| Objectif | 117 tables métier, 464 FK, 484 CHECK, 88 guards et 10 vues équivalents à la baseline ; 4 rôles, 49 permissions, 76 termes ; colonnes générées, charset, défauts et référentiels préservés ; SQL livré et migrations jamais exécutés deux fois |
+| Fichiers | `database/tools/build_migrations.py`, `database/baseline/statements.json`, `database/baseline/metadata.json`, `database/migrations/2026_10_14_00000{0..4}_*.php`, `app/Support/Schema/*`, `app/Console/Commands/{VerifySchema,AdoptBaseline,SnapshotSchema}.php`, `tools/dev/schema-parity.sh`, `tools/dev/schema_parity_report.py`, `tests/Unit/Schema/*`, `tests/Feature/Schema/*`, `tests/Support/ScratchMysqlDatabases.php`, `docs/implementation/schema.md`, `docs/evidence/schema-parity.json`, `.github/workflows/quality.yml` |
+| Contrats / tables | Toutes les tables du catalogue (baseline SHA-256 `73bd5dc4…2046e2761eb` = backlog) ; tables techniques `migrations`, `fw_sessions` (user_id ULID ASCII), `fw_cache`, `fw_cache_locks`, `fw_jobs`, `fw_job_batches`, `fw_failed_jobs` ; `fw_password_reset_tokens` non créée (pas de réinitialisation par e-mail à ce stade) |
+| Tests exécutés | (1) `build_migrations.py --check` : les instructions redonnent octet pour octet `01_schema.sql`, `02_reference_data.sql`, `03_reporting_views.sql`, `04_history_guards.sql` et le fichier complet (CRLF ramenés à LF). (2) `tools/dev/schema-parity.sh` au commit `3fe6e93`, arbre propre, MySQL 8.4.9 : **22/22** — photographies import SQL / migrations identiques (0 écart, 0 avertissement de session), 41 assertions `mysql_smoke_tests.sql` et `mysql_metadata_tests.sql` passées sur la base **migrée**, adoption d'une base importée acceptée puis refusée une seconde fois, adoption refusée sans écriture pour un trigger supprimé, un CHECK supprimé et un référentiel modifié, `migrate` refusé sur base déjà importée avec renvoi à `eeo:schema:adopt`, second `migrate` sans effet, `migrate:rollback` refusé en production. (3) PHPUnit `tests/Unit/Schema` + `tests/Feature/Schema` : 32 tests (IT01 : perte d'une colonne générée, d'une FK, d'un CHECK ou d'un trigger détectée ; guard append-only réellement actif ; `down()` des 4 étapes refusant ; cohérence catalogue ↔ métadonnées colonne par colonne). (4) `check-all.sh --strict --with-e2e` : PHPUnit 170 / 20 560 assertions, PHPStan niveau 8 sans erreur, Vitest 30, Playwright 13 |
+| Défauts ouverts | Preuve sur MySQL 8.4.9 uniquement : à rejouer sur la version réelle de l'hébergeur (Q01) ; `log_bin_trust_function_creators=1` ou SUPER requis pour créer les triggers quand le journal binaire est actif (Q01, `hosting-audit.md` point 8) ; `migrate --pretend` n'affiche pas les instructions de baseline (envoyées par PDO, voir `BaselineInstaller::execute`) |
+| Décision nouvelle | Nom contractuel `php artisan eagle:verify-schema` (fichier 25), alias `eeo:schema:verify` ; attributs de session des triggers/vues (sql_mode, jeux de caractères) signalés comme avertissements et non comme écarts, car ils dépendent du client d'import (fichier complet ou scripts séparés) sans changer le corps des gardes ; tables techniques migrées **avant** la baseline pour qu'un retour arrière bute immédiatement sur le refus ; CI épinglée sur `mysql:8.4.9` (l'image flottante `mysql:8.4` a servi 8.4.11) |
+| Reprise | G0 puis F05 |
+
+### G0 — Valider installation et modèle de toute l'application
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | DONE |
+| Preuve | `docs/evidence/G0.md` : équivalence relue (22/22), installation neuve reproductible depuis un clone frais du dépôt distant en mode production, application servie (sonde, coquille, API 404 JSON no-store, fichiers sensibles non exposés), CI GitHub verte, `.env.example` sans secret, aucune activation financière réelle |
+| Manques pour la production | Q01–Q04, Q14 (et Q05–Q13, Q15 pour les lots concernés) : voir `G0.md` |
+| Reprise | F05 |

@@ -11,7 +11,7 @@
    "notes": "Audit hébergeur non réalisable sans accès : checklist fournie ; non bloquant local."
   },
   "F02": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/build.md",
     "composer.json",
@@ -32,12 +32,16 @@
     "app/Providers/AppServiceProvider.php",
     "tests/Feature/Http/SpaShellOriginTest.php",
     "tests/e2e/https-origin.spec.ts",
-    "tests/e2e/support/tls-proxy.ts"
+    "tests/e2e/support/tls-proxy.ts",
+    "app/Http/Middleware/SecurityHeaders.php",
+    "tests/Feature/Http/SecurityHeadersTest.php",
+    "config/cors.php",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38573840392"
    ],
-   "notes": "Build PHP/frontend reproductible depuis les lockfiles (copie propre vérifiée) ; aucun serveur Node en production ; aucun secret suivi. | Corrections du 2026-10-14 après vérification adverse (voir progress.md) : sonde /up maison sans script ni fonte tiers (aucune requête hors origine, vérifié sous Playwright), analyse statique PHPStan niveau 8 + Larastan installée et verrouillée (la mention « non installable » était inexacte). Seconde vérification adverse (2026-10-14) : coquille opérationnelle derrière un proxy ou un CDN qui termine TLS (assets en chemins depuis la racine, Vite::createAssetPathsUsing ; tests PHP SpaShellOriginTest et e2e https-origin.spec.ts, voir progress.md). Reste à faire avant DONE : re-vérification adverse. CSP et en-têtes de sécurité hors de ce lot."
+   "notes": "Build PHP/frontend reproductible depuis les lockfiles (copie propre vérifiée) ; aucun serveur Node en production ; aucun secret suivi. | Corrections du 2026-10-14 après vérification adverse (voir progress.md) : sonde /up maison sans script ni fonte tiers (aucune requête hors origine, vérifié sous Playwright), analyse statique PHPStan niveau 8 + Larastan installée et verrouillée (la mention « non installable » était inexacte). Seconde vérification adverse (2026-10-14) : coquille opérationnelle derrière un proxy ou un CDN qui termine TLS (assets en chemins depuis la racine, Vite::createAssetPathsUsing ; tests PHP SpaShellOriginTest et e2e https-origin.spec.ts, voir progress.md). Reste à faire avant DONE : re-vérification adverse. CSP et en-têtes de sécurité hors de ce lot. | DONE le 2026-10-14 : troisième vérification adverse pass (4/4) ; CI GitHub verte (runs 38571896929 sur 4036560 et 38573840392 sur 3fe6e93) ; durcissement en-têtes/CSP/no-store/CORS ajouté (8d7b340, bc43b15)."
   },
   "F03": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/testing.md",
     "phpunit.xml",
@@ -57,19 +61,38 @@
     "tools/dev/seed-composer-cache.sh",
     "tests/Support/UsesTemporaryPublicDirectory.php",
     "tests/e2e/support/chromium.ts",
-    "tests/e2e/support/ports.ts"
+    "tests/e2e/support/ports.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38573840392"
    ],
-   "notes": "Suites exécutées localement après correction (check-all --strict --with-e2e) : PHPUnit 132 tests, Vitest 30, Playwright 13 (dont 4 sur origine HTTPS derrière un proxy TLS), PHPStan niveau 8 sans erreur. Garde étendue à migrate:rollback (preuve sur MySQL réel : down() non exécuté, table intacte). Passe à DONE après re-vérification adverse et la première exécution constatée du workflow GitHub Actions."
+   "notes": "Suites exécutées localement après correction (check-all --strict --with-e2e) : PHPUnit 132 tests, Vitest 30, Playwright 13 (dont 4 sur origine HTTPS derrière un proxy TLS), PHPStan niveau 8 sans erreur. Garde étendue à migrate:rollback (preuve sur MySQL réel : down() non exécuté, table intacte). Passe à DONE après re-vérification adverse et la première exécution constatée du workflow GitHub Actions. | DONE le 2026-10-14 : workflow GitHub Actions exécuté (runs 38551182773, 38571896929, 38573840392 : jobs PHP, frontend et e2e) ; la garde refuse aussi migrate:rollback ; motif de nom de base terminé par \\z."
   },
   "F04": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": "Contrats hérités de la revue F03 : les down() des migrations des tables métier refusent l'exécution (fichier 23), avec test dédié (la garde de commande migrate:rollback ne le remplace pas) ; le code ajouté doit passer composer run lint (PHPStan niveau 8, sans baseline). Bac à sable cloud : tools/dev/seed-composer-cache.sh && composer install --prefer-source."
+   "status": "DONE",
+   "evidence": [
+    "docs/evidence/schema-parity.json",
+    "docs/implementation/schema.md",
+    "database/baseline/statements.json",
+    "database/baseline/metadata.json",
+    "database/tools/build_migrations.py",
+    "database/migrations/",
+    "app/Support/Schema/",
+    "app/Console/Commands/VerifySchema.php",
+    "app/Console/Commands/AdoptBaseline.php",
+    "tests/Unit/Schema/",
+    "tests/Feature/Schema/",
+    "tools/dev/schema-parity.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38573840392"
+   ],
+   "notes": "22/22 contrôles de parité au commit 3fe6e93 (MySQL 8.4.9) ; 41 assertions SQL d'origine sur la base migrée ; adoption contrôlée ; IT01 couvert. À rejouer sur la version MySQL de l'hébergeur (Q01)."
   },
   "G0": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "DONE",
+   "evidence": [
+    "docs/evidence/G0.md",
+    "docs/evidence/schema-parity.json",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38573840392"
+   ],
+   "notes": "Gate de développement fictif ; n'autorise ni données réelles ni production. Manques : Q01–Q04, Q14."
   },
   "F05": {
    "status": "NOT_STARTED",

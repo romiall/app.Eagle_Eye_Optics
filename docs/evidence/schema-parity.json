@@ -1,0 +1,238 @@
+{
+ "task": "F04",
+ "generated_by": "tools/dev/schema-parity.sh",
+ "date_utc": "2026-10-14T13:39:44Z",
+ "git_commit": "3fe6e93493541b67e7110e450cf4db4a015ba417",
+ "working_tree_clean": true,
+ "mysql_version": "8.4.9",
+ "mysql_client": "client mysql du conteneur eeo-mysql",
+ "php_version": "8.3.6",
+ "inputs_sha256": {
+  "database/schema_catalog.json": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+  "database/eagle_eye_optics_complet.sql": "62a2726c8c4a52a6adce8020708f52787c34dcbaf1ba8e81553e0ebf9896d589",
+  "database/baseline/statements.json": "419a7ccd55fd69d49e9ab1be2d35e5dd776e549226f378d5a548d23a0dd00630",
+  "database/baseline/metadata.json": "1f3db855f10cbcf01063ab25323f27bea9bd754ce85706395ee3a943124c6c2b"
+ },
+ "framework_tables_inventory": [
+  "fw_cache",
+  "fw_cache_locks",
+  "fw_failed_jobs",
+  "fw_job_batches",
+  "fw_jobs",
+  "fw_sessions",
+  "migrations"
+ ],
+ "checks_passed": 22,
+ "checks_total": 22,
+ "result": "PASS",
+ "checks": [
+  {
+   "check": "Photographie import SQL == photographie migrations (hors inventaire des tables techniques)",
+   "pass": true,
+   "observed": {
+    "counts_sql": {
+     "business_tables": 117,
+     "foreign_keys": 464,
+     "checks": 484,
+     "views": 10,
+     "triggers": 88
+    },
+    "counts_migrations": {
+     "business_tables": 117,
+     "foreign_keys": 464,
+     "checks": 484,
+     "views": 10,
+     "triggers": 88
+    }
+   }
+  },
+  {
+   "check": "Tables hors baseline de la base importée : aucune",
+   "pass": true,
+   "observed": []
+  },
+  {
+   "check": "Tables hors baseline de la base migrée : exactement migrations et les 6 tables fw_* déclarées",
+   "pass": true,
+   "observed": [
+    "fw_cache",
+    "fw_cache_locks",
+    "fw_failed_jobs",
+    "fw_job_batches",
+    "fw_jobs",
+    "fw_sessions",
+    "migrations"
+   ]
+  },
+  {
+   "check": "database/baseline/metadata.json identique à la photographie de l’import SQL",
+   "pass": true,
+   "observed": {
+    "metadata_sha256": "1f3db855f10cbcf01063ab25323f27bea9bd754ce85706395ee3a943124c6c2b"
+   }
+  },
+  {
+   "check": "Compteurs de la base migrée = 117 tables, 464 FK, 484 CHECK, 10 vues, 88 guards",
+   "pass": true,
+   "observed": {
+    "business_tables": 117,
+    "foreign_keys": 464,
+    "checks": 484,
+    "views": 10,
+    "triggers": 88
+   }
+  },
+  {
+   "check": "Référentiels : 4 rôles, 49 permissions, 76 termes cliniques",
+   "pass": true,
+   "observed": {
+    "roles": 4,
+    "permissions": 49,
+    "role_permissions": 82,
+    "clinical_terms": 76,
+    "catalog_categories": 7,
+    "units": 4
+   }
+  },
+  {
+   "check": "eagle:verify-schema base migrée contre photographie SQL : succès",
+   "pass": true,
+   "observed": 0
+  },
+  {
+   "check": "eagle:verify-schema base migrée contre metadata.json : succès",
+   "pass": true,
+   "observed": 0
+  },
+  {
+   "check": "eagle:verify-schema base importée contre metadata.json : succès",
+   "pass": true,
+   "observed": 0
+  },
+  {
+   "check": "Migrations exécutées sur base neuve : tables techniques puis 4 étapes de baseline",
+   "pass": true,
+   "observed": [
+    "2026_10_14_000000_create_framework_tables",
+    "2026_10_14_000001_eeo_baseline_01_tables",
+    "2026_10_14_000002_eeo_baseline_02_foreign_keys",
+    "2026_10_14_000003_eeo_baseline_03_reference_data_and_views",
+    "2026_10_14_000004_eeo_baseline_04_history_guards"
+   ]
+  },
+  {
+   "check": "Second migrate : aucune migration à exécuter",
+   "pass": true,
+   "observed": "INFO  Nothing to migrate."
+  },
+  {
+   "check": "database/tests/mysql_metadata_tests.sql sur la base migrée : metadata_checks_passed",
+   "pass": true,
+   "observed": {
+    "exit": 0,
+    "printed_counts": {
+     "base_tables": "124",
+     "foreign_keys": "464",
+     "checks": "484",
+     "triggers": "88",
+     "views": "10"
+    }
+   }
+  },
+  {
+   "check": "database/tests/mysql_smoke_tests.sql sur la base migrée : 41 PASS et fixtures annulées",
+   "pass": true,
+   "observed": {
+    "exit": 0,
+    "pass_count": 41
+   }
+  },
+  {
+   "check": "Adoption d’une base importée équivalente : succès, 4 migrations de baseline enregistrées",
+   "pass": true,
+   "observed": {
+    "exit": 0,
+    "baseline_rows": "4"
+   }
+  },
+  {
+   "check": "Seconde adoption refusée",
+   "pass": true,
+   "observed": {
+    "exit": 1,
+    "message": "2026_10_14_000001_eeo_baseline_01_tables, 2026_10_14_000002_eeo_baseline_02_foreign_keys, 2026_10_14_000003_eeo_baseline_03_reference_data_and_views, 2026_10_14_000004_eeo_baseline_04_history_guards)."
+   }
+  },
+  {
+   "check": "Après adoption, migrate crée seulement les tables techniques",
+   "pass": true,
+   "observed": {
+    "exit": 0
+   }
+  },
+  {
+   "check": "Base adoptée puis migrée : eagle:verify-schema sans écart, baseline 4/4 enregistrée",
+   "pass": true,
+   "observed": {
+    "exit": 0
+   }
+  },
+  {
+   "check": "Adoption refusée pour chaque base divergente, sans écriture",
+   "pass": true,
+   "observed": [
+    {
+     "divergence": "DROP TRIGGER tr_payments_update_guard",
+     "exit": 1,
+     "baseline_rows": "0",
+     "refused": true,
+     "first_difference": "- triggers.tr_payments_update_guard"
+    },
+    {
+     "divergence": "ALTER TABLE invoices DROP CHECK ck_invoices_01",
+     "exit": 1,
+     "baseline_rows": "0",
+     "refused": true,
+     "first_difference": "- tables.invoices.checks.ck_invoices_01"
+    },
+    {
+     "divergence": "UPDATE permissions SET label='Modifié hors baseline' WHERE code='invoice.issue'",
+     "exit": 1,
+     "baseline_rows": "0",
+     "refused": true,
+     "first_difference": "- reference_data.permissions.sha256"
+    }
+   ]
+  },
+  {
+   "check": "migrate sur une base déjà importée : refus explicite renvoyant à eeo:schema:adopt, rien enregistré",
+   "pass": true,
+   "observed": {
+    "exit": 1,
+    "baseline_rows": "0"
+   }
+  },
+  {
+   "check": "Base importée toujours équivalente après le refus",
+   "pass": true,
+   "observed": 0
+  },
+  {
+   "check": "migrate:rollback en configuration production refusé",
+   "pass": true,
+   "observed": {
+    "exit": 1,
+    "message": "rection passe par une migration additive.',\n\n  1   app/Support/Testing/IsolatedDatabaseGuard.php:107\n      App\\Support\\Testing\\DestructiveDatabaseOperationRefused::for()\n\n  2   app/Support/Testing/BlockDestructiveDatabaseCommands.php:41\n      App\\Support\\Testing\\IsolatedDatabaseGuard::assertAllows()"
+   }
+  },
+  {
+   "check": "Schéma migré inchangé après le refus de retour arrière",
+   "pass": true,
+   "observed": 0
+  }
+ ],
+ "limits": [
+  "Preuve de schéma sur MySQL de développement isolé ; ne valide ni l’hébergement réel (Q01), ni les transactions applicatives, ni la PWA.",
+  "Les 41 assertions SQL contrôlent les garanties exprimées en base ; les invariants agrégés restent des tests applicatifs (fichier 21)."
+ ]
+}
