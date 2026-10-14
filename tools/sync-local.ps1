@@ -44,15 +44,22 @@ function Sync-Once {
 
     $local = git rev-parse HEAD
     $remote = git rev-parse "origin/$Branch"
-    if ($local -eq $remote) { return }
-
     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    if ($local -eq $remote) {
+        Write-Host "[$stamp] A jour : $(git log -1 --format='%h %s')"
+        return
+    }
+
     Write-Host "[$stamp] Nouveaux commits recus :"
     git log --oneline "$local..$remote"
     git merge --ff-only --quiet "origin/$Branch"
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Fast-forward impossible (historique local divergent) : verifier manuellement."
     }
+}
+
+if (-not $Once) {
+    Write-Host "Synchronisation de '$Branch' depuis GitHub toutes les $IntervalSeconds s. Ctrl+C pour arreter."
 }
 
 do {
