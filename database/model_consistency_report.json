@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "tables": 117,
+  "foreign_keys": 464,
+  "checks": 484,
+  "conceptual_relational_dictionary_coverage": "COMPLETE",
+  "source_sql_sha256_unchanged_since_mysql_validation": true,
+  "single_file_import": "PASS",
+  "disposable_mysql_stopped_and_data_removed": true
+}

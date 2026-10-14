@@ -1,0 +1,5 @@
+# Conserver les octets des scripts, catalogues et preuves validés, y compris sur Windows.
+*.sql -text
+*.json -text
+*.log -text
+*.zip binary

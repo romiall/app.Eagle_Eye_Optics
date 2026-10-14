@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-14",
+  "scope": "PLANNING_COHERENCE_ONLY",
+  "result": "PASS",
+  "application_tests_executed": false,
+  "tasks": 79,
+  "L0_tasks": 52,
+  "dependency_graph": "ACYCLIC",
+  "execution_order": "ALL_DEPENDENCIES_BEFORE_CONSUMERS",
+  "tables_with_functional_owner": 117,
+  "domains": 14,
+  "requirements": 46,
+  "acceptance_scenarios": 45,
+  "L0_acceptance_scenarios": 39,
+  "legacy_delivery_tickets_mapped": 26,
+  "task_id_collisions": 0,
+  "initial_statuses": "ALL_NOT_STARTED",
+  "gate_G4_covers_entire_L0": true,
+  "gate_G7_covers_all_tasks": true,
+  "stock_reservation_precedes_invoice": true,
+  "validated_sql_hashes_unchanged": true,
+  "backlog_sha256": "7b7482a1aa8c0b95966d2fea9ed02e81c202d5c0aebc6c06ea85d58e22d7adf2"
+}

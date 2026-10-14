@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-14",
+  "scope": "Documentation checks; MySQL evidence in database/VALIDATION.md; no application implemented",
+  "authored_markdown_files": 33,
+  "source_extractions": 4,
+  "requirements": 46,
+  "acceptance_scenarios": 45,
+  "local_links_checked": 127,
+  "original_hashes_unchanged": true,
+  "checks": [
+    "UTF-8",
+    "fences",
+    "tables",
+    "links",
+    "requirement IDs",
+    "scenario IDs",
+    "source paragraph counts",
+    "financial examples",
+    "offline quota example",
+    "obsolete stack removed"
+  ],
+  "result": "PASS",
+  "development_plan": {
+    "tasks": 79,
+    "L0_tasks": 52,
+    "tables_with_functional_owner": 117,
+    "requirements": 46,
+    "acceptance_scenarios": 45,
+    "dependency_graph": "ACYCLIC"
+  }
+}

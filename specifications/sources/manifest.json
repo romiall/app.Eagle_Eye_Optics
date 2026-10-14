@@ -1,0 +1,49 @@
+[
+  {
+    "file": "cahier_des_charges_optique.docx",
+    "sha256": "c50cf8b5ebf7cc1f11b16388b508d4b270395c8b1f4c4ea849bd119541539feb",
+    "bytes": 13721,
+    "paragraphs": 86,
+    "tables": 1,
+    "media": [],
+    "tracked_changes": 0,
+    "comments": false,
+    "authority": "reference"
+  },
+  {
+    "file": "Modele_dossier_patient_Eagles_Eye_Optics_Medical.docx",
+    "sha256": "047c4c20c7c3f9e1dbec83597310081b79d2801ee094ba523860131428bd239f",
+    "bytes": 40225,
+    "paragraphs": 85,
+    "tables": 2,
+    "media": [],
+    "tracked_changes": 0,
+    "comments": false,
+    "authority": "reference"
+  },
+  {
+    "file": "Proposition d'automatisation pour cabinet d'optique.pdf",
+    "sha256": "f52594c643426888152144d00205f055f086029529dd69cf43744dd950965fd2",
+    "bytes": 1499301,
+    "pages": 109,
+    "authority": "context_only"
+  },
+  {
+    "file": "Proposition_Commerciale_Finale_Eagle_Eye_Optics_Medical.docx",
+    "sha256": "e5f38331ff5e171565dc48c718e3cfb32cad63192ac6e123f462b53604536f59",
+    "bytes": 40199,
+    "paragraphs": 82,
+    "tables": 22,
+    "media": [],
+    "tracked_changes": 0,
+    "comments": false,
+    "authority": "reference"
+  },
+  {
+    "file": "Proposition_Commerciale_Finale_Eagle_Eye_Optics_Medical.pdf",
+    "sha256": "4a5b6a52ea1dbddebc5e0d9066c85ee07fcbb4f5d47e40646ebf55a308096b88",
+    "bytes": 427310,
+    "pages": 8,
+    "authority": "reference"
+  }
+]

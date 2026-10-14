@@ -1,0 +1,77 @@
+Validation date: 2026-10-14
+Engine: MySQL Community Server 8.4.9
+Transport: Windows shared memory; networking disabled; port 0
+
+Installation imports (validated in earlier complete run):
+01_schema.sql: exit=0
+02_reference_data.sql: exit=0
+03_reporting_views.sql: exit=0
+04_history_guards.sql: exit=0
+
+Read-only diagnostics: exit=0; zero issue rows on clean reference database
+
+metadata_checks_passed
+base_tables	117
+foreign_keys	464
+checks	484
+triggers	88
+views	10
+
+PASS FK prevents patient from another clinic
+PASS FK prevents visit/patient mismatch
+PASS CHECK rejects inconsistent exact line total
+PASS CHECK rejects negative money
+PASS CHECK rejects legacy balance NULL
+PASS Exact half-up FCFA rounding
+PASS Issued invoice cannot change price
+PASS Issued invoice line cannot change
+PASS Issued invoice cannot be deleted
+PASS Number consumption cannot repeat
+PASS One active session per cash register
+PASS Idempotency key cannot repeat
+PASS Confirmed payment cannot change
+PASS Receipt is immutable
+PASS Payment cannot have two receipts
+PASS Finance canonical total credit payment reversal refund
+PASS Balance view avoids multi-payment multi-credit fanout
+PASS Balance view counts confirmed payments once
+PASS Balance view counts issued credits once
+PASS Balance view retains accounting reversals
+PASS Balance view counts actual refunds once
+PASS Revenue excludes receipts as new sales
+PASS Collection events net payments reversals refunds
+PASS Cash projection accounts for opening and corrections
+PASS Only one financial writer per invoice
+PASS Device sequence cannot replay as another command
+PASS Sync command original cannot be overwritten
+PASS Grant must belong to command device
+PASS One command can produce multiple stock movements
+PASS Offline quota excluded once from central availability
+PASS Stock ledger view excludes local reservation from central reserved
+PASS Stock ledger view counts quota once
+PASS CHECK prevents negative central stock availability
+PASS Quota cannot reserve another lot
+PASS Quota cannot be consumed twice
+PASS Synced local sale decreases physical and quota once
+PASS Remaining local quota after one delivery
+PASS Stock position ledger reconciles after delivery
+PASS Stock physical ledger matches cached on-hand
+PASS Delivered lot ledger matches cached on-hand
+PASS Confirmed delivery cannot be changed
+smoke_checks_passed_and_fixtures_rolled_back
+
+Cleanup counts: clinics=0, patient_records=0, idempotency_requests=0, test_routines=0
+mysqladmin shutdown: exit=0
+Disposable datadir removed: True
+Temporary files removed: True
+No Windows service, global configuration or existing database changed.
+
+Final single-file import: eagle_eye_optics_complet.sql exit=0
+metadata_checks_passed
+base_tables	117
+foreign_keys	464
+checks	484
+triggers	88
+views	10
+mysqladmin shutdown: exit=0
+Final disposable datadir and temp files removed: True

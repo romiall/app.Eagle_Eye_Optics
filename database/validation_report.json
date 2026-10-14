@@ -1,0 +1,134 @@
+{
+  "validation_date": "2026-10-14",
+  "status": "PASS",
+  "engine": {
+    "name": "MySQL Community Server",
+    "version": "8.4.9",
+    "target": "MySQL 8.4",
+    "transport": "Windows shared memory",
+    "tcp_disabled": true,
+    "port": 0
+  },
+  "isolation": {
+    "disposable_database": true,
+    "windows_service_installed": false,
+    "global_configuration_changed": false,
+    "existing_database_used": false
+  },
+  "schema_counts": {
+    "base_tables": 117,
+    "foreign_keys": 464,
+    "checks": 484,
+    "triggers": 88,
+    "views": 10
+  },
+  "reference_data_counts": {
+    "roles": 4,
+    "permissions": 49,
+    "clinical_terms": 76
+  },
+  "import_order": [
+    "01_schema.sql",
+    "02_reference_data.sql",
+    "03_reporting_views.sql",
+    "04_history_guards.sql"
+  ],
+  "file_sha256": {
+    "01_schema.sql": "74f11cedd6326acf0af9bcf3e0cdafa30233022b15c3794bf09b5871a045dcfa",
+    "02_reference_data.sql": "df737c320e4678f5515c45ea6b235e4384a925d417f8ebfcc5003e47f69cb670",
+    "03_reporting_views.sql": "ce754eceb352c6368090ed4f6efcd842e487246a956ef5cebc1a2f678b6252e7",
+    "04_history_guards.sql": "1d75d7d85802dfab4aef68830c5428582eff614acca4234c7f7e479231c95682",
+    "05_integrity_checks.sql": "c3c131e3d1cb90eb888b579c3177ac1e44708681d074bb11cda52cd0636852d0",
+    "tests/mysql_metadata_tests.sql": "b106d02a4795b4d7efa81fc167678198524dbc0d1ef3e8fb2617e98a9e920c35",
+    "tests/mysql_smoke_tests.sql": "5161988491741547eb3c34aa0a5524513cc128e53afe61dc5c943920c7255cbc",
+    "eagle_eye_optics_complet.sql": "62a2726c8c4a52a6adce8020708f52787c34dcbaf1ba8e81553e0ebf9896d589"
+  },
+  "metadata_checks": {
+    "status": "PASS",
+    "innodb_utf8mb4": true,
+    "all_checks_enforced": true,
+    "cross_clinic_foreign_keys_scoped": true,
+    "float_or_double_columns": 0,
+    "delete_cascade_foreign_keys": 0
+  },
+  "sql_smoke_tests": {
+    "passed": 41,
+    "failed": 0,
+    "assertions": [
+      "FK prevents patient from another clinic",
+      "FK prevents visit/patient mismatch",
+      "CHECK rejects inconsistent exact line total",
+      "CHECK rejects negative money",
+      "CHECK rejects legacy balance NULL",
+      "Exact half-up FCFA rounding",
+      "Issued invoice cannot change price",
+      "Issued invoice line cannot change",
+      "Issued invoice cannot be deleted",
+      "Number consumption cannot repeat",
+      "One active session per cash register",
+      "Idempotency key cannot repeat",
+      "Confirmed payment cannot change",
+      "Receipt is immutable",
+      "Payment cannot have two receipts",
+      "Finance canonical total credit payment reversal refund",
+      "Balance view avoids multi-payment multi-credit fanout",
+      "Balance view counts confirmed payments once",
+      "Balance view counts issued credits once",
+      "Balance view retains accounting reversals",
+      "Balance view counts actual refunds once",
+      "Revenue excludes receipts as new sales",
+      "Collection events net payments reversals refunds",
+      "Cash projection accounts for opening and corrections",
+      "Only one financial writer per invoice",
+      "Device sequence cannot replay as another command",
+      "Sync command original cannot be overwritten",
+      "Grant must belong to command device",
+      "One command can produce multiple stock movements",
+      "Offline quota excluded once from central availability",
+      "Stock ledger view excludes local reservation from central reserved",
+      "Stock ledger view counts quota once",
+      "CHECK prevents negative central stock availability",
+      "Quota cannot reserve another lot",
+      "Quota cannot be consumed twice",
+      "Synced local sale decreases physical and quota once",
+      "Remaining local quota after one delivery",
+      "Stock position ledger reconciles after delivery",
+      "Stock physical ledger matches cached on-hand",
+      "Delivered lot ledger matches cached on-hand",
+      "Confirmed delivery cannot be changed"
+    ]
+  },
+  "read_only_diagnostics": {
+    "file": "05_integrity_checks.sql",
+    "resolved_queries": 25,
+    "exit_code": 0,
+    "inconsistencies_on_clean_reference_database": 0,
+    "scope": "Syntax and object resolution; not a proof of detection of every business violation."
+  },
+  "cleanup": {
+    "mysqladmin_shutdown_exit": 0,
+    "synthetic_clinics_remaining": 0,
+    "synthetic_patients_remaining": 0,
+    "synthetic_idempotency_requests_remaining": 0,
+    "test_routines_remaining": 0,
+    "fixture_transaction_rolled_back": true,
+    "disposable_datadir_removed": true,
+    "temporary_files_removed": true
+  },
+  "execution_log": "tests/validation_execution.log",
+  "limits": [
+    "No PHP or TypeScript application code was tested.",
+    "No PWA/IndexedDB, printing, browser restart or offline end-to-end test was executed.",
+    "No cryptographic signature or role authorization was validated.",
+    "No concurrent transaction test was executed.",
+    "Cross-row ceilings, approvals and range overlaps remain mandatory application transaction checks."
+  ],
+  "single_file_import": {
+    "file": "eagle_eye_optics_complet.sql",
+    "exit_code": 0,
+    "metadata_status": "PASS",
+    "schema_counts_unchanged": true,
+    "tcp_disabled": true,
+    "mysqladmin_shutdown_exit": 0
+  }
+}

@@ -1,0 +1,30 @@
+# Préparation locale et fichiers temporaires
+/.spec-work/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+
+# Originaux conservés dans le dossier de travail ; extractions dans specifications/sources
+/*.docx
+/*.pdf
+
+# Dépendances/builds de l’application à développer
+/vendor/
+/node_modules/
+/public/build/
+/public/hot
+/storage/*.key
+/storage/app/private/
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# Configuration privée
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key

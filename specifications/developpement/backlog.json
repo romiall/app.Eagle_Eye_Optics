@@ -1,0 +1,4213 @@
+{
+  "version": "3.0",
+  "date": "2026-10-14",
+  "scope": "ENTIRE_APPLICATION",
+  "application_implemented": false,
+  "baseline_table_count": 117,
+  "baseline_catalog_sha256": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+  "task_statuses": [
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "BLOCKED",
+    "IN_REVIEW",
+    "DONE"
+  ],
+  "task_count": 79,
+  "execution_order": [
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "G0",
+    "F05",
+    "F06",
+    "F07",
+    "F08",
+    "F09",
+    "F10",
+    "O01",
+    "O02",
+    "O03",
+    "O04",
+    "P01",
+    "P02",
+    "B01",
+    "B02",
+    "I00",
+    "B03",
+    "B05",
+    "B04",
+    "O05",
+    "D01",
+    "G1",
+    "B06",
+    "B07",
+    "B08",
+    "I01",
+    "I02",
+    "O06",
+    "O07",
+    "G2",
+    "P03",
+    "C01",
+    "C02",
+    "C03",
+    "D02",
+    "C04",
+    "P04",
+    "S01",
+    "S02",
+    "R01",
+    "R02",
+    "X01",
+    "X02",
+    "X03",
+    "U01",
+    "G3",
+    "H01",
+    "G4",
+    "L1D01",
+    "L1D02",
+    "L1D03",
+    "L1D04",
+    "L1D05",
+    "L1D06",
+    "L1D07",
+    "L1D08",
+    "L1D09",
+    "G5",
+    "L2D01",
+    "L2D02",
+    "L2D03",
+    "L2D04",
+    "L2D05",
+    "L2D06",
+    "L2D07",
+    "L2D08",
+    "L2D09",
+    "L2D10",
+    "G6",
+    "L3D01",
+    "L3D02",
+    "L3D03",
+    "L3D04",
+    "L3D05",
+    "G7"
+  ],
+  "tasks": [
+    {
+      "id": "F01",
+      "lot": "L0",
+      "title": "Confirmer la baseline et les contraintes de lancement",
+      "depends_on": [],
+      "expected_files": [
+        "docs/implementation/startup.md",
+        "docs/implementation/hosting-audit.md"
+      ],
+      "steps": [
+        "Lire les autorités et décisions ; inventorier le dossier sans le modifier",
+        "Auditer versions locales et offre web si accès disponibles",
+        "Distinguer défaut bloquant local et information manquante avant production ; consigner Q01–Q04/Q14"
+      ],
+      "exit_criteria": [
+        "Architecture 23 retenue et écarts documentés",
+        "Aucun VPS ni donnée réelle dans la préparation",
+        "Environnement local à préparer identifié"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE040",
+        "EE042",
+        "EE044",
+        "EE046"
+      ],
+      "legacy_tickets": [
+        "L0-01"
+      ],
+      "engineering_checks": [
+        "Audit versions, accès, cron et droits DB"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 1
+    },
+    {
+      "id": "F02",
+      "lot": "L0",
+      "title": "Créer le dépôt applicatif et verrouiller les dépendances",
+      "depends_on": [
+        "F01"
+      ],
+      "expected_files": [
+        "composer.json",
+        "composer.lock",
+        "package.json",
+        "package-lock.json",
+        "vite.config.ts",
+        "tsconfig.json",
+        ".env.example"
+      ],
+      "steps": [
+        "Intégrer Laravel à la racine sans écraser les sources",
+        "Ajouter Vue Router, TS strict, Tailwind, PWA, Dexie, PDF et outils de tests",
+        "Fixer noms des tables techniques et configurations dev/test/recette"
+      ],
+      "exit_criteria": [
+        "Build PHP/frontend réussit avec lockfiles",
+        "Aucun serveur Node requis en production",
+        "Secrets absents des fichiers suivis"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE040",
+        "EE044",
+        "EE046"
+      ],
+      "legacy_tickets": [
+        "L0-01"
+      ],
+      "engineering_checks": [
+        "Installation reproductible et build vide"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 2
+    },
+    {
+      "id": "F03",
+      "lot": "L0",
+      "title": "Installer les contrôles CI et MySQL isolé",
+      "depends_on": [
+        "F02"
+      ],
+      "expected_files": [
+        ".github/workflows/quality.yml",
+        "phpunit.xml",
+        "vitest.config.ts",
+        "playwright.config.ts",
+        "docs/implementation/testing.md"
+      ],
+      "steps": [
+        "Créer scripts de qualité PHP/TS et build",
+        "Préparer base MySQL test distincte, fixtures et garde environnement",
+        "Configurer PHPUnit, Vitest et Playwright sans fournisseur réel"
+      ],
+      "exit_criteria": [
+        "CI exécute une preuve minimale dans chaque runtime",
+        "Destruction de base impossible avec configuration production",
+        "Logs de CI sans secret ni identité réelle"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE045",
+        "EE046"
+      ],
+      "legacy_tickets": [
+        "L0-01"
+      ],
+      "engineering_checks": [
+        "Commande de tests locale et CI documentées"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 3
+    },
+    {
+      "id": "F04",
+      "lot": "L0",
+      "title": "Traduire le schéma complet et prouver son équivalence",
+      "depends_on": [
+        "F03"
+      ],
+      "expected_files": [
+        "database/migrations/",
+        "app/Console/Commands/VerifySchema.php",
+        "app/Console/Commands/AdoptBaseline.php",
+        "docs/evidence/schema-parity.json"
+      ],
+      "steps": [
+        "Générer tables puis FK, référentiels, vues et guards selon 23",
+        "Ajouter les seules tables techniques déclarées, sessions ULID incluses",
+        "Importer par migrations sur base neuve ; comparer toutes les métadonnées",
+        "Vérifier adoption d’un import SQL équivalent et refus d’une divergence"
+      ],
+      "exit_criteria": [
+        "117 tables métier, 464 FK, 484 CHECK, 88 guards et 10 vues équivalents à la baseline",
+        "4 rôles, 49 permissions et 76 termes cliniques présents",
+        "Colonnes générées, charset, defaults et référentiels préservés",
+        "SQL livré et migration initiale ne sont pas exécutés deux fois"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE046"
+      ],
+      "legacy_tickets": [
+        "L0-01"
+      ],
+      "engineering_checks": [
+        "Metadata MySQL et 41 assertions SQL existantes sur base isolée",
+        "Comparaison catalogue–migrations et cas de divergence"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 4
+    },
+    {
+      "id": "G0",
+      "lot": "L0",
+      "title": "Valider installation et modèle de toute l’application",
+      "depends_on": [
+        "F04"
+      ],
+      "expected_files": [
+        "docs/evidence/G0.md"
+      ],
+      "steps": [
+        "Relire équivalence et logs réels",
+        "Refaire installation neuve reproductible",
+        "Identifier les données réelles et accès encore manquants"
+      ],
+      "exit_criteria": [
+        "Build et schéma complet validés",
+        "Développement fictif autorisé par les configurations",
+        "Aucune activation financière réelle"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE046"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G0 du fichier 25"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 5
+    },
+    {
+      "id": "F05",
+      "lot": "L0",
+      "title": "Adapter identité, permissions et bootstrap gérante",
+      "depends_on": [
+        "G0"
+      ],
+      "expected_files": [
+        "app/Models/User.php",
+        "app/Domain/Access/",
+        "app/Policies/",
+        "app/Console/Commands/SetupClinic.php"
+      ],
+      "steps": [
+        "Adapter login/password_hash/ULID/active et session Sanctum",
+        "Utiliser rôles/permissions existants et révocations",
+        "Créer cabinet/première gérante sans mot de passe universel ; sécuriser reset et réauthentification"
+      ],
+      "exit_criteria": [
+        "Quatre profils démontrables",
+        "URL/API/PDF refusés au mauvais rôle",
+        "Session invalidée et coffre verrouillé sans perte des pièces"
+      ],
+      "acceptance_scenarios": [
+        "AT01",
+        "AT02",
+        "AT43"
+      ],
+      "requirements": [
+        "EE016",
+        "EE040"
+      ],
+      "legacy_tickets": [
+        "L0-01"
+      ],
+      "engineering_checks": [
+        "CSRF, 401/419, désactivation, reset contrôlé et autre cabinet"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "clinics",
+        "permissions",
+        "role_permissions",
+        "roles",
+        "user_permissions",
+        "user_roles",
+        "users"
+      ],
+      "execution_order": 6
+    },
+    {
+      "id": "F06",
+      "lot": "L0",
+      "title": "Matérialiser les contrats et versions",
+      "depends_on": [
+        "F02",
+        "F04"
+      ],
+      "expected_files": [
+        "contracts/openapi.yaml",
+        "contracts/commands/",
+        "contracts/events/",
+        "contracts/compatibility.json"
+      ],
+      "steps": [
+        "Définir DTO/routes 08 et compléments 23",
+        "Fixer envelopes, types exacts, erreurs, ACK et versions",
+        "Ajouter fixtures de request/response et schémas des snapshots"
+      ],
+      "exit_criteria": [
+        "Contrats versionnés validables",
+        "IDs de tous les effets définis avant commit local",
+        "Aucun endpoint métier nécessaire laissé implicitement à inventer"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE042",
+        "EE045",
+        "EE046"
+      ],
+      "legacy_tickets": [
+        "L0-01",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Validation des fixtures JSON et génération des types TS"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 7
+    },
+    {
+      "id": "F07",
+      "lot": "L0",
+      "title": "Construire le chemin central de commandes",
+      "depends_on": [
+        "F05",
+        "F06"
+      ],
+      "expected_files": [
+        "app/Application/CommandBus.php",
+        "app/Domain/Shared/CommandContext.php",
+        "app/Domain/Shared/BusinessError.php",
+        "app/Application/TransactionRunner.php"
+      ],
+      "steps": [
+        "Implémenter autorisation, contexte historique, ordre des verrous et idempotence",
+        "Écrire audit, outbox et change log au commit",
+        "Traiter deadlock, rollback, hash différent et réponse perdue"
+      ],
+      "exit_criteria": [
+        "Une mutation critique passe toujours par ce chemin",
+        "Aucun effet externe dans la transaction",
+        "Publication pull ordonnée sous verrou clinic"
+      ],
+      "acceptance_scenarios": [
+        "AT11",
+        "AT12",
+        "AT13",
+        "AT19",
+        "AT38"
+      ],
+      "requirements": [
+        "EE017",
+        "EE024",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-01",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Deux connexions MySQL avec interleavings contrôlés",
+        "Rollback de chaque effet après erreur injectée"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "audit_events",
+        "idempotency_requests",
+        "outbox_events"
+      ],
+      "execution_order": 8
+    },
+    {
+      "id": "F08",
+      "lot": "L0",
+      "title": "Établir règles pures et vecteurs PHP/TypeScript",
+      "depends_on": [
+        "F06"
+      ],
+      "expected_files": [
+        "app/Domain/Shared/ValueObjects/",
+        "resources/frontend/domain/",
+        "contracts/vectors/"
+      ],
+      "steps": [
+        "Implémenter nombres/dates/parsing/null et calculs exacts",
+        "Définir mêmes vecteurs acceptés et refusés dans PHP et TS",
+        "Fixer bornes SQL, arrondis et versions de règles"
+      ],
+      "exit_criteria": [
+        "Aucun flottant monétaire",
+        "Résultats identiques sur tous vecteurs",
+        "Fin de mois, année, fuseau, zéro et vide distingués"
+      ],
+      "acceptance_scenarios": [
+        "AT08",
+        "AT10",
+        "AT14",
+        "AT22",
+        "AT26",
+        "AT40"
+      ],
+      "requirements": [
+        "EE021",
+        "EE022",
+        "EE033",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-05",
+        "L0-06",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Vitest et PHPUnit sur fichiers JSON communs"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 9
+    },
+    {
+      "id": "F09",
+      "lot": "L0",
+      "title": "Construire shell responsive et composants réutilisés",
+      "depends_on": [
+        "F02"
+      ],
+      "expected_files": [
+        "resources/frontend/app/",
+        "resources/frontend/components/",
+        "resources/frontend/styles/"
+      ],
+      "steps": [
+        "Créer navigation selon permissions et activation",
+        "Construire champs, tableau optique, erreurs, confirmations et états de sauvegarde",
+        "Appliquer palette, clavier, zoom et 360 px de 04"
+      ],
+      "exit_criteria": [
+        "Shell accessible et agréable",
+        "Aucun menu de module futur présenté comme livré",
+        "Composants utilisables dans patient et caisse"
+      ],
+      "acceptance_scenarios": [
+        "AT28",
+        "AT29"
+      ],
+      "requirements": [
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-14"
+      ],
+      "engineering_checks": [
+        "Contrastes, focus, clavier et viewport"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 10
+    },
+    {
+      "id": "F10",
+      "lot": "L0",
+      "title": "Définir lectures locales et états de synchronisation",
+      "depends_on": [
+        "F06",
+        "F09"
+      ],
+      "expected_files": [
+        "resources/frontend/app/services/",
+        "resources/frontend/offline/projections/",
+        "resources/frontend/components/SyncStatus.vue"
+      ],
+      "steps": [
+        "Créer interface de lecture commune et dispatcher de mutation",
+        "Distinguer local durable, pending, ACK, conflit et PDF",
+        "Préserver formulaire lors de conflit/session expirée ; afficher fraîcheur distante"
+      ],
+      "exit_criteria": [
+        "Aucune écriture Dexie directe depuis page",
+        "Aucun total local+serveur compté deux fois",
+        "États sauvegarde/sync distincts du réseau"
+      ],
+      "acceptance_scenarios": [
+        "AT29",
+        "AT42",
+        "AT45"
+      ],
+      "requirements": [
+        "EE023",
+        "EE042",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-14",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Sélecteurs sur entités locales et consolidées avec mêmes IDs"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 11
+    },
+    {
+      "id": "O01",
+      "lot": "L0",
+      "title": "Implémenter le coffre et les compartiments",
+      "depends_on": [
+        "F05",
+        "F09"
+      ],
+      "expected_files": [
+        "resources/frontend/offline/vault/",
+        "resources/frontend/offline/keys/",
+        "tests/e2e/vault.spec.ts"
+      ],
+      "steps": [
+        "Créer schéma Dexie et chiffrement AES-GCM avec AAD",
+        "Envelopper clés par profil et recovery ; préparer recherche en mémoire",
+        "Installer PWA et assets sans réponses médicales en cache"
+      ],
+      "exit_criteria": [
+        "Fermeture/reprise retrouve le coffre",
+        "Mauvais profil ne déchiffre ni index sensible ni PDF",
+        "Verrouillage masque mémoire/UI et préserve ciphertext"
+      ],
+      "acceptance_scenarios": [
+        "AT02",
+        "AT36",
+        "AT45"
+      ],
+      "requirements": [
+        "EE016",
+        "EE042"
+      ],
+      "legacy_tickets": [
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Inspection IndexedDB/cache et tests de déchiffrement refusé"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 12
+    },
+    {
+      "id": "O02",
+      "lot": "L0",
+      "title": "Enrôler le poste et émettre les grants signés",
+      "depends_on": [
+        "O01",
+        "F07"
+      ],
+      "expected_files": [
+        "app/Offline/EnrollDevice.php",
+        "app/Offline/PrepareGrant.php",
+        "resources/frontend/offline/enrollment/",
+        "contracts/vectors/signatures/"
+      ],
+      "steps": [
+        "Préparer ES256 appareil et JWS grants",
+        "Lier utilisateur, droits, versions, durée et snapshot catalogue privé",
+        "Vérifier signatures croisées, expiry, révocation différée et horloge suspecte"
+      ],
+      "exit_criteria": [
+        "Algorithme/clé imposés et grant immuable",
+        "Catalogue figé vérifiable conservé",
+        "Autorité locale bornée sans bearer permanent"
+      ],
+      "acceptance_scenarios": [
+        "AT36",
+        "AT43"
+      ],
+      "requirements": [
+        "EE016",
+        "EE020",
+        "EE042"
+      ],
+      "legacy_tickets": [
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "JCS/JWS PHP–Web Crypto et corruption/alg=none/clé substituée"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "enrolled_devices",
+        "offline_grants"
+      ],
+      "execution_order": 13
+    },
+    {
+      "id": "O03",
+      "lot": "L0",
+      "title": "Allouer plages, propriétaires et quotas sans chevauchement",
+      "depends_on": [
+        "O02",
+        "F08"
+      ],
+      "expected_files": [
+        "app/Offline/PrepareResources.php",
+        "app/Offline/ReleaseResources.php",
+        "resources/frontend/offline/allocations/"
+      ],
+      "steps": [
+        "Réserver plages sous verrous et exclure numéros centraux",
+        "Attribuer factures existantes et epochs ; préparer quotas stock",
+        "Restituer seulement après reprise complète, jamais à expiration simple"
+      ],
+      "exit_criteria": [
+        "Plages disjointes et numéros non recyclés",
+        "Un seul writer financier par facture",
+        "Physique/réserve centrale/quota local non doublement soustraits"
+      ],
+      "acceptance_scenarios": [
+        "AT09",
+        "AT39",
+        "AT40",
+        "AT43"
+      ],
+      "requirements": [
+        "EE021",
+        "EE025",
+        "EE042"
+      ],
+      "legacy_tickets": [
+        "L0-08",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Concurrence allocation, année nouvelle et release prématuré refusé"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "device_stock_allocations",
+        "document_number_allocations",
+        "document_sequences",
+        "invoice_write_owners"
+      ],
+      "execution_order": 14
+    },
+    {
+      "id": "O04",
+      "lot": "L0",
+      "title": "Implémenter le commit local et journal commun au poste",
+      "depends_on": [
+        "O03",
+        "F10"
+      ],
+      "expected_files": [
+        "resources/frontend/offline/LocalCommandBus.ts",
+        "resources/frontend/offline/command-journal/",
+        "resources/frontend/offline/locks/"
+      ],
+      "steps": [
+        "Calculer/chiffrer/signer candidat hors transaction",
+        "Vérifier CAS versions/head puis committer faits, numéros, journal et ressources ensemble",
+        "Gérer deux onglets et profils sans deux journaux financiers parallèles"
+      ],
+      "exit_criteria": [
+        "Aucune pièce affichée avant commit",
+        "Collision locale recalcule sans double effet",
+        "Commande retrouve résultat idempotent après reprise"
+      ],
+      "acceptance_scenarios": [
+        "AT36",
+        "AT37",
+        "AT41"
+      ],
+      "requirements": [
+        "EE017",
+        "EE042",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Pannes avant/après commit et deux onglets concurrents"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 15
+    },
+    {
+      "id": "P01",
+      "lot": "L0",
+      "title": "Créer et modifier patients dans les deux moteurs",
+      "depends_on": [
+        "O04",
+        "F07"
+      ],
+      "expected_files": [
+        "app/Domain/Patients/CreatePatient.php",
+        "app/Domain/Patients/UpdatePatient.php",
+        "resources/frontend/pages/patients/",
+        "resources/frontend/domain/patients/"
+      ],
+      "steps": [
+        "Valider nom/contact/naissance absente justifiée et versions",
+        "Créer ULID/numéro central ou plage locale",
+        "Adapter les corrections par rôle et suggestions de doublon sans fusion"
+      ],
+      "exit_criteria": [
+        "Même ID après sync",
+        "Téléphone partagé accepté",
+        "Dates futures et écrasements silencieux refusés"
+      ],
+      "acceptance_scenarios": [
+        "AT03",
+        "AT04",
+        "AT36",
+        "AT42"
+      ],
+      "requirements": [
+        "EE001",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-02"
+      ],
+      "engineering_checks": [
+        "Patient offline après restart et version conflictuelle"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "patient_records"
+      ],
+      "execution_order": 16
+    },
+    {
+      "id": "P02",
+      "lot": "L0",
+      "title": "Rechercher patients et ouvrir identité sans ressaisie",
+      "depends_on": [
+        "P01"
+      ],
+      "expected_files": [
+        "app/Domain/Patients/SearchPatients.php",
+        "resources/frontend/pages/patients/PatientList.vue",
+        "resources/frontend/components/PatientPicker.vue"
+      ],
+      "steps": [
+        "Recherche nom accentué/téléphone/dossier paginée",
+        "Recherche mémoire sur annuaire autorisé du poste",
+        "Signaler serveur indisponible pour dossiers non préparés"
+      ],
+      "exit_criteria": [
+        "Identité réutilisée en vente/visite",
+        "Absence de cache ne signifie pas absence certaine du patient",
+        "Aucun résumé médical montré à la caisse"
+      ],
+      "acceptance_scenarios": [
+        "AT03",
+        "AT04",
+        "AT29"
+      ],
+      "requirements": [
+        "EE001",
+        "EE044",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-02"
+      ],
+      "engineering_checks": [
+        "Accents/homonymes et recherche privée par rôle"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 17
+    },
+    {
+      "id": "B01",
+      "lot": "L0",
+      "title": "Créer catalogue et paramètres prix/taxes",
+      "depends_on": [
+        "P01",
+        "F08",
+        "O03"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/Catalog/",
+        "resources/frontend/pages/sales/CatalogPicker.vue",
+        "resources/frontend/domain/billing/"
+      ],
+      "steps": [
+        "Implémenter catégorie/unité/mode stock et recherche deux caractères",
+        "Limiter prix achat à gérante ; figer version de tarif préparée",
+        "Utiliser taxe fictive TEST tant que régime réel manque"
+      ],
+      "exit_criteria": [
+        "Articles stockés/services/sur mesure distincts",
+        "Unité paire non transformée automatiquement en deux",
+        "Prix et taxe officiels non inventés"
+      ],
+      "acceptance_scenarios": [
+        "AT07",
+        "AT15"
+      ],
+      "requirements": [
+        "EE020",
+        "EE027"
+      ],
+      "legacy_tickets": [
+        "L0-04"
+      ],
+      "engineering_checks": [
+        "Snapshot catalogue et changement central pendant grant"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "catalog_categories",
+        "catalog_items",
+        "tax_rules",
+        "units"
+      ],
+      "execution_order": 18
+    },
+    {
+      "id": "B02",
+      "lot": "L0",
+      "title": "Implémenter les brouillons de facture",
+      "depends_on": [
+        "B01",
+        "F07",
+        "O04"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/CreateInvoiceDraft.php",
+        "app/Domain/Billing/UpdateDraft.php",
+        "resources/frontend/pages/sales/InvoiceEditor.vue"
+      ],
+      "steps": [
+        "Ajouter lignes, quantités exactes, prix autorisés et total",
+        "Réutiliser patient sélectionné et version brouillon",
+        "Préparer tous IDs des effets et schéma de snapshot"
+      ],
+      "exit_criteria": [
+        "Brouillon durable sans numéro définitif",
+        "Conflit conserve formulaire",
+        "Remise non autorisée refusée"
+      ],
+      "acceptance_scenarios": [
+        "AT07",
+        "AT08"
+      ],
+      "requirements": [
+        "EE020",
+        "EE021",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-04",
+        "L0-05"
+      ],
+      "engineering_checks": [
+        "Calculs exacts et modifications concurrentes de brouillon"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "invoice_lines",
+        "invoices"
+      ],
+      "execution_order": 19
+    },
+    {
+      "id": "I00",
+      "lot": "L0",
+      "title": "Préparer le service de réserve utilisé dès l’émission",
+      "depends_on": [
+        "B01",
+        "O03",
+        "F07"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/ReservationService.php",
+        "resources/frontend/domain/inventory/reservations.ts",
+        "app/Domain/Inventory/OpeningStock.php"
+      ],
+      "steps": [
+        "Créer positions/lots et stock fictif ou comptage validé",
+        "Implémenter réserve exacte centrale ou sous quota local et blocage péremption",
+        "Fournir le même port transactionnel à IssueInvoice et future ConfirmDelivery"
+      ],
+      "exit_criteria": [
+        "Émission ne peut valider une vente stockée sans capacité réservée",
+        "Plusieurs lignes et lots contrôlés atomiquement",
+        "Aucune nouvelle logique de stock à inventer après la caisse"
+      ],
+      "acceptance_scenarios": [
+        "AT15",
+        "AT17",
+        "AT40"
+      ],
+      "requirements": [
+        "EE025",
+        "EE026",
+        "EE027",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-08",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Réserve dernier article et plusieurs lignes sous quota"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "stock_locations",
+        "stock_lots",
+        "stock_positions",
+        "stock_reservations"
+      ],
+      "execution_order": 20
+    },
+    {
+      "id": "B03",
+      "lot": "L0",
+      "title": "Émettre facture immuable et propriété locale",
+      "depends_on": [
+        "B02",
+        "I00"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/IssueInvoice.php",
+        "resources/frontend/domain/billing/issueInvoice.ts",
+        "resources/frontend/pages/sales/InvoiceDetails.vue"
+      ],
+      "steps": [
+        "Écrire enfants avant finalisation, snapshot et usage de numéro dans même commit",
+        "Créer writer pour facture locale et ledger initial",
+        "Séparer émis, dette et statut PDF"
+      ],
+      "exit_criteria": [
+        "Facture et numéro ne changent plus",
+        "Toute erreur rollback toutes ressources",
+        "Reprise ne renumérote jamais"
+      ],
+      "acceptance_scenarios": [
+        "AT08",
+        "AT09",
+        "AT37"
+      ],
+      "requirements": [
+        "EE021",
+        "EE023",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-05"
+      ],
+      "engineering_checks": [
+        "Guards et émission concurrente/plage épuisée"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "document_number_usages"
+      ],
+      "execution_order": 21
+    },
+    {
+      "id": "B05",
+      "lot": "L0",
+      "title": "Ouvrir et clôturer les sessions de caisse",
+      "depends_on": [
+        "B03",
+        "F05"
+      ],
+      "expected_files": [
+        "app/Domain/Cash/OpenSession.php",
+        "app/Domain/Cash/CloseSession.php",
+        "resources/frontend/pages/cash/"
+      ],
+      "steps": [
+        "Créer une session ouverte par caisse/caissière",
+        "Journaliser ouverture/fermeture également sur poste offline",
+        "Figer attendu/compté/écart motivé et fermer seulement après les opérations précédentes"
+      ],
+      "exit_criteria": [
+        "Encaissement CASH exige session admissible",
+        "Session close immuable et nouvelles opérations refusées",
+        "Correction ultérieure ne réécrit pas le comptage"
+      ],
+      "acceptance_scenarios": [
+        "AT25",
+        "AT41"
+      ],
+      "requirements": [
+        "EE030"
+      ],
+      "legacy_tickets": [
+        "L0-12"
+      ],
+      "engineering_checks": [
+        "Deux ouvertures concurrentes et sync ordonnée avant clôture"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "cash_registers",
+        "cash_sessions"
+      ],
+      "execution_order": 22
+    },
+    {
+      "id": "B04",
+      "lot": "L0",
+      "title": "Encaisser acompte et solde avec reçu unique",
+      "depends_on": [
+        "B03",
+        "B05"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/RegisterPayment.php",
+        "app/Domain/Billing/InvoiceLedger.php",
+        "resources/frontend/pages/sales/PaymentDialog.vue"
+      ],
+      "steps": [
+        "Contrôler writer/ledger_version/solde et canal",
+        "Créer paiement confirmé puis reçu/document PENDING atomiquement",
+        "Réutiliser même intention sur double clic/timeout et afficher dette exacte"
+      ],
+      "exit_criteria": [
+        "80000 puis 30000 puis 50000 donnent deux reçus et dette zéro",
+        "Aucun UPDATE de facture émise",
+        "Paiement au-delà du solde refusé"
+      ],
+      "acceptance_scenarios": [
+        "AT10",
+        "AT11",
+        "AT12",
+        "AT37"
+      ],
+      "requirements": [
+        "EE022",
+        "EE023",
+        "EE030",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-06"
+      ],
+      "engineering_checks": [
+        "Concurrence MySQL et locale, cash/modes non cash"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "payments",
+        "receipts"
+      ],
+      "execution_order": 23
+    },
+    {
+      "id": "O05",
+      "lot": "L0",
+      "title": "Implémenter push/pull, ACK et conflits durables",
+      "depends_on": [
+        "P01",
+        "B04",
+        "O04"
+      ],
+      "expected_files": [
+        "app/Offline/PushCommands.php",
+        "app/Offline/PullChanges.php",
+        "app/Offline/ResolveConflict.php",
+        "resources/frontend/offline/sync/"
+      ],
+      "steps": [
+        "Vérifier signatures/chaîne/grants puis appliquer mêmes actions centrales",
+        "Persister ACK par commande et pages pull atomiques",
+        "Implémenter finalisation ACCEPTED ou REJECTED en revue sans trou de journal",
+        "Rejouer après timeout et conserver sources locales de conflit"
+      ],
+      "exit_criteria": [
+        "Un seul fait par ID/hash",
+        "Curseur ne saute pas une transaction non publiée",
+        "Conflit résolu ne bloque pas définitivement la caisse et n’invente pas un paiement"
+      ],
+      "acceptance_scenarios": [
+        "AT38",
+        "AT39",
+        "AT42",
+        "AT45"
+      ],
+      "requirements": [
+        "EE017",
+        "EE042",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Crash après commit avant ACK",
+        "Conflit de séquence N puis reprise N+1",
+        "Pull avec commits entrelacés"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "sync_change_log",
+        "sync_command_results",
+        "sync_commands",
+        "sync_conflicts"
+      ],
+      "execution_order": 24
+    },
+    {
+      "id": "D01",
+      "lot": "L0",
+      "title": "Générer et conserver les PDFs financiers hors-ligne",
+      "depends_on": [
+        "B04",
+        "F09"
+      ],
+      "expected_files": [
+        "resources/frontend/documents/financial/",
+        "app/Domain/Operations/StoreDocumentContent.php",
+        "resources/frontend/documents/fonts/"
+      ],
+      "steps": [
+        "Générer depuis snapshot committé avec fontes locales",
+        "Enregistrer PDF chiffré/hash et réimprimer original",
+        "Uploader après ACK source, valider hash/type et stockage privé"
+      ],
+      "exit_criteria": [
+        "Facture et deux reçus imprimables réseau coupé",
+        "Panne PDF ne réencaisse jamais",
+        "READY central finalisé et téléchargement soumis à Policy"
+      ],
+      "acceptance_scenarios": [
+        "AT08",
+        "AT28",
+        "AT37"
+      ],
+      "requirements": [
+        "EE014",
+        "EE021",
+        "EE022"
+      ],
+      "legacy_tickets": [
+        "L0-05",
+        "L0-06",
+        "L0-14"
+      ],
+      "engineering_checks": [
+        "Inspection A4/accents/longues lignes et PDF retry"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "generated_documents",
+        "stored_files"
+      ],
+      "execution_order": 25
+    },
+    {
+      "id": "G1",
+      "lot": "L0",
+      "title": "Prouver la tranche urgente persistante et rejouable",
+      "depends_on": [
+        "O05",
+        "D01",
+        "P02"
+      ],
+      "expected_files": [
+        "docs/evidence/G1.md",
+        "tests/e2e/first-slice.spec.ts"
+      ],
+      "steps": [
+        "Préparer caisse et données fictives puis couper réseau",
+        "Créer patient/facture/acompte/solde et PDFs ; fermer et reprendre",
+        "Perdre ACK et rejouer ; comparer pièces/numéros/soldes"
+      ],
+      "exit_criteria": [
+        "Tranche traverse services réels",
+        "Même ID/numéro et aucun double paiement",
+        "Date restante recalculée à partir du temps observé"
+      ],
+      "acceptance_scenarios": [
+        "AT36",
+        "AT37",
+        "AT38",
+        "AT41"
+      ],
+      "requirements": [
+        "EE021",
+        "EE022",
+        "EE042",
+        "EE045"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G1 et deux contextes de navigateur"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 26
+    },
+    {
+      "id": "B06",
+      "lot": "L0",
+      "title": "Implémenter approbations exactes et réauthentification",
+      "depends_on": [
+        "B04",
+        "F05"
+      ],
+      "expected_files": [
+        "app/Domain/Access/RequestApproval.php",
+        "app/Domain/Access/DecideApproval.php",
+        "resources/frontend/pages/manager/Approvals.vue"
+      ],
+      "steps": [
+        "Lier action/cible/hash/motif/durée et auteur gérante",
+        "Consommer une seule fois après vérification payload",
+        "Autoriser profil gérante présent offline sans PIN commun"
+      ],
+      "exit_criteria": [
+        "Payload changé ou décision expirée refusé",
+        "Permissions prix/examen/remise/correction restent distinctes",
+        "Décision auditée et partage limité"
+      ],
+      "acceptance_scenarios": [
+        "AT06",
+        "AT07",
+        "AT14",
+        "AT16",
+        "AT43"
+      ],
+      "requirements": [
+        "EE016",
+        "EE018",
+        "EE024",
+        "EE025"
+      ],
+      "legacy_tickets": [
+        "L0-07"
+      ],
+      "engineering_checks": [
+        "Replay approbation et hash différent"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "approvals"
+      ],
+      "execution_order": 27
+    },
+    {
+      "id": "B07",
+      "lot": "L0",
+      "title": "Contre-écrire paiement et émettre avoir lié",
+      "depends_on": [
+        "B06"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/ReversePayment.php",
+        "app/Domain/Billing/IssueCreditNote.php",
+        "resources/frontend/pages/sales/Corrections.vue"
+      ],
+      "steps": [
+        "Plafonner cumul contre-écritures et lignes d’avoir",
+        "Écrire objets liés sans modifier les originaux",
+        "Distinguer erreur comptable, réduction de vente et retour physique"
+      ],
+      "exit_criteria": [
+        "Suppression paiement impossible",
+        "Total des corrections respecte originaux",
+        "Solde et CA reflètent faits à leurs dates"
+      ],
+      "acceptance_scenarios": [
+        "AT13",
+        "AT14",
+        "AT24"
+      ],
+      "requirements": [
+        "EE017",
+        "EE024",
+        "EE029",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-07"
+      ],
+      "engineering_checks": [
+        "Deux avoirs concurrents et erreur après insertion enfant"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "credit_note_lines",
+        "credit_notes",
+        "payment_reversals"
+      ],
+      "execution_order": 28
+    },
+    {
+      "id": "B08",
+      "lot": "L0",
+      "title": "Rembourser le crédit et conserver sa pièce",
+      "depends_on": [
+        "B07",
+        "B05"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/RefundCredit.php",
+        "resources/frontend/pages/sales/RefundDialog.vue",
+        "resources/frontend/documents/refunds/"
+      ],
+      "steps": [
+        "Vérifier crédit réellement disponible et approbation",
+        "Enregistrer sortie réelle/mode/session et pièce numérotée",
+        "Recalculer ledger sans modifier facture/avoir/reçu"
+      ],
+      "exit_criteria": [
+        "Remboursement ne dépasse pas crédit",
+        "Un seul remboursement par clé",
+        "Flux argent distinct de l’avoir et du stock"
+      ],
+      "acceptance_scenarios": [
+        "AT14",
+        "AT25",
+        "AT37"
+      ],
+      "requirements": [
+        "EE024",
+        "EE030",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-07"
+      ],
+      "engineering_checks": [
+        "Concurrence refund et session close"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "refunds"
+      ],
+      "execution_order": 29
+    },
+    {
+      "id": "I01",
+      "lot": "L0",
+      "title": "Gérer réservations et remises sous quota",
+      "depends_on": [
+        "I00",
+        "B03",
+        "B06",
+        "O03"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/",
+        "app/Domain/Inventory/ConfirmDelivery.php",
+        "resources/frontend/pages/stock/"
+      ],
+      "steps": [
+        "Réutiliser le service de réserve I00 et ajouter les écrans d’exploitation",
+        "Remettre quantités par facture et quota avec effets rangés",
+        "Refuser dernier article concurrent, lot expiré et remise à crédit sans décision"
+      ],
+      "exit_criteria": [
+        "Réservation différente d’une sortie",
+        "Quota non soustrait deux fois",
+        "Facture/patient/article/lot correspondent"
+      ],
+      "acceptance_scenarios": [
+        "AT15",
+        "AT16",
+        "AT17",
+        "AT40"
+      ],
+      "requirements": [
+        "EE025",
+        "EE026",
+        "EE027",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-08"
+      ],
+      "engineering_checks": [
+        "Dernier article, livraison partielle et vecteur 5/3/1"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "deliveries",
+        "delivery_lines"
+      ],
+      "execution_order": 30
+    },
+    {
+      "id": "I02",
+      "lot": "L0",
+      "title": "Enregistrer retour physique et sorties exceptionnelles",
+      "depends_on": [
+        "I01",
+        "B07"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/RegisterPhysicalReturn.php",
+        "app/Domain/Inventory/RegisterStockMovement.php",
+        "resources/frontend/pages/stock/MovementForm.vue"
+      ],
+      "steps": [
+        "Plafonner retours par remise originale et justifier inspection/destination",
+        "Exiger gérante/motif pour casse/ajustement",
+        "Appliquer plusieurs effets d’une commande avec movement_position stable"
+      ],
+      "exit_criteria": [
+        "Avoir seul ne rentre aucun stock",
+        "Retours/exceptions auditables et idempotents",
+        "Projections rapprochées aux faits"
+      ],
+      "acceptance_scenarios": [
+        "AT16",
+        "AT17",
+        "AT40"
+      ],
+      "requirements": [
+        "EE025",
+        "EE026",
+        "EE027",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-08"
+      ],
+      "engineering_checks": [
+        "Retour excessif, lot invalide et plusieurs mouvements par commande"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "physical_returns",
+        "stock_movements"
+      ],
+      "execution_order": 31
+    },
+    {
+      "id": "O06",
+      "lot": "L0",
+      "title": "Sécuriser mises à jour PWA et schéma local",
+      "depends_on": [
+        "G1"
+      ],
+      "expected_files": [
+        "resources/frontend/offline/update/",
+        "resources/frontend/offline/migrations/",
+        "contracts/compatibility.json"
+      ],
+      "steps": [
+        "Proposer SW update sans remplacement forcé",
+        "Migrer coffre additivement et conserver anciens templates/règles",
+        "Vérifier pending, profils verrouillés, export et capacité avant changement"
+      ],
+      "exit_criteria": [
+        "Aucune purge automatique",
+        "Commandes ancienne version encore reprises",
+        "API/fichiers privés exclus du fallback SPA"
+      ],
+      "acceptance_scenarios": [
+        "AT45"
+      ],
+      "requirements": [
+        "EE042",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Upgrade avec commandes de deux profils et coupure en migration"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 32
+    },
+    {
+      "id": "O07",
+      "lot": "L0",
+      "title": "Exporter et restaurer le poste sans cloner ses droits",
+      "depends_on": [
+        "O06"
+      ],
+      "expected_files": [
+        "resources/frontend/offline/recovery/",
+        "app/Offline/ReconcileReplacement.php",
+        "docs/runbooks/local-recovery.md"
+      ],
+      "steps": [
+        "Exporter journaux/PDF/manifeste chiffrés et enveloppes recovery",
+        "Restaurer pièces émises sur poste neuf et réconcilier origine",
+        "Enrôler nouveau device pour émissions futures avec nouvelles plages"
+      ],
+      "exit_criteria": [
+        "Mêmes IDs/numéros pour anciens faits",
+        "Aucun clone actif des droits non consommés",
+        "Ancien poste réapparu passe en revue"
+      ],
+      "acceptance_scenarios": [
+        "AT39",
+        "AT44",
+        "AT45"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041",
+        "EE042"
+      ],
+      "legacy_tickets": [
+        "L0-13",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Restauration sur nouveau contexte et reprise ancien appareil"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 33
+    },
+    {
+      "id": "G2",
+      "lot": "L0",
+      "title": "Valider sécurité financière, stock et reprise",
+      "depends_on": [
+        "B08",
+        "I02",
+        "O07",
+        "O05"
+      ],
+      "expected_files": [
+        "docs/evidence/G2.md",
+        "tests/Concurrency/",
+        "tests/e2e/financial-safety.spec.ts"
+      ],
+      "steps": [
+        "Exécuter montants/refus/idempotence/approbations",
+        "Tester verrous MySQL et ressources offline sur deux contextes",
+        "Reprendre après perte/défaut PDF/conflit et rapprocher diagnostics SQL"
+      ],
+      "exit_criteria": [
+        "Aucun défaut critique de pièce/argent/stock/numéro",
+        "Litiges conservés et procédure de résolution testée",
+        "Reprise après incident ne nécessite pas refaire l’architecture"
+      ],
+      "acceptance_scenarios": [
+        "AT08",
+        "AT09",
+        "AT10",
+        "AT11",
+        "AT12",
+        "AT13",
+        "AT14",
+        "AT15",
+        "AT16",
+        "AT17",
+        "AT38",
+        "AT39",
+        "AT40",
+        "AT41",
+        "AT43",
+        "AT44",
+        "AT45"
+      ],
+      "requirements": [
+        "EE021",
+        "EE022",
+        "EE024",
+        "EE025",
+        "EE042",
+        "EE045"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G2 du fichier 25"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 34
+    },
+    {
+      "id": "P03",
+      "lot": "L0",
+      "title": "Créer visite, file du jour et contrôle paiement examen",
+      "depends_on": [
+        "P01",
+        "B04",
+        "B06"
+      ],
+      "expected_files": [
+        "app/Domain/Patients/RegisterVisit.php",
+        "app/Domain/Clinical/StartConsultation.php",
+        "resources/frontend/pages/today/"
+      ],
+      "steps": [
+        "Différencier examen/achat/retrait/contrôle",
+        "Relier frais exacts à cette visite ou dérogation explicite",
+        "Préparer preuve locale dans le compartiment autorisé"
+      ],
+      "exit_criteria": [
+        "Pas d’examen fictif pour achat",
+        "Examen non payé bloqué",
+        "File et nouvelle visite n’écrasent pas l’historique"
+      ],
+      "acceptance_scenarios": [
+        "AT05",
+        "AT06",
+        "AT21"
+      ],
+      "requirements": [
+        "EE002",
+        "EE018",
+        "EE019"
+      ],
+      "legacy_tickets": [
+        "L0-03"
+      ],
+      "engineering_checks": [
+        "Paiement autre prestation ne débloque pas cet examen"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "visits"
+      ],
+      "execution_order": 35
+    },
+    {
+      "id": "C01",
+      "lot": "L0",
+      "title": "Saisir toutes rubriques narratives du dossier DP",
+      "depends_on": [
+        "P03",
+        "F08"
+      ],
+      "expected_files": [
+        "app/Domain/Clinical/SaveClinicalStep.php",
+        "resources/frontend/pages/clinical/ConsultationWizard.vue",
+        "resources/frontend/domain/clinical/"
+      ],
+      "steps": [
+        "Construire étapes motif/lunettes/antécédents/conclusion/orientation",
+        "Utiliser termes multiples, Aucun connu exclusif et Autre justifié",
+        "Sauvegarder localement chaque étape avec version et auteur"
+      ],
+      "exit_criteria": [
+        "Tous champs DP couverts sans omission",
+        "Incomplet conservé explicitement",
+        "Aucune donnée clinique dans le rôle caisse"
+      ],
+      "acceptance_scenarios": [
+        "AT18",
+        "AT19",
+        "AT36"
+      ],
+      "requirements": [
+        "EE004",
+        "EE005",
+        "EE011",
+        "EE013",
+        "EE016"
+      ],
+      "legacy_tickets": [
+        "L0-09"
+      ],
+      "engineering_checks": [
+        "Référentiels, Autre, absent et exclusivité Aucun connu"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "clinical_terms",
+        "consultation_ametropias",
+        "consultation_complaints",
+        "consultation_histories",
+        "consultation_history_terms",
+        "consultation_referral_reasons",
+        "consultations"
+      ],
+      "execution_order": 36
+    },
+    {
+      "id": "C02",
+      "lot": "L0",
+      "title": "Saisir acuités, autorefracteur et réfraction distinctes",
+      "depends_on": [
+        "C01"
+      ],
+      "expected_files": [
+        "resources/frontend/components/OpticalMeasurements.vue",
+        "app/Domain/Clinical/Measurements.php",
+        "contracts/vectors/clinical/"
+      ],
+      "steps": [
+        "Implémenter 12 acuités pré-réfraction et 3 après",
+        "Séparer AUTOREFRACTOR/OBJECTIVE/SUBJECTIVE et DP",
+        "Préserver échelle, signe, zéro, vide et conventions professionnelles"
+      ],
+      "exit_criteria": [
+        "OD/OG/OU exacts sur desktop et mobile",
+        "Pas de conversion médicale implicite",
+        "Incompatibilité d’échelles visible"
+      ],
+      "acceptance_scenarios": [
+        "AT18",
+        "AT21",
+        "AT28"
+      ],
+      "requirements": [
+        "EE006",
+        "EE007",
+        "EE008",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-09"
+      ],
+      "engineering_checks": [
+        "Vecteurs numériques et consultation DP intégrale"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "autorefractor_centering",
+        "refraction_measurements",
+        "visual_acuities",
+        "visual_acuity_scales"
+      ],
+      "execution_order": 37
+    },
+    {
+      "id": "C03",
+      "lot": "L0",
+      "title": "Finaliser, corriger et comparer les révisions",
+      "depends_on": [
+        "C02"
+      ],
+      "expected_files": [
+        "app/Domain/Clinical/CompleteConsultation.php",
+        "app/Domain/Clinical/AmendConsultation.php",
+        "resources/frontend/pages/clinical/History.vue"
+      ],
+      "steps": [
+        "Créer snapshot complet au commit de finalisation",
+        "Nouvelle correction avec motif/auteur, sans écraser ancienne version",
+        "Conflit compare base/central/local et garde proposition"
+      ],
+      "exit_criteria": [
+        "Historique chronologique et réimpression ancienne source",
+        "Deux consultations restent distinctes",
+        "Aucune stratégie dernier écrit gagnant"
+      ],
+      "acceptance_scenarios": [
+        "AT19",
+        "AT21",
+        "AT42"
+      ],
+      "requirements": [
+        "EE003",
+        "EE013",
+        "EE017"
+      ],
+      "legacy_tickets": [
+        "L0-10"
+      ],
+      "engineering_checks": [
+        "Deux postes et historique après correction"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "clinical_revisions"
+      ],
+      "execution_order": 38
+    },
+    {
+      "id": "D02",
+      "lot": "L0",
+      "title": "Compléter templates et validation visuelle des documents",
+      "depends_on": [
+        "D01",
+        "C03",
+        "B08"
+      ],
+      "expected_files": [
+        "resources/frontend/documents/clinical/",
+        "resources/frontend/documents/credits/",
+        "tests/fixtures/document-snapshots/"
+      ],
+      "steps": [
+        "Ajouter prescription/dossier/avoir/remboursement et relevé de compte",
+        "Couvrir lignes longues, unités, pagination, logo/mentions TEST",
+        "Inspecter tous PDFs et impression réelle A4"
+      ],
+      "exit_criteria": [
+        "Aucun total/champ coupé",
+        "Ancienne version conserve ses fontes/modèle",
+        "Document clinique uniquement au profil autorisé"
+      ],
+      "acceptance_scenarios": [
+        "AT20",
+        "AT21",
+        "AT28",
+        "AT37"
+      ],
+      "requirements": [
+        "EE014",
+        "EE021",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-10",
+        "L0-14"
+      ],
+      "engineering_checks": [
+        "Snapshots PDF fictifs et revue visuelle"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 39
+    },
+    {
+      "id": "C04",
+      "lot": "L0",
+      "title": "Prescrire optique, médicaments et orientation",
+      "depends_on": [
+        "C03",
+        "D02"
+      ],
+      "expected_files": [
+        "app/Domain/Clinical/ValidatePrescription.php",
+        "resources/frontend/pages/clinical/Prescription.vue",
+        "app/Domain/Clinical/MedicationOrders.php"
+      ],
+      "steps": [
+        "Copie explicite de mesure puis édition indépendante",
+        "Valider yeux/axe/DP/hauteur/usage/indice/traitements et plusieurs médicaments",
+        "Préserver prescription externe identifiée et version validée"
+      ],
+      "exit_criteria": [
+        "Aucune posologie/diagnostic inféré",
+        "Prescription validée immuable et imprimable",
+        "Vente et stock ne sont pas créés automatiquement"
+      ],
+      "acceptance_scenarios": [
+        "AT20",
+        "AT21"
+      ],
+      "requirements": [
+        "EE009",
+        "EE010",
+        "EE011",
+        "EE014"
+      ],
+      "legacy_tickets": [
+        "L0-10"
+      ],
+      "engineering_checks": [
+        "Valeurs DP complètes, deux médicaments et origine externe"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "medication_orders",
+        "optical_prescription_eyes",
+        "optical_prescription_treatments",
+        "optical_prescriptions"
+      ],
+      "execution_order": 40
+    },
+    {
+      "id": "P04",
+      "lot": "L0",
+      "title": "Vérifier parcours entre profils et postes préparés",
+      "depends_on": [
+        "C04",
+        "G1",
+        "O07"
+      ],
+      "expected_files": [
+        "resources/frontend/offline/profile-switch/",
+        "tests/e2e/profile-flow.spec.ts",
+        "docs/runbooks/profile-flow.md"
+      ],
+      "steps": [
+        "Traverser accueil/caisse/professionnel sur le poste principal avec compartiments séparés",
+        "Fournir preuve administrative/examen minimale signée aux profils autorisés",
+        "Activer transfert QR/export multiposte seulement si équipement et tests Q02 acquis"
+      ],
+      "exit_criteria": [
+        "Parcours complet garanti sur poste principal",
+        "Pas de fuite clinique ni duplication d’ID lors de changement de profil",
+        "Aucun parcours multiposte déconnecté non testé promis"
+      ],
+      "acceptance_scenarios": [
+        "AT02",
+        "AT05",
+        "AT36",
+        "AT39"
+      ],
+      "requirements": [
+        "EE016",
+        "EE018",
+        "EE042",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-03",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Switch profil offline et attente de sync d’un autre compartiment"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 41
+    },
+    {
+      "id": "S01",
+      "lot": "L0",
+      "title": "Configurer et utiliser l’agenda interne",
+      "depends_on": [
+        "P03",
+        "F07"
+      ],
+      "expected_files": [
+        "app/Domain/Scheduling/",
+        "resources/frontend/pages/agenda/",
+        "app/Domain/Scheduling/AvailabilityService.php"
+      ],
+      "steps": [
+        "Configurer ressources/services/horaires/exceptions",
+        "Réserver sous verrou, déplacer/annuler avec version",
+        "Conserver offline comme proposition à confirmer"
+      ],
+      "exit_criteria": [
+        "Créneau concurrent refusé",
+        "Aucun faux RDV confirmé sans réseau",
+        "Historique administratif distinct du dossier clinique"
+      ],
+      "acceptance_scenarios": [
+        "AT23"
+      ],
+      "requirements": [
+        "EE019",
+        "EE031"
+      ],
+      "legacy_tickets": [
+        "L0-11"
+      ],
+      "engineering_checks": [
+        "Deux réservations du même créneau et annulation"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "appointment_services",
+        "appointments",
+        "calendar_blocks",
+        "resource_exceptions",
+        "resource_opening_hours",
+        "scheduling_resources"
+      ],
+      "execution_order": 42
+    },
+    {
+      "id": "S02",
+      "lot": "L0",
+      "title": "Calculer suivis et tâches de contact internes",
+      "depends_on": [
+        "C04",
+        "S01"
+      ],
+      "expected_files": [
+        "app/Domain/Scheduling/FollowUpCalculator.php",
+        "app/Domain/Communication/ContactTasks.php",
+        "resources/frontend/pages/follow-ups/"
+      ],
+      "steps": [
+        "Calcul date civile depuis origine explicitement choisie",
+        "Créer tâches uniques source/échéance et invalider anciennes programmations",
+        "Enregistrer contacté/sans réponse/refus/reporté avec tentatives"
+      ],
+      "exit_criteria": [
+        "3 mois et 10–14 jours sans décision médicale automatique",
+        "Aucun doublon de tâche après retry",
+        "L0 ne déclenche aucun SMS/WhatsApp réel"
+      ],
+      "acceptance_scenarios": [
+        "AT22",
+        "AT23"
+      ],
+      "requirements": [
+        "EE012",
+        "EE032",
+        "EE033",
+        "EE034"
+      ],
+      "legacy_tickets": [
+        "L0-11"
+      ],
+      "engineering_checks": [
+        "Fin de mois et changement RDV pendant génération des tâches"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "contact_attempts",
+        "contact_tasks",
+        "follow_up_plans",
+        "reminder_policies"
+      ],
+      "execution_order": 43
+    },
+    {
+      "id": "R01",
+      "lot": "L0",
+      "title": "Afficher soldes, caisse et finance avec fraîcheur",
+      "depends_on": [
+        "B08",
+        "B05",
+        "I02",
+        "O05"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/FinancialReports.php",
+        "resources/frontend/pages/reports/Financial.vue"
+      ],
+      "steps": [
+        "Utiliser agrégats distincts des vues et périodes cabinet",
+        "Distinguer CA/encaissements/dettes/crédits, reprise papier et corrections",
+        "Montrer dernière sync et totaux distants incomplets"
+      ],
+      "exit_criteria": [
+        "Pas de fanout paiement/avoir",
+        "Finance globale uniquement gérante",
+        "Local et central ne doublonnent pas les faits ACK"
+      ],
+      "acceptance_scenarios": [
+        "AT24",
+        "AT25",
+        "AT45"
+      ],
+      "requirements": [
+        "EE023",
+        "EE029",
+        "EE030"
+      ],
+      "legacy_tickets": [
+        "L0-12"
+      ],
+      "engineering_checks": [
+        "Dates effectives, plusieurs avoirs/paiements et caisse close"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 44
+    },
+    {
+      "id": "R02",
+      "lot": "L0",
+      "title": "Afficher statistiques DP et activité patient",
+      "depends_on": [
+        "C03",
+        "S02"
+      ],
+      "expected_files": [
+        "app/Domain/Clinical/ActivityReports.php",
+        "resources/frontend/pages/reports/Clinical.vue"
+      ],
+      "steps": [
+        "Définir nouveaux/anciens, distincts du jour et consultations",
+        "Calculer sexes/âges/motifs/ordonnances/orientations/contrôles",
+        "Afficher inconnus, définitions et période"
+      ],
+      "exit_criteria": [
+        "Tous tableaux DP présents",
+        "Aucune agrégation d’échelle incompatible",
+        "Accès administratif et clinique séparé"
+      ],
+      "acceptance_scenarios": [
+        "AT25",
+        "AT29"
+      ],
+      "requirements": [
+        "EE015",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-12"
+      ],
+      "engineering_checks": [
+        "Patients importés et plusieurs visites même période"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 45
+    },
+    {
+      "id": "X01",
+      "lot": "L0",
+      "title": "Importer catalogue, stock et créances papier contrôlés",
+      "depends_on": [
+        "B04",
+        "B08",
+        "G1"
+      ],
+      "expected_files": [
+        "app/Domain/Operations/ImportLegacyBalances.php",
+        "app/Domain/Operations/ImportCatalog.php",
+        "resources/frontend/pages/manager/Imports.vue"
+      ],
+      "steps": [
+        "Prévisualiser/rejeter lignes invalides sans écriture partielle",
+        "Certifier références papier et reprise du seul solde",
+        "Affecter créance à caisse avant paiement offline"
+      ],
+      "exit_criteria": [
+        "80000 déjà payé30000 → reprise50000 sans CA/encaissement initial",
+        "Paiement20000 crée reçu et dette30000",
+        "Aucun ancien acompte ni stock de vente dupliqué"
+      ],
+      "acceptance_scenarios": [
+        "AT26",
+        "AT39"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-13"
+      ],
+      "engineering_checks": [
+        "Import rejoué et référence papier doublonnée"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "legacy_balance_imports"
+      ],
+      "execution_order": 46
+    },
+    {
+      "id": "X02",
+      "lot": "L0",
+      "title": "Exporter données et sauvegarder base/fichiers/clés",
+      "depends_on": [
+        "O07",
+        "F07",
+        "D02",
+        "X01"
+      ],
+      "expected_files": [
+        "app/Domain/Operations/ExportData.php",
+        "app/Console/Commands/BackupClinic.php",
+        "docs/runbooks/server-backup.md"
+      ],
+      "steps": [
+        "Appliquer Policy/export réauthentifié et manifeste",
+        "Sauvegarder DB, pièces privées, clés récupérables et paramètres",
+        "Planifier via cron, copier chiffré hors serveur, tracer échec et rétention"
+      ],
+      "exit_criteria": [
+        "Restitution utilisable avec dictionnaire et pièces",
+        "Backup serveur ne prétend pas couvrir pending locaux",
+        "RPO observé distingué de cible"
+      ],
+      "acceptance_scenarios": [
+        "AT27",
+        "AT44"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041"
+      ],
+      "legacy_tickets": [
+        "L0-13"
+      ],
+      "engineering_checks": [
+        "Échec stockage distant et restauration des secrets"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "backup_runs",
+        "export_requests"
+      ],
+      "execution_order": 47
+    },
+    {
+      "id": "X03",
+      "lot": "L0",
+      "title": "Restaurer et réconcilier l’environnement serveur",
+      "depends_on": [
+        "X02"
+      ],
+      "expected_files": [
+        "docs/runbooks/server-restore.md",
+        "docs/evidence/restore-rehearsal.md",
+        "app/Domain/Operations/RestoreVerifier.php"
+      ],
+      "steps": [
+        "Restaurer sur environnement isolé et mesurer durée/perte",
+        "Vérifier hash/pièces/ledger/séquences/quotas et diagnostics",
+        "Rapprocher pièces locales encore non synchronisées avant réouverture"
+      ],
+      "exit_criteria": [
+        "Clés et pièces réellement récupérées",
+        "Pas de remise à zéro des séquences",
+        "RTO/RPO constatés avec écarts documentés"
+      ],
+      "acceptance_scenarios": [
+        "AT27",
+        "AT44"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041",
+        "EE042"
+      ],
+      "legacy_tickets": [
+        "L0-13"
+      ],
+      "engineering_checks": [
+        "Perte serveur simulée et dernier reçu retrouvé"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "restore_tests"
+      ],
+      "execution_order": 48
+    },
+    {
+      "id": "U01",
+      "lot": "L0",
+      "title": "Corriger l’usage et les impressions sur appareils ciblés",
+      "depends_on": [
+        "P04",
+        "R01",
+        "R02",
+        "S02",
+        "D02"
+      ],
+      "expected_files": [
+        "tests/e2e/usability.spec.ts",
+        "docs/evidence/usability.md",
+        "resources/frontend/components/"
+      ],
+      "steps": [
+        "Faire parcours opérateur complet avec chronométrage",
+        "Tester 360 px/tablette/1366 px/clavier/zoom200",
+        "Tester impression réelle et déverrouillage/reprise sur navigateurs convenus"
+      ],
+      "exit_criteria": [
+        "Patient puis facture/reçu sans ressaisie",
+        "Caisse et tableaux lisibles",
+        "Défauts bloquants d’usage corrigés"
+      ],
+      "acceptance_scenarios": [
+        "AT28",
+        "AT29",
+        "AT36",
+        "AT37"
+      ],
+      "requirements": [
+        "EE044",
+        "EE043"
+      ],
+      "legacy_tickets": [
+        "L0-14"
+      ],
+      "engineering_checks": [
+        "Recette opérateur et imprimante réelle"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 49
+    },
+    {
+      "id": "G3",
+      "lot": "L0",
+      "title": "Exécuter toute la recette L0 et figer le candidat",
+      "depends_on": [
+        "G2",
+        "C04",
+        "P04",
+        "S02",
+        "R01",
+        "R02",
+        "X01",
+        "X03",
+        "U01"
+      ],
+      "expected_files": [
+        "docs/evidence/G3.md",
+        "docs/evidence/acceptance-L0.json"
+      ],
+      "steps": [
+        "Exécuter tous AT01–29 et AT36–45",
+        "Examiner permissions/transactions/PDF/recovery et défauts",
+        "Fixer build candidat et paramètres production restant à acquérir"
+      ],
+      "exit_criteria": [
+        "39 scénarios L0 prouvés",
+        "Zéro défaut critique ouvert",
+        "Aucun test app remplacé par le rapport SQL existant"
+      ],
+      "acceptance_scenarios": [
+        "AT01",
+        "AT02",
+        "AT03",
+        "AT04",
+        "AT05",
+        "AT06",
+        "AT07",
+        "AT08",
+        "AT09",
+        "AT10",
+        "AT11",
+        "AT12",
+        "AT13",
+        "AT14",
+        "AT15",
+        "AT16",
+        "AT17",
+        "AT18",
+        "AT19",
+        "AT20",
+        "AT21",
+        "AT22",
+        "AT23",
+        "AT24",
+        "AT25",
+        "AT26",
+        "AT27",
+        "AT28",
+        "AT29",
+        "AT36",
+        "AT37",
+        "AT38",
+        "AT39",
+        "AT40",
+        "AT41",
+        "AT42",
+        "AT43",
+        "AT44",
+        "AT45"
+      ],
+      "requirements": [
+        "EE001",
+        "EE002",
+        "EE003",
+        "EE004",
+        "EE005",
+        "EE006",
+        "EE007",
+        "EE008",
+        "EE009",
+        "EE010",
+        "EE011",
+        "EE012",
+        "EE013",
+        "EE014",
+        "EE015",
+        "EE016",
+        "EE017",
+        "EE018",
+        "EE019",
+        "EE020",
+        "EE021",
+        "EE022",
+        "EE023",
+        "EE024",
+        "EE025",
+        "EE026",
+        "EE027",
+        "EE029",
+        "EE030",
+        "EE040",
+        "EE041",
+        "EE042",
+        "EE044",
+        "EE045"
+      ],
+      "legacy_tickets": [
+        "L0-14",
+        "L0-15"
+      ],
+      "engineering_checks": [
+        "Gate G3, revue sécurité et preuves par scénario"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 50
+    },
+    {
+      "id": "H01",
+      "lot": "L0",
+      "title": "Déployer sur hébergement simple et préparer la bascule",
+      "depends_on": [
+        "G3"
+      ],
+      "expected_files": [
+        "docs/runbooks/deploy-web-hosting.md",
+        "docs/runbooks/cutover.md",
+        "docs/evidence/hosting-readiness.md"
+      ],
+      "steps": [
+        "Valider PHP/MySQL/TRIGGER/VIEW/cron/public/privé/HTTPS sur offre réelle",
+        "Construire release sans secrets et appliquer migrations contrôlées",
+        "Paramétrer mentions/taxes/catalogue réels, former profils, préparer plages/quotas/imprimante",
+        "Rapprocher dernière série papier et créances, vérifier secours/rollback"
+      ],
+      "exit_criteria": [
+        "Recette sur hébergement cible réalisée",
+        "Postes/profils préparés et sauvegardes hors serveur actives",
+        "Bascule décision explicite du responsable, sans vente test réelle involontaire"
+      ],
+      "acceptance_scenarios": [
+        "AT27",
+        "AT28",
+        "AT29",
+        "AT36",
+        "AT37",
+        "AT44"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041",
+        "EE043",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L0-14"
+      ],
+      "engineering_checks": [
+        "Checklist de bascule du fichier 25"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 51
+    },
+    {
+      "id": "G4",
+      "lot": "L0",
+      "title": "Recevoir la première livraison opérationnelle",
+      "depends_on": [
+        "H01"
+      ],
+      "expected_files": [
+        "docs/evidence/G4.md",
+        "docs/evidence/delivery-L0.md"
+      ],
+      "steps": [
+        "Vérifier tous prérequis de production et recette du build déployé",
+        "Exécuter préflight caisse et exercice de secours",
+        "Consigner décision de bascule, limites et bilan des exigences"
+      ],
+      "exit_criteria": [
+        "L0 effectivement utilisable",
+        "Absence d’accès client bloque production mais pas faussement code livré",
+        "Compte rendu ne présente pas L1/L2/L3 comme actifs"
+      ],
+      "acceptance_scenarios": [
+        "AT01",
+        "AT02",
+        "AT27",
+        "AT29",
+        "AT36",
+        "AT37",
+        "AT44",
+        "AT45"
+      ],
+      "requirements": [
+        "EE040",
+        "EE043",
+        "EE042"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G4 et PV L0"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 52
+    },
+    {
+      "id": "L1D01",
+      "lot": "L1",
+      "title": "Gérer fournisseurs et réceptions validées",
+      "depends_on": [
+        "G4"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/GoodsReceipts.php",
+        "resources/frontend/pages/purchasing/"
+      ],
+      "steps": [
+        "Créer fournisseur et réception brouillon",
+        "Valider lignes/coûts/lots/emplacements puis mouvements",
+        "Conserver réception et enfants finalisés immuables"
+      ],
+      "exit_criteria": [
+        "Mouvements uniques par effet",
+        "Coût inconnu explicite",
+        "Stock augmenté seulement par réception validée"
+      ],
+      "acceptance_scenarios": [
+        "AT30"
+      ],
+      "requirements": [
+        "EE026",
+        "EE027"
+      ],
+      "legacy_tickets": [
+        "L1-01"
+      ],
+      "engineering_checks": [
+        "Réception multi-lignes et replay"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "goods_receipt_lines",
+        "goods_receipts",
+        "suppliers"
+      ],
+      "execution_order": 53
+    },
+    {
+      "id": "L1D02",
+      "lot": "L1",
+      "title": "Compter inventaires et valoriser les écarts",
+      "depends_on": [
+        "L1D01"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/InventoryCounts.php",
+        "resources/frontend/pages/inventory/"
+      ],
+      "steps": [
+        "Figer périmètre/date/comptage",
+        "Vérifier mouvements/quotas pendant comptage et approuver écarts",
+        "Valoriser coûts connus et isoler inconnus"
+      ],
+      "exit_criteria": [
+        "Aucun remplacement brut de stock",
+        "Écarts justifiés et mouvements append-only",
+        "Quotas locaux ne disparaissent pas au comptage"
+      ],
+      "acceptance_scenarios": [
+        "AT30"
+      ],
+      "requirements": [
+        "EE026",
+        "EE030"
+      ],
+      "legacy_tickets": [
+        "L1-01"
+      ],
+      "engineering_checks": [
+        "Comptage avec vente concurrente et coût manquant"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "inventory_count_lines",
+        "inventory_counts"
+      ],
+      "execution_order": 54
+    },
+    {
+      "id": "L1D03",
+      "lot": "L1",
+      "title": "Activer seuils, péremption et supervision stock",
+      "depends_on": [
+        "L1D02"
+      ],
+      "expected_files": [
+        "app/Domain/Inventory/StockAlerts.php",
+        "resources/frontend/pages/stock/Alerts.vue"
+      ],
+      "steps": [
+        "Calculer seuil et péremption par article/lot",
+        "Dédupliquer alertes et gérer résolution",
+        "Expliquer disponible physique/réservé/quota"
+      ],
+      "exit_criteria": [
+        "Alertes ne créent aucun mouvement",
+        "Blocage de lot reste effectif offline",
+        "Dépassement traité sans spam de tâches"
+      ],
+      "acceptance_scenarios": [
+        "AT30",
+        "AT17"
+      ],
+      "requirements": [
+        "EE026",
+        "EE027"
+      ],
+      "legacy_tickets": [
+        "L1-01"
+      ],
+      "engineering_checks": [
+        "Scheduler répété et lot nouvellement expiré"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "stock_alerts"
+      ],
+      "execution_order": 55
+    },
+    {
+      "id": "L1D04",
+      "lot": "L1",
+      "title": "Implémenter atelier et bon laboratoire",
+      "depends_on": [
+        "G4",
+        "L1D01"
+      ],
+      "expected_files": [
+        "app/Domain/Workshop/",
+        "resources/frontend/pages/workshop/",
+        "resources/frontend/documents/workshop/"
+      ],
+      "steps": [
+        "Lier patient/facture/ligne et prescription/version",
+        "Enregistrer caractéristiques OD/OG, laboratoire et étapes",
+        "Contrôle qualité, reprises, retard et Prêt idempotent ; Livré après remise confirmée"
+      ],
+      "exit_criteria": [
+        "Pas de version prescription changée après fabrication",
+        "Bon labo sans données patient inutiles",
+        "Notification Prêt attend L2 sans bloquer atelier"
+      ],
+      "acceptance_scenarios": [
+        "AT31"
+      ],
+      "requirements": [
+        "EE028",
+        "EE009"
+      ],
+      "legacy_tickets": [
+        "L1-02"
+      ],
+      "engineering_checks": [
+        "Ordre complet, reprise et notification par révision"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "workshop_events",
+        "workshop_order_eyes",
+        "workshop_orders"
+      ],
+      "execution_order": 56
+    },
+    {
+      "id": "L1D05",
+      "lot": "L1",
+      "title": "Ajouter dépenses et clôture avancée",
+      "depends_on": [
+        "G4",
+        "B05"
+      ],
+      "expected_files": [
+        "app/Domain/Cash/CashMovements.php",
+        "resources/frontend/pages/cash/Expenses.vue"
+      ],
+      "steps": [
+        "Catégoriser et autoriser dépenses/entrées hors vente",
+        "Rapprocher espèces théoriques/comptées",
+        "Conserver preuve et distinguer correction historique/sortie réelle"
+      ],
+      "exit_criteria": [
+        "Pas de paiement client simulé pour dépense",
+        "Clôture figée",
+        "Écart motivé et autorisé"
+      ],
+      "acceptance_scenarios": [
+        "AT25",
+        "AT30"
+      ],
+      "requirements": [
+        "EE030"
+      ],
+      "legacy_tickets": [
+        "L1-03"
+      ],
+      "engineering_checks": [
+        "Dépense après clôture refusée"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "cash_movements",
+        "expense_categories"
+      ],
+      "execution_order": 57
+    },
+    {
+      "id": "L1D06",
+      "lot": "L1",
+      "title": "Rapprocher MoMo/virements et exporter comptabilité",
+      "depends_on": [
+        "L1D05"
+      ],
+      "expected_files": [
+        "app/Domain/Cash/PaymentReconciliation.php",
+        "resources/frontend/pages/cash/Reconciliation.vue"
+      ],
+      "steps": [
+        "Importer relevé fictif puis format réel convenu",
+        "Associer lignes de relevé aux écritures sans nouvelle vente",
+        "Conserver écarts/frais et validation du rapprochement"
+      ],
+      "exit_criteria": [
+        "Aucune confirmation fournisseur fictive",
+        "Un règlement ne se duplique pas lors de rapprochement",
+        "Format comptable Q13 validé avant export réel"
+      ],
+      "acceptance_scenarios": [
+        "AT30",
+        "AT24"
+      ],
+      "requirements": [
+        "EE030",
+        "EE029"
+      ],
+      "legacy_tickets": [
+        "L1-03"
+      ],
+      "engineering_checks": [
+        "Relevé rejoué, références manquantes et doublons"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "payment_reconciliation_lines",
+        "payment_reconciliations"
+      ],
+      "execution_order": 58
+    },
+    {
+      "id": "L1D07",
+      "lot": "L1",
+      "title": "Compléter devis versionnés et conversion en facture",
+      "depends_on": [
+        "G4",
+        "B02",
+        "D02"
+      ],
+      "expected_files": [
+        "app/Domain/Billing/Quotes.php",
+        "resources/frontend/pages/sales/Quotes.vue",
+        "resources/frontend/documents/quotes/"
+      ],
+      "steps": [
+        "Brouillon/émission/révision du devis avec snapshot",
+        "Convertir une version choisie en facture via règles existantes",
+        "Préserver provenance sans facture/paiement automatique"
+      ],
+      "exit_criteria": [
+        "Devis ne compte pas dans CA ni encaissé",
+        "Conversion idempotente et prix explicitement validés",
+        "Ancienne version réimprimable"
+      ],
+      "acceptance_scenarios": [
+        "AT08",
+        "AT11"
+      ],
+      "requirements": [
+        "EE020",
+        "EE021",
+        "EE045"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Devis révisé puis conversion unique"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "quote_lines",
+        "quote_revisions",
+        "quotes"
+      ],
+      "execution_order": 59
+    },
+    {
+      "id": "L1D08",
+      "lot": "L1",
+      "title": "Fusionner identités et approfondir comparaison clinique",
+      "depends_on": [
+        "G4",
+        "C03"
+      ],
+      "expected_files": [
+        "app/Domain/Patients/MergePatients.php",
+        "resources/frontend/pages/manager/PatientMerge.vue",
+        "resources/frontend/pages/clinical/Compare.vue"
+      ],
+      "steps": [
+        "Prévisualiser références, homonymes et identité cible",
+        "Fusion gérante auditée avec conservation IDs/numéros/snapshots",
+        "Approfondir comparaison sans convertir acuités incompatibles"
+      ],
+      "exit_criteria": [
+        "Aucune fusion automatique",
+        "Factures émises gardent identité de leur snapshot",
+        "Révisions et liens financiers restent consultables"
+      ],
+      "acceptance_scenarios": [
+        "AT04",
+        "AT19",
+        "AT21",
+        "AT42"
+      ],
+      "requirements": [
+        "EE001",
+        "EE003",
+        "EE017"
+      ],
+      "legacy_tickets": [
+        "L1-04"
+      ],
+      "engineering_checks": [
+        "Fusion avec ventes anciennes et consultation en conflit"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "patient_merges"
+      ],
+      "execution_order": 60
+    },
+    {
+      "id": "L1D09",
+      "lot": "L1",
+      "title": "Compléter tableaux et exports de gestion",
+      "depends_on": [
+        "L1D03",
+        "L1D04",
+        "L1D06",
+        "L1D07",
+        "L1D08"
+      ],
+      "expected_files": [
+        "app/Domain/Operations/ManagementExports.php",
+        "resources/frontend/pages/reports/Advanced.vue"
+      ],
+      "steps": [
+        "Ajouter tableaux/comparaisons demandés avec définitions",
+        "Filtrer export par rôle/période et conserver manifestes",
+        "Vérifier cohérence finance/stock/atelier/patients sur même dataset"
+      ],
+      "exit_criteria": [
+        "Aucun graphique requis ne masque ses inconnus",
+        "Export complet inclut dictionnaire/provenance",
+        "Pas de double comptage devis/legacy/corrections"
+      ],
+      "acceptance_scenarios": [
+        "AT24",
+        "AT25",
+        "AT27",
+        "AT30",
+        "AT31"
+      ],
+      "requirements": [
+        "EE015",
+        "EE029",
+        "EE030",
+        "EE041"
+      ],
+      "legacy_tickets": [
+        "L1-04"
+      ],
+      "engineering_checks": [
+        "Rapprochement vues et exports"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 61
+    },
+    {
+      "id": "G5",
+      "lot": "L1",
+      "title": "Recevoir stock, atelier et gestion avancée",
+      "depends_on": [
+        "L1D09"
+      ],
+      "expected_files": [
+        "docs/evidence/G5.md"
+      ],
+      "steps": [
+        "Exécuter AT30/31 et non-régression L0 affectée",
+        "Vérifier formation stock/atelier et réconciliation",
+        "Bilan fonctions actives et formats comptables"
+      ],
+      "exit_criteria": [
+        "L1 testé sans régression financière/offline",
+        "Templates/étapes validés",
+        "Fournisseurs externes non actifs clairement signalés"
+      ],
+      "acceptance_scenarios": [
+        "AT30",
+        "AT31"
+      ],
+      "requirements": [
+        "EE026",
+        "EE028",
+        "EE030"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G5 et rapprochement"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 62
+    },
+    {
+      "id": "L2D01",
+      "lot": "L2",
+      "title": "Construire adaptateurs et supervision des intégrations",
+      "depends_on": [
+        "G5",
+        "F07"
+      ],
+      "expected_files": [
+        "app/Integrations/",
+        "app/Domain/Operations/IntegrationHealth.php",
+        "resources/frontend/pages/manager/Integrations.vue"
+      ],
+      "steps": [
+        "Configurer comptes/secrets chiffrés et scopes minimaux",
+        "Construire outbox/queue workers courts et retries bornés",
+        "Tester doubles de fournisseur et panne sans annuler vente"
+      ],
+      "exit_criteria": [
+        "Connecteurs désactivés par défaut",
+        "Secrets récupérables mais jamais loggés",
+        "Échec visible et aucun message réel des tests"
+      ],
+      "acceptance_scenarios": [
+        "AT34"
+      ],
+      "requirements": [
+        "EE035",
+        "EE036",
+        "EE040"
+      ],
+      "legacy_tickets": [
+        "L2-01",
+        "L2-02"
+      ],
+      "engineering_checks": [
+        "Timeout inconnu, rate limit et rotation de secret"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "external_links",
+        "integration_accounts"
+      ],
+      "execution_order": 63
+    },
+    {
+      "id": "L2D02",
+      "lot": "L2",
+      "title": "Synchroniser Google Calendar et les disponibilités",
+      "depends_on": [
+        "L2D01",
+        "S01"
+      ],
+      "expected_files": [
+        "app/Integrations/GoogleCalendar/",
+        "app/Domain/Scheduling/CalendarReconciliation.php"
+      ],
+      "steps": [
+        "OAuth dédié, mapping minimal et syncTokens",
+        "Créer/modifier/annuler avec provenance ; gérer 410/push expiré",
+        "Revalider disponibilité externe et signaler conflit humain"
+      ],
+      "exit_criteria": [
+        "Aucun dossier clinique dans Google",
+        "Indisponibilité externe ne supprime pas patient interne",
+        "Réservation ne prétend pas atomicité avec API externe"
+      ],
+      "acceptance_scenarios": [
+        "AT32",
+        "AT33"
+      ],
+      "requirements": [
+        "EE031"
+      ],
+      "legacy_tickets": [
+        "L2-01"
+      ],
+      "engineering_checks": [
+        "Sync complète, delta, renouvellement et conflit simultané"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "calendar_sync_states"
+      ],
+      "execution_order": 64
+    },
+    {
+      "id": "L2D03",
+      "lot": "L2",
+      "title": "Raccorder Kommo et miroir commercial minimal",
+      "depends_on": [
+        "L2D01"
+      ],
+      "expected_files": [
+        "app/Integrations/Kommo/",
+        "app/Domain/Crm/",
+        "resources/frontend/pages/communication/CrmLinks.vue"
+      ],
+      "steps": [
+        "Configurer OAuth/canaux autorisés et identifiants externes",
+        "Mapper prospect/patient sous revue sans fusion automatique",
+        "Conserver conversations par références, Kommo maître des échanges"
+      ],
+      "exit_criteria": [
+        "Pas de second CRM complet",
+        "Aucun diagnostic/paiement poussé comme donnée commerciale",
+        "Handoff référençable et synchronisé"
+      ],
+      "acceptance_scenarios": [
+        "AT34",
+        "AT35"
+      ],
+      "requirements": [
+        "EE036"
+      ],
+      "legacy_tickets": [
+        "L2-02"
+      ],
+      "engineering_checks": [
+        "Homonyme/numéro partagé et compte révoqué"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "crm_conversations",
+        "crm_leads",
+        "prospect_contacts"
+      ],
+      "execution_order": 65
+    },
+    {
+      "id": "L2D04",
+      "lot": "L2",
+      "title": "Versionner FAQ et tarifs publics autorisés",
+      "depends_on": [
+        "L2D01"
+      ],
+      "expected_files": [
+        "app/Domain/Crm/KnowledgeBase.php",
+        "resources/frontend/pages/communication/Knowledge.vue"
+      ],
+      "steps": [
+        "Créer brouillons et versions approuvées",
+        "Restreindre corpus aux faits publics/FAQ validés",
+        "Relier réponses aux versions connues et dates de validité"
+      ],
+      "exit_criteria": [
+        "Modification gérante publiée explicitement",
+        "Prix non validé non inventé",
+        "Aucun dossier clinique comme corpus"
+      ],
+      "acceptance_scenarios": [
+        "AT35"
+      ],
+      "requirements": [
+        "EE038"
+      ],
+      "legacy_tickets": [
+        "L2-03"
+      ],
+      "engineering_checks": [
+        "Question hors corpus et ancienne FAQ"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "knowledge_entries",
+        "knowledge_entry_versions"
+      ],
+      "execution_order": 66
+    },
+    {
+      "id": "L2D05",
+      "lot": "L2",
+      "title": "Développer assistant limité et reprise humaine",
+      "depends_on": [
+        "L2D02",
+        "L2D03",
+        "L2D04"
+      ],
+      "expected_files": [
+        "app/Domain/Crm/AssistantTools.php",
+        "app/Domain/Crm/HumanHandoff.php",
+        "resources/frontend/pages/communication/Handoffs.vue"
+      ],
+      "steps": [
+        "Implémenter cinq outils limités du fichier 08",
+        "Qualifier/proposer créneaux puis demande de booking validée",
+        "Reprise humaine suspend bot, résumé minimal et audit assistant_runs"
+      ],
+      "exit_criteria": [
+        "Aucune action finance/clinique/stock accessible à IA",
+        "Demande diagnostic ou humain transmise",
+        "Double demande ne réserve pas deux fois"
+      ],
+      "acceptance_scenarios": [
+        "AT33",
+        "AT35"
+      ],
+      "requirements": [
+        "EE037",
+        "EE038"
+      ],
+      "legacy_tickets": [
+        "L2-03"
+      ],
+      "engineering_checks": [
+        "Injection de consigne, outil interdit et bot suspendu"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "assistant_runs",
+        "conversation_handoffs"
+      ],
+      "execution_order": 67
+    },
+    {
+      "id": "L2D06",
+      "lot": "L2",
+      "title": "Gérer consentements et templates versionnés",
+      "depends_on": [
+        "L2D01",
+        "S02"
+      ],
+      "expected_files": [
+        "app/Domain/Communication/ConsentLedger.php",
+        "app/Domain/Communication/MessageTemplates.php",
+        "resources/frontend/pages/communication/Consents.vue"
+      ],
+      "steps": [
+        "Événements par sujet/destination/canal/finalité",
+        "Preuve et révocation, numéro partagé/changé pris en compte",
+        "Templates/providers/variables/fenêtre de service selon capacités réelles"
+      ],
+      "exit_criteria": [
+        "Dernier événement GRANTED requis",
+        "Révocation ne se transforme pas en simple champ patient",
+        "Destinataire exact vérifié avant envoi"
+      ],
+      "acceptance_scenarios": [
+        "AT34"
+      ],
+      "requirements": [
+        "EE012",
+        "EE035"
+      ],
+      "legacy_tickets": [
+        "L2-04"
+      ],
+      "engineering_checks": [
+        "Opt-out et changement de numéro"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "communication_consents",
+        "message_template_versions",
+        "message_templates"
+      ],
+      "execution_order": 68
+    },
+    {
+      "id": "L2D07",
+      "lot": "L2",
+      "title": "Activer rappels et notifications transactionnelles",
+      "depends_on": [
+        "L2D06",
+        "L2D02",
+        "L1D04"
+      ],
+      "expected_files": [
+        "app/Domain/Communication/SendTransactionalMessage.php",
+        "app/Integrations/WhatsApp/",
+        "app/Integrations/Sms/"
+      ],
+      "steps": [
+        "Relier tâches/RDV/atelier à destinataire et version exacts",
+        "Revalider consentement juste avant envoi",
+        "Dédupliquer, garder attempts et gérer résultat fournisseur inconnu sans replay aveugle"
+      ],
+      "exit_criteria": [
+        "Aucun envoi avant ACK source",
+        "Rappels anciens invalidés",
+        "Message minimal et supervision humaine de l’inconnu"
+      ],
+      "acceptance_scenarios": [
+        "AT23",
+        "AT31",
+        "AT34"
+      ],
+      "requirements": [
+        "EE012",
+        "EE028",
+        "EE032",
+        "EE033",
+        "EE034",
+        "EE035"
+      ],
+      "legacy_tickets": [
+        "L2-04"
+      ],
+      "engineering_checks": [
+        "Déplacement RDV et consentement révoqué dans la queue"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "message_attempts"
+      ],
+      "execution_order": 69
+    },
+    {
+      "id": "L2D08",
+      "lot": "L2",
+      "title": "Planifier campagnes ciblées et relances contrôlées",
+      "depends_on": [
+        "L2D07"
+      ],
+      "expected_files": [
+        "app/Domain/Communication/Campaigns.php",
+        "resources/frontend/pages/communication/Campaigns.vue"
+      ],
+      "steps": [
+        "Définir segment administratif et audience figée",
+        "Prévisualiser/valider budget, template, destinataires et consentements",
+        "Réexaminer opt-out avant chaque envoi ; suivre erreurs et pause"
+      ],
+      "exit_criteria": [
+        "Pas de diffusion groupée exposant une dette",
+        "Aucun diagnostic dans segmentation commerciale",
+        "Reprise n’envoie pas deux fois"
+      ],
+      "acceptance_scenarios": [
+        "AT34"
+      ],
+      "requirements": [
+        "EE034",
+        "EE035"
+      ],
+      "legacy_tickets": [
+        "L2-05"
+      ],
+      "engineering_checks": [
+        "Audience gelée puis opt-out et reprise de campagne"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "audience_segments",
+        "campaign_definitions",
+        "campaign_recipients"
+      ],
+      "execution_order": 70
+    },
+    {
+      "id": "L2D09",
+      "lot": "L2",
+      "title": "Traiter webhooks et réconcilier les fournisseurs",
+      "depends_on": [
+        "L2D01",
+        "L2D02",
+        "L2D03",
+        "L2D07"
+      ],
+      "expected_files": [
+        "app/Integrations/Webhooks/",
+        "app/Console/Commands/ReconcileIntegrations.php"
+      ],
+      "steps": [
+        "Valider protocole fournisseur, challenge/origine/taille et inbox durable",
+        "Dédupliquer puis traiter hors réponse rapide",
+        "Réconcilier événements non vérifiables et états perdus via API autorisée"
+      ],
+      "exit_criteria": [
+        "OAuth callback ne sert pas de signature universelle webhook",
+        "Aucun paiement confirmé par message commercial",
+        "État fournisseur inconnu reste visible"
+      ],
+      "acceptance_scenarios": [
+        "AT32",
+        "AT34"
+      ],
+      "requirements": [
+        "EE031",
+        "EE035",
+        "EE036"
+      ],
+      "legacy_tickets": [
+        "L2-01",
+        "L2-02",
+        "L2-04"
+      ],
+      "engineering_checks": [
+        "Replay, événement falsifié et timeout de callback"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "webhook_inbox"
+      ],
+      "execution_order": 71
+    },
+    {
+      "id": "L2D10",
+      "lot": "L2",
+      "title": "Valider intégrations et sécurité sur comptes autorisés",
+      "depends_on": [
+        "L2D05",
+        "L2D08",
+        "L2D09"
+      ],
+      "expected_files": [
+        "docs/evidence/integrations.md",
+        "tests/Feature/Integrations/",
+        "docs/runbooks/integration-incidents.md"
+      ],
+      "steps": [
+        "Passer doubles puis tests réels autorisés avec contacts contrôlés",
+        "Vérifier coupure/opt-out/handoff/Google et supervision",
+        "Archiver permissions fournisseur, limites et coûts confirmés"
+      ],
+      "exit_criteria": [
+        "AT32–35 prouvés et fournisseurs actifs identifiés",
+        "Aucun test envoyé à un patient réel sans instruction",
+        "Reprise manuelle documentée"
+      ],
+      "acceptance_scenarios": [
+        "AT32",
+        "AT33",
+        "AT34",
+        "AT35"
+      ],
+      "requirements": [
+        "EE031",
+        "EE035",
+        "EE036",
+        "EE037",
+        "EE038"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Recette externe autorisée et non-régression L0"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 72
+    },
+    {
+      "id": "G6",
+      "lot": "L2",
+      "title": "Recevoir automatisations et canaux externes",
+      "depends_on": [
+        "L2D10"
+      ],
+      "expected_files": [
+        "docs/evidence/G6.md"
+      ],
+      "steps": [
+        "Contrôler scénarios, comptes et preuves réels",
+        "Confirmer supervision humaine et procédures de pause",
+        "Vérifier consentements et aucune fuite clinique"
+      ],
+      "exit_criteria": [
+        "Seuls canaux réellement configurés annoncés actifs",
+        "Réservation et reprise humaine reçues",
+        "Coûts/licences restent ceux validés par responsables"
+      ],
+      "acceptance_scenarios": [
+        "AT32",
+        "AT33",
+        "AT34",
+        "AT35"
+      ],
+      "requirements": [
+        "EE031",
+        "EE035",
+        "EE036",
+        "EE037",
+        "EE038"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G6"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 73
+    },
+    {
+      "id": "L3D01",
+      "lot": "L3",
+      "title": "Auditer le site existant et fixer son raccordement",
+      "depends_on": [
+        "G4"
+      ],
+      "expected_files": [
+        "docs/implementation/existing-site.md",
+        "docs/implementation/public-contract.md"
+      ],
+      "steps": [
+        "Inventorier CMS/hébergement/accès/charte et éléments déjà disponibles",
+        "Choisir raccordement minimal sans refaire un site fonctionnel inutilement",
+        "Isoler sessions/secrets/private API et public API"
+      ],
+      "exit_criteria": [
+        "Q12 résolu avant modification réelle",
+        "Site existant préservé",
+        "Aucun accès public aux dossiers"
+      ],
+      "acceptance_scenarios": [
+        "AT35"
+      ],
+      "requirements": [
+        "EE039",
+        "EE040"
+      ],
+      "legacy_tickets": [
+        "L3-01"
+      ],
+      "engineering_checks": [
+        "Revue origine/cookies et API publiques"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 74
+    },
+    {
+      "id": "L3D02",
+      "lot": "L3",
+      "title": "Publier showroom et contenus approuvés",
+      "depends_on": [
+        "L3D01",
+        "G5"
+      ],
+      "expected_files": [
+        "app/Domain/PublicSite/Publications.php",
+        "resources/frontend/pages/public/",
+        "resources/frontend/pages/manager/Publications.vue"
+      ],
+      "steps": [
+        "Versionner publication/médias/droits et approbation",
+        "Exposer seulement catalogue public sélectionné",
+        "Relier WhatsApp/horaires/localisation et CTA convenus"
+      ],
+      "exit_criteria": [
+        "Pas de prix achat/stock privé exposé",
+        "Aucune donnée patient en contenu",
+        "Responsive et prévisualisation avant publication"
+      ],
+      "acceptance_scenarios": [
+        "AT35"
+      ],
+      "requirements": [
+        "EE039",
+        "EE044"
+      ],
+      "legacy_tickets": [
+        "L3-01"
+      ],
+      "engineering_checks": [
+        "Contrôle des champs publics et médias"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "catalog_media",
+        "catalog_publications",
+        "public_contents"
+      ],
+      "execution_order": 75
+    },
+    {
+      "id": "L3D03",
+      "lot": "L3",
+      "title": "Connecter réservation publique et protection anti-abus",
+      "depends_on": [
+        "L3D02",
+        "L2D02",
+        "G6"
+      ],
+      "expected_files": [
+        "app/Http/Controllers/PublicBookingController.php",
+        "app/Domain/PublicSite/PublicBooking.php",
+        "tests/e2e/public-booking.spec.ts"
+      ],
+      "steps": [
+        "Exposer services/créneaux administratifs sans identités",
+        "Traiter demande idempotente sous verrou et disponibilité Google",
+        "Rate limit, consentement, référence publique et conflit humain"
+      ],
+      "exit_criteria": [
+        "Aucun compte back-office public",
+        "Téléphone ne révèle pas existence d’un patient",
+        "Confirmation correspond à réservation effective"
+      ],
+      "acceptance_scenarios": [
+        "AT33",
+        "AT35"
+      ],
+      "requirements": [
+        "EE031",
+        "EE039"
+      ],
+      "legacy_tickets": [
+        "L3-01"
+      ],
+      "engineering_checks": [
+        "Deux demandes même slot et énumération téléphone"
+      ],
+      "risk": "HIGH",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [
+        "public_booking_requests"
+      ],
+      "execution_order": 76
+    },
+    {
+      "id": "L3D04",
+      "lot": "L3",
+      "title": "Configurer emails et vérifications du domaine",
+      "depends_on": [
+        "L3D01",
+        "G4"
+      ],
+      "expected_files": [
+        "docs/runbooks/domain-email.md",
+        "docs/evidence/domain-checks.md"
+      ],
+      "steps": [
+        "Configurer direction/contact si comptes disponibles",
+        "Vérifier HTTPS/DNS/SMTP et records mail accessibles",
+        "Tester délivrabilité vers boîte contrôlée et reprise incident"
+      ],
+      "exit_criteria": [
+        "Aucun achat ou changement DNS non autorisé",
+        "Comptes appartenant au client",
+        "Secrets distincts des accès développeur"
+      ],
+      "acceptance_scenarios": [],
+      "requirements": [
+        "EE040"
+      ],
+      "legacy_tickets": [
+        "L3-02"
+      ],
+      "engineering_checks": [
+        "Certificat, SMTP et enregistrement des accès"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 77
+    },
+    {
+      "id": "L3D05",
+      "lot": "L3",
+      "title": "Remettre documentation, formation et propriété",
+      "depends_on": [
+        "L3D03",
+        "L3D04"
+      ],
+      "expected_files": [
+        "docs/user-guide/",
+        "docs/runbooks/handover.md",
+        "docs/evidence/delivery-final.md"
+      ],
+      "steps": [
+        "Former profils, exploitation et vidéo smartphone PC",
+        "Remettre code/builds/dictionnaire/exports/manifeste et accès contrôlés",
+        "Documenter garantie/support, limites et jalons commerciaux sans les modifier"
+      ],
+      "exit_criteria": [
+        "Chaque EE a statut et preuve ou écart explicite",
+        "Restauration/export reproduits par responsable",
+        "Livrables de formation/remise identifiés et reçus"
+      ],
+      "acceptance_scenarios": [
+        "AT27",
+        "AT29",
+        "AT35"
+      ],
+      "requirements": [
+        "EE040",
+        "EE041",
+        "EE043"
+      ],
+      "legacy_tickets": [
+        "L3-02"
+      ],
+      "engineering_checks": [
+        "PV final et exercice de sortie du prestataire"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 78
+    },
+    {
+      "id": "G7",
+      "lot": "L3",
+      "title": "Clôturer la recette globale et la remise",
+      "depends_on": [
+        "L3D05"
+      ],
+      "expected_files": [
+        "docs/evidence/G7.md",
+        "docs/evidence/requirements-final.json"
+      ],
+      "steps": [
+        "Revoir EE001–46 et AT01–45",
+        "Rapprocher fonctions actives, contrats et accès client",
+        "Consigner écarts restant acceptés et support"
+      ],
+      "exit_criteria": [
+        "Périmètre entier évalué avec preuves",
+        "Aucune simulation annoncée comme intégration active",
+        "Archive de remise sans secret ni données patient de test réelles"
+      ],
+      "acceptance_scenarios": [
+        "AT01",
+        "AT02",
+        "AT03",
+        "AT04",
+        "AT05",
+        "AT06",
+        "AT07",
+        "AT08",
+        "AT09",
+        "AT10",
+        "AT11",
+        "AT12",
+        "AT13",
+        "AT14",
+        "AT15",
+        "AT16",
+        "AT17",
+        "AT18",
+        "AT19",
+        "AT20",
+        "AT21",
+        "AT22",
+        "AT23",
+        "AT24",
+        "AT25",
+        "AT26",
+        "AT27",
+        "AT28",
+        "AT29",
+        "AT30",
+        "AT31",
+        "AT32",
+        "AT33",
+        "AT34",
+        "AT35",
+        "AT36",
+        "AT37",
+        "AT38",
+        "AT39",
+        "AT40",
+        "AT41",
+        "AT42",
+        "AT43",
+        "AT44",
+        "AT45"
+      ],
+      "requirements": [
+        "EE041",
+        "EE043",
+        "EE046"
+      ],
+      "legacy_tickets": [],
+      "engineering_checks": [
+        "Gate G7"
+      ],
+      "risk": "NORMAL",
+      "status": "NOT_STARTED",
+      "evidence": [],
+      "implemented": false,
+      "primary_tables": [],
+      "execution_order": 79
+    }
+  ],
+  "table_ownership": {
+    "clinics": "F05",
+    "roles": "F05",
+    "permissions": "F05",
+    "role_permissions": "F05",
+    "users": "F05",
+    "user_roles": "F05",
+    "user_permissions": "F05",
+    "audit_events": "F07",
+    "idempotency_requests": "F07",
+    "outbox_events": "F07",
+    "approvals": "B06",
+    "stored_files": "D01",
+    "generated_documents": "D01",
+    "document_sequences": "O03",
+    "document_number_allocations": "O03",
+    "invoice_write_owners": "O03",
+    "device_stock_allocations": "O03",
+    "document_number_usages": "B03",
+    "export_requests": "X02",
+    "backup_runs": "X02",
+    "restore_tests": "X03",
+    "patient_records": "P01",
+    "patient_merges": "L1D08",
+    "visits": "P03",
+    "clinical_terms": "C01",
+    "consultations": "C01",
+    "consultation_complaints": "C01",
+    "consultation_histories": "C01",
+    "consultation_history_terms": "C01",
+    "consultation_ametropias": "C01",
+    "consultation_referral_reasons": "C01",
+    "visual_acuity_scales": "C02",
+    "visual_acuities": "C02",
+    "refraction_measurements": "C02",
+    "autorefractor_centering": "C02",
+    "clinical_revisions": "C03",
+    "optical_prescriptions": "C04",
+    "optical_prescription_eyes": "C04",
+    "optical_prescription_treatments": "C04",
+    "medication_orders": "C04",
+    "prospect_contacts": "L2D03",
+    "crm_leads": "L2D03",
+    "crm_conversations": "L2D03",
+    "conversation_handoffs": "L2D05",
+    "assistant_runs": "L2D05",
+    "knowledge_entries": "L2D04",
+    "knowledge_entry_versions": "L2D04",
+    "scheduling_resources": "S01",
+    "appointment_services": "S01",
+    "resource_opening_hours": "S01",
+    "resource_exceptions": "S01",
+    "appointments": "S01",
+    "calendar_blocks": "S01",
+    "follow_up_plans": "S02",
+    "reminder_policies": "S02",
+    "contact_tasks": "S02",
+    "contact_attempts": "S02",
+    "catalog_categories": "B01",
+    "units": "B01",
+    "tax_rules": "B01",
+    "catalog_items": "B01",
+    "quotes": "L1D07",
+    "quote_lines": "L1D07",
+    "quote_revisions": "L1D07",
+    "invoices": "B02",
+    "invoice_lines": "B02",
+    "payments": "B04",
+    "receipts": "B04",
+    "payment_reversals": "B07",
+    "credit_notes": "B07",
+    "credit_note_lines": "B07",
+    "refunds": "B08",
+    "legacy_balance_imports": "X01",
+    "cash_registers": "B05",
+    "cash_sessions": "B05",
+    "expense_categories": "L1D05",
+    "cash_movements": "L1D05",
+    "payment_reconciliations": "L1D06",
+    "payment_reconciliation_lines": "L1D06",
+    "stock_locations": "I00",
+    "stock_positions": "I00",
+    "stock_lots": "I00",
+    "stock_reservations": "I00",
+    "deliveries": "I01",
+    "delivery_lines": "I01",
+    "physical_returns": "I02",
+    "stock_movements": "I02",
+    "suppliers": "L1D01",
+    "goods_receipts": "L1D01",
+    "goods_receipt_lines": "L1D01",
+    "inventory_counts": "L1D02",
+    "inventory_count_lines": "L1D02",
+    "stock_alerts": "L1D03",
+    "workshop_orders": "L1D04",
+    "workshop_order_eyes": "L1D04",
+    "workshop_events": "L1D04",
+    "integration_accounts": "L2D01",
+    "external_links": "L2D01",
+    "calendar_sync_states": "L2D02",
+    "webhook_inbox": "L2D09",
+    "communication_consents": "L2D06",
+    "message_templates": "L2D06",
+    "message_template_versions": "L2D06",
+    "audience_segments": "L2D08",
+    "campaign_definitions": "L2D08",
+    "campaign_recipients": "L2D08",
+    "message_attempts": "L2D07",
+    "catalog_publications": "L3D02",
+    "catalog_media": "L3D02",
+    "public_contents": "L3D02",
+    "public_booking_requests": "L3D03",
+    "enrolled_devices": "O02",
+    "offline_grants": "O02",
+    "sync_commands": "O05",
+    "sync_command_results": "O05",
+    "sync_conflicts": "O05",
+    "sync_change_log": "O05"
+  },
+  "coverage": {
+    "requirements": [
+      "EE001",
+      "EE002",
+      "EE003",
+      "EE004",
+      "EE005",
+      "EE006",
+      "EE007",
+      "EE008",
+      "EE009",
+      "EE010",
+      "EE011",
+      "EE012",
+      "EE013",
+      "EE014",
+      "EE015",
+      "EE016",
+      "EE017",
+      "EE018",
+      "EE019",
+      "EE020",
+      "EE021",
+      "EE022",
+      "EE023",
+      "EE024",
+      "EE025",
+      "EE026",
+      "EE027",
+      "EE028",
+      "EE029",
+      "EE030",
+      "EE031",
+      "EE032",
+      "EE033",
+      "EE034",
+      "EE035",
+      "EE036",
+      "EE037",
+      "EE038",
+      "EE039",
+      "EE040",
+      "EE041",
+      "EE042",
+      "EE043",
+      "EE044",
+      "EE045",
+      "EE046"
+    ],
+    "acceptance_scenarios": [
+      "AT01",
+      "AT02",
+      "AT03",
+      "AT04",
+      "AT05",
+      "AT06",
+      "AT07",
+      "AT08",
+      "AT09",
+      "AT10",
+      "AT11",
+      "AT12",
+      "AT13",
+      "AT14",
+      "AT15",
+      "AT16",
+      "AT17",
+      "AT18",
+      "AT19",
+      "AT20",
+      "AT21",
+      "AT22",
+      "AT23",
+      "AT24",
+      "AT25",
+      "AT26",
+      "AT27",
+      "AT28",
+      "AT29",
+      "AT30",
+      "AT31",
+      "AT32",
+      "AT33",
+      "AT34",
+      "AT35",
+      "AT36",
+      "AT37",
+      "AT38",
+      "AT39",
+      "AT40",
+      "AT41",
+      "AT42",
+      "AT43",
+      "AT44",
+      "AT45"
+    ],
+    "legacy_tickets": [
+      "L0-01",
+      "L0-02",
+      "L0-03",
+      "L0-04",
+      "L0-05",
+      "L0-06",
+      "L0-07",
+      "L0-08",
+      "L0-09",
+      "L0-10",
+      "L0-11",
+      "L0-12",
+      "L0-13",
+      "L0-14",
+      "L0-15",
+      "L1-01",
+      "L1-02",
+      "L1-03",
+      "L1-04",
+      "L2-01",
+      "L2-02",
+      "L2-03",
+      "L2-04",
+      "L2-05",
+      "L3-01",
+      "L3-02"
+    ]
+  },
+  "instructions": "Choose the earliest NOT_STARTED task with all direct dependencies DONE. Record real evidence before DONE. Production gates require verified external prerequisites and responsible approval; elapsed time is not approval."
+}
