@@ -10,6 +10,14 @@ use Tests\TestCase;
  */
 final class SecurityHeadersTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Les en-têtes ne dépendent pas des assets : la CI PHP ne construit pas public/build.
+        $this->withoutVite();
+    }
+
     public function test_la_coquille_porte_une_csp_d_origine_unique_et_les_protections_de_contenu(): void
     {
         $response = $this->get('/');
