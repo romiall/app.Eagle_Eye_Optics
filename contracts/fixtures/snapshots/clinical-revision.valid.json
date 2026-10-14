@@ -1,0 +1,68 @@
+{
+  "schema": "snapshots/clinical-revision.json",
+  "valid": true,
+  "description": "Révision 1 figée : toutes les rubriques, non mesuré à null",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "revision_no": 1,
+    "recorded_at": "2026-10-14T09:30:00.000Z",
+    "author": {
+      "user_id": "01J9ZXK4M2Q8R7S6T5V4W30006",
+      "display_name": "Professionnel (démonstration)"
+    },
+    "patient": {
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+      "record_number": "TEST-P-000001",
+      "last_name": "PATIENT FICTIF",
+      "first_names": "Élodie Marie"
+    },
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+    "effective_at": "2026-10-14T09:30:00.000Z",
+    "steps": {
+      "ANAMNESIS": {
+        "symptoms": "Gêne en vision de près (fictif)",
+        "wears_glasses": true,
+        "glasses_duration": "3 ans",
+        "previous_correction_available": null,
+        "complaints": []
+      },
+      "HISTORIES": {
+        "histories": []
+      },
+      "VISUAL_ACUITY": {
+        "acuities": []
+      },
+      "REFRACTION": {
+        "measurements": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30018",
+            "stage": "SUBJECTIVE",
+            "eye": "OD",
+            "sphere": "-1.25",
+            "cylinder": null,
+            "axis": null,
+            "addition": null
+          }
+        ],
+        "refraction_observations": null,
+        "ametropias": []
+      },
+      "CENTERING": {
+        "centering_id": "01J9ZXK4M2Q8R7S6T5V4W3001C",
+        "pd_total": null,
+        "pd_od": null,
+        "pd_og": null,
+        "inconsistency_reason": null
+      },
+      "CONCLUSION": {
+        "conclusion": "Conclusion fictive",
+        "referral": false,
+        "referral_urgency": null,
+        "referral_reasons": []
+      }
+    },
+    "finalization_missing_data_reason": null,
+    "previous_revision_id": null,
+    "amendment_reason": null
+  }
+}

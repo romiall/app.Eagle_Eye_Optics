@@ -146,6 +146,12 @@ describe('contrats JSON Schema 2020-12 (Ajv, mode strict)', () => {
     expect([...used].filter((key) => !declared.has(key))).toEqual([])
   })
 
+  it('valide contracts/compatibility.json selon son schéma', () => {
+    const validate = contractValidator().getSchema(`${BASE_URI}schemas/compatibility.json`)
+    const compatibility = loadJson(join(ROOT, 'compatibility.json'))
+    expect(validate?.(compatibility), JSON.stringify(validate?.errors ?? [])).toBe(true)
+  })
+
   it('dispose de fixtures acceptées et refusées', () => {
     const parsed = fixtures.map((file) => loadJson(file) as Fixture)
     expect(parsed.some((fixture) => fixture.valid)).toBe(true)

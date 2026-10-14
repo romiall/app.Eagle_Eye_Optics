@@ -1,0 +1,9 @@
+{
+  "schema": "snapshots/invoice-tax.json",
+  "valid": true,
+  "description": "Aucune règle fiscale validée : régime non configuré, aucune taxe inventée",
+  "data": {
+    "regime": "NO_TAX_CONFIGURED",
+    "rules": []
+  }
+}

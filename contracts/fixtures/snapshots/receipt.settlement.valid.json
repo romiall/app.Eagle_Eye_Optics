@@ -1,0 +1,38 @@
+{
+  "schema": "snapshots/receipt.json",
+  "valid": true,
+  "description": "Reçu de règlement du solde",
+  "base": "snapshots/receipt.deposit.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/payment/amount",
+      "value": 50000
+    },
+    {
+      "op": "replace",
+      "path": "/paid_net_before",
+      "value": 30000
+    },
+    {
+      "op": "replace",
+      "path": "/paid_net_after",
+      "value": 80000
+    },
+    {
+      "op": "replace",
+      "path": "/balance_after",
+      "value": 0
+    },
+    {
+      "op": "replace",
+      "path": "/kind",
+      "value": "BALANCE_SETTLEMENT"
+    },
+    {
+      "op": "replace",
+      "path": "/receipt_number",
+      "value": "TEST-REC-000002"
+    }
+  ]
+}

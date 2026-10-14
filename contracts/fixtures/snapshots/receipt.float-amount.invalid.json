@@ -1,0 +1,13 @@
+{
+  "schema": "snapshots/receipt.json",
+  "valid": false,
+  "description": "Montant décimal dans un reçu",
+  "base": "snapshots/receipt.deposit.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/payment/amount",
+      "value": 30000.5
+    }
+  ]
+}

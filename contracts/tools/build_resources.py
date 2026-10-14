@@ -308,7 +308,13 @@ def billing_resources():
                                               'method': enum('refunds.method'), 'effective_at': instant()})),
                         'write_owner': nullable(obj({'device_id': ulid(), 'epoch': integer(1), 'status': enum('invoice_write_owners.status')})),
                         'document': nullable(document_state)},
-                       description='Facture : draft_version (version du brouillon, figée à l\'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08).'),
+                       description='Facture : draft_version (version du brouillon, figée à l\'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08).')
+        | {'allOf': [
+            {'if': {'properties': {'status': {'const': 'DRAFT'}}, 'required': ['status']},
+             'then': {'properties': {'number': {'type': 'null'}, 'issued_at': {'type': 'null'}, 'ledger_version': {'type': 'null'}}}},
+            {'if': {'properties': {'status': {'const': 'ISSUED'}}, 'required': ['status']},
+             'then': {'properties': {'number': text(64), 'issued_at': instant(), 'issued_by': ulid(), 'ledger_version': ref('Version')}}},
+        ]},
         'InvoiceSummary': obj({'id': ulid(), 'patient_id': ulid(), 'number': n_text(64), 'status': enum('invoices.status'), 'issued_at': n_instant(),
                                'total_gross': money(), 'balance_due': signed_money(), 'draft_version': ref('Version'),
                                'ledger_version': nullable(ref('Version'))}),

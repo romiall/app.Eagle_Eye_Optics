@@ -1,0 +1,76 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceResponse",
+  "valid": true,
+  "description": "Facture émise avec acompte : versions brouillon et ledger distinctes, solde projeté (exemple 80 000 / 30 000 / 50 000)",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+      "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3000A",
+      "number": "TEST-FAC-000001",
+      "status": "ISSUED",
+      "issued_at": "2026-10-14T09:30:00.000Z",
+      "issued_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+      "due_date": null,
+      "currency": "XAF",
+      "total_gross": 80000,
+      "origin": "NATIVE",
+      "legacy_reference": null,
+      "draft_version": 2,
+      "ledger_version": 2,
+      "balance": {
+        "total_gross": 80000,
+        "paid_net": 30000,
+        "credited": 0,
+        "refunded": 0,
+        "balance_due": 50000,
+        "credit_available": 0,
+        "settlement": "PARTIALLY_PAID"
+      },
+      "lines": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3001W",
+          "position": 1,
+          "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+          "reference_snapshot": "EX-001",
+          "description_snapshot": "Examen de vue (fictif)",
+          "category_snapshot": "SERVICE",
+          "unit_snapshot": "SERVICE",
+          "quantity": "1",
+          "unit_price_gross": 15000,
+          "discount_gross": 0,
+          "line_total_gross": 15000,
+          "tax_code_snapshot": "NO_TAX_CONFIGURED",
+          "tax_rate_snapshot": null,
+          "tax_amount": null,
+          "prescription_id": null
+        }
+      ],
+      "payments": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+          "amount": 30000,
+          "method": "MTN_MOMO",
+          "reference": "REFERENCE_FICTIVE",
+          "effective_at": "2026-10-14T09:30:00.000Z",
+          "confirmed_at": "2026-10-14T09:30:00.000Z",
+          "status": "CONFIRMED",
+          "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002V",
+          "receipt_number": "TEST-REC-000001",
+          "reversed_amount": 0
+        }
+      ],
+      "credit_notes": [],
+      "refunds": [],
+      "write_owner": {
+        "device_id": "01J9ZXK4M2Q8R7S6T5V4W3009C",
+        "epoch": 1,
+        "status": "ACTIVE"
+      },
+      "document": {
+        "document_id": "01J9ZXK4M2Q8R7S6T5V4W30029",
+        "document_status": "READY"
+      }
+    }
+  }
+}

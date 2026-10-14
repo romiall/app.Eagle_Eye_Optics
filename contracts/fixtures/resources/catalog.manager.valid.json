@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CatalogPage",
+  "valid": true,
+  "description": "Catalogue vu par la gérante : coût d'achat présent",
+  "base": "resources/catalog.cashier.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/data/0/purchase_cost",
+      "value": 9000
+    }
+  ]
+}

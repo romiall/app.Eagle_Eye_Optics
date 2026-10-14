@@ -1,0 +1,12 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/PaymentResultResponse",
+  "valid": false,
+  "description": "Réponse d'encaissement sans référence de reçu",
+  "base": "resources/payment-result.pending-document.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/data/receipt_id"
+    }
+  ]
+}

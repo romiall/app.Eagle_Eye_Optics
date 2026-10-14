@@ -963,7 +963,64 @@
             }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "DRAFT"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "number": {
+                "type": "null"
+              },
+              "issued_at": {
+                "type": "null"
+              },
+              "ledger_version": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "ISSUED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "issued_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "issued_by": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "ledger_version": {
+                "$ref": "../../schemas/common.json#/$defs/Version"
+              }
+            }
+          }
+        }
+      ]
     },
     "InvoiceSummary": {
       "type": "object",

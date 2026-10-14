@@ -1,0 +1,31 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CatalogPage",
+  "valid": true,
+  "description": "Catalogue vu par la caisse : prix de vente, sans coût d'achat",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+        "reference": "EX-001",
+        "category_code": "SERVICE",
+        "name": "Examen de vue (fictif)",
+        "brand": null,
+        "model": null,
+        "unit_code": "SERVICE",
+        "quantity_integer_only": false,
+        "sale_price": 15000,
+        "tax_rule_id": null,
+        "stock_mode": "NONE",
+        "requires_expiry": false,
+        "active": true,
+        "version": 1
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 50,
+      "total": 1
+    }
+  }
+}

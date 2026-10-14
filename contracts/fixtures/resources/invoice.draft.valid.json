@@ -1,0 +1,63 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceResponse",
+  "valid": true,
+  "description": "Brouillon : ni numéro, ni date d'émission, ni version ledger",
+  "base": "resources/invoice.issued.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/status",
+      "value": "DRAFT"
+    },
+    {
+      "op": "replace",
+      "path": "/data/number",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/issued_at",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/issued_by",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/ledger_version",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/payments",
+      "value": []
+    },
+    {
+      "op": "replace",
+      "path": "/data/document",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/write_owner",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/balance/settlement",
+      "value": "NOT_ISSUED"
+    },
+    {
+      "op": "replace",
+      "path": "/data/balance/paid_net",
+      "value": 0
+    },
+    {
+      "op": "replace",
+      "path": "/data/balance/balance_due",
+      "value": 80000
+    }
+  ]
+}

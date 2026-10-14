@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceResponse",
+  "valid": false,
+  "description": "Statut PAID stocké : inexistant (état dérivé du solde)",
+  "base": "resources/invoice.issued.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/status",
+      "value": "PAID"
+    }
+  ]
+}

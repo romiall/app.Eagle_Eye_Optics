@@ -1,0 +1,13 @@
+{
+  "schema": "snapshots/invoice-tax.json",
+  "valid": false,
+  "description": "Régime fiscal hors liste (taxe inventée)",
+  "base": "snapshots/invoice-tax.no-tax.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/regime",
+      "value": "TVA_19_25"
+    }
+  ]
+}

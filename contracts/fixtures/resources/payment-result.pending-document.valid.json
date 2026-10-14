@@ -1,0 +1,32 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/PaymentResultResponse",
+  "valid": true,
+  "description": "Encaissement confirmé, PDF en attente : ne jamais répéter l'encaissement",
+  "data": {
+    "data": {
+      "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+      "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002V",
+      "receipt_number": "TEST-REC-000001",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "amount": 30000,
+      "currency": "XAF",
+      "method": "MTN_MOMO",
+      "effective_at": "2026-10-14T09:30:00.000Z",
+      "recorded_at": "2026-10-14T09:30:00.000Z",
+      "ledger_version": 2,
+      "balance": {
+        "total_gross": 80000,
+        "paid_net": 30000,
+        "credited": 0,
+        "refunded": 0,
+        "balance_due": 50000,
+        "credit_available": 0,
+        "settlement": "PARTIALLY_PAID"
+      },
+      "receipt_document": {
+        "document_id": "01J9ZXK4M2Q8R7S6T5V4W3002X",
+        "document_status": "PENDING"
+      }
+    }
+  }
+}

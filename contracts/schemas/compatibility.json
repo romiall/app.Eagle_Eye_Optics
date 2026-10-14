@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/compatibility.json",
+  "title": "Déclaration de compatibilité d'une release (contrat 23, « Contrats à matérialiser »)",
+  "description": "Ce qu'une release sait reprendre : versions de schéma des commandes du journal local, versions de règles, événements, formats de coffre et modèles de documents. Une version n'est retirée que lorsqu'aucun poste ne détient de pièce pendante dans cette version (contrat 23, O06).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release",
+    "sync_protocol_version",
+    "catalog_sha256",
+    "rules_versions",
+    "commands",
+    "events",
+    "vault_formats",
+    "document_templates",
+    "notes"
+  ],
+  "properties": {
+    "release": {
+      "description": "Version de l'application (identique à info.version du contrat OpenAPI).",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9.]+)?$"
+    },
+    "sync_protocol_version": { "type": "integer", "minimum": 1 },
+    "catalog_sha256": {
+      "description": "Empreinte du catalogue canonique du schéma (backlog.json).",
+      "$ref": "common.json#/$defs/Sha256Hex"
+    },
+    "rules_versions": {
+      "description": "Versions de règles métier dont les commandes locales sont acceptées (format du cœur signé).",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[0-9]+$" }
+    },
+    "commands": {
+      "description": "Pour chaque commande, versions de schéma de charge reprises (schema_version du cœur).",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": { "type": "string", "pattern": "^[1-9][0-9]{0,5}$" }
+      }
+    },
+    "events": {
+      "description": "Pour chaque événement interne, versions produites et consommées.",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "vault_formats": {
+      "description": "Versions du format du coffre local reprises (définies par O01, migrations par O06).",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "document_templates": {
+      "description": "Modèles de documents disponibles pour régénérer une pièce en attente (définis par D01/D02).",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["document_type", "template_version"],
+        "properties": {
+          "document_type": { "$ref": "enums.json#/$defs/generated_documents.document_type" },
+          "template_version": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

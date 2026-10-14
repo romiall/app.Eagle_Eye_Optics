@@ -1,0 +1,13 @@
+{
+  "schema": "snapshots/receipt.json",
+  "valid": false,
+  "description": "Nature de reçu saisie librement : refusée",
+  "base": "snapshots/receipt.deposit.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/kind",
+      "value": "Acompte"
+    }
+  ]
+}

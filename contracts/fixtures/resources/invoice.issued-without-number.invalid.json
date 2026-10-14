@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceResponse",
+  "valid": false,
+  "description": "Facture émise sans numéro (CHECK de invoices)",
+  "base": "resources/invoice.issued.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/number",
+      "value": null
+    }
+  ]
+}

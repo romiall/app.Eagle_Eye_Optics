@@ -1,0 +1,23 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceResponse",
+  "valid": false,
+  "description": "Brouillon portant une version ledger : refusé",
+  "base": "resources/invoice.issued.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/status",
+      "value": "DRAFT"
+    },
+    {
+      "op": "replace",
+      "path": "/data/number",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/issued_at",
+      "value": null
+    }
+  ]
+}

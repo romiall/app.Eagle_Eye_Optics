@@ -1,0 +1,12 @@
+{
+  "schema": "snapshots/clinical-revision.json",
+  "valid": false,
+  "description": "Snapshot sans la rubrique de réfraction : incomplet",
+  "base": "snapshots/clinical-revision.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/steps/REFRACTION"
+    }
+  ]
+}
