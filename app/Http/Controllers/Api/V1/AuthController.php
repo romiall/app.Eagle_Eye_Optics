@@ -56,6 +56,12 @@ final class AuthController extends Controller
         $audit->record($user->clinic_id, $user, 'auth.logout', 'users', $user->id);
 
         Auth::guard('web')->logout();
+        // Le garde Sanctum garde l'utilisateur en cache pour la requête : sans cet oubli, la nouvelle
+        // session anonyme serait enregistrée avec le user_id du compte déconnecté (fw_sessions).
+        $sanctum = Auth::guard('sanctum');
+        if (method_exists($sanctum, 'forgetUser')) {
+            $sanctum->forgetUser();
+        }
         if ($request->hasSession()) {
             $request->session()->invalidate();
             $request->session()->regenerateToken();

@@ -26,9 +26,17 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/reauthenticate', [AuthController::class, 'reauthenticate'])
             ->middleware('throttle:eeo-reauthenticate')
             ->name('api.auth.reauthenticate');
-        Route::post('auth/password', [AuthController::class, 'changePassword'])->name('api.auth.password');
+        // Même limite que la réauthentification (même compte, compteur partagé) : une session laissée
+        // ouverte ne permet pas de deviner le mot de passe actuel sans limite.
+        Route::post('auth/password', [AuthController::class, 'changePassword'])
+            ->middleware('throttle:eeo-reauthenticate')
+            ->name('api.auth.password');
 
-        Route::get('clinic/settings', [ClinicSettingsController::class, 'show'])->name('api.clinic.settings.show');
+        // Paramètres du cabinet : gérante seulement (contrat 23, « Policy gérante »). Les autres profils
+        // reçoivent le nom, le fuseau et la monnaie du cabinet dans GET /auth/me.
+        Route::get('clinic/settings', [ClinicSettingsController::class, 'show'])
+            ->middleware('can:users.manage')
+            ->name('api.clinic.settings.show');
         Route::patch('clinic/settings', [ClinicSettingsController::class, 'update'])
             ->middleware(['can:users.manage', 'reauthenticated'])
             ->name('api.clinic.settings.update');

@@ -103,11 +103,14 @@
     "app/Http/Controllers/Api/V1/StaffController.php",
     "app/Console/Commands/SetupClinic.php",
     "app/Console/Commands/CreateDemoAccounts.php",
+    "app/Console/Commands/RecoverManager.php",
     "tests/Unit/Access/PermissionResolverTest.php",
     "tests/Feature/Access/",
+    "tests/Concurrency/AccessLockOrderTest.php",
+    "tests/Contracts/ErrorCodeCatalogTest.php",
     "tests/e2e/auth-session.spec.ts"
    ],
-   "notes": "check-all --strict --with-e2e : PHPUnit 208 / 20975 assertions, PHPStan 0, Vitest 30, Playwright 18. Revue de sécurité indépendante à faire avant DONE. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01), écrans (F09), idempotence (F07), MFA (décision)."
+   "notes": "Revues attaque et conformité du commit 343a448 traitées (tableau dans access.md). check-all --strict --with-e2e après corrections : PHPUnit 283 / 21596 assertions (dont 4 entrelacements à processus séparés), PHPStan 0, Vitest 70, Playwright 18. DONE après CI verte du commit de corrections. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01/D02), écrans (F09), idempotence (F07). Écarts déclarés : matrice 09/seed, Policies de ressource, MFA (décision)."
   },
   "F06": {
    "status": "NOT_STARTED",

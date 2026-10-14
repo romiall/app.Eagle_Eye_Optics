@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Access;
 
+use App\Domain\Access\StaffRoles;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -157,13 +158,17 @@ final class StaffManagementTest extends TestCase
         $request->patchJson('/api/v1/staff/'.$this->manager->id, ['expected_version' => 1, 'active' => false, 'reason' => 'Test'])
             ->assertStatus(409)->assertJsonPath('error.code', 'SELF_DEACTIVATION_FORBIDDEN');
         $request->patchJson('/api/v1/staff/'.$this->manager->id, ['expected_version' => 1, 'roles' => ['CASHIER'], 'reason' => 'Test'])
-            ->assertStatus(409)->assertJsonPath('error.code', 'LAST_MANAGER_REQUIRED');
+            ->assertStatus(409)->assertJsonPath('error.code', 'SELF_ROLE_CHANGE_FORBIDDEN');
 
         $second = $this->makeStaff($this->clinicId, 'MANAGER', 'gerante2.test');
         $request->patchJson('/api/v1/staff/'.$second->id, ['expected_version' => 1, 'active' => false, 'reason' => 'Départ (fictif)'])
             ->assertOk();
         $request->patchJson('/api/v1/staff/'.$this->manager->id, ['expected_version' => 1, 'roles' => ['CASHIER'], 'reason' => 'Test'])
-            ->assertStatus(409)->assertJsonPath('error.code', 'LAST_MANAGER_REQUIRED');
+            ->assertStatus(409)->assertJsonPath('error.code', 'SELF_ROLE_CHANGE_FORBIDDEN');
+
+        // L'auteur est toujours une gérante active distincte de la cible : l'invariant LAST_MANAGER_REQUIRED
+        // reste une défense en profondeur, testée directement dans SecurityHardeningTest.
+        $this->assertSame(['MANAGER'], StaffRoles::activeRoles($this->clinicId, $this->manager->id));
     }
 
     public function test_profils_et_derogations_s_appliquent_des_la_requete_suivante(): void
@@ -181,9 +186,11 @@ final class StaffManagementTest extends TestCase
         $this->assertFalse($user->refresh()->hasPermission('payment.collect'));
         $this->assertNotNull(DB::table('user_roles')->where('user_id', $user->id)->where('role_code', 'CASHIER')->value('revoked_at'));
 
-        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'exam_fee.collect', 'effect' => 'ALLOW', 'reason' => 'Encaissement des frais d\'examen à l\'accueil'])
-            ->assertOk();
-        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'patient.update', 'effect' => 'DENY', 'reason' => 'Lecture seule temporaire', 'expires_at' => now()->addDay()->toIso8601String()])
+        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'exam_fee.collect', 'effect' => 'ALLOW', 'reason' => 'Encaissement des frais d\'examen à l\'accueil', 'expected_version' => 3])
+            ->assertOk()->assertJsonPath('data.version', 4);
+        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'patient.update', 'effect' => 'DENY', 'reason' => 'Lecture seule temporaire', 'expires_at' => now()->addDay()->utc()->format('Y-m-d\TH:i:s.v\Z'), 'expected_version' => 3])
+            ->assertStatus(409)->assertJsonPath('error.code', 'VERSION_CONFLICT');
+        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'patient.update', 'effect' => 'DENY', 'reason' => 'Lecture seule temporaire', 'expires_at' => now()->addDay()->utc()->format('Y-m-d\TH:i:s.v\Z'), 'expected_version' => 4])
             ->assertOk();
         $this->app->forgetScopedInstances();
         $user->refresh();
@@ -196,15 +203,17 @@ final class StaffManagementTest extends TestCase
 
         // Deux jours plus tard, la réauthentification de 15 minutes a expiré : nouvelle confirmation.
         $request = $this->actingAsReauthenticated($this->manager);
-        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'exam_fee.collect', 'effect' => 'CLEAR', 'reason' => 'Fin'])->assertOk();
+        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'exam_fee.collect', 'effect' => 'CLEAR', 'reason' => 'Fin', 'expected_version' => 5])->assertOk();
         $this->app->forgetScopedInstances();
         $this->assertFalse($user->refresh()->hasPermission('exam_fee.collect'));
         $this->assertSame(3, $this->auditCount('staff.permission_override', $user->id));
 
         $request->postJson('/api/v1/staff/'.$this->manager->id.'/permissions', ['permission_code' => 'users.manage', 'effect' => 'DENY', 'reason' => 'x'])
             ->assertStatus(409)->assertJsonPath('error.code', 'SELF_OVERRIDE_FORBIDDEN');
-        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'inexistant.code', 'effect' => 'ALLOW', 'reason' => 'x'])
+        $request->postJson('/api/v1/staff/'.$user->id.'/permissions', ['permission_code' => 'inexistant.code', 'effect' => 'ALLOW', 'reason' => 'x', 'expected_version' => 6])
             ->assertStatus(422);
+        $clear = json_decode((string) DB::table('audit_events')->where('action', 'staff.permission_override')->where('target_id', $user->id)->orderByDesc('recorded_at')->value('sanitized_diff'), true);
+        $this->assertSame(['effet' => 'ALLOW', 'expire_le' => null], $clear['avant'] ?? null, 'Un CLEAR conserve l\'état précédent dans l\'audit.');
     }
 
     public function test_reinitialisation_par_la_gerante_ferme_les_sessions_du_compte(): void
@@ -214,7 +223,7 @@ final class StaffManagementTest extends TestCase
         DB::table('fw_sessions')->insert(['id' => 'session-pro', 'user_id' => $user->id, 'payload' => 'x', 'last_activity' => time()]);
 
         $this->actingAsReauthenticated($this->manager)
-            ->postJson('/api/v1/staff/'.$user->id.'/password', ['password' => 'Remplace2026xx', 'password_confirmation' => 'Remplace2026xx', 'reason' => 'Oubli (fictif)'])
+            ->postJson('/api/v1/staff/'.$user->id.'/password', ['password' => 'Remplace2026xx', 'password_confirmation' => 'Remplace2026xx', 'reason' => 'Oubli (fictif)', 'expected_version' => 1])
             ->assertNoContent();
 
         $this->assertSame(0, DB::table('fw_sessions')->where('user_id', $user->id)->count());
@@ -245,7 +254,9 @@ final class StaffManagementTest extends TestCase
     {
         $reception = $this->makeStaff($this->clinicId, 'RECEPTION');
 
-        $this->actingAsFresh($reception)->getJson('/api/v1/clinic/settings')
+        $this->actingAsFresh($reception)->getJson('/api/v1/clinic/settings')->assertStatus(403);
+        $this->actingAsFresh($reception)->getJson('/api/v1/auth/me')->assertOk()->assertJsonPath('data.clinic.currency', 'XAF');
+        $this->actingAsFresh($this->manager)->getJson('/api/v1/clinic/settings')
             ->assertOk()->assertJsonPath('data.currency', 'XAF')->assertJsonPath('data.production_documents_enabled', false);
 
         $this->actingAsFresh($this->manager)->patchJson('/api/v1/clinic/settings', ['name' => 'Nouveau nom'])
@@ -259,5 +270,7 @@ final class StaffManagementTest extends TestCase
 
         $this->assertFalse((bool) DB::table('clinics')->where('id', $this->clinicId)->value('production_documents_enabled'));
         $this->assertSame(1, $this->auditCount('clinic.settings_updated', $this->clinicId));
+        $diff = json_decode((string) DB::table('audit_events')->where('action', 'clinic.settings_updated')->value('sanitized_diff'), true);
+        $this->assertSame(['apres' => 'TEST CABINET RENOMMÉ', 'avant' => 'TEST CABINET A'], $diff['name'] ?? null, 'Modification utile : valeurs avant/après.');
     }
 }

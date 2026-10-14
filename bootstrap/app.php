@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\HealthController;
 use App\Http\Errors\ApiErrorRenderer;
 use App\Http\Middleware\AssignCorrelationId;
@@ -49,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Un refus métier (droit, validation, conflit) est une réponse attendue, pas une erreur : il n'est
+        // pas journalisé avec sa pile d'appels, qui pourrait porter des arguments (identifiant, saisies).
+        $exceptions->dontReport([BusinessError::class]);
+
         // Toute erreur sous /api est du JSON, quel que soit l'en-tête Accept (jamais la coquille SPA),
         // dans l'enveloppe du fichier 08 : error.code, error.message, error.fields, correlation_id.
         $exceptions->shouldRenderJsonWhen(

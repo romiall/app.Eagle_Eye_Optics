@@ -23,6 +23,7 @@ Statut : **non réalisé, accès à l'offre non disponible** (F01, 2026-10-14). 
 | 15 | Stockage distant de sauvegarde, restauration, support (Q14) | Avant production | À renseigner |
 | 16 | Fuseau / locale | Africa/Douala ; instants UTC en base | À renseigner |
 | 17 | HTTPS et en-têtes (CSP, service worker scope) | PWA exige contexte sécurisé | À renseigner |
+| 18 | Réglages `php.ini` de production | `zend.exception_ignore_args=On` (aucun argument dans les piles d'appels journalisées : défense en profondeur avec `#[\SensitiveParameter]`), `display_errors=Off`, `expose_php=Off`, `session.use_strict_mode=1` | À renseigner |
 
 ## Règle de décision
 

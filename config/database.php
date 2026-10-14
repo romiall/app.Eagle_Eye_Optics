@@ -61,6 +61,9 @@ return [
             'engine' => 'InnoDB',
             // Les instants sont stockés en UTC (fichier 23) ; le fuseau métier est dans config/eeo.php.
             'timezone' => env('DB_TIMEZONE', '+00:00'),
+            // Les valeurs liées n'apparaissent jamais dans le message d'une QueryException (journaux) :
+            // hash de mot de passe, identité patient, montants restent hors de laravel.log.
+            'mask_bindings_in_exception_messages' => true,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

@@ -3,7 +3,8 @@
 namespace App\Domain\Access\Actions;
 
 use App\Domain\Access\AuditRecorder;
-use App\Domain\Access\StaffRoles;
+use App\Domain\Access\StaffAdministration;
+use App\Domain\Shared\BusinessError;
 use App\Models\Clinic;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,10 @@ final class UpdateClinicSettings
 {
     private const EDITABLE = ['name', 'address', 'phone', 'email', 'tax_identifier', 'professional_mentions', 'document_settings'];
 
-    public function __construct(private readonly AuditRecorder $audit) {}
+    public function __construct(
+        private readonly AuditRecorder $audit,
+        private readonly StaffAdministration $administration,
+    ) {}
 
     /**
      * @param  array<array-key, mixed>  $input
@@ -39,8 +43,14 @@ final class UpdateClinicSettings
             'production_documents_enabled' => ['prohibited'],
         ])->validate();
 
+        // document_settings est un objet JSON (CHECK ck_clinics_04) : une liste est refusée, un objet vide
+        // reste un objet ({} et non []).
+        if (isset($data['document_settings']) && is_array($data['document_settings']) && $data['document_settings'] !== [] && array_is_list($data['document_settings'])) {
+            throw BusinessError::validation(['document_settings' => ['Les paramètres des documents sont un objet de clés nommées, pas une liste.']]);
+        }
+
         return DB::transaction(function () use ($actor, $data): Clinic {
-            StaffRoles::lockClinic($actor->clinic_id);
+            $actor = $this->administration->lockAndAuthorize($actor);
             /** @var Clinic $clinic */
             $clinic = Clinic::query()->findOrFail($actor->clinic_id);
 
@@ -53,21 +63,22 @@ final class UpdateClinicSettings
                 $value = $data[$field];
                 $current = $clinic->getAttribute($field);
                 if ($value !== $current) {
-                    $changes[$field] = $field === 'document_settings' && $value !== null
-                        ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
+                    $changes[$field] = $field === 'document_settings' && is_array($value)
+                        ? json_encode((object) $value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
                         : $value;
-                    $diff[] = $field;
+                    // Modification utile (fichier 09) : valeurs avant/après, paramètres administratifs non secrets.
+                    $diff[$field] = ['avant' => $current, 'apres' => $value];
                 }
             }
 
             if ($changes !== []) {
                 $changes['updated_at'] = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
                 DB::table('clinics')->where('id', $clinic->id)->update($changes);
-                $this->audit->record($clinic->id, $actor, 'clinic.settings_updated', 'clinics', $clinic->id, null, ['champs' => $diff]);
+                $this->audit->record($clinic->id, $actor, 'clinic.settings_updated', 'clinics', $clinic->id, null, $diff);
             }
 
             /** @var Clinic */
             return Clinic::query()->findOrFail($actor->clinic_id);
-        });
+        }, 3);
     }
 }

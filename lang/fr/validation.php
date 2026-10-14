@@ -11,7 +11,11 @@
 
 return [
     'accepted' => 'Le champ :attribute doit être accepté.',
+    'after' => 'Le champ :attribute doit être postérieur à :date.',
+    'after_or_equal' => 'Le champ :attribute doit être postérieur ou égal à :date.',
     'array' => 'Le champ :attribute doit être une liste.',
+    'before' => 'Le champ :attribute doit être antérieur à :date.',
+    'before_or_equal' => 'Le champ :attribute doit être antérieur ou égal à :date.',
     'between' => [
         'numeric' => 'Le champ :attribute doit être compris entre :min et :max.',
         'string' => 'Le champ :attribute doit contenir entre :min et :max caractères.',

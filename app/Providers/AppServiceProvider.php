@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         $this->useRootRelativeAssetPaths();
         $this->authorizePermissionCodes();
         $this->limitAuthenticationAttempts();
+        $this->disablePersonalAccessTokens();
 
         // Aucune commande destructive de base de données hors base de test isolée (contrats 23 et 25).
         Event::listen(CommandStarting::class, [BlockDestructiveDatabaseCommands::class, 'handle']);
@@ -53,6 +55,17 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('eeo-login-ip', static fn (Request $request): Limit => Limit::perMinute(20)->by('ip:'.$request->ip()));
         RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute(5)->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+    }
+
+    /**
+     * Session SPA uniquement (fichier 23) : aucun jeton d'accès personnel. Sans ce réglage, le garde
+     * Sanctum chercherait tout en-tête « Authorization: Bearer » dans la table personal_access_tokens,
+     * absente du schéma : erreur 500 et journal volumineux pour une requête non authentifiée, au lieu
+     * d'un simple 401.
+     */
+    private function disablePersonalAccessTokens(): void
+    {
+        Sanctum::getAccessTokenFromRequestUsing(static fn (): ?string => null);
     }
 
     /**

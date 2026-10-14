@@ -69,7 +69,7 @@ trait AccessFixtures
     protected function actingAsFresh(User $user): static
     {
         $this->flushSession();
-        $this->app['auth']->forgetGuards();
+        $this->forgetRequestGuards();
 
         return $this->fromSpa()->actingAs($user);
     }
@@ -85,9 +85,20 @@ trait AccessFixtures
      */
     protected function nextRequest(): static
     {
-        $this->app['auth']->forgetGuards();
+        $this->forgetRequestGuards();
 
         return $this->fromSpa();
+    }
+
+    /**
+     * En production, chaque requête part d'une application neuve. En test, l'application persiste : les
+     * gardes et le singleton « auth.driver » (contrat Guard, utilisé par exemple par le gestionnaire de
+     * sessions « database ») garderaient l'utilisateur de la requête précédente.
+     */
+    private function forgetRequestGuards(): void
+    {
+        $this->app['auth']->forgetGuards();
+        $this->app->forgetInstance('auth.driver');
     }
 
     protected function auditCount(string $action, ?string $targetId = null): int

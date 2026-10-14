@@ -84,11 +84,15 @@ final class StaffRoles
     }
 
     /**
-     * Refuse une opération qui laisserait le cabinet sans aucune gérante active (verrou du cabinet tenu
-     * par l'appelant : deux retraits simultanés ne peuvent pas passer chacun ce contrôle).
+     * Refuse une opération qui laisserait le cabinet sans aucune gérante active capable de gérer les
+     * comptes : profil Gérante actif, compte actif et aucune dérogation DENY en vigueur sur users.manage
+     * (une telle dérogation ne peut plus être posée, mais une ligne ancienne ne doit pas fausser
+     * l'invariant). Verrou du cabinet tenu par l'appelant : deux retraits simultanés ne peuvent pas passer
+     * chacun ce contrôle.
      */
     public static function assertAnotherActiveManager(string $clinicId, string $exceptUserId): void
     {
+        $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
         $others = DB::table('user_roles')
             ->join('users', static function ($join): void {
                 $join->on('users.clinic_id', '=', 'user_roles.clinic_id')->on('users.id', '=', 'user_roles.user_id');
@@ -98,6 +102,17 @@ final class StaffRoles
             ->whereNull('user_roles.revoked_at')
             ->where('users.active', true)
             ->where('users.id', '<>', $exceptUserId)
+            ->whereNotExists(static function ($query) use ($now): void {
+                $query->selectRaw('1')
+                    ->from('user_permissions')
+                    ->whereColumn('user_permissions.clinic_id', 'users.clinic_id')
+                    ->whereColumn('user_permissions.user_id', 'users.id')
+                    ->where('user_permissions.permission_code', StaffAdministration::MANAGE_PERMISSION)
+                    ->where('user_permissions.allowed', false)
+                    ->where(static function ($expiry) use ($now): void {
+                        $expiry->whereNull('user_permissions.expires_at')->orWhere('user_permissions.expires_at', '>', $now);
+                    });
+            })
             ->count();
 
         if ($others === 0) {

@@ -70,7 +70,9 @@ final class AuthenticationTest extends TestCase
         $diffs = DB::table('audit_events')->where('action', 'like', 'auth.login_%')->pluck('sanitized_diff')->implode(' ');
         $this->assertStringNotContainsString('inconnu.test', $diffs, 'L\'identifiant tenté n\'est jamais journalisé en clair.');
         $this->assertStringNotContainsString('MauvaisMotDePasse99', $diffs);
-        $this->assertStringContainsString('login_sha256', $diffs);
+        $this->assertStringContainsString('login_hmac', $diffs);
+        $this->assertStringNotContainsString(hash('sha256', 'inconnu.test'), $diffs, 'Pas d\'empreinte non salée retrouvable par dictionnaire.');
+        $this->assertSame(0, DB::table('audit_events')->where('action', 'like', 'auth.login_%')->whereNotNull('actor_id')->count(), 'Un échec n\'a pas d\'auteur authentifié.');
     }
 
     public function test_cinq_echecs_bloquent_l_identifiant_avec_une_reponse_429(): void
@@ -205,5 +207,37 @@ final class AuthenticationTest extends TestCase
         foreach (['password', 'admin', 'admin123', '123456', 'gerante.test', ''] as $guess) {
             $this->assertNotSame(200, $this->login('gerante.test', $guess)->status(), 'Mot de passe deviné accepté : '.$guess);
         }
+    }
+
+    public function test_la_connexion_et_la_deconnexion_renouvellent_la_session_et_le_jeton_csrf(): void
+    {
+        // Pilote « database » : chaque session est une ligne de fw_sessions, identifiée par le cookie.
+        config(['session.driver' => 'database']);
+        $this->app['session']->forgetDrivers();
+        $this->makeStaff($this->clinicId, 'RECEPTION', 'accueil.test');
+        $cookie = (string) config('session.cookie');
+
+        $anonymous = $this->fromSpa()->get('/api/sanctum/csrf-cookie');
+        $before = $anonymous->getCookie($cookie)?->getValue();
+        $this->assertIsString($before);
+
+        // withCredentials : sans lui, le client de test n'envoie aucun cookie avec une requête JSON.
+        $login = $this->fromSpa()->withCredentials()->withCookie($cookie, $before)
+            ->postJson('/api/v1/auth/login', ['login' => 'accueil.test', 'password' => self::TEST_PASSWORD])
+            ->assertOk();
+        $authenticated = $login->getCookie($cookie)?->getValue();
+        $this->assertIsString($authenticated);
+        $this->assertNotSame($before, $authenticated, 'Identifiant de session renouvelé à la connexion (fixation de session).');
+
+        $csrfBefore = $login->getCookie('XSRF-TOKEN')?->getValue();
+        $this->assertSame(1, DB::table('fw_sessions')->where('id', $authenticated)->whereNotNull('user_id')->count());
+        $logout = $this->nextRequest()->withCredentials()->withCookie($cookie, $authenticated)->postJson('/api/v1/auth/logout')->assertNoContent();
+        $after = $logout->getCookie($cookie)?->getValue();
+
+        $this->assertNotSame($authenticated, $after, 'Identifiant de session renouvelé à la déconnexion.');
+        $this->assertNotSame($csrfBefore, $logout->getCookie('XSRF-TOKEN')?->getValue(), 'Jeton CSRF renouvelé à la déconnexion.');
+        $this->assertSame(0, DB::table('fw_sessions')->where('id', $authenticated)->count(), 'La session authentifiée est détruite côté serveur.');
+        $this->assertNull(DB::table('fw_sessions')->where('id', $after)->value('user_id'), 'La nouvelle session anonyme n\'est pas attribuée au compte déconnecté.');
+        $this->assertNull(DB::table('fw_sessions')->where('id', $before)->value('user_id'), 'La session d\'avant connexion n\'est jamais devenue authentifiée.');
     }
 }

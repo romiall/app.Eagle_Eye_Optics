@@ -26,7 +26,7 @@ final class SetupClinic
      * @param  array{clinic_name: mixed, manager_name: mixed, login: mixed, email?: mixed, password: mixed}  $input
      * @return array{clinic_id: string, user_id: string}
      */
-    public function __invoke(array $input): array
+    public function __invoke(#[\SensitiveParameter] array $input): array
     {
         $login = is_string($input['login']) ? PasswordPolicy::normalizeLogin($input['login']) : null;
 
@@ -38,8 +38,15 @@ final class SetupClinic
             'password' => PasswordPolicy::rules($login),
         ])->validate();
 
-        return DB::transaction(function () use ($data): array {
-            // Verrou sur la table pour que deux installations simultanées ne créent pas deux cabinets.
+        $passwordHash = Hash::make((string) $data['password']);
+
+        return DB::transaction(function () use ($data, $passwordHash): array {
+            // Sentinelle : la ligne de référence du profil Gérante (seedée par la baseline, toujours
+            // présente) sérialise les mises en service quel que soit le niveau d'isolation. Un verrou sur
+            // la table clinics vide reposerait sur les verrous d'intervalle de REPEATABLE READ (interblocage)
+            // et ne protégerait rien en READ COMMITTED. La vérification suivante est une lecture verrouillante :
+            // elle voit toujours la dernière version validée.
+            DB::table('roles')->where('code', StaffRoles::MANAGER)->lockForUpdate()->first();
             if (DB::table('clinics')->lockForUpdate()->exists()) {
                 throw new BusinessError('CLINIC_ALREADY_SET_UP', 'Un cabinet est déjà installé : la mise en service initiale est terminée.', 409);
             }
@@ -61,7 +68,7 @@ final class SetupClinic
                 'display_name' => trim((string) $data['manager_name']),
                 'login' => (string) $data['login'],
                 'email' => isset($data['email']) ? (string) $data['email'] : null,
-                'password_hash' => Hash::make((string) $data['password']),
+                'password_hash' => $passwordHash,
                 'active' => true,
                 'version' => 1,
                 'created_at' => $now,
@@ -79,6 +86,6 @@ final class SetupClinic
             ]);
 
             return ['clinic_id' => $clinicId, 'user_id' => $userId];
-        });
+        }, 3);
     }
 }
