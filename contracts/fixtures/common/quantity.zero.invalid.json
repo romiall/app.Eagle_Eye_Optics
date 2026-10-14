@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Quantity",
+  "valid": false,
+  "description": "Quantité nulle refusée",
+  "data": "0.000"
+}

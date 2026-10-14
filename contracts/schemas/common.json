@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/common.json",
+  "title": "Types communs des contrats (contrat 23, « Valeurs et sérialisation »)",
+  "$defs": {
+    "Ulid": {
+      "description": "Identifiant ULID ASCII (26 caractères Crockford, majuscules), connu avant tout commit local ; jamais l'identifiant nul.",
+      "type": "string",
+      "pattern": "^(?!0{26}$)[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "NullableUlid": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ulid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Code": {
+      "description": "Code ASCII de référentiel (VARCHAR(40) ascii).",
+      "type": "string",
+      "pattern": "^[A-Z0-9_]{1,40}$"
+    },
+    "PermissionCode": {
+      "description": "Code de permission du référentiel seedé (ex. invoice.issue).",
+      "type": "string",
+      "pattern": "^[a-z_]+(\\.[a-z_]+)+$",
+      "maxLength": 100
+    },
+    "Sha256Hex": {
+      "description": "Empreinte SHA-256 en hexadécimal minuscule (64 caractères).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "NullableSha256Hex": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Sha256Hex"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "CompactJws": {
+      "description": "JWS compact base64url (en-tête.charge.signature), ES256 uniquement.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+      "maxLength": 4096
+    },
+    "MoneyXaf": {
+      "description": "Montant en francs CFA (XAF), entier exact, bornes SQL 0..1 000 000 000 000 ; jamais de flottant.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000000000
+    },
+    "PositiveMoneyXaf": {
+      "description": "Montant strictement positif (paiement, remboursement, contre-écriture).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000000000
+    },
+    "SignedMoneyXaf": {
+      "description": "Montant signé (solde, écart de caisse) : entier exact.",
+      "type": "integer",
+      "minimum": -1000000000000,
+      "maximum": 1000000000000
+    },
+    "Currency": {
+      "description": "Monnaie unique du cabinet (CHECK currency = 'XAF').",
+      "const": "XAF"
+    },
+    "Quantity": {
+      "description": "Quantité DECIMAL(12,3) en chaîne décimale exacte (point décimal), strictement positive.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+      "not": {
+        "type": "string",
+        "pattern": "^0(\\.0{1,3})?$"
+      }
+    },
+    "SignedQuantity": {
+      "description": "Quantité DECIMAL(12,3) signée en chaîne exacte (mouvements de stock).",
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$"
+    },
+    "Diopter": {
+      "description": "Valeur optique DECIMAL(6,2) en chaîne exacte, signe explicite admis ; null = non mesuré (jamais remplacé par zéro).",
+      "type": "string",
+      "pattern": "^[+-]?(0|[1-9][0-9]{0,3})(\\.[0-9]{1,2})?$"
+    },
+    "NullableDiopter": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Diopter"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Rate": {
+      "description": "Taux en pourcentage DECIMAL en chaîne exacte (0 à 100).",
+      "type": "string",
+      "pattern": "^(100(\\.0{1,4})?|[1-9]?[0-9](\\.[0-9]{1,4})?)$"
+    },
+    "Counter": {
+      "description": "Compteur BIGINT (séquence d'appareil, curseur) : chaîne de chiffres sans zéro non significatif ; jamais un nombre JS hors plage sûre.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "Version": {
+      "description": "Version optimiste (brouillon ou ledger dérivé), entier ≥ 1.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "Instant": {
+      "description": "Instant UTC ISO 8601 à la milliseconde, suffixe Z (ex. 2026-10-14T09:30:00.000Z).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$"
+    },
+    "NullableInstant": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Instant"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "CivilDate": {
+      "description": "Date civile YYYY-MM-DD dans le fuseau du cabinet (Africa/Douala) ; jamais déduite d'un minuit UTC.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "NullableCivilDate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CivilDate"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ShortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180
+    },
+    "Reason": {
+      "description": "Motif obligatoire d'une opération sensible.",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 1000
+    },
+    "Phone": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 32
+    },
+    "Pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_page", "last_page", "per_page", "total"],
+      "properties": {
+        "current_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "last_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_page": {
+          "type": "integer",
+          "enum": [25, 50]
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

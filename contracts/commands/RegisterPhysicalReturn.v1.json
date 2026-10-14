@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RegisterPhysicalReturn.v1.json",
+  "title": "RegisterPhysicalReturn (charge v1)",
+  "description": "Retour physique ≤ quantité remise non retournée, inspection et destination justifiées ; un avoir seul n'augmente jamais le stock. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "physical_returns",
+  "x-entity-id-field": "physical_return_id",
+  "x-permission": "stock.adjust",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /deliveries/{id}/physical-returns",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "physical_return_id",
+    "delivery_line_id",
+    "item_id",
+    "quantity",
+    "condition_code",
+    "accepted_for_restock",
+    "approved_by",
+    "occurred_at",
+    "reason",
+    "credit_note_id",
+    "stock_movement_id"
+  ],
+  "properties": {
+    "physical_return_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "delivery_line_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "item_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "quantity": {
+      "$ref": "../schemas/common.json#/$defs/Quantity"
+    },
+    "condition_code": {
+      "$ref": "../schemas/enums.json#/$defs/physical_returns.condition_code"
+    },
+    "accepted_for_restock": {
+      "type": "boolean"
+    },
+    "approved_by": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "reason": {
+      "$ref": "../schemas/common.json#/$defs/Reason"
+    },
+    "credit_note_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "stock_movement_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /deliveries/{id}/physical-returns : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "physical_return_id",
+        "delivery_line_id",
+        "item_id",
+        "quantity",
+        "condition_code",
+        "accepted_for_restock",
+        "approved_by",
+        "occurred_at",
+        "reason",
+        "credit_note_id",
+        "stock_movement_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "physical_return_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "delivery_line_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "item_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "quantity": {
+          "$ref": "../schemas/common.json#/$defs/Quantity"
+        },
+        "condition_code": {
+          "$ref": "../schemas/enums.json#/$defs/physical_returns.condition_code"
+        },
+        "accepted_for_restock": {
+          "type": "boolean"
+        },
+        "approved_by": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "reason": {
+          "$ref": "../schemas/common.json#/$defs/Reason"
+        },
+        "credit_note_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "stock_movement_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        }
+      }
+    }
+  }
+}

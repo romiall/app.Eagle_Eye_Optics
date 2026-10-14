@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Quantity",
+  "valid": false,
+  "description": "Plus de 3 décimales refusées (DECIMAL(12,3))",
+  "data": "1.1255"
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "sync/ack.json",
+  "valid": true,
+  "description": "Conflit conservé pour revue, original intact",
+  "data": {
+    "command_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAB",
+    "device_sequence": "1",
+    "status": "CONFLICT_REQUIRES_REVIEW",
+    "result_references": {
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG"
+    },
+    "versions": {
+      "entity_version": 1
+    },
+    "dependencies": [],
+    "conflict_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAJ",
+    "error_code": "VERSION_CONFLICT",
+    "reason": null
+  }
+}

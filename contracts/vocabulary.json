@@ -1,0 +1,20 @@
+{
+  "description": "Mots-clés d'annotation x-* admis dans les contrats (F06). Ils documentent le contrat sans changer la validation : Ajv les déclare par addVocabulary (mode strict), Opis les ignore ; tests/Contracts refuse tout x-* non déclaré ici.",
+  "json_schema": {
+    "x-entity-type": "Agrégat principal visé par la commande : nom de table du catalogue (core.entity_type).",
+    "x-entity-id-field": "Champ de la charge qui porte core.entity_id ; égalité contrôlée par le serveur.",
+    "x-permission": "Code de permission exigé, pris parmi les 49 permissions seedées (table permissions).",
+    "x-expected-version": "Nature de expected_version : none (création, null), entity (colonne version), draft (invoices.version), ledger (ledger_version dérivée, contrat 23).",
+    "x-direct-route": "Route HTTP directe (préfixe /api/v1) qui appelle la même action que la commande synchronisée.",
+    "x-number-type": "Type de numéro consommé (document_number_allocations.document_type) : plage du poste par le journal local, numéro central par la route directe."
+  },
+  "openapi": {
+    "x-permission": "Permission exigée par l'opération (ou liste : l'une d'elles suffit) ; vérifiée côté serveur à chaque appel.",
+    "x-reauthentication": "true si l'opération exige une réauthentification récente (fenêtre EEO_REAUTHENTICATION_TTL).",
+    "x-idempotency": "required : en-tête Idempotency-Key obligatoire (mutation critique) ; none : lecture ou opération sans effet métier rejouable.",
+    "x-offline-command": "Commande du journal local équivalente (contracts/commands/index.json), ou absent si l'opération n'est jamais jouée hors-ligne.",
+    "x-read-scope": "Rubriques renvoyées selon le profil (ADMINISTRATIVE, CLINICAL, FINANCIAL, MANAGER) ; un même chemin ne donne pas toutes les rubriques à tous les rôles.",
+    "x-implementation-status": "IMPLEMENTED (code et tests présents, tâche citée) ou PLANNED (contrat fixé, tâche du backlog qui l'implémente).",
+    "x-backlog-task": "Tâche du backlog (fichier 24) qui implémente ou a implémenté l'opération."
+  }
+}

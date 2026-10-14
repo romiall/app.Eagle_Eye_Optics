@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/UpdatePatient.v1.json",
+  "title": "UpdatePatient (charge v1)",
+  "description": "Modification d'identité avec version attendue ; jamais de dernier écrit gagnant (conflit conservé). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "patient_records",
+  "x-entity-id-field": "patient_id",
+  "x-permission": "patient.update",
+  "x-expected-version": "entity",
+  "x-direct-route": "PATCH /patients/{id}",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "changes"
+  ],
+  "properties": {
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "birth_date_missing_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_primary": {
+          "anyOf": [
+            {
+              "$ref": "../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_secondary": {
+          "anyOf": [
+            {
+              "$ref": "../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_missing_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profession": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "guardian_contact": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe PATCH /patients/{id} : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "patient_id",
+        "changes"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "last_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "first_names": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sex": {
+              "$ref": "../schemas/enums.json#/$defs/patient_records.sex"
+            },
+            "birth_date": {
+              "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+            },
+            "birth_date_missing_reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone_primary": {
+              "anyOf": [
+                {
+                  "$ref": "../schemas/common.json#/$defs/Phone"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone_secondary": {
+              "anyOf": [
+                {
+                  "$ref": "../schemas/common.json#/$defs/Phone"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone_missing_reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "address": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 4000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "profession": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "guardian_contact": {
+              "anyOf": [
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

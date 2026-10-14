@@ -1,0 +1,24 @@
+{
+  "schema": "sync/pull-page.json",
+  "valid": true,
+  "description": "Page de pull avec curseur opaque",
+  "data": {
+    "changes": [
+      {
+        "change_sequence": "42",
+        "entity_type": "patient_records",
+        "entity_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG",
+        "entity_version": 2,
+        "change_kind": "UPDATED",
+        "visibility": "ADMINISTRATIVE",
+        "recorded_at": "2026-10-14T09:32:00.000Z",
+        "data": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG"
+        }
+      }
+    ],
+    "next_cursor": "c2lnbmVkLWN1cnNvci1maWN0aWY",
+    "has_more": false,
+    "server_time": "2026-10-14T09:33:00.000Z"
+  }
+}

@@ -1,0 +1,886 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/dispatch.json",
+  "title": "Correspondance command_name → charge, schéma, entité, version attendue et plage",
+  "description": "Appliqué au cœur des commandes signées (sync/command-core.json). core.entity_id doit en outre égaler le champ x-entity-id-field de la charge (contrôle serveur). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "type": "object",
+  "properties": {
+    "command_name": {
+      "$ref": "#/$defs/CommandName"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CreatePatient"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "patient_records"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "payload": {
+            "$ref": "CreatePatient.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "UpdatePatient"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "patient_records"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "UpdatePatient.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RegisterVisit"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "visits"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RegisterVisit.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "StartConsultation"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "consultations"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "StartConsultation.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "SaveClinicalStep"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "consultations"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "SaveClinicalStep.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CompleteConsultation"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "consultations"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CompleteConsultation.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "AmendConsultation"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "consultations"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "AmendConsultation.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CreatePrescription"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "optical_prescriptions"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CreatePrescription.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "ValidatePrescription"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "optical_prescriptions"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "ValidatePrescription.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CreateInvoiceDraft"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CreateInvoiceDraft.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "UpdateDraft"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "UpdateDraft.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "IssueInvoice"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "payload": {
+            "$ref": "IssueInvoice.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RegisterPayment"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "payload": {
+            "$ref": "RegisterPayment.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "ReversePayment"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "ReversePayment.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "IssueCreditNote"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "payload": {
+            "$ref": "IssueCreditNote.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RefundCredit"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "invoices"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "payload": {
+            "$ref": "RefundCredit.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "OpenCashSession"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "cash_sessions"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "OpenCashSession.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CloseCashSession"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "cash_sessions"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CloseCashSession.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "ReserveStock"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "stock_reservations"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "ReserveStock.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "ConfirmDelivery"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "deliveries"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "ConfirmDelivery.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RegisterPhysicalReturn"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "physical_returns"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RegisterPhysicalReturn.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RegisterStockMovement"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "stock_movements"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RegisterStockMovement.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CreateFollowUp"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "follow_up_plans"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CreateFollowUp.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "CreateAppointment"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "appointments"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "CreateAppointment.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RecordContactAttempt"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "contact_tasks"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RecordContactAttempt.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "RequestApproval"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "approvals"
+          },
+          "expected_version": {
+            "type": "null"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "RequestApproval.v1.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command_name": {
+            "const": "DecideApproval"
+          }
+        },
+        "required": [
+          "command_name"
+        ]
+      },
+      "then": {
+        "properties": {
+          "schema_version": {
+            "const": "1"
+          },
+          "entity_type": {
+            "const": "approvals"
+          },
+          "expected_version": {
+            "$ref": "../schemas/common.json#/$defs/Version"
+          },
+          "number_allocation_id": {
+            "type": "null"
+          },
+          "payload": {
+            "$ref": "DecideApproval.v1.json"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "CommandName": {
+      "description": "Commandes disponibles dans le journal local (actions du fichier 08 jouables hors-ligne).",
+      "type": "string",
+      "enum": [
+        "CreatePatient",
+        "UpdatePatient",
+        "RegisterVisit",
+        "StartConsultation",
+        "SaveClinicalStep",
+        "CompleteConsultation",
+        "AmendConsultation",
+        "CreatePrescription",
+        "ValidatePrescription",
+        "CreateInvoiceDraft",
+        "UpdateDraft",
+        "IssueInvoice",
+        "RegisterPayment",
+        "ReversePayment",
+        "IssueCreditNote",
+        "RefundCredit",
+        "OpenCashSession",
+        "CloseCashSession",
+        "ReserveStock",
+        "ConfirmDelivery",
+        "RegisterPhysicalReturn",
+        "RegisterStockMovement",
+        "CreateFollowUp",
+        "CreateAppointment",
+        "RecordContactAttempt",
+        "RequestApproval",
+        "DecideApproval"
+      ]
+    }
+  }
+}

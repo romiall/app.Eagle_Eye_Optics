@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/DecideApproval.v1.json",
+  "title": "DecideApproval (charge v1)",
+  "description": "Décision de la gérante présente (profil préparé ou réauthentification en ligne), consommable une fois. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "approvals",
+  "x-entity-id-field": "approval_id",
+  "x-permission": "approval.decide",
+  "x-expected-version": "entity",
+  "x-direct-route": "POST /approvals/{id}/decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "approval_id",
+    "decision",
+    "reason"
+  ],
+  "properties": {
+    "approval_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "APPROVED",
+        "REFUSED"
+      ]
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /approvals/{id}/decision : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "approval_id",
+        "decision",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "approval_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "REFUSED"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -22,6 +22,9 @@
         <testsuite name="Concurrency">
             <directory>tests/Concurrency</directory>
         </testsuite>
+        <testsuite name="Contracts">
+            <directory>tests/Contracts</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

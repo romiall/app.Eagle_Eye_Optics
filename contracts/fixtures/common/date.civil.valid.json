@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/CivilDate",
+  "valid": true,
+  "description": "Date civile",
+  "data": "2026-12-31"
+}

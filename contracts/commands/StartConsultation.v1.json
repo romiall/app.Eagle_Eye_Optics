@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/StartConsultation.v1.json",
+  "title": "StartConsultation (charge v1)",
+  "description": "Démarrage d'examen : frais de CETTE visite réellement confirmés (pièce de frais) ou dérogation gérante exacte. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "consultations",
+  "x-entity-id-field": "consultation_id",
+  "x-permission": "clinical.write",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /visits/{id}/consultations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "consultation_id",
+    "visit_id",
+    "patient_id",
+    "effective_at",
+    "date_change_reason",
+    "exam_invoice_id",
+    "exam_waiver_approval_id"
+  ],
+  "properties": {
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "visit_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "date_change_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "exam_invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "exam_waiver_approval_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "exam_invoice_id": {
+              "$ref": "../schemas/common.json#/$defs/Ulid"
+            }
+          }
+        },
+        {
+          "properties": {
+            "exam_waiver_approval_id": {
+              "$ref": "../schemas/common.json#/$defs/Ulid"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /visits/{id}/consultations : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "consultation_id",
+        "visit_id",
+        "patient_id",
+        "effective_at",
+        "date_change_reason",
+        "exam_invoice_id",
+        "exam_waiver_approval_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "consultation_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "effective_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "date_change_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exam_invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "exam_waiver_approval_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "exam_invoice_id": {
+                  "$ref": "../schemas/common.json#/$defs/Ulid"
+                }
+              }
+            },
+            {
+              "properties": {
+                "exam_waiver_approval_id": {
+                  "$ref": "../schemas/common.json#/$defs/Ulid"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

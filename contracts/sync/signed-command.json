@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/sync/signed-command.json",
+  "title": "Commande signée transmise par POST /api/v1/sync/push",
+  "description": "Le serveur reconstitue JCS(core), recalcule event_hash, vérifie le JWS ES256 (kid = clé enrôlée du poste, alg imposé, alg=none refusé) puis l'origine. Une commande déjà acceptée avec le même hash renvoie l'ACK existant ; même command_id avec un autre hash = conflit d'intégrité.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["core", "event_hash", "signature"],
+  "properties": {
+    "core": { "$ref": "command-core.json" },
+    "event_hash": { "$ref": "../schemas/common.json#/$defs/Sha256Hex" },
+    "signature": { "$ref": "../schemas/common.json#/$defs/CompactJws" }
+  },
+  "$defs": {
+    "JwsProtectedHeader": {
+      "description": "En-tête protégé du JWS : algorithme et type imposés, kid de la clé d'appareil enrôlée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "typ", "kid"],
+      "properties": {
+        "alg": { "const": "ES256" },
+        "typ": { "const": "eeo-command+jws" },
+        "kid": { "$ref": "../schemas/common.json#/$defs/Ulid" }
+      }
+    },
+    "JwsPayload": {
+      "description": "Charge signée : la signature porte sur l'identité de la commande, le poste et event_hash (pas sur le cœur entier, déjà lié par le hash).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command_id", "device_id", "event_hash"],
+      "properties": {
+        "command_id": { "$ref": "../schemas/common.json#/$defs/Ulid" },
+        "device_id": { "$ref": "../schemas/common.json#/$defs/Ulid" },
+        "event_hash": { "$ref": "../schemas/common.json#/$defs/Sha256Hex" }
+      }
+    }
+  }
+}

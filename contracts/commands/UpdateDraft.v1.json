@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/UpdateDraft.v1.json",
+  "title": "UpdateDraft (charge v1)",
+  "description": "Modification du brouillon (version brouillon attendue) : la liste de lignes remplace la précédente. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "x-entity-id-field": "invoice_id",
+  "x-permission": "invoice.create",
+  "x-expected-version": "draft",
+  "x-direct-route": "PATCH /invoices/{id}",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_id",
+    "visit_id",
+    "due_date",
+    "lines"
+  ],
+  "properties": {
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "visit_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "due_date": {
+      "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line_id",
+          "position",
+          "catalog_item_id",
+          "description",
+          "quantity",
+          "unit_price_gross",
+          "discount_gross",
+          "prescription_id"
+        ],
+        "properties": {
+          "line_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999
+          },
+          "catalog_item_id": {
+            "$ref": "../schemas/common.json#/$defs/NullableUlid"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "quantity": {
+            "$ref": "../schemas/common.json#/$defs/Quantity"
+          },
+          "unit_price_gross": {
+            "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+          },
+          "discount_gross": {
+            "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+          },
+          "prescription_id": {
+            "$ref": "../schemas/common.json#/$defs/NullableUlid"
+          }
+        },
+        "description": "Ligne de brouillon : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise)."
+      }
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe PATCH /invoices/{id} : même charge + expected_version (Version du brouillon (invoices.version), figée à l'émission.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_id",
+        "visit_id",
+        "due_date",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "due_date": {
+          "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "position",
+              "catalog_item_id",
+              "description",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross",
+              "prescription_id"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "catalog_item_id": {
+                "$ref": "../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "quantity": {
+                "$ref": "../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "prescription_id": {
+                "$ref": "../schemas/common.json#/$defs/NullableUlid"
+              }
+            },
+            "description": "Ligne de brouillon : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise)."
+          }
+        }
+      }
+    }
+  }
+}

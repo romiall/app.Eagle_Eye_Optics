@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/NullableDiopter",
+  "valid": true,
+  "description": "Non mesuré : null, jamais zéro",
+  "data": null
+}

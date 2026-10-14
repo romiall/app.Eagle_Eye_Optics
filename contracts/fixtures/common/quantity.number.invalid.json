@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Quantity",
+  "valid": false,
+  "description": "Quantité transmise comme nombre JSON refusée",
+  "data": 1.5
+}

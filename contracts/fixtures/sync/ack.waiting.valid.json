@@ -1,0 +1,25 @@
+{
+  "schema": "sync/ack.json",
+  "valid": true,
+  "description": "Attente de dépendance avec la dépendance manquante",
+  "data": {
+    "command_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAB",
+    "device_sequence": "1",
+    "status": "WAITING_DEPENDENCY",
+    "result_references": {
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG"
+    },
+    "versions": {
+      "entity_version": 1
+    },
+    "dependencies": [
+      {
+        "entity_type": "patient_records",
+        "entity_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG"
+      }
+    ],
+    "conflict_id": null,
+    "error_code": null,
+    "reason": null
+  }
+}

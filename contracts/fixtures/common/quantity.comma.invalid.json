@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Quantity",
+  "valid": false,
+  "description": "Virgule décimale refusée dans le contrat (parsée à la saisie)",
+  "data": "1,5"
+}

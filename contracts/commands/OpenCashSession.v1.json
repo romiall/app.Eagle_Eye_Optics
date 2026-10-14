@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/OpenCashSession.v1.json",
+  "title": "OpenCashSession (charge v1)",
+  "description": "Ouverture de session : une seule session ouverte par caisse et par caissière. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "cash_sessions",
+  "x-entity-id-field": "cash_session_id",
+  "x-permission": "cash.own_session",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /cash-sessions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cash_session_id",
+    "cash_register_id",
+    "opening_amount",
+    "opened_at"
+  ],
+  "properties": {
+    "cash_session_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "cash_register_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "opening_amount": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "opened_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /cash-sessions : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "cash_session_id",
+        "cash_register_id",
+        "opening_amount",
+        "opened_at"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "cash_session_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_register_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "opening_amount": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "opened_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        }
+      }
+    }
+  }
+}

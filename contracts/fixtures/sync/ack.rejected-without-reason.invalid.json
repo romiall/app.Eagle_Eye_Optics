@@ -1,0 +1,20 @@
+{
+  "schema": "sync/ack.json",
+  "valid": false,
+  "description": "REJECTED sans motif refusé (décision finale motivée)",
+  "data": {
+    "command_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAB",
+    "device_sequence": "1",
+    "status": "REJECTED",
+    "result_references": {
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG"
+    },
+    "versions": {
+      "entity_version": 1
+    },
+    "dependencies": [],
+    "conflict_id": null,
+    "error_code": null,
+    "reason": null
+  }
+}

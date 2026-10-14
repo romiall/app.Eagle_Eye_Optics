@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/CloseCashSession.v1.json",
+  "title": "CloseCashSession (charge v1)",
+  "description": "Clôture : montant compté, attendu recalculé par le serveur, écart motivé ; session close immuable. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "cash_sessions",
+  "x-entity-id-field": "cash_session_id",
+  "x-permission": "cash.own_session",
+  "x-expected-version": "entity",
+  "x-direct-route": "POST /cash-sessions/{id}/close",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cash_session_id",
+    "closed_at",
+    "counted_amount",
+    "expected_amount",
+    "variance",
+    "variance_reason"
+  ],
+  "properties": {
+    "cash_session_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "closed_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "counted_amount": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "expected_amount": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "variance": {
+      "$ref": "../schemas/common.json#/$defs/SignedMoneyXaf"
+    },
+    "variance_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /cash-sessions/{id}/close : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "cash_session_id",
+        "closed_at",
+        "counted_amount",
+        "expected_amount",
+        "variance",
+        "variance_reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "cash_session_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "closed_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "counted_amount": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "expected_amount": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "variance": {
+          "$ref": "../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

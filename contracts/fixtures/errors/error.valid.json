@@ -1,0 +1,15 @@
+{
+  "schema": "schemas/error.json",
+  "valid": true,
+  "description": "Erreur de validation avec champs",
+  "data": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "Certaines informations sont invalides.",
+      "fields": {
+        "login": ["Le champ identifiant est obligatoire."]
+      }
+    },
+    "correlation_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAK"
+  }
+}

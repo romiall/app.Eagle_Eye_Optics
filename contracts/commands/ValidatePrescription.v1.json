@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/ValidatePrescription.v1.json",
+  "title": "ValidatePrescription (charge v1)",
+  "description": "Validation explicite par le professionnel : version immuable, document PDF préparé (PENDING). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "optical_prescriptions",
+  "x-entity-id-field": "prescription_id",
+  "x-permission": "clinical.complete",
+  "x-expected-version": "entity",
+  "x-direct-route": "POST /prescriptions/{id}/validate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prescription_id",
+    "document_id"
+  ],
+  "properties": {
+    "prescription_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "document_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /prescriptions/{id}/validate : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "prescription_id",
+        "document_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "prescription_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "document_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    }
+  }
+}

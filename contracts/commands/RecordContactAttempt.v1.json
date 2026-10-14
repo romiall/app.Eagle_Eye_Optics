@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RecordContactAttempt.v1.json",
+  "title": "RecordContactAttempt (charge v1)",
+  "description": "Tentative de contact interne historisée et prochain état explicite. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "contact_tasks",
+  "x-entity-id-field": "task_id",
+  "x-permission": "agenda.write",
+  "x-expected-version": "entity",
+  "x-direct-route": "POST /contact-tasks/{id}/attempts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "attempt_id",
+    "task_id",
+    "occurred_at",
+    "result",
+    "appointment_id",
+    "administrative_note",
+    "next_status",
+    "next_attempt_at"
+  ],
+  "properties": {
+    "attempt_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "task_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "result": {
+      "$ref": "../schemas/enums.json#/$defs/contact_attempts.result"
+    },
+    "appointment_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "administrative_note": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "next_status": {
+      "$ref": "../schemas/enums.json#/$defs/contact_tasks.status"
+    },
+    "next_attempt_at": {
+      "$ref": "../schemas/common.json#/$defs/NullableInstant"
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /contact-tasks/{id}/attempts : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "attempt_id",
+        "task_id",
+        "occurred_at",
+        "result",
+        "appointment_id",
+        "administrative_note",
+        "next_status",
+        "next_attempt_at"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "attempt_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "task_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "result": {
+          "$ref": "../schemas/enums.json#/$defs/contact_attempts.result"
+        },
+        "appointment_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "administrative_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_status": {
+          "$ref": "../schemas/enums.json#/$defs/contact_tasks.status"
+        },
+        "next_attempt_at": {
+          "$ref": "../schemas/common.json#/$defs/NullableInstant"
+        }
+      }
+    }
+  }
+}

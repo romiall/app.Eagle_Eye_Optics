@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/MoneyXaf",
+  "valid": false,
+  "description": "Montant flottant refusé",
+  "data": 80000.5
+}

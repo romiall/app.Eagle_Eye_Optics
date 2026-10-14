@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/sync/ack.json",
+  "title": "ACK d'une commande (contrat 23, « Push, ACK et résolution »)",
+  "description": "ACCEPTED : fait métier appliqué. ALREADY_ACCEPTED : transport d'un ACCEPTED existant, rien de réécrit. WAITING_DEPENDENCY : conservée, reprise dans l'ordre. CONFLICT_REQUIRES_REVIEW : originaux conservés, aucun écrasement. REJECTED : décision finale motivée après revue, jamais un paiement accepté. Le client ne retire une commande de la file active qu'après un ACK final (ACCEPTED, ALREADY_ACCEPTED ou REJECTED) enregistré localement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "device_sequence",
+    "status",
+    "result_references",
+    "versions",
+    "dependencies",
+    "conflict_id",
+    "error_code",
+    "reason"
+  ],
+  "properties": {
+    "command_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "device_sequence": {
+      "$ref": "../schemas/common.json#/$defs/Counter"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ACCEPTED",
+        "ALREADY_ACCEPTED",
+        "WAITING_DEPENDENCY",
+        "CONFLICT_REQUIRES_REVIEW",
+        "REJECTED"
+      ]
+    },
+    "result_references": {
+      "description": "Identifiants d'origine des effets appliqués (ex. invoice_id, payment_id, receipt_id), identiques à ceux du poste.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "../schemas/common.json#/$defs/Ulid"
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "draft_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "ledger_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "entity_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "dependencies": {
+      "description": "Dépendances manquantes accessibles (WAITING_DEPENDENCY), sinon liste vide.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entity_type", "entity_id"],
+        "properties": {
+          "entity_type": {
+            "type": "string",
+            "pattern": "^[a-z][a-z_]{1,63}$"
+          },
+          "entity_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    },
+    "conflict_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "$ref": "../schemas/error.json#/$defs/ErrorCode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "WAITING_DEPENDENCY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "dependencies": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "CONFLICT_REQUIRES_REVIEW"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "conflict_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "REJECTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    }
+  ]
+}

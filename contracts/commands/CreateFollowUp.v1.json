@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/CreateFollowUp.v1.json",
+  "title": "CreateFollowUp (charge v1)",
+  "description": "Contrôle recommandé : date calculée ou saisie par le professionnel (Q09), rappel interne ; aucun envoi externe. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "follow_up_plans",
+  "x-entity-id-field": "follow_up_plan_id",
+  "x-permission": "follow_up.write",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /follow-ups",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "follow_up_plan_id",
+    "consultation_id",
+    "patient_id",
+    "reason",
+    "anchor_kind",
+    "anchor_date",
+    "interval_value",
+    "interval_unit",
+    "recommended_date",
+    "date_origin",
+    "manual_reason",
+    "reminder_enabled",
+    "preferred_channel",
+    "advance_value",
+    "advance_unit",
+    "notes"
+  ],
+  "properties": {
+    "follow_up_plan_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "reason": {
+      "$ref": "../schemas/enums.json#/$defs/follow_up_plans.reason"
+    },
+    "anchor_kind": {
+      "$ref": "../schemas/enums.json#/$defs/follow_up_plans.anchor_kind"
+    },
+    "anchor_date": {
+      "$ref": "../schemas/common.json#/$defs/CivilDate"
+    },
+    "interval_value": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1200
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "interval_unit": {
+      "anyOf": [
+        {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.interval_unit"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recommended_date": {
+      "$ref": "../schemas/common.json#/$defs/CivilDate"
+    },
+    "date_origin": {
+      "$ref": "../schemas/enums.json#/$defs/follow_up_plans.date_origin"
+    },
+    "manual_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reminder_enabled": {
+      "type": "boolean"
+    },
+    "preferred_channel": {
+      "$ref": "../schemas/enums.json#/$defs/follow_up_plans.preferred_channel"
+    },
+    "advance_value": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "advance_unit": {
+      "anyOf": [
+        {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.advance_unit"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "date_origin": {
+            "const": "MANUAL"
+          }
+        },
+        "required": [
+          "date_origin"
+        ]
+      },
+      "then": {
+        "properties": {
+          "manual_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /follow-ups : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "follow_up_plan_id",
+        "consultation_id",
+        "patient_id",
+        "reason",
+        "anchor_kind",
+        "anchor_date",
+        "interval_value",
+        "interval_unit",
+        "recommended_date",
+        "date_origin",
+        "manual_reason",
+        "reminder_enabled",
+        "preferred_channel",
+        "advance_value",
+        "advance_unit",
+        "notes"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "follow_up_plan_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "consultation_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.reason"
+        },
+        "anchor_kind": {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.anchor_kind"
+        },
+        "anchor_date": {
+          "$ref": "../schemas/common.json#/$defs/CivilDate"
+        },
+        "interval_value": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interval_unit": {
+          "anyOf": [
+            {
+              "$ref": "../schemas/enums.json#/$defs/follow_up_plans.interval_unit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recommended_date": {
+          "$ref": "../schemas/common.json#/$defs/CivilDate"
+        },
+        "date_origin": {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.date_origin"
+        },
+        "manual_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reminder_enabled": {
+          "type": "boolean"
+        },
+        "preferred_channel": {
+          "$ref": "../schemas/enums.json#/$defs/follow_up_plans.preferred_channel"
+        },
+        "advance_value": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 365
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "advance_unit": {
+          "anyOf": [
+            {
+              "$ref": "../schemas/enums.json#/$defs/follow_up_plans.advance_unit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "date_origin": {
+                "const": "MANUAL"
+              }
+            },
+            "required": [
+              "date_origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "manual_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/IssueInvoice.v1.json",
+  "title": "IssueInvoice (charge v1)",
+  "description": "Émission : numéro de la plage du poste, snapshots, réserves de stock (I00) et propriété locale dans la même transaction ; la facture émise n'est plus jamais modifiée. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "x-entity-id-field": "invoice_id",
+  "x-permission": "invoice.issue",
+  "x-expected-version": "draft",
+  "x-direct-route": "POST /invoices/{id}/issue",
+  "x-number-type": "INVOICE",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_id",
+    "number_usage_id",
+    "number",
+    "issued_at",
+    "total_gross",
+    "write_owner_id",
+    "catalog_snapshot_sha256",
+    "reservations",
+    "document_id"
+  ],
+  "properties": {
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number_usage_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "issued_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "total_gross": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "write_owner_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "catalog_snapshot_sha256": {
+      "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+    },
+    "reservations": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reservation_id",
+          "invoice_line_id",
+          "item_id",
+          "stock_position_id",
+          "stock_lot_id",
+          "device_allocation_id",
+          "quantity"
+        ],
+        "properties": {
+          "reservation_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "invoice_line_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "item_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "stock_position_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "stock_lot_id": {
+            "$ref": "../schemas/common.json#/$defs/NullableUlid"
+          },
+          "device_allocation_id": {
+            "anyOf": [
+              {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "$ref": "../schemas/common.json#/$defs/Quantity"
+          }
+        },
+        "description": "Réserve créée à l'émission (I00) : une réserve sous quota local reste incluse dans le quota, jamais soustraite deux fois."
+      }
+    },
+    "document_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /invoices/{id}/issue : même charge + expected_version (Version du brouillon (invoices.version), figée à l'émission.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_id",
+        "number_usage_id",
+        "number",
+        "issued_at",
+        "total_gross",
+        "write_owner_id",
+        "catalog_snapshot_sha256",
+        "reservations",
+        "document_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number_usage_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "description": "Numéro central attribué par le serveur sous verrou : null dans la requête directe.",
+          "type": "null"
+        },
+        "issued_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "total_gross": {
+          "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "write_owner_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "catalog_snapshot_sha256": {
+          "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "reservations": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reservation_id",
+              "invoice_line_id",
+              "item_id",
+              "stock_position_id",
+              "stock_lot_id",
+              "device_allocation_id",
+              "quantity"
+            ],
+            "properties": {
+              "reservation_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "invoice_line_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "item_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "stock_position_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "stock_lot_id": {
+                "$ref": "../schemas/common.json#/$defs/NullableUlid"
+              },
+              "device_allocation_id": {
+                "anyOf": [
+                  {
+                    "$ref": "../schemas/common.json#/$defs/Ulid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity": {
+                "$ref": "../schemas/common.json#/$defs/Quantity"
+              }
+            },
+            "description": "Réserve créée à l'émission (I00) : une réserve sous quota local reste incluse dans le quota, jamais soustraite deux fois."
+          }
+        },
+        "document_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RefundCredit.v1.json",
+  "title": "RefundCredit (charge v1)",
+  "description": "Remboursement d'un crédit disponible : pièce numérotée, approbation exacte, session de caisse si espèces. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "x-entity-id-field": "invoice_id",
+  "x-permission": "refund.execute",
+  "x-expected-version": "ledger",
+  "x-direct-route": "POST /invoices/{id}/refunds",
+  "x-number-type": "REFUND",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_id",
+    "refund_id",
+    "credit_note_id",
+    "number_usage_id",
+    "number",
+    "amount",
+    "method",
+    "reference",
+    "approval_id",
+    "effective_at",
+    "cash_session_id",
+    "document_id"
+  ],
+  "properties": {
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "refund_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "credit_note_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number_usage_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "amount": {
+      "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+    },
+    "method": {
+      "$ref": "../schemas/enums.json#/$defs/refunds.method"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approval_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "cash_session_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "document_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "method": {
+            "const": "CASH"
+          }
+        },
+        "required": [
+          "method"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cash_session_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /invoices/{id}/refunds : même charge + expected_version (ledger_version dérivée : 1 + paiements confirmés + contre-écritures + avoirs émis + remboursements (contrat 23).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_id",
+        "refund_id",
+        "credit_note_id",
+        "number_usage_id",
+        "number",
+        "amount",
+        "method",
+        "reference",
+        "approval_id",
+        "effective_at",
+        "cash_session_id",
+        "document_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "refund_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "credit_note_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number_usage_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "description": "Numéro central attribué par le serveur sous verrou : null dans la requête directe.",
+          "type": "null"
+        },
+        "amount": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../schemas/enums.json#/$defs/refunds.method"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "effective_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "cash_session_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "document_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "CASH"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cash_session_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

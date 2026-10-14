@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Quantity",
+  "valid": true,
+  "description": "Quantité décimale exacte",
+  "data": "1.125"
+}

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RegisterVisit.v1.json",
+  "title": "RegisterVisit (charge v1)",
+  "description": "Arrivée du patient ; un achat direct sans examen est admis. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "visits",
+  "x-entity-id-field": "visit_id",
+  "x-permission": "visit.register",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /visits",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "visit_id",
+    "patient_id",
+    "reason",
+    "occurred_at",
+    "appointment_id",
+    "administrative_note"
+  ],
+  "properties": {
+    "visit_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "reason": {
+      "$ref": "../schemas/enums.json#/$defs/visits.reason"
+    },
+    "occurred_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "appointment_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "administrative_note": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /visits : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "visit_id",
+        "patient_id",
+        "reason",
+        "occurred_at",
+        "appointment_id",
+        "administrative_note"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "visit_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "$ref": "../schemas/enums.json#/$defs/visits.reason"
+        },
+        "occurred_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "appointment_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "administrative_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

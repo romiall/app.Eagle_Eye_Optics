@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/index.json",
+  "title": "Index des commandes du journal local",
+  "description": "Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "const": {
+    "CreatePatient": {
+      "schema": "commands/CreatePatient.v1.json",
+      "schema_version": "1",
+      "entity_type": "patient_records",
+      "entity_id_field": "patient_id",
+      "permission": "patient.create",
+      "expected_version": "none",
+      "direct_route": "POST /patients",
+      "number_type": "PATIENT"
+    },
+    "UpdatePatient": {
+      "schema": "commands/UpdatePatient.v1.json",
+      "schema_version": "1",
+      "entity_type": "patient_records",
+      "entity_id_field": "patient_id",
+      "permission": "patient.update",
+      "expected_version": "entity",
+      "direct_route": "PATCH /patients/{id}",
+      "number_type": null
+    },
+    "RegisterVisit": {
+      "schema": "commands/RegisterVisit.v1.json",
+      "schema_version": "1",
+      "entity_type": "visits",
+      "entity_id_field": "visit_id",
+      "permission": "visit.register",
+      "expected_version": "none",
+      "direct_route": "POST /visits",
+      "number_type": null
+    },
+    "StartConsultation": {
+      "schema": "commands/StartConsultation.v1.json",
+      "schema_version": "1",
+      "entity_type": "consultations",
+      "entity_id_field": "consultation_id",
+      "permission": "clinical.write",
+      "expected_version": "none",
+      "direct_route": "POST /visits/{id}/consultations",
+      "number_type": null
+    },
+    "SaveClinicalStep": {
+      "schema": "commands/SaveClinicalStep.v1.json",
+      "schema_version": "1",
+      "entity_type": "consultations",
+      "entity_id_field": "consultation_id",
+      "permission": "clinical.write",
+      "expected_version": "entity",
+      "direct_route": "PATCH /consultations/{id}/steps/{step}",
+      "number_type": null
+    },
+    "CompleteConsultation": {
+      "schema": "commands/CompleteConsultation.v1.json",
+      "schema_version": "1",
+      "entity_type": "consultations",
+      "entity_id_field": "consultation_id",
+      "permission": "clinical.complete",
+      "expected_version": "entity",
+      "direct_route": "POST /consultations/{id}/complete",
+      "number_type": null
+    },
+    "AmendConsultation": {
+      "schema": "commands/AmendConsultation.v1.json",
+      "schema_version": "1",
+      "entity_type": "consultations",
+      "entity_id_field": "consultation_id",
+      "permission": "clinical.amend",
+      "expected_version": "entity",
+      "direct_route": "POST /consultations/{id}/amendments",
+      "number_type": null
+    },
+    "CreatePrescription": {
+      "schema": "commands/CreatePrescription.v1.json",
+      "schema_version": "1",
+      "entity_type": "optical_prescriptions",
+      "entity_id_field": "prescription_id",
+      "permission": "clinical.write",
+      "expected_version": "none",
+      "direct_route": "POST /consultations/{id}/prescriptions",
+      "number_type": null
+    },
+    "ValidatePrescription": {
+      "schema": "commands/ValidatePrescription.v1.json",
+      "schema_version": "1",
+      "entity_type": "optical_prescriptions",
+      "entity_id_field": "prescription_id",
+      "permission": "clinical.complete",
+      "expected_version": "entity",
+      "direct_route": "POST /prescriptions/{id}/validate",
+      "number_type": null
+    },
+    "CreateInvoiceDraft": {
+      "schema": "commands/CreateInvoiceDraft.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "invoice.create",
+      "expected_version": "none",
+      "direct_route": "POST /invoices",
+      "number_type": null
+    },
+    "UpdateDraft": {
+      "schema": "commands/UpdateDraft.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "invoice.create",
+      "expected_version": "draft",
+      "direct_route": "PATCH /invoices/{id}",
+      "number_type": null
+    },
+    "IssueInvoice": {
+      "schema": "commands/IssueInvoice.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "invoice.issue",
+      "expected_version": "draft",
+      "direct_route": "POST /invoices/{id}/issue",
+      "number_type": "INVOICE"
+    },
+    "RegisterPayment": {
+      "schema": "commands/RegisterPayment.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "payment.collect",
+      "expected_version": "ledger",
+      "direct_route": "POST /invoices/{id}/payments",
+      "number_type": "RECEIPT"
+    },
+    "ReversePayment": {
+      "schema": "commands/ReversePayment.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "payment.reverse",
+      "expected_version": "ledger",
+      "direct_route": "POST /payments/{id}/reversals",
+      "number_type": null
+    },
+    "IssueCreditNote": {
+      "schema": "commands/IssueCreditNote.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "credit_note.issue",
+      "expected_version": "ledger",
+      "direct_route": "POST /invoices/{id}/credit-notes",
+      "number_type": "CREDIT_NOTE"
+    },
+    "RefundCredit": {
+      "schema": "commands/RefundCredit.v1.json",
+      "schema_version": "1",
+      "entity_type": "invoices",
+      "entity_id_field": "invoice_id",
+      "permission": "refund.execute",
+      "expected_version": "ledger",
+      "direct_route": "POST /invoices/{id}/refunds",
+      "number_type": "REFUND"
+    },
+    "OpenCashSession": {
+      "schema": "commands/OpenCashSession.v1.json",
+      "schema_version": "1",
+      "entity_type": "cash_sessions",
+      "entity_id_field": "cash_session_id",
+      "permission": "cash.own_session",
+      "expected_version": "none",
+      "direct_route": "POST /cash-sessions",
+      "number_type": null
+    },
+    "CloseCashSession": {
+      "schema": "commands/CloseCashSession.v1.json",
+      "schema_version": "1",
+      "entity_type": "cash_sessions",
+      "entity_id_field": "cash_session_id",
+      "permission": "cash.own_session",
+      "expected_version": "entity",
+      "direct_route": "POST /cash-sessions/{id}/close",
+      "number_type": null
+    },
+    "ReserveStock": {
+      "schema": "commands/ReserveStock.v1.json",
+      "schema_version": "1",
+      "entity_type": "stock_reservations",
+      "entity_id_field": "reservation_id",
+      "permission": "invoice.issue",
+      "expected_version": "none",
+      "direct_route": "POST /stock/reservations",
+      "number_type": null
+    },
+    "ConfirmDelivery": {
+      "schema": "commands/ConfirmDelivery.v1.json",
+      "schema_version": "1",
+      "entity_type": "deliveries",
+      "entity_id_field": "delivery_id",
+      "permission": "delivery.confirm",
+      "expected_version": "none",
+      "direct_route": "POST /invoices/{id}/deliveries",
+      "number_type": null
+    },
+    "RegisterPhysicalReturn": {
+      "schema": "commands/RegisterPhysicalReturn.v1.json",
+      "schema_version": "1",
+      "entity_type": "physical_returns",
+      "entity_id_field": "physical_return_id",
+      "permission": "stock.adjust",
+      "expected_version": "none",
+      "direct_route": "POST /deliveries/{id}/physical-returns",
+      "number_type": null
+    },
+    "RegisterStockMovement": {
+      "schema": "commands/RegisterStockMovement.v1.json",
+      "schema_version": "1",
+      "entity_type": "stock_movements",
+      "entity_id_field": "movement_id",
+      "permission": "stock.adjust",
+      "expected_version": "none",
+      "direct_route": "POST /stock/movements",
+      "number_type": null
+    },
+    "CreateFollowUp": {
+      "schema": "commands/CreateFollowUp.v1.json",
+      "schema_version": "1",
+      "entity_type": "follow_up_plans",
+      "entity_id_field": "follow_up_plan_id",
+      "permission": "follow_up.write",
+      "expected_version": "none",
+      "direct_route": "POST /follow-ups",
+      "number_type": null
+    },
+    "CreateAppointment": {
+      "schema": "commands/CreateAppointment.v1.json",
+      "schema_version": "1",
+      "entity_type": "appointments",
+      "entity_id_field": "appointment_id",
+      "permission": "agenda.write",
+      "expected_version": "none",
+      "direct_route": "POST /appointments",
+      "number_type": null
+    },
+    "RecordContactAttempt": {
+      "schema": "commands/RecordContactAttempt.v1.json",
+      "schema_version": "1",
+      "entity_type": "contact_tasks",
+      "entity_id_field": "task_id",
+      "permission": "agenda.write",
+      "expected_version": "entity",
+      "direct_route": "POST /contact-tasks/{id}/attempts",
+      "number_type": null
+    },
+    "RequestApproval": {
+      "schema": "commands/RequestApproval.v1.json",
+      "schema_version": "1",
+      "entity_type": "approvals",
+      "entity_id_field": "approval_id",
+      "permission": "approval.request",
+      "expected_version": "none",
+      "direct_route": "POST /approvals",
+      "number_type": null
+    },
+    "DecideApproval": {
+      "schema": "commands/DecideApproval.v1.json",
+      "schema_version": "1",
+      "entity_type": "approvals",
+      "entity_id_field": "approval_id",
+      "permission": "approval.decide",
+      "expected_version": "entity",
+      "direct_route": "POST /approvals/{id}/decision",
+      "number_type": null
+    }
+  }
+}

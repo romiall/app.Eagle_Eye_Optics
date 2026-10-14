@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/sync/command-core.json",
+  "title": "Cœur d'une commande locale signée (contrat 23, « Signature et chiffrement »)",
+  "description": "event_hash = SHA-256 (hex minuscule) des octets UTF-8 de JCS(core) (RFC 8785). Toutes les clés sont présentes : un champ optionnel vaut null, jamais absent, pour un hash identique en PHP et en navigateur. signature et event_hash sont hors du cœur ; previous_event_hash y figure (null pour la première commande du poste). La correspondance command_name → charge, schema_version, entity_type, expected_version et plage de numéros est imposée par commands/dispatch.json (généré).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "command_name",
+    "device_id",
+    "actor_id",
+    "grant_id",
+    "clinic_id",
+    "device_sequence",
+    "previous_event_hash",
+    "schema_version",
+    "rules_version",
+    "occurred_at_local",
+    "last_server_time",
+    "entity_type",
+    "entity_id",
+    "expected_version",
+    "number_allocation_id",
+    "stock_allocation_ids",
+    "payload"
+  ],
+  "properties": {
+    "command_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "command_name": {
+      "$ref": "../commands/dispatch.json#/$defs/CommandName"
+    },
+    "device_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "actor_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "grant_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "clinic_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "device_sequence": {
+      "description": "Rang strictement croissant dans le journal unique du poste (premier = \"1\").",
+      "allOf": [
+        {
+          "$ref": "../schemas/common.json#/$defs/Counter"
+        },
+        {
+          "not": {
+            "const": "0"
+          }
+        }
+      ]
+    },
+    "previous_event_hash": {
+      "$ref": "../schemas/common.json#/$defs/NullableSha256Hex"
+    },
+    "schema_version": {
+      "description": "Version du schéma de la charge (contracts/commands/<Commande>.v<N>.json), en chaîne de chiffres comme la colonne sync_commands.schema_version : le cœur est reconstitué à l'identique pour recalculer event_hash.",
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,5}$"
+    },
+    "rules_version": {
+      "description": "Version des règles métier appliquées localement (compatibility.json).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[0-9]+$"
+    },
+    "occurred_at_local": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "last_server_time": {
+      "description": "Dernière heure serveur connue du poste, toujours disponible après la préparation en ligne (colonne NOT NULL) ; sert à détecter une horloge reculée.",
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "entity_type": {
+      "description": "Agrégat principal visé (nom de table du catalogue).",
+      "type": "string",
+      "pattern": "^[a-z][a-z_]{1,63}$"
+    },
+    "entity_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "expected_version": {
+      "description": "Version brouillon (UpdateDraft/IssueInvoice) ou ledger_version (RegisterPayment/ReversePayment/IssueCreditNote/RefundCredit) ; null pour une création.",
+      "anyOf": [
+        {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "number_allocation_id": {
+      "description": "Plage document_number_allocations consommée par la commande, ou null.",
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "stock_allocation_ids": {
+      "description": "Quotas device_stock_allocations utilisés, triés, sans doublon (liste vide si aucun).",
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 100,
+      "items": {
+        "$ref": "../schemas/common.json#/$defs/Ulid"
+      }
+    },
+    "payload": {
+      "description": "Charge métier validée par contracts/commands/<command_name>.v<schema_version>.json (dispatch.json).",
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "../commands/dispatch.json"
+    }
+  ]
+}

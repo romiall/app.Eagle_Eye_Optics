@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/sync/push-response.json",
+  "title": "Réponse de POST /api/v1/sync/push",
+  "description": "Un ACK par commande reçue, dans l'ordre. finalized_prefix = dernier rang du préfixe finalisé et vérifié (ACCEPTED et REJECTED décidés), qui ne saute jamais un RECEIVED, WAITING_DEPENDENCY ou CONFLICT_REQUIRES_REVIEW.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results", "finalized_prefix", "server_time"],
+  "properties": {
+    "results": { "type": "array", "items": { "$ref": "ack.json" } },
+    "finalized_prefix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["last_sequence", "last_hash"],
+      "properties": {
+        "last_sequence": { "$ref": "../schemas/common.json#/$defs/Counter" },
+        "last_hash": { "$ref": "../schemas/common.json#/$defs/NullableSha256Hex" }
+      }
+    },
+    "server_time": { "$ref": "../schemas/common.json#/$defs/Instant" }
+  }
+}

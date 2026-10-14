@@ -1,0 +1,1072 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/enums.json",
+  "title": "Énumérations du catalogue canonique",
+  "description": "Généré par contracts/tools/build_enums.py depuis database/schema_catalog.json : ne pas modifier à la main.",
+  "$defs": {
+    "appointments.source": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "GOOGLE",
+        "CRM",
+        "WEBSITE"
+      ],
+      "description": " (catalogue : appointments.source)"
+    },
+    "appointments.status": {
+      "type": "string",
+      "enum": [
+        "PENDING_CONFIRMATION",
+        "CONFIRMED",
+        "ARRIVED",
+        "COMPLETED",
+        "CANCELLED",
+        "NO_SHOW"
+      ],
+      "description": " (catalogue : appointments.status)"
+    },
+    "approvals.status": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "APPROVED",
+        "REFUSED",
+        "EXPIRED",
+        "CONSUMED"
+      ],
+      "description": " (catalogue : approvals.status)"
+    },
+    "assistant_runs.status": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "COMPLETED",
+        "HANDOFF",
+        "FAILED"
+      ],
+      "description": " (catalogue : assistant_runs.status)"
+    },
+    "backup_runs.scope": {
+      "type": "string",
+      "enum": [
+        "SERVER_DATABASE",
+        "SERVER_FILES",
+        "OFFLINE_UNSYNCED"
+      ],
+      "description": " (catalogue : backup_runs.scope)"
+    },
+    "backup_runs.status": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED"
+      ],
+      "description": " (catalogue : backup_runs.status)"
+    },
+    "calendar_blocks.origin": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "GOOGLE"
+      ],
+      "description": " (catalogue : calendar_blocks.origin)"
+    },
+    "calendar_sync_states.status": {
+      "type": "string",
+      "enum": [
+        "NOT_CONFIGURED",
+        "READY",
+        "SYNCING",
+        "STALE",
+        "ERROR"
+      ],
+      "description": " (catalogue : calendar_sync_states.status)"
+    },
+    "campaign_definitions.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "APPROVED",
+        "RUNNING",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED"
+      ],
+      "description": " (catalogue : campaign_definitions.status)"
+    },
+    "campaign_recipients.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "ELIGIBLE",
+        "EXCLUDED",
+        "SUBMITTED",
+        "DELIVERED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : campaign_recipients.status)"
+    },
+    "cash_movements.kind": {
+      "type": "string",
+      "enum": [
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "EXPENSE",
+        "OPENING_CORRECTION"
+      ],
+      "description": " (catalogue : cash_movements.kind)"
+    },
+    "catalog_items.stock_mode": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "STOCKED",
+        "MADE_TO_ORDER"
+      ],
+      "description": " (catalogue : catalog_items.stock_mode)"
+    },
+    "catalog_publications.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "ARCHIVED"
+      ],
+      "description": " (catalogue : catalog_publications.status)"
+    },
+    "communication_consents.channel": {
+      "type": "string",
+      "enum": [
+        "SMS",
+        "WHATSAPP",
+        "CALL",
+        "EMAIL"
+      ],
+      "description": " (catalogue : communication_consents.channel)"
+    },
+    "communication_consents.purpose": {
+      "type": "string",
+      "enum": [
+        "APPOINTMENT",
+        "FOLLOW_UP",
+        "ORDER_UPDATE",
+        "PAYMENT_FOLLOW_UP",
+        "MARKETING"
+      ],
+      "description": " (catalogue : communication_consents.purpose)"
+    },
+    "communication_consents.status": {
+      "type": "string",
+      "enum": [
+        "GRANTED",
+        "REVOKED"
+      ],
+      "description": " (catalogue : communication_consents.status)"
+    },
+    "consultation_histories.history_group": {
+      "type": "string",
+      "enum": [
+        "OCULAR_HISTORY",
+        "MEDICAL_HISTORY",
+        "FAMILY_HISTORY"
+      ],
+      "description": " (catalogue : consultation_histories.history_group)"
+    },
+    "consultation_history_terms.term_group": {
+      "type": "string",
+      "enum": [
+        "OCULAR_HISTORY",
+        "MEDICAL_HISTORY",
+        "FAMILY_HISTORY"
+      ],
+      "description": " (catalogue : consultation_history_terms.term_group)"
+    },
+    "consultations.referral_urgency": {
+      "type": "string",
+      "enum": [
+        "NOT_URGENT",
+        "RECOMMENDED",
+        "RAPID",
+        "EMERGENCY"
+      ],
+      "description": " (catalogue : consultations.referral_urgency)"
+    },
+    "consultations.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "IN_PROGRESS",
+        "COMPLETED"
+      ],
+      "description": " (catalogue : consultations.status)"
+    },
+    "contact_attempts.result": {
+      "type": "string",
+      "enum": [
+        "CONTACTED",
+        "BOOKED",
+        "NO_RESPONSE",
+        "REFUSED",
+        "POSTPONED",
+        "FAILED"
+      ],
+      "description": " (catalogue : contact_attempts.result)"
+    },
+    "contact_tasks.channel": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "CALL",
+        "SMS",
+        "WHATSAPP"
+      ],
+      "description": " (catalogue : contact_tasks.channel)"
+    },
+    "contact_tasks.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "CONTACTED",
+        "BOOKED",
+        "NO_RESPONSE",
+        "REFUSED",
+        "POSTPONED",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : contact_tasks.status)"
+    },
+    "conversation_handoffs.event_type": {
+      "type": "string",
+      "enum": [
+        "REQUEST",
+        "TAKEOVER",
+        "RESUME_BOT",
+        "CLOSE"
+      ],
+      "description": " (catalogue : conversation_handoffs.event_type)"
+    },
+    "credit_notes.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "ISSUED",
+        "ABANDONED"
+      ],
+      "description": " (catalogue : credit_notes.status)"
+    },
+    "crm_conversations.channel": {
+      "type": "string",
+      "enum": [
+        "WHATSAPP",
+        "MESSENGER",
+        "INSTAGRAM"
+      ],
+      "description": " (catalogue : crm_conversations.channel)"
+    },
+    "crm_conversations.status": {
+      "type": "string",
+      "enum": [
+        "BOT_ACTIVE",
+        "HUMAN_TAKEOVER",
+        "CLOSED"
+      ],
+      "description": " (catalogue : crm_conversations.status)"
+    },
+    "crm_leads.status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "APPOINTMENT_BOOKED",
+        "HUMAN_TAKEOVER",
+        "WON",
+        "LOST",
+        "CLOSED"
+      ],
+      "description": " (catalogue : crm_leads.status)"
+    },
+    "deliveries.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "CONFIRMED"
+      ],
+      "description": " (catalogue : deliveries.status)"
+    },
+    "device_stock_allocations.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CLOSING",
+        "CLOSED"
+      ],
+      "description": " (catalogue : device_stock_allocations.status)"
+    },
+    "document_number_allocations.document_type": {
+      "type": "string",
+      "enum": [
+        "PATIENT",
+        "INVOICE",
+        "RECEIPT",
+        "CREDIT_NOTE",
+        "REFUND",
+        "LEGACY_BALANCE",
+        "QUOTE",
+        "WORKSHOP"
+      ],
+      "description": " (catalogue : document_number_allocations.document_type)"
+    },
+    "document_number_allocations.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CLOSING",
+        "CLOSED"
+      ],
+      "description": " (catalogue : document_number_allocations.status)"
+    },
+    "document_number_usages.document_type": {
+      "type": "string",
+      "enum": [
+        "PATIENT",
+        "INVOICE",
+        "RECEIPT",
+        "CREDIT_NOTE",
+        "REFUND",
+        "LEGACY_BALANCE",
+        "QUOTE",
+        "WORKSHOP"
+      ],
+      "description": " (catalogue : document_number_usages.document_type)"
+    },
+    "document_number_usages.status": {
+      "type": "string",
+      "enum": [
+        "USED",
+        "VOID",
+        "UNUSED"
+      ],
+      "description": " (catalogue : document_number_usages.status)"
+    },
+    "document_sequences.document_type": {
+      "type": "string",
+      "enum": [
+        "PATIENT",
+        "INVOICE",
+        "RECEIPT",
+        "CREDIT_NOTE",
+        "REFUND",
+        "LEGACY_BALANCE",
+        "QUOTE",
+        "WORKSHOP"
+      ],
+      "description": " (catalogue : document_sequences.document_type)"
+    },
+    "enrolled_devices.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "REVOKED",
+        "LOST",
+        "REPLACED"
+      ],
+      "description": " (catalogue : enrolled_devices.status)"
+    },
+    "export_requests.export_type": {
+      "type": "string",
+      "enum": [
+        "PATIENT_RECORD",
+        "PATIENTS",
+        "FINANCE",
+        "STOCK",
+        "FULL_HANDOVER"
+      ],
+      "description": " (catalogue : export_requests.export_type)"
+    },
+    "export_requests.status": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "PROCESSING",
+        "READY",
+        "FAILED",
+        "EXPIRED"
+      ],
+      "description": " (catalogue : export_requests.status)"
+    },
+    "external_links.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SYNCED",
+        "CONFLICT",
+        "FAILED"
+      ],
+      "description": " (catalogue : external_links.status)"
+    },
+    "follow_up_plans.advance_unit": {
+      "type": "string",
+      "enum": [
+        "DAY",
+        "MONTH"
+      ],
+      "description": " (catalogue : follow_up_plans.advance_unit)"
+    },
+    "follow_up_plans.anchor_kind": {
+      "type": "string",
+      "enum": [
+        "CONSULTATION",
+        "TREATMENT_START",
+        "TREATMENT_END",
+        "MANUAL"
+      ],
+      "description": " (catalogue : follow_up_plans.anchor_kind)"
+    },
+    "follow_up_plans.date_origin": {
+      "type": "string",
+      "enum": [
+        "CALCULATED",
+        "MANUAL"
+      ],
+      "description": " (catalogue : follow_up_plans.date_origin)"
+    },
+    "follow_up_plans.interval_unit": {
+      "type": "string",
+      "enum": [
+        "DAY",
+        "MONTH",
+        "YEAR"
+      ],
+      "description": " (catalogue : follow_up_plans.interval_unit)"
+    },
+    "follow_up_plans.preferred_channel": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "SMS",
+        "WHATSAPP",
+        "CALL"
+      ],
+      "description": " (catalogue : follow_up_plans.preferred_channel)"
+    },
+    "follow_up_plans.reason": {
+      "type": "string",
+      "enum": [
+        "ROUTINE",
+        "DROPS",
+        "OTHER"
+      ],
+      "description": " (catalogue : follow_up_plans.reason)"
+    },
+    "follow_up_plans.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "SCHEDULED",
+        "CLOSED",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : follow_up_plans.status)"
+    },
+    "generated_documents.document_type": {
+      "type": "string",
+      "enum": [
+        "INVOICE",
+        "RECEIPT",
+        "CREDIT_NOTE",
+        "REFUND",
+        "OPTICAL_PRESCRIPTION",
+        "CLINICAL_RECORD",
+        "WORKSHOP",
+        "ACCOUNT_STATEMENT",
+        "LEGACY_BALANCE",
+        "QUOTE"
+      ],
+      "description": " (catalogue : generated_documents.document_type)"
+    },
+    "generated_documents.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "READY",
+        "FAILED"
+      ],
+      "description": " (catalogue : generated_documents.status)"
+    },
+    "goods_receipts.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "VALIDATED",
+        "ABANDONED"
+      ],
+      "description": " (catalogue : goods_receipts.status)"
+    },
+    "idempotency_requests.status": {
+      "type": "string",
+      "enum": [
+        "RECEIVED",
+        "COMMITTED",
+        "FAILED"
+      ],
+      "description": " (catalogue : idempotency_requests.status)"
+    },
+    "integration_accounts.provider": {
+      "type": "string",
+      "enum": [
+        "GOOGLE",
+        "KOMMO",
+        "META_WHATSAPP",
+        "META_MESSENGER",
+        "META_INSTAGRAM",
+        "SMS",
+        "SMTP"
+      ],
+      "description": " (catalogue : integration_accounts.provider)"
+    },
+    "integration_accounts.status": {
+      "type": "string",
+      "enum": [
+        "DISABLED",
+        "TEST",
+        "ACTIVE",
+        "ERROR"
+      ],
+      "description": " (catalogue : integration_accounts.status)"
+    },
+    "inventory_counts.status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "COUNTED",
+        "VALIDATED",
+        "ABANDONED"
+      ],
+      "description": " (catalogue : inventory_counts.status)"
+    },
+    "invoice_write_owners.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CLOSING",
+        "CLOSED"
+      ],
+      "description": " (catalogue : invoice_write_owners.status)"
+    },
+    "invoices.origin": {
+      "type": "string",
+      "enum": [
+        "NATIVE",
+        "LEGACY_BALANCE"
+      ],
+      "description": " (catalogue : invoices.origin)"
+    },
+    "invoices.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "ISSUED",
+        "ABANDONED"
+      ],
+      "description": " (catalogue : invoices.status)"
+    },
+    "knowledge_entries.category": {
+      "type": "string",
+      "enum": [
+        "HOURS",
+        "LOCATION",
+        "PRICING",
+        "INSURANCE",
+        "SERVICES",
+        "LENSES",
+        "PRODUCTS",
+        "OTHER"
+      ],
+      "description": " (catalogue : knowledge_entries.category)"
+    },
+    "medication_orders.duration_unit": {
+      "type": "string",
+      "enum": [
+        "DAY",
+        "WEEK",
+        "MONTH"
+      ],
+      "description": " (catalogue : medication_orders.duration_unit)"
+    },
+    "medication_orders.form": {
+      "type": "string",
+      "enum": [
+        "DROPS",
+        "OINTMENT",
+        "TABLET",
+        "OTHER"
+      ],
+      "description": " (catalogue : medication_orders.form)"
+    },
+    "message_attempts.status": {
+      "type": "string",
+      "enum": [
+        "PLANNED",
+        "SUBMITTED",
+        "DELIVERED",
+        "READ",
+        "FAILED",
+        "UNKNOWN",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : message_attempts.status)"
+    },
+    "message_template_versions.provider_approval_status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "PAUSED"
+      ],
+      "description": " (catalogue : message_template_versions.provider_approval_status)"
+    },
+    "message_templates.channel": {
+      "type": "string",
+      "enum": [
+        "SMS",
+        "WHATSAPP",
+        "EMAIL"
+      ],
+      "description": " (catalogue : message_templates.channel)"
+    },
+    "message_templates.purpose": {
+      "type": "string",
+      "enum": [
+        "APPOINTMENT",
+        "FOLLOW_UP",
+        "ORDER_UPDATE",
+        "PAYMENT_FOLLOW_UP",
+        "MARKETING"
+      ],
+      "description": " (catalogue : message_templates.purpose)"
+    },
+    "optical_prescription_eyes.eye": {
+      "type": "string",
+      "enum": [
+        "OD",
+        "OG"
+      ],
+      "description": " (catalogue : optical_prescription_eyes.eye)"
+    },
+    "optical_prescriptions.origin": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "EXTERNAL"
+      ],
+      "description": " (catalogue : optical_prescriptions.origin)"
+    },
+    "optical_prescriptions.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "VALIDATED"
+      ],
+      "description": " (catalogue : optical_prescriptions.status)"
+    },
+    "outbox_events.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "PROCESSED",
+        "FAILED"
+      ],
+      "description": " (catalogue : outbox_events.status)"
+    },
+    "patient_records.sex": {
+      "type": "string",
+      "enum": [
+        "F",
+        "M",
+        "UNKNOWN"
+      ],
+      "description": " (catalogue : patient_records.sex)"
+    },
+    "payment_reconciliation_lines.status": {
+      "type": "string",
+      "enum": [
+        "MATCHED",
+        "UNMATCHED",
+        "DISPUTED"
+      ],
+      "description": " (catalogue : payment_reconciliation_lines.status)"
+    },
+    "payment_reconciliations.method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "MTN_MOMO",
+        "ORANGE_MONEY",
+        "BANK_TRANSFER",
+        "CHEQUE",
+        "OTHER"
+      ],
+      "description": " (catalogue : payment_reconciliations.method)"
+    },
+    "payment_reconciliations.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "VALIDATED"
+      ],
+      "description": " (catalogue : payment_reconciliations.status)"
+    },
+    "payments.method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "MTN_MOMO",
+        "ORANGE_MONEY",
+        "BANK_TRANSFER",
+        "CHEQUE",
+        "OTHER"
+      ],
+      "description": " (catalogue : payments.method)"
+    },
+    "payments.status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "CONFIRMED",
+        "REJECTED"
+      ],
+      "description": " (catalogue : payments.status)"
+    },
+    "physical_returns.condition_code": {
+      "type": "string",
+      "enum": [
+        "SELLABLE",
+        "DAMAGED",
+        "QUARANTINE",
+        "OTHER"
+      ],
+      "description": " (catalogue : physical_returns.condition_code)"
+    },
+    "prospect_contacts.origin": {
+      "type": "string",
+      "enum": [
+        "CRM",
+        "WEBSITE",
+        "WHATSAPP",
+        "MESSENGER",
+        "INSTAGRAM",
+        "MANUAL"
+      ],
+      "description": " (catalogue : prospect_contacts.origin)"
+    },
+    "public_booking_requests.status": {
+      "type": "string",
+      "enum": [
+        "RECEIVED",
+        "PENDING",
+        "CONFIRMED",
+        "CONFLICT",
+        "CANCELLED",
+        "REJECTED"
+      ],
+      "description": " (catalogue : public_booking_requests.status)"
+    },
+    "public_contents.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "ARCHIVED"
+      ],
+      "description": " (catalogue : public_contents.status)"
+    },
+    "quotes.status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "ISSUED",
+        "ACCEPTED",
+        "DECLINED",
+        "EXPIRED",
+        "CONVERTED"
+      ],
+      "description": " (catalogue : quotes.status)"
+    },
+    "refraction_measurements.eye": {
+      "type": "string",
+      "enum": [
+        "OD",
+        "OG"
+      ],
+      "description": " (catalogue : refraction_measurements.eye)"
+    },
+    "refraction_measurements.stage": {
+      "type": "string",
+      "enum": [
+        "AUTOREFRACTOR",
+        "OBJECTIVE",
+        "SUBJECTIVE"
+      ],
+      "description": " (catalogue : refraction_measurements.stage)"
+    },
+    "refunds.method": {
+      "type": "string",
+      "enum": [
+        "CASH",
+        "MTN_MOMO",
+        "ORANGE_MONEY",
+        "BANK_TRANSFER",
+        "CHEQUE",
+        "OTHER"
+      ],
+      "description": " (catalogue : refunds.method)"
+    },
+    "reminder_policies.channel": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "CALL",
+        "SMS",
+        "WHATSAPP"
+      ],
+      "description": " (catalogue : reminder_policies.channel)"
+    },
+    "reminder_policies.offset_unit": {
+      "type": "string",
+      "enum": [
+        "HOUR",
+        "DAY",
+        "MONTH"
+      ],
+      "description": " (catalogue : reminder_policies.offset_unit)"
+    },
+    "reminder_policies.purpose": {
+      "type": "string",
+      "enum": [
+        "APPOINTMENT",
+        "FOLLOW_UP",
+        "ORDER_UPDATE",
+        "PAYMENT_FOLLOW_UP"
+      ],
+      "description": " (catalogue : reminder_policies.purpose)"
+    },
+    "restore_tests.status": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "PASSED",
+        "FAILED"
+      ],
+      "description": " (catalogue : restore_tests.status)"
+    },
+    "stock_alerts.kind": {
+      "type": "string",
+      "enum": [
+        "LOW_STOCK",
+        "EXPIRY"
+      ],
+      "description": " (catalogue : stock_alerts.kind)"
+    },
+    "stock_alerts.status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "ACKNOWLEDGED",
+        "RESOLVED"
+      ],
+      "description": " (catalogue : stock_alerts.status)"
+    },
+    "stock_lots.status": {
+      "type": "string",
+      "enum": [
+        "SELLABLE",
+        "QUARANTINE"
+      ],
+      "description": " (catalogue : stock_lots.status)"
+    },
+    "stock_movements.kind": {
+      "type": "string",
+      "enum": [
+        "OPENING",
+        "RECEIPT",
+        "SALE_DELIVERY",
+        "PATIENT_RETURN",
+        "BREAKAGE",
+        "SUPPLIER_RETURN",
+        "ADJUSTMENT"
+      ],
+      "description": " (catalogue : stock_movements.kind)"
+    },
+    "stock_reservations.status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CONSUMED",
+        "RELEASED"
+      ],
+      "description": " (catalogue : stock_reservations.status)"
+    },
+    "stored_files.classification": {
+      "type": "string",
+      "enum": [
+        "MEDICAL",
+        "FINANCIAL",
+        "INTERNAL",
+        "PUBLIC_APPROVED"
+      ],
+      "description": " (catalogue : stored_files.classification)"
+    },
+    "sync_change_log.change_kind": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "UPDATED",
+        "ARCHIVED"
+      ],
+      "description": " (catalogue : sync_change_log.change_kind)"
+    },
+    "sync_change_log.visibility": {
+      "type": "string",
+      "enum": [
+        "ADMINISTRATIVE",
+        "CLINICAL",
+        "FINANCIAL",
+        "MANAGER",
+        "PUBLIC"
+      ],
+      "description": " (catalogue : sync_change_log.visibility)"
+    },
+    "sync_command_results.status": {
+      "type": "string",
+      "enum": [
+        "RECEIVED",
+        "ACCEPTED",
+        "WAITING_DEPENDENCY",
+        "CONFLICT_REQUIRES_REVIEW",
+        "REJECTED"
+      ],
+      "description": " (catalogue : sync_command_results.status)"
+    },
+    "sync_conflicts.status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "RESOLVED"
+      ],
+      "description": " (catalogue : sync_conflicts.status)"
+    },
+    "visits.reason": {
+      "type": "string",
+      "enum": [
+        "EXAM",
+        "DIRECT_PURCHASE",
+        "PICKUP",
+        "FOLLOW_UP"
+      ],
+      "description": " (catalogue : visits.reason)"
+    },
+    "visits.status": {
+      "type": "string",
+      "enum": [
+        "ARRIVED",
+        "AWAITING_EXAM_FEE",
+        "READY_FOR_EXAM",
+        "IN_CONSULTATION",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : visits.status)"
+    },
+    "visual_acuities.context": {
+      "type": "string",
+      "enum": [
+        "PRELIMINARY",
+        "POST_REFRACTION"
+      ],
+      "description": " (catalogue : visual_acuities.context)"
+    },
+    "visual_acuities.correction": {
+      "type": "string",
+      "enum": [
+        "WITHOUT",
+        "WITH"
+      ],
+      "description": " (catalogue : visual_acuities.correction)"
+    },
+    "visual_acuities.distance": {
+      "type": "string",
+      "enum": [
+        "FAR",
+        "NEAR",
+        "UNSPECIFIED"
+      ],
+      "description": " (catalogue : visual_acuities.distance)"
+    },
+    "visual_acuities.eye": {
+      "type": "string",
+      "enum": [
+        "OD",
+        "OG",
+        "OU"
+      ],
+      "description": " (catalogue : visual_acuities.eye)"
+    },
+    "webhook_inbox.status": {
+      "type": "string",
+      "enum": [
+        "RECEIVED",
+        "VERIFIED",
+        "PROCESSED",
+        "REJECTED",
+        "FAILED"
+      ],
+      "description": " (catalogue : webhook_inbox.status)"
+    },
+    "workshop_events.event_type": {
+      "type": "string",
+      "enum": [
+        "STATUS_CHANGE",
+        "REWORK",
+        "QUALITY_CHECK",
+        "ADJUSTMENT",
+        "CANCEL"
+      ],
+      "description": " (catalogue : workshop_events.event_type)"
+    },
+    "workshop_events.quality_result": {
+      "type": "string",
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "NOT_APPLICABLE"
+      ],
+      "description": " (catalogue : workshop_events.quality_result)"
+    },
+    "workshop_order_eyes.eye": {
+      "type": "string",
+      "enum": [
+        "OD",
+        "OG"
+      ],
+      "description": " (catalogue : workshop_order_eyes.eye)"
+    },
+    "workshop_orders.status": {
+      "type": "string",
+      "enum": [
+        "ORDERED",
+        "RECEIVED",
+        "MOUNTING",
+        "QUALITY_CHECK",
+        "READY",
+        "DELIVERED",
+        "CANCELLED"
+      ],
+      "description": " (catalogue : workshop_orders.status)"
+    }
+  }
+}

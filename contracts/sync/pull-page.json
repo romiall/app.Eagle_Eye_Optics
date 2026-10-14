@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/sync/pull-page.json",
+  "title": "Réponse de GET /api/v1/sync/pull?cursor=…",
+  "description": "Changements déjà committés du cabinet après le curseur, filtrés par visibilité (compartiments du profil), au plus 100. Le curseur est opaque et signé ; il avance aussi sur les entrées filtrées. Le client ne retient next_cursor qu'après commit local de toute la page (contrat 23).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["changes", "next_cursor", "has_more", "server_time"],
+  "properties": {
+    "changes": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/Change" } },
+    "next_cursor": {
+      "description": "Curseur opaque signé (borne supérieure incluse) ; à renvoyer tel quel.",
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 1024
+    },
+    "has_more": { "type": "boolean" },
+    "server_time": { "$ref": "../schemas/common.json#/$defs/Instant" }
+  },
+  "$defs": {
+    "Change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change_sequence",
+        "entity_type",
+        "entity_id",
+        "entity_version",
+        "change_kind",
+        "visibility",
+        "recorded_at",
+        "data"
+      ],
+      "properties": {
+        "change_sequence": { "$ref": "../schemas/common.json#/$defs/Counter" },
+        "entity_type": { "type": "string", "pattern": "^[a-z][a-z_]{1,63}$" },
+        "entity_id": { "$ref": "../schemas/common.json#/$defs/Ulid" },
+        "entity_version": { "$ref": "../schemas/common.json#/$defs/Version" },
+        "change_kind": { "$ref": "../schemas/enums.json#/$defs/sync_change_log.change_kind" },
+        "visibility": { "$ref": "../schemas/enums.json#/$defs/sync_change_log.visibility" },
+        "recorded_at": { "$ref": "../schemas/common.json#/$defs/Instant" },
+        "data": {
+          "description": "Projection autorisée de l'entité pour ce profil (jamais une donnée d'un compartiment non autorisé).",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

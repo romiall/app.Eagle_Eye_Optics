@@ -1,0 +1,9 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "Lot vide refusé",
+  "data": {
+    "device_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAC",
+    "commands": []
+  }
+}

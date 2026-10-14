@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/RegisterPayment.v1.json",
+  "title": "RegisterPayment (charge v1)",
+  "description": "Encaissement : montant ≤ solde verrouillé, paiement confirmé puis reçu numéroté unique dans la même transaction ; le PDF suit le commit (document PENDING). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "invoices",
+  "x-entity-id-field": "invoice_id",
+  "x-permission": "payment.collect",
+  "x-expected-version": "ledger",
+  "x-direct-route": "POST /invoices/{id}/payments",
+  "x-number-type": "RECEIPT",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "invoice_id",
+    "payment_id",
+    "receipt_id",
+    "receipt_number_usage_id",
+    "receipt_number",
+    "amount",
+    "currency",
+    "method",
+    "reference",
+    "effective_at",
+    "cash_session_id",
+    "retroactive_reason",
+    "receipt_document_id"
+  ],
+  "properties": {
+    "invoice_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "payment_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_number_usage_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "receipt_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "amount": {
+      "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "method": {
+      "$ref": "../schemas/enums.json#/$defs/payments.method"
+    },
+    "reference": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "effective_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "cash_session_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "retroactive_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "receipt_document_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "method": {
+            "const": "CASH"
+          }
+        },
+        "required": [
+          "method"
+        ]
+      },
+      "then": {
+        "properties": {
+          "cash_session_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /invoices/{id}/payments : même charge + expected_version (ledger_version dérivée : 1 + paiements confirmés + contre-écritures + avoirs émis + remboursements (contrat 23).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_id",
+        "payment_id",
+        "receipt_id",
+        "receipt_number_usage_id",
+        "receipt_number",
+        "amount",
+        "currency",
+        "method",
+        "reference",
+        "effective_at",
+        "cash_session_id",
+        "retroactive_reason",
+        "receipt_document_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "payment_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "receipt_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "receipt_number_usage_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "receipt_number": {
+          "description": "Numéro central attribué par le serveur sous verrou : null dans la requête directe.",
+          "type": "null"
+        },
+        "amount": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "currency": {
+          "$ref": "../schemas/common.json#/$defs/Currency"
+        },
+        "method": {
+          "$ref": "../schemas/enums.json#/$defs/payments.method"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effective_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "cash_session_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "retroactive_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt_document_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "CASH"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cash_session_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

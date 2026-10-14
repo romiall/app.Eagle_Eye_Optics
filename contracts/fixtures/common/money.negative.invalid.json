@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/MoneyXaf",
+  "valid": false,
+  "description": "Montant négatif refusé",
+  "data": -1
+}

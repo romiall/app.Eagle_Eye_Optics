@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/CompleteConsultation.v1.json",
+  "title": "CompleteConsultation (charge v1)",
+  "description": "Finalisation : snapshot complet et révision 1 dans la même transaction ; empreinte recalculée par le serveur. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "consultations",
+  "x-entity-id-field": "consultation_id",
+  "x-permission": "clinical.complete",
+  "x-expected-version": "entity",
+  "x-direct-route": "POST /consultations/{id}/complete",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "consultation_id",
+    "revision_id",
+    "revision_no",
+    "snapshot_sha256",
+    "finalization_missing_data_reason"
+  ],
+  "properties": {
+    "consultation_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "revision_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "revision_no": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "snapshot_sha256": {
+      "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+    },
+    "finalization_missing_data_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /consultations/{id}/complete : même charge + expected_version (Version de l'agrégat (colonne version).) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "consultation_id",
+        "revision_id",
+        "revision_no",
+        "snapshot_sha256",
+        "finalization_missing_data_reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../schemas/common.json#/$defs/Version"
+        },
+        "consultation_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "snapshot_sha256": {
+          "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "finalization_missing_data_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

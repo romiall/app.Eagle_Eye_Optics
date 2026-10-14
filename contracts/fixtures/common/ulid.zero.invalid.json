@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Ulid",
+  "valid": false,
+  "description": "Identifiant nul refusé (CHECK de la baseline)",
+  "data": "00000000000000000000000000"
+}

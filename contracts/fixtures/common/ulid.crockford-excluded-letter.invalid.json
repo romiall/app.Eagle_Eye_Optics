@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Ulid",
+  "valid": false,
+  "description": "Lettre exclue de Crockford (I, L, O, U) refusée",
+  "data": "01J9ZXK4M2Q8R7S6T5V4W3X2YI"
+}

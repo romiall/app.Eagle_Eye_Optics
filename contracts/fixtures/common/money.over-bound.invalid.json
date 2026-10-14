@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/MoneyXaf",
+  "valid": false,
+  "description": "Montant au-delà de la borne SQL refusé",
+  "data": 1000000000001
+}

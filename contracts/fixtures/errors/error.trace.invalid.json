@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/error.json",
+  "valid": false,
+  "description": "Trace technique hors enveloppe refusée",
+  "data": {
+    "error": {
+      "code": "INTERNAL_ERROR",
+      "message": "Erreur interne",
+      "trace": "#0 …"
+    },
+    "correlation_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAK"
+  }
+}

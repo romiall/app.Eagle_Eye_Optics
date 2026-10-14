@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/Diopter",
+  "valid": true,
+  "description": "Dioptrie signée",
+  "data": "-2.25"
+}

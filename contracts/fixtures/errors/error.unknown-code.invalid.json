@@ -1,0 +1,12 @@
+{
+  "schema": "schemas/error.json",
+  "valid": false,
+  "description": "Code d'erreur hors contrat refusé",
+  "data": {
+    "error": {
+      "code": "OOPS",
+      "message": "x"
+    },
+    "correlation_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAK"
+  }
+}

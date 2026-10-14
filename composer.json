@@ -14,7 +14,8 @@
         "php": "^8.3",
         "brick/math": "^1.0",
         "laravel/framework": "^13.17",
-        "laravel/sanctum": "^4.3"
+        "laravel/sanctum": "^4.3",
+        "opis/json-schema": "^2.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -45,6 +46,7 @@
         "test:unit": "phpunit --testsuite=Unit",
         "test:mysql": "phpunit --testsuite=Feature",
         "test:concurrency": "phpunit --testsuite=Concurrency",
+        "test:contracts": "phpunit --testsuite=Contracts",
         "lint": [
             "@lint:style",
             "@analyse"
@@ -68,6 +70,7 @@
         "test:unit": "Regles pures et garde de base de donnees, sans MySQL.",
         "test:mysql": "Suite Feature : application et MySQL 8.4 reel (base eeo_test).",
         "test:concurrency": "Suite Concurrency : plusieurs connexions MySQL reelles a la fois.",
+        "test:contracts": "Contrats F06 : schemas JSON 2020-12 et fixtures acceptees/refusees (memes fichiers que Vitest).",
         "lint": "Controle PHP complet : style (Pint, sans modification) puis analyse statique (PHPStan + Larastan).",
         "lint:style": "Controle de style PHP (Pint) sans modification.",
         "lint:fix": "Applique le style PHP (Pint).",

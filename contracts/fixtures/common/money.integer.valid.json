@@ -1,0 +1,6 @@
+{
+  "schema": "schemas/common.json#/$defs/MoneyXaf",
+  "valid": true,
+  "description": "Montant entier",
+  "data": 80000
+}

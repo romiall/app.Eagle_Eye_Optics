@@ -17,3 +17,6 @@ tools
 *.blade.php
 *.md
 *.sql
+# Contrats générés (contracts/tools/*.py --check compare les octets) : ne pas reformater.
+contracts/commands
+contracts/schemas/enums.json

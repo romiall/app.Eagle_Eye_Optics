@@ -1,0 +1,36 @@
+{
+  "schema": "sync/push-request.json",
+  "valid": false,
+  "description": "Commande inconnue du journal refusée",
+  "data": {
+    "device_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAC",
+    "commands": [
+      {
+        "core": {
+          "command_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAB",
+          "command_name": "DeleteInvoice",
+          "device_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAC",
+          "actor_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAD",
+          "grant_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAE",
+          "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAF",
+          "device_sequence": "1",
+          "previous_event_hash": null,
+          "schema_version": "1",
+          "rules_version": "2026-10-14.1",
+          "occurred_at_local": "2026-10-14T09:30:00.000Z",
+          "last_server_time": "2026-10-14T08:00:00.000Z",
+          "entity_type": "patient_records",
+          "entity_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAG",
+          "expected_version": null,
+          "number_allocation_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAH",
+          "stock_allocation_ids": [],
+          "payload": {
+            "record_number": "EE-TEST-000001"
+          }
+        },
+        "event_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "signature": "eyJhbGciOiJFUzI1NiJ9.eyJjb21tYW5kX2lkIjoiVEVTVCJ9.c2lnbmF0dXJlLWZpY3RpdmU"
+      }
+    ]
+  }
+}

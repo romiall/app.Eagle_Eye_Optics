@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/commands/CreateAppointment.v1.json",
+  "title": "CreateAppointment (charge v1)",
+  "description": "Rendez-vous interne ; pris hors-ligne il reste « à confirmer » jusqu'à validation serveur. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "x-entity-type": "appointments",
+  "x-entity-id-field": "appointment_id",
+  "x-permission": "agenda.write",
+  "x-expected-version": "none",
+  "x-direct-route": "POST /appointments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "appointment_id",
+    "patient_id",
+    "prospect_contact_id",
+    "follow_up_id",
+    "resource_id",
+    "service_id",
+    "starts_at",
+    "ends_at",
+    "administrative_reason"
+  ],
+  "properties": {
+    "appointment_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "patient_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "prospect_contact_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "follow_up_id": {
+      "$ref": "../schemas/common.json#/$defs/NullableUlid"
+    },
+    "resource_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "service_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "starts_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "ends_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "administrative_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 4000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "patient_id": {
+              "$ref": "../schemas/common.json#/$defs/Ulid"
+            }
+          }
+        },
+        {
+          "properties": {
+            "prospect_contact_id": {
+              "$ref": "../schemas/common.json#/$defs/Ulid"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "DirectRequest": {
+      "description": "Corps de la route directe POST /appointments : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "appointment_id",
+        "patient_id",
+        "prospect_contact_id",
+        "follow_up_id",
+        "resource_id",
+        "service_id",
+        "starts_at",
+        "ends_at",
+        "administrative_reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "appointment_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "follow_up_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "resource_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "service_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "starts_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "ends_at": {
+          "$ref": "../schemas/common.json#/$defs/Instant"
+        },
+        "administrative_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "patient_id": {
+                  "$ref": "../schemas/common.json#/$defs/Ulid"
+                }
+              }
+            },
+            {
+              "properties": {
+                "prospect_contact_id": {
+                  "$ref": "../schemas/common.json#/$defs/Ulid"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
