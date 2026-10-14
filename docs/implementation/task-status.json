@@ -1,0 +1,404 @@
+{
+ "_note": "Statuts de travail. backlog.json reste la définition canonique intacte. Statuts: NOT_STARTED, IN_PROGRESS, IN_REVIEW, DONE, BLOCKED. Un DONE exige des preuves référencées dans evidence.",
+ "backlog_sha256_of_catalog": "73bd5dc454c170f8b5caa2cd66c0e6b696525efb6ca94e5c81bec2046e2761eb",
+ "tasks": {
+  "F01": {
+   "status": "DONE",
+   "evidence": [
+    "docs/implementation/startup.md",
+    "docs/implementation/hosting-audit.md"
+   ],
+   "notes": "Audit hébergeur non réalisable sans accès : checklist fournie ; non bloquant local."
+  },
+  "F02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G0": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F06": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F07": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F08": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F09": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "F10": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "P01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "P02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "I00": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "D01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G1": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B06": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B07": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "B08": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "I01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "I02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O06": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "O07": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G2": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "P03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "C01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "C02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "C03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "D02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "C04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "P04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "S01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "S02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "R01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "R02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "X01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "X02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "X03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "U01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G3": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "H01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G4": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D06": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D07": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D08": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L1D09": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G5": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D06": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D07": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D08": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D09": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L2D10": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G6": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L3D01": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L3D02": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L3D03": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L3D04": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "L3D05": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  },
+  "G7": {
+   "status": "NOT_STARTED",
+   "evidence": [],
+   "notes": ""
+  }
+ }
+}
