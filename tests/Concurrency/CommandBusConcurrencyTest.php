@@ -442,11 +442,6 @@ final class CommandBusConcurrencyTest extends TestCase
             'LOG_CHANNEL' => 'null',
             'BCRYPT_ROUNDS' => '4',
             'PATH' => (string) getenv('PATH'),
-            // Windows : sans ces variables, un PHP lancé avec un environnement vide ne peut pas ouvrir de socket.
-            'SystemRoot' => (string) getenv('SystemRoot'),
-            'windir' => (string) getenv('windir'),
-            'TEMP' => (string) getenv('TEMP'),
-            'TMP' => (string) getenv('TMP'),
         ], self::SCRIPT);
     }
 

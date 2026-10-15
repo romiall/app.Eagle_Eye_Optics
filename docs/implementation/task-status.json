@@ -113,7 +113,7 @@
    "notes": "Corrections des revues attaque et conformité du commit 343a448 au commit ef7d5f6 (tableau dans access.md). CI GitHub verte : run 38588658627 sur 3912158 (contient ef7d5f6 ; PHPUnit Unit/Feature/Concurrency sur mysql:8.4.9, e2e). check-all --strict --with-e2e : PHPUnit 283 / 21596 assertions (dont 4 entrelacements à processus séparés), PHPStan 0, Vitest 70, Playwright 18. Hors F05 par dépendance : coffre verrouillé (O01), PDF (D01/D02), écrans (F09), idempotence (F07). Écarts déclarés : matrice 09/seed, Policies de ressource, MFA (décision)."
   },
   "F06": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/contracts.md",
     "contracts/openapi.yaml",
@@ -126,14 +126,15 @@
     "tests/Feature/Contracts/ImplementedRoutesContractTest.php",
     "tests/frontend/contracts.test.ts",
     "tests/frontend/openapi.test.ts",
-    "tests/frontend/contract-types.test.ts"
+    "tests/frontend/contract-types.test.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38592637925"
    ],
-   "notes": "check-all --strict --with-e2e : PHPUnit 403 / 23950 assertions (Contracts 156), générateurs à jour, Vitest 192, Playwright 18. 26 commandes, 13 événements, 86 opérations OpenAPI, 150 fixtures (verdicts identiques PHP/TS). DONE après CI verte. Vecteurs F08/O02, coffre O01 et modèles D01/D02 à déclarer par leurs tâches."
+   "notes": "check-all --strict --with-e2e : PHPUnit 403 / 23950 assertions (Contracts 156), générateurs à jour, Vitest 192, Playwright 18. 26 commandes, 13 événements, 86 opérations OpenAPI, 150 fixtures (verdicts identiques PHP/TS). CI GitHub verte sur le commit final 8614fd5 : run 38592637925 (2026-10-14). Vecteurs F08/O02, coffre O01 et modèles D01/D02 à déclarer par leurs tâches."
   },
   "F07": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Travail de la session locale précédente sauvegardé au commit 1b0600d (non vérifié à ce point). Reprise le 2026-10-15 : vérification complète en cours."
   },
   "F08": {
    "status": "NOT_STARTED",

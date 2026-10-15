@@ -44,7 +44,7 @@ final class ScenarioProcess
             [0 => ['pipe', 'r'], 1 => ['file', $this->stdoutFile, 'w'], 2 => ['file', $this->stderrFile, 'w']],
             $pipes,
             dirname(__DIR__, 3),
-            $environment,
+            $environment + self::platformEnvironment(),
         );
         if (! is_resource($process)) {
             $this->removeFiles();
@@ -141,6 +141,29 @@ final class ScenarioProcess
     {
         @unlink($this->stdoutFile);
         @unlink($this->stderrFile);
+    }
+
+    /**
+     * Variables système sans lesquelles un enfant lancé avec un environnement explicite ne fonctionne pas :
+     * sous Windows, sans SystemRoot ni windir, PHP ne peut ouvrir aucun socket (« [2002] Unknown error while
+     * connecting ») ; TEMP et TMP servent aux fichiers temporaires. Ailleurs, rien n'est ajouté.
+     *
+     * @return array<string, string>
+     */
+    private static function platformEnvironment(): array
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return [];
+        }
+        $environment = [];
+        foreach (['SystemRoot', 'windir', 'TEMP', 'TMP'] as $name) {
+            $value = getenv($name);
+            if (is_string($value) && $value !== '') {
+                $environment[$name] = $value;
+            }
+        }
+
+        return $environment;
     }
 
     private static function temporaryFile(string $prefix): string

@@ -4,17 +4,21 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 ## État courant
 
-- Branche : `claude/developpement-l0-3pkhne` (dépôt public : données fictives uniquement).
+- Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15.
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante : F06 (contrats et versions) — IN_PROGRESS (commits `a3137ce`, `3912158` et suivants).
+- Tâche courante : F07 (chemin central de commandes) — IN_PROGRESS. Le travail d'une session locale interrompue par sa limite d'usage a été sauvegardé tel quel au commit `1b0600d`, puis vérifié.
 - Dernière preuve acquise : F05 — `check-all.sh --strict --with-e2e` après corrections (2026-10-14, MySQL 8.4.9) : PHPUnit **283 tests / 21 596 assertions** (Unit, Feature, Concurrency, Contracts), Pint et PHPStan niveau 8 sans erreur, Vitest 70, build, Playwright 18. F04/G0 : `docs/evidence/schema-parity.json`, `docs/evidence/G0.md`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
-- Tâches DONE : F01, F02, F03, F04, G0, F05.
+- Tâches DONE : F01, F02, F03, F04, G0, F05, F06.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
-- Prochaine action concrète : vérifier la CI du commit final de F06 puis passer F06 à DONE ; ensuite F07 (CommandBus, contexte, ordre des verrous, idempotence, audit/outbox/change log au commit), qui reprend aussi l'idempotence des mutations de comptes F05.
+- Prochaine action concrète : terminer la vérification de F07 (PHPUnit complet sur MySQL réel, concurrence à deux connexions, e2e, CI GitHub), le passer à DONE, puis F08 (règles pures et vecteurs PHP/TypeScript).
 
 ## Environnement de développement (cloud)
 
 PHP 8.3.6 (sans bcmath/gmp/pcov), Composer 2.8.12, Node 22.22.0, npm 10.9.4, Chromium Playwright dans `/opt/pw-browsers`. MySQL 8.4.9 par Docker (`mirror.gcr.io/library/mysql:8.4.9`, conteneur `eeo-mysql`, base isolée `eeo_test`). Reprise après redémarrage du conteneur de session : relancer `dockerd`, puis le conteneur MySQL. Détails : `startup.md`.
+
+### Poste local Windows (depuis le 2026-10-15)
+
+Windows 11, PHP 8.4.21 (bcmath présent, sans pcov), Composer 2.9.8, Node 24.15.0, npm 11.12.1, Python 3.14.6, MySQL Community 8.4.9 sans Docker par `tools/dev/mysql-windows.ps1` (port 3316, base isolée `eeo_test`), scripts lancés depuis Git Bash. La CI GitHub reste la référence des versions épinglées (PHP 8.3, Node 22, `mysql:8.4.9`) : un résultat local sous PHP 8.4 et Node 24 ne la remplace pas. Une suite Vitest lancée en même temps que PHPStan et PHPUnit a dépassé ses délais (3 erreurs de temporisation, aucun test en échec) ; seule, elle passe : ne pas paralléliser les contrôles lourds sur ce poste.
 
 ## Registre des tâches
 
@@ -134,11 +138,11 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 
 | Champ | Valeur |
 | --- | --- |
-| Statut | IN_REVIEW — CI GitHub du commit final en attente |
+| Statut | DONE — CI GitHub verte sur le commit final `8614fd5` (run 38592637925, 2026-10-14) |
 | Objectif | Contrats versionnés validables ; identifiants de tous les effets définis avant commit local ; aucun endpoint métier nécessaire laissé implicitement à inventer (EE042, EE045, EE046) |
 | Fichiers | `contracts/openapi.yaml`, `contracts/commands/` (26 commandes, `index.json`, `dispatch.json`), `contracts/events/` (enveloppe et 13 événements), `contracts/compatibility.json`, `contracts/schemas/` (common, enums, error, clinical-steps, compatibility, resources, requests), `contracts/sync/`, `contracts/snapshots/`, `contracts/fixtures/` (150), `contracts/vocabulary.json`, `contracts/tools/` (5 générateurs Python `--check`, `generate-types.mjs`), `resources/frontend/domain/contracts/generated.ts`, `docs/implementation/contracts.md` |
 | Contrats / tables | Commandes alignées sur `patient_records`, `visits`, `consultations`, `optical_prescriptions`, `invoices`, `cash_sessions`, `deliveries`, `physical_returns`, `stock_movements`, `follow_up_plans`, `appointments`, `contact_tasks`, `approvals` ; cœur signé aligné sur `sync_commands` ; événements sur `outbox_events` ; snapshots sur les colonnes JSON `snapshot` |
 | Tests exécutés | `check-all.sh --strict --with-e2e` (2026-10-14, MySQL 8.4.9) : PHPUnit **403 tests / 23 950 assertions**, dont la suite Contracts (156 : 150 fixtures Opis, compatibilité, codes d'erreur, cohérence commandes/catalogue, routes Laravel = opérations IMPLEMENTED avec permission et réauthentification identiques au middleware) et `tests/Feature/Contracts` (réponses réelles des routes F05 validées contre leurs schémas) ; les six générateurs `--check` à jour ; Vitest **192** (Ajv strict sur les mêmes 150 fixtures, mêmes verdicts ; OpenAPI valide selon le schéma officiel OAS 3.1 avec contrôles négatifs, références résolues, commandes/routes/permissions/backlog cohérents ; types générés utilisés sur les fixtures) ; TypeScript strict, ESLint, Prettier, build ; Playwright 18. Contrôles par mutation : version attendue sans colonne réelle et réintroduction d'un défaut détectées par les tests de cohérence |
 | Défauts ouverts | Vecteurs de calcul (F08) et de signature JCS/JWS (O02) à fournir par leurs tâches ; formats de coffre (O01) et modèles de documents (D01/D02) à déclarer dans `compatibility.json` à leur livraison ; les corps et réponses des opérations PLANNED sont des contrats fixés que leur tâche implémente et peut préciser par une nouvelle version, jamais en contredisant les invariants |
 | Décision nouvelle | `ReserveStock` n'est pas une commande ni une route (I00 : service interne d'`IssueInvoice`/`ConfirmDelivery`) ; `RegisterStockMovement` limité à la casse et à l'ajustement (stock initial par `POST /stock/opening`) ; numéro rendu null dans une requête directe (numéro central) ; nature `state` de `expected_version` pour les tables sans colonne version (`optical_prescriptions`, `cash_sessions`, `approvals`) ; `schema_version` en chaîne et `last_server_time` obligatoire (colonnes de `sync_commands`) ; prescription brouillon modifiable en ligne avec `expected_updated_at`, correction hors-ligne = nouvelle version (à confirmer en C04) ; routes ajoutées pour B01 (catalogue, règles fiscales), X01 (imports), R02 (statistiques cliniques) et la consultation de l'audit (rattachée à F07) ; `GET /clinic/settings` réservé à la gérante |
-| Reprise | CI du commit final, puis DONE ; ensuite F07 |
+| Reprise | F07 |

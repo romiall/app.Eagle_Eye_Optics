@@ -41,7 +41,7 @@ final class ContractFixturesTest extends TestCase
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(self::root().'fixtures', \FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
             if ($file instanceof \SplFileInfo && $file->getExtension() === 'json') {
-                $relative = substr($file->getPathname(), strlen(self::root().'fixtures/'));
+                $relative = str_replace('\\', '/', substr($file->getPathname(), strlen(self::root().'fixtures/')));
                 $files[$relative] = [$file->getPathname()];
             }
         }
@@ -79,7 +79,8 @@ final class ContractFixturesTest extends TestCase
 
         foreach ($files as $file) {
             $schema = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
-            $relative = substr($file, strlen(self::root()));
+            // Chemin relatif en « / » sur tous les systèmes : l'identifiant $id est une URI.
+            $relative = str_replace('\\', '/', substr($file, strlen(self::root())));
             $this->assertSame('https://json-schema.org/draft/2020-12/schema', $schema['$schema'] ?? null, $relative);
             $this->assertSame(self::BASE_URI.$relative, $schema['$id'] ?? null, $relative.' : $id doit refléter son chemin');
         }

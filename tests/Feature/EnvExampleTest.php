@@ -69,9 +69,10 @@ final class EnvExampleTest extends TestCase
 
     public function test_seul_env_example_est_versionnable(): void
     {
-        $git = trim((string) shell_exec('command -v git 2>/dev/null'));
+        // « git --version » répond sous sh comme sous cmd.exe (Windows), contrairement à « command -v ».
+        $git = trim((string) shell_exec('git --version 2>&1'));
 
-        if ($git === '' || ! is_dir(base_path('.git'))) {
+        if (! str_starts_with($git, 'git version') || ! is_dir(base_path('.git'))) {
             $this->markTestSkipped('Dépôt git ou binaire git indisponible.');
         }
 

@@ -3,8 +3,7 @@
 namespace Tests\Support\Http;
 
 use App\Application\Command;
-use App\Http\Controllers\Concerns\DispatchesCommands;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\CommandController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Tests\Support\Commands\TestCommands;
@@ -13,10 +12,8 @@ use Tests\Support\Commands\TestCommands;
  * Contrôleur de TEST : une route directe qui n'a que le rôle d'un contrôleur de mutation (fichier 23) —
  * construire la commande, la confier au chemin central, rendre le résultat.
  */
-final class ConsumeCounterController extends Controller
+final class ConsumeCounterController extends CommandController
 {
-    use DispatchesCommands;
-
     public function store(Request $request, string $counter): JsonResponse
     {
         $command = new Command(

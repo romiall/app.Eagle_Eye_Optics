@@ -19,7 +19,7 @@ use Tests\TestCase;
 /**
  * Le chemin central vu par un client HTTP (AT11, AT38 au niveau de l'API) : en-tête Idempotency-Key, réponse
  * identique au rejeu, conflit de contenu, erreur réessayable, tout dans l'enveloppe d'erreur du fichier 08.
- * Une route de test joue le rôle d'un contrôleur de mutation (trait DispatchesCommands).
+ * Une route de test joue le rôle d'un contrôleur de mutation (hérite de CommandController).
  */
 final class CommandHttpTest extends TestCase
 {

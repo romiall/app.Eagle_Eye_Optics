@@ -108,7 +108,7 @@ Aucun effet externe n'a lieu dans la transaction : un test d'architecture interd
 1. Le schéma de la charge existe dans `contracts/commands/<Commande>.v1.json` (F06), avec sa permission et sa route directe.
 2. Une action `CommandHandler` : `permissions()` (celles du contrat) et `handle()` qui prend ses verrous par `TransactionLocks` **dans l'ordre**, recalcule, écrit ses faits et rend un `CommandOutcome` (réponse, audit, événements, changements). Aucune transaction, aucun appel externe.
 3. Un `CommandDefinition` (nom, action, sources admises, schéma, `idempotencyRequired = true`), déclaré par le module dans le registre (voir `AccessCommands`). `CentralPathGuardTest` vérifie qu'il correspond au contrat F06.
-4. Le contrôleur n'a que le rôle de la ligne suivante : `$this->dispatchCommand($request, new Command(...))` (trait `DispatchesCommands`).
+4. Le contrôleur hérite de `CommandController` et n'a que le rôle de la ligne suivante : `$this->dispatchCommand($request, new Command(...))`. C'est une classe abstraite et non un trait, pour que l'analyse statique vérifie ce chemin avant même le premier contrôleur métier.
 5. Tests : calcul et refus, idempotence (rejeu, contenu différent), retour arrière à chaque point (`Checkpoint`), concurrence réelle entre deux connexions, fermeture et reprise pour une commande disponible hors-ligne (fiche 23).
 
 ## Mutations de comptes et du cabinet (F05) sur le chemin central
