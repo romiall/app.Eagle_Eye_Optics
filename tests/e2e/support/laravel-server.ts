@@ -1,6 +1,9 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
 
+import { phpServerOptions } from './php'
+import { warmUp } from './warm-up'
+
 export interface RunningServer {
   url: string
   /** Arrête réellement le serveur : plus aucune connexion n'aboutit (coupure vraie, pas simulée). */
@@ -42,7 +45,7 @@ export async function startLaravelServer(
     'vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php',
   )
   // Comme « artisan serve » : répertoire courant = public/, que le routeur de Laravel utilise.
-  const server = spawn('php', ['-S', `127.0.0.1:${port}`, router], {
+  const server = spawn('php', [...phpServerOptions(), '-S', `127.0.0.1:${port}`, router], {
     cwd: join(ROOT, 'public'),
     env: { ...process.env, ...environment, APP_ENV: 'e2e' },
     stdio: 'ignore',
@@ -54,6 +57,7 @@ export async function startLaravelServer(
   const url = `http://127.0.0.1:${port}`
   try {
     await waitUntilReady(url, server)
+    await warmUp(url)
   } catch (error) {
     killTree(server)
     throw error
