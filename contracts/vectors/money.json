@@ -1,0 +1,296 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Montants XAF entiers : saisie française, bornes SQL 0..10^12, affichage.",
+  "cases": [
+    {
+      "id": "money.parse.chiffres",
+      "operation": "money.parse",
+      "input": {
+        "text": "80000",
+        "field": "amount"
+      },
+      "expected": 80000
+    },
+    {
+      "id": "money.parse.espace",
+      "operation": "money.parse",
+      "input": {
+        "text": "80 000",
+        "field": "amount"
+      },
+      "expected": 80000
+    },
+    {
+      "id": "money.parse.insecable",
+      "operation": "money.parse",
+      "input": {
+        "text": "80\u00a0000",
+        "field": "amount"
+      },
+      "expected": 80000
+    },
+    {
+      "id": "money.parse.espace-fine",
+      "operation": "money.parse",
+      "input": {
+        "text": "1\u202f000\u202f000",
+        "field": "amount"
+      },
+      "expected": 1000000
+    },
+    {
+      "id": "money.parse.blancs-de-bord",
+      "operation": "money.parse",
+      "input": {
+        "text": "  50 000 ",
+        "field": "amount"
+      },
+      "expected": 50000
+    },
+    {
+      "id": "money.parse.vide-vaut-null",
+      "operation": "money.parse",
+      "input": {
+        "text": "",
+        "field": "amount"
+      },
+      "expected": null
+    },
+    {
+      "id": "money.parse.blanc-vaut-null",
+      "operation": "money.parse",
+      "input": {
+        "text": "   ",
+        "field": "amount"
+      },
+      "expected": null
+    },
+    {
+      "id": "money.parse.zero",
+      "operation": "money.parse",
+      "input": {
+        "text": "0",
+        "field": "amount"
+      },
+      "expected": 0
+    },
+    {
+      "id": "money.parse.zeros-initiaux",
+      "operation": "money.parse",
+      "input": {
+        "text": "007",
+        "field": "amount"
+      },
+      "expected": 7
+    },
+    {
+      "id": "money.parse.maximum",
+      "operation": "money.parse",
+      "input": {
+        "text": "1 000 000 000 000",
+        "field": "amount"
+      },
+      "expected": 1000000000000
+    },
+    {
+      "id": "money.parse.groupe-incomplet",
+      "operation": "money.parse",
+      "input": {
+        "text": "80 00",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.point-ambigu",
+      "operation": "money.parse",
+      "input": {
+        "text": "80.000",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.decimales",
+      "operation": "money.parse",
+      "input": {
+        "text": "80000,50",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.negatif",
+      "operation": "money.parse",
+      "input": {
+        "text": "-5000",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.unite",
+      "operation": "money.parse",
+      "input": {
+        "text": "5 000 FCFA",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.chiffres-arabes-orientaux",
+      "operation": "money.parse",
+      "input": {
+        "text": "١٢٣",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
+      "id": "money.parse.au-dela-du-maximum",
+      "operation": "money.parse",
+      "input": {
+        "text": "1000000000001",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "money.parse.quatorze-chiffres",
+      "operation": "money.parse",
+      "input": {
+        "text": "99999999999999",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "money.format.groupes",
+      "operation": "money.format",
+      "input": {
+        "amount": 80000
+      },
+      "expected": "80\u202f000\u00a0FCFA"
+    },
+    {
+      "id": "money.format.zero",
+      "operation": "money.format",
+      "input": {
+        "amount": 0
+      },
+      "expected": "0\u00a0FCFA"
+    },
+    {
+      "id": "money.format.trois-chiffres",
+      "operation": "money.format",
+      "input": {
+        "amount": 999
+      },
+      "expected": "999\u00a0FCFA"
+    },
+    {
+      "id": "money.format.mille",
+      "operation": "money.format",
+      "input": {
+        "amount": 1000
+      },
+      "expected": "1\u202f000\u00a0FCFA"
+    },
+    {
+      "id": "money.format.negatif",
+      "operation": "money.format",
+      "input": {
+        "amount": -50000
+      },
+      "expected": "-50\u202f000\u00a0FCFA"
+    },
+    {
+      "id": "money.format.maximum",
+      "operation": "money.format",
+      "input": {
+        "amount": 1000000000000
+      },
+      "expected": "1\u202f000\u202f000\u202f000\u202f000\u00a0FCFA"
+    },
+    {
+      "id": "money.positive.un",
+      "operation": "money.positive",
+      "input": {
+        "value": 1,
+        "field": "amount"
+      },
+      "expected": 1
+    },
+    {
+      "id": "money.positive.zero",
+      "operation": "money.positive",
+      "input": {
+        "value": 0,
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.positive_required"
+      }
+    },
+    {
+      "id": "money.positive.au-dela",
+      "operation": "money.positive",
+      "input": {
+        "value": 1000000000001,
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "money.amount.negatif",
+      "operation": "money.amount",
+      "input": {
+        "value": -1,
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.out_of_range"
+      }
+    }
+  ]
+}

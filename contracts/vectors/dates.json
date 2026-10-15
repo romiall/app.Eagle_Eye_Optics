@@ -1,0 +1,497 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Dates civiles et instants : fin de mois, année, fuseau Africa/Douala, âge, forme UTC à la milliseconde.",
+  "cases": [
+    {
+      "id": "date.parse.iso",
+      "operation": "date.parse",
+      "input": {
+        "text": "2026-10-15"
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "date.parse.francaise",
+      "operation": "date.parse",
+      "input": {
+        "text": "15/10/2026"
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "date.parse.francaise-courte",
+      "operation": "date.parse",
+      "input": {
+        "text": "5/1/2026"
+      },
+      "expected": "2026-01-05"
+    },
+    {
+      "id": "date.parse.bissextile",
+      "operation": "date.parse",
+      "input": {
+        "text": "29/02/2024"
+      },
+      "expected": "2024-02-29"
+    },
+    {
+      "id": "date.parse.blancs",
+      "operation": "date.parse",
+      "input": {
+        "text": " 2026-10-15 "
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "date.parse.vide-vaut-null",
+      "operation": "date.parse",
+      "description": "Date inconnue : null, jamais une date inventée.",
+      "input": {
+        "text": ""
+      },
+      "expected": null
+    },
+    {
+      "id": "date.parse.29-fevrier-non-bissextile",
+      "operation": "date.parse",
+      "input": {
+        "text": "29/02/2026"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.invalid"
+      }
+    },
+    {
+      "id": "date.parse.30-fevrier",
+      "operation": "date.parse",
+      "input": {
+        "text": "2026-02-30"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.invalid"
+      }
+    },
+    {
+      "id": "date.parse.mois-13",
+      "operation": "date.parse",
+      "input": {
+        "text": "2026-13-01"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.invalid"
+      }
+    },
+    {
+      "id": "date.parse.tirets-francais",
+      "operation": "date.parse",
+      "input": {
+        "text": "15-10-2026"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.format"
+      }
+    },
+    {
+      "id": "date.parse.annee-courte",
+      "operation": "date.parse",
+      "input": {
+        "text": "15/10/26"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.format"
+      }
+    },
+    {
+      "id": "date.parse.avant-sql",
+      "operation": "date.parse",
+      "input": {
+        "text": "0999-12-31"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.out_of_range"
+      }
+    },
+    {
+      "id": "date.add.fin-janvier-plus-un-mois",
+      "operation": "date.add",
+      "covers": ["AT22"],
+      "input": {
+        "date": "2026-01-31",
+        "amount": 1,
+        "unit": "MONTH"
+      },
+      "expected": "2026-02-28"
+    },
+    {
+      "id": "date.add.fin-janvier-bissextile",
+      "operation": "date.add",
+      "input": {
+        "date": "2024-01-31",
+        "amount": 1,
+        "unit": "MONTH"
+      },
+      "expected": "2024-02-29"
+    },
+    {
+      "id": "date.add.moins-un-mois",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-03-31",
+        "amount": -1,
+        "unit": "MONTH"
+      },
+      "expected": "2026-02-28"
+    },
+    {
+      "id": "date.add.trois-mois-fin-novembre",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-11-30",
+        "amount": 3,
+        "unit": "MONTH"
+      },
+      "expected": "2027-02-28"
+    },
+    {
+      "id": "date.add.trois-mois-fin-janvier",
+      "operation": "date.add",
+      "covers": ["AT22"],
+      "input": {
+        "date": "2026-01-31",
+        "amount": 3,
+        "unit": "MONTH"
+      },
+      "expected": "2026-04-30"
+    },
+    {
+      "id": "date.add.six-mois-fin-aout",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-08-31",
+        "amount": 6,
+        "unit": "MONTH"
+      },
+      "expected": "2027-02-28"
+    },
+    {
+      "id": "date.add.deux-mois-vers-bissextile",
+      "operation": "date.add",
+      "input": {
+        "date": "2023-12-31",
+        "amount": 2,
+        "unit": "MONTH"
+      },
+      "expected": "2024-02-29"
+    },
+    {
+      "id": "date.add.fin-annee",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-12-31",
+        "amount": 1,
+        "unit": "DAY"
+      },
+      "expected": "2027-01-01"
+    },
+    {
+      "id": "date.add.29-fevrier-plus-un-an",
+      "operation": "date.add",
+      "input": {
+        "date": "2024-02-29",
+        "amount": 1,
+        "unit": "YEAR"
+      },
+      "expected": "2025-02-28"
+    },
+    {
+      "id": "date.add.29-fevrier-plus-quatre-ans",
+      "operation": "date.add",
+      "input": {
+        "date": "2024-02-29",
+        "amount": 4,
+        "unit": "YEAR"
+      },
+      "expected": "2028-02-29"
+    },
+    {
+      "id": "date.add.dix-jours",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-10-20",
+        "amount": 10,
+        "unit": "DAY"
+      },
+      "expected": "2026-10-30"
+    },
+    {
+      "id": "date.add.quatorze-jours",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-10-25",
+        "amount": 14,
+        "unit": "DAY"
+      },
+      "expected": "2026-11-08"
+    },
+    {
+      "id": "date.add.moins-sept-jours",
+      "operation": "date.add",
+      "input": {
+        "date": "2026-10-15",
+        "amount": -7,
+        "unit": "DAY"
+      },
+      "expected": "2026-10-08"
+    },
+    {
+      "id": "date.add.au-dela-sql",
+      "operation": "date.add",
+      "input": {
+        "date": "9999-12-31",
+        "amount": 1,
+        "unit": "DAY"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.out_of_range"
+      }
+    },
+    {
+      "id": "date.instant.douala-apres-minuit",
+      "operation": "date.fromInstant",
+      "description": "23 h 30 UTC est déjà le lendemain à Douala (UTC+1) : jamais de minuit UTC implicite.",
+      "input": {
+        "instant": "2026-10-14T23:30:00.000Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "date.instant.douala-veille",
+      "operation": "date.fromInstant",
+      "input": {
+        "instant": "2026-10-14T22:59:59.999Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2026-10-14"
+    },
+    {
+      "id": "date.instant.douala-minuit-local",
+      "operation": "date.fromInstant",
+      "input": {
+        "instant": "2026-10-14T23:00:00.000Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "date.instant.douala-nouvel-an",
+      "operation": "date.fromInstant",
+      "description": "L’année d’une pièce est celle de l’émission locale au fuseau du cabinet.",
+      "input": {
+        "instant": "2026-12-31T23:00:00.000Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2027-01-01"
+    },
+    {
+      "id": "date.instant.douala-saint-sylvestre",
+      "operation": "date.fromInstant",
+      "input": {
+        "instant": "2026-12-31T22:59:59.999Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2026-12-31"
+    },
+    {
+      "id": "date.instant.douala-fin-fevrier",
+      "operation": "date.fromInstant",
+      "input": {
+        "instant": "2026-02-28T23:15:00.000Z",
+        "timezone": "Africa/Douala"
+      },
+      "expected": "2026-03-01"
+    },
+    {
+      "id": "date.instant.utc",
+      "operation": "date.fromInstant",
+      "input": {
+        "instant": "2026-10-14T23:30:00.000Z",
+        "timezone": "UTC"
+      },
+      "expected": "2026-10-14"
+    },
+    {
+      "id": "date.age.anniversaire",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "1990-10-15",
+        "reference_date": "2026-10-15"
+      },
+      "expected": 36
+    },
+    {
+      "id": "date.age.veille",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "1990-10-16",
+        "reference_date": "2026-10-15"
+      },
+      "expected": 35
+    },
+    {
+      "id": "date.age.29-fevrier-avant-mars",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "2000-02-29",
+        "reference_date": "2026-02-28"
+      },
+      "expected": 25
+    },
+    {
+      "id": "date.age.29-fevrier-premier-mars",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "2000-02-29",
+        "reference_date": "2026-03-01"
+      },
+      "expected": 26
+    },
+    {
+      "id": "date.age.29-fevrier-bissextile",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "2000-02-29",
+        "reference_date": "2024-02-29"
+      },
+      "expected": 24
+    },
+    {
+      "id": "date.age.nouveau-ne",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "2026-10-15",
+        "reference_date": "2026-10-15"
+      },
+      "expected": 0
+    },
+    {
+      "id": "date.age.naissance-future",
+      "operation": "date.age",
+      "input": {
+        "birth_date": "2026-10-16",
+        "reference_date": "2026-10-15"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "birth_date",
+        "rule": "date.after_reference"
+      }
+    },
+    {
+      "id": "instant.parse.contrat",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:30:00.000Z"
+      },
+      "expected": {
+        "canonical": "2026-10-14T09:30:00.000Z",
+        "epoch_ms": 1791970200000
+      }
+    },
+    {
+      "id": "instant.parse.origine",
+      "operation": "instant.parse",
+      "input": {
+        "text": "1970-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "canonical": "1970-01-01T00:00:00.000Z",
+        "epoch_ms": 0
+      }
+    },
+    {
+      "id": "instant.parse.avant-origine",
+      "operation": "instant.parse",
+      "input": {
+        "text": "1969-12-31T23:59:59.999Z"
+      },
+      "expected": {
+        "canonical": "1969-12-31T23:59:59.999Z",
+        "epoch_ms": -1
+      }
+    },
+    {
+      "id": "instant.parse.bissextile-millisecondes",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2024-02-29T12:00:00.123Z"
+      },
+      "expected": {
+        "canonical": "2024-02-29T12:00:00.123Z",
+        "epoch_ms": 1709208000123
+      }
+    },
+    {
+      "id": "instant.parse.sans-millisecondes",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:30:00Z"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
+      }
+    },
+    {
+      "id": "instant.parse.vingt-quatre-heures",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T24:00:00.000Z"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
+      }
+    },
+    {
+      "id": "instant.parse.decalage-refuse",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:30:00.000+01:00"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
+      }
+    },
+    {
+      "id": "instant.parse.date-inexistante",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-02-29T10:00:00.000Z"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "date.invalid"
+      }
+    }
+  ]
+}

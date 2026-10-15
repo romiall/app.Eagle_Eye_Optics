@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/schemas/rule-vectors.json",
+  "title": "Vecteurs communs des règles pures (F08)",
+  "description": "Format des fichiers de contracts/vectors/ : chaque cas nomme une opération pure, ses entrées JSON et, soit le résultat exact attendu, soit le refus attendu (code d'API, champ, règle, détails). PHPUnit (tests/Unit/Rules/RuleVectorsTest.php) et Vitest (tests/frontend/domain/rule-vectors.test.ts) rejouent les mêmes fichiers ; un verdict différent est un défaut (IT03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rules_version", "description", "cases"],
+  "properties": {
+    "rules_version": {
+      "description": "Version des règles (contracts/compatibility.json, rules_versions).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[1-9][0-9]*$"
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Case" }
+    }
+  },
+  "$defs": {
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "operation", "input"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "operation": { "type": "string", "pattern": "^[a-z][a-zA-Z]*(?:\\.[a-z][a-zA-Z]*)+$" },
+        "description": { "type": "string", "minLength": 1 },
+        "covers": {
+          "description": "Scénarios de recette (fichier 14), exigences (fichier 17) ou tests d'intégration (fichier 25) illustrés par ce cas.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(AT[0-9]{2}|IT[0-9]{2}|EE[0-9]{3})$" }
+        },
+        "input": { "type": "object" },
+        "expected": true,
+        "error": { "$ref": "#/$defs/Refusal" }
+      },
+      "oneOf": [
+        { "properties": { "expected": true }, "required": ["expected"] },
+        { "properties": { "error": true }, "required": ["error"] }
+      ]
+    },
+    "Refusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "field", "rule"],
+      "properties": {
+        "code": {
+          "description": "Code d'erreur du fichier 08 (sous-ensemble de error.json#/$defs/ErrorCode).",
+          "enum": [
+            "VALIDATION_FAILED",
+            "PAYMENT_EXCEEDS_BALANCE",
+            "STOCK_UNAVAILABLE",
+            "LOT_EXPIRED"
+          ]
+        },
+        "field": { "type": "string", "pattern": "^[a-z_]+$" },
+        "rule": { "type": "string", "pattern": "^[a-z_]+(?:\\.[a-z_]+)+$" },
+        "details": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": ["string", "integer", "null"] }
+        }
+      }
+    }
+  }
+}

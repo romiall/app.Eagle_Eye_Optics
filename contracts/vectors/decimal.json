@@ -1,0 +1,415 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Décimaux exacts DECIMAL(12,3), (7,4) et (6,2) : virgule, signe, vide ≠ zéro, jamais de troncature.",
+  "cases": [
+    {
+      "id": "decimal.quantity.entier",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "1.000"
+    },
+    {
+      "id": "decimal.quantity.virgule",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1,5",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "1.500"
+    },
+    {
+      "id": "decimal.quantity.trois-decimales",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1.125",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "1.125"
+    },
+    {
+      "id": "decimal.quantity.blancs",
+      "operation": "decimal.parse",
+      "input": {
+        "text": " 2 ",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "2.000"
+    },
+    {
+      "id": "decimal.quantity.zero",
+      "operation": "decimal.parse",
+      "description": "La lecture accepte zéro ; la positivité est une règle de ligne distincte.",
+      "input": {
+        "text": "0",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "0.000"
+    },
+    {
+      "id": "decimal.quantity.vide-vaut-null",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": null
+    },
+    {
+      "id": "decimal.quantity.trop-de-decimales",
+      "operation": "decimal.parse",
+      "description": "Jamais d’arrondi ni de troncature.",
+      "input": {
+        "text": "1,2345",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.scale",
+        "details": {
+          "scale": 3
+        }
+      }
+    },
+    {
+      "id": "decimal.quantity.separateur-final",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1.",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.format"
+      }
+    },
+    {
+      "id": "decimal.quantity.sans-partie-entiere",
+      "operation": "decimal.parse",
+      "input": {
+        "text": ",5",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.format"
+      }
+    },
+    {
+      "id": "decimal.quantity.groupement-refuse",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1 000",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.format"
+      }
+    },
+    {
+      "id": "decimal.quantity.negative",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "-1",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.negative"
+      }
+    },
+    {
+      "id": "decimal.quantity.moins-zero",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "-0",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "0.000"
+    },
+    {
+      "id": "decimal.quantity.plus",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "+2",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "2.000"
+    },
+    {
+      "id": "decimal.quantity.zeros-initiaux",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "0001.5",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "1.500"
+    },
+    {
+      "id": "decimal.quantity.maximum-sql",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "999999999.999",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "expected": "999999999.999"
+    },
+    {
+      "id": "decimal.quantity.au-dela-sql",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1000000000",
+        "kind": "quantity",
+        "field": "quantity"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.out_of_range",
+        "details": {
+          "integer_digits": 9
+        }
+      }
+    },
+    {
+      "id": "decimal.rate.virgule",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "19,25",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "expected": "19.2500"
+    },
+    {
+      "id": "decimal.rate.cent",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "100",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "expected": "100.0000"
+    },
+    {
+      "id": "decimal.rate.zero",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "0",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "expected": "0.0000"
+    },
+    {
+      "id": "decimal.rate.au-dela-de-cent",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "100,0001",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "rate_percent",
+        "rule": "rate.out_of_range"
+      }
+    },
+    {
+      "id": "decimal.rate.trop-de-decimales",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "12.34567",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "rate_percent",
+        "rule": "decimal.scale",
+        "details": {
+          "scale": 4
+        }
+      }
+    },
+    {
+      "id": "decimal.rate.mille",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1000",
+        "kind": "rate",
+        "field": "rate_percent"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "rate_percent",
+        "rule": "decimal.out_of_range",
+        "details": {
+          "integer_digits": 3
+        }
+      }
+    },
+    {
+      "id": "decimal.diopter.plus-virgule",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "+1,25",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": "1.25"
+    },
+    {
+      "id": "decimal.diopter.negatif",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "-0.75",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": "-0.75"
+    },
+    {
+      "id": "decimal.diopter.signe-moins-typographique",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "−2,50",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": "-2.50"
+    },
+    {
+      "id": "decimal.diopter.zero-est-une-mesure",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "0",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": "0.00"
+    },
+    {
+      "id": "decimal.diopter.vide-non-mesure",
+      "operation": "decimal.parse",
+      "description": "Non mesuré : null, jamais remplacé par 0.00.",
+      "input": {
+        "text": "",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": null
+    },
+    {
+      "id": "decimal.diopter.moins-zero",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "-0",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "expected": "0.00"
+    },
+    {
+      "id": "decimal.diopter.trois-decimales",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "1.255",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "sphere",
+        "rule": "decimal.scale",
+        "details": {
+          "scale": 2
+        }
+      }
+    },
+    {
+      "id": "decimal.diopter.au-dela-sql",
+      "operation": "decimal.parse",
+      "input": {
+        "text": "12345",
+        "kind": "diopter",
+        "field": "sphere"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "sphere",
+        "rule": "decimal.out_of_range",
+        "details": {
+          "integer_digits": 4
+        }
+      }
+    },
+    {
+      "id": "quantity.line.entier",
+      "operation": "quantity.forLine",
+      "input": {
+        "quantity": "2.000",
+        "integer_only": true
+      },
+      "expected": "2.000"
+    },
+    {
+      "id": "quantity.line.unite-entiere",
+      "operation": "quantity.forLine",
+      "input": {
+        "quantity": "1.500",
+        "integer_only": true
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "quantity.integer_required"
+      }
+    },
+    {
+      "id": "quantity.line.fractionnable",
+      "operation": "quantity.forLine",
+      "input": {
+        "quantity": "1.500",
+        "integer_only": false
+      },
+      "expected": "1.500"
+    },
+    {
+      "id": "quantity.line.zero",
+      "operation": "quantity.forLine",
+      "input": {
+        "quantity": "0.000",
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "quantity.positive_required"
+      }
+    }
+  ]
+}

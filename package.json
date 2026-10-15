@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:contracts": "vitest run tests/frontend/contracts.test.ts tests/frontend/openapi.test.ts tests/frontend/contract-types.test.ts",
+    "test:domain": "vitest run tests/frontend/domain",
     "contracts:types": "node contracts/tools/generate-types.mjs",
     "test:e2e": "npm run build && playwright test",
     "test:e2e:run": "playwright test"

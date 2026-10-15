@@ -1,0 +1,157 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Dates de contrôle recommandé et de rappel interne au calendrier civil.",
+  "cases": [
+    {
+      "id": "followup.recommended.trois-mois-fin-de-mois",
+      "operation": "followUp.recommended",
+      "covers": ["AT22"],
+      "input": {
+        "anchor": "2026-01-31",
+        "value": 3,
+        "unit": "MONTH"
+      },
+      "expected": "2026-04-30"
+    },
+    {
+      "id": "followup.recommended.un-mois-fin-octobre",
+      "operation": "followUp.recommended",
+      "covers": ["AT22"],
+      "input": {
+        "anchor": "2026-10-31",
+        "value": 1,
+        "unit": "MONTH"
+      },
+      "expected": "2026-11-30"
+    },
+    {
+      "id": "followup.recommended.collyre-dix-jours",
+      "operation": "followUp.recommended",
+      "description": "Départ choisi par le professionnel (début ou fin de traitement) : aucune durée supposée.",
+      "covers": ["AT22"],
+      "input": {
+        "anchor": "2026-10-15",
+        "value": 10,
+        "unit": "DAY"
+      },
+      "expected": "2026-10-25"
+    },
+    {
+      "id": "followup.recommended.collyre-quatorze-jours",
+      "operation": "followUp.recommended",
+      "covers": ["AT22"],
+      "input": {
+        "anchor": "2026-10-20",
+        "value": 14,
+        "unit": "DAY"
+      },
+      "expected": "2026-11-03"
+    },
+    {
+      "id": "followup.recommended.un-an",
+      "operation": "followUp.recommended",
+      "input": {
+        "anchor": "2026-10-15",
+        "value": 1,
+        "unit": "YEAR"
+      },
+      "expected": "2027-10-15"
+    },
+    {
+      "id": "followup.recommended.deux-ans-29-fevrier",
+      "operation": "followUp.recommended",
+      "input": {
+        "anchor": "2024-02-29",
+        "value": 2,
+        "unit": "YEAR"
+      },
+      "expected": "2026-02-28"
+    },
+    {
+      "id": "followup.recommended.delai-nul",
+      "operation": "followUp.recommended",
+      "input": {
+        "anchor": "2026-10-15",
+        "value": 0,
+        "unit": "DAY"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "interval_value",
+        "rule": "follow_up.interval_positive"
+      }
+    },
+    {
+      "id": "followup.recommended.unite-inconnue",
+      "operation": "followUp.recommended",
+      "input": {
+        "anchor": "2026-10-15",
+        "value": 1,
+        "unit": "WEEK"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "interval_unit",
+        "rule": "follow_up.unit_unknown"
+      }
+    },
+    {
+      "id": "followup.reminder.sept-jours",
+      "operation": "followUp.reminder",
+      "input": {
+        "recommended": "2026-04-30",
+        "advance": 7,
+        "unit": "DAY"
+      },
+      "expected": "2026-04-23"
+    },
+    {
+      "id": "followup.reminder.un-mois-fin-de-mois",
+      "operation": "followUp.reminder",
+      "input": {
+        "recommended": "2026-03-31",
+        "advance": 1,
+        "unit": "MONTH"
+      },
+      "expected": "2026-02-28"
+    },
+    {
+      "id": "followup.reminder.le-jour-meme",
+      "operation": "followUp.reminder",
+      "input": {
+        "recommended": "2026-10-15",
+        "advance": 0,
+        "unit": "DAY"
+      },
+      "expected": "2026-10-15"
+    },
+    {
+      "id": "followup.reminder.unite-annee",
+      "operation": "followUp.reminder",
+      "input": {
+        "recommended": "2026-10-15",
+        "advance": 1,
+        "unit": "YEAR"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "advance_unit",
+        "rule": "follow_up.unit_unknown"
+      }
+    },
+    {
+      "id": "followup.reminder.avance-negative",
+      "operation": "followUp.reminder",
+      "input": {
+        "recommended": "2026-10-15",
+        "advance": -1,
+        "unit": "DAY"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "advance_value",
+        "rule": "follow_up.advance_negative"
+      }
+    }
+  ]
+}

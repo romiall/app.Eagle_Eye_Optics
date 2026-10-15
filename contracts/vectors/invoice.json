@@ -1,0 +1,483 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Lignes et total de facture : arrondi au FCFA demi supérieur, remise, taxe comprise (taux fictifs).",
+  "cases": [
+    {
+      "id": "invoice.line.contrat-1125-x-1001",
+      "operation": "invoice.line",
+      "description": "Vecteur du contrat 23 : 1,125 × 1001 = 1126,125 → 1126.",
+      "covers": ["IT03"],
+      "input": {
+        "quantity": "1.125",
+        "unit_price_gross": 1001,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1126,
+        "discount": 0,
+        "net": 1126,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.monture",
+      "operation": "invoice.line",
+      "covers": ["AT10"],
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 80000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": true
+      },
+      "expected": {
+        "gross": 80000,
+        "discount": 0,
+        "net": 80000,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.remise",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "2.000",
+        "unit_price_gross": 35000,
+        "discount_gross": 5000,
+        "tax_rate_percent": null,
+        "integer_only": true
+      },
+      "expected": {
+        "gross": 70000,
+        "discount": 5000,
+        "net": 65000,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.demi-superieur",
+      "operation": "invoice.line",
+      "description": "500,5 → 501 : arrondi au FCFA le plus proche, demi supérieur (ROUND de MySQL).",
+      "input": {
+        "quantity": "0.500",
+        "unit_price_gross": 1001,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 501,
+        "discount": 0,
+        "net": 501,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.sous-le-demi",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "0.001",
+        "unit_price_gross": 499,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 0,
+        "discount": 0,
+        "net": 0,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.demi-exact",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "0.001",
+        "unit_price_gross": 500,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1,
+        "discount": 0,
+        "net": 1,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.prestation-gratuite",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "3.000",
+        "unit_price_gross": 0,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 0,
+        "discount": 0,
+        "net": 0,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.remise-totale",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 5000,
+        "discount_gross": 5000,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 5000,
+        "discount": 5000,
+        "net": 0,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.prix-maximum",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 1000000000000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1000000000000,
+        "discount": 0,
+        "net": 1000000000000,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.quantite-maximum",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "999999999.999",
+        "unit_price_gross": 1000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 999999999999,
+        "discount": 0,
+        "net": 999999999999,
+        "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.remise-superieure",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 5000,
+        "discount_gross": 5001,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "discount_gross",
+        "rule": "line.discount_exceeds_gross",
+        "details": {
+          "gross": 5000
+        }
+      }
+    },
+    {
+      "id": "invoice.line.unite-entiere",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.500",
+        "unit_price_gross": 5000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": true
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "quantity.integer_required"
+      }
+    },
+    {
+      "id": "invoice.line.quantite-nulle",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "0.000",
+        "unit_price_gross": 5000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "quantity.positive_required"
+      }
+    },
+    {
+      "id": "invoice.line.au-dela-du-maximum",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "2.000",
+        "unit_price_gross": 1000000000000,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "unit_price_gross",
+        "rule": "line.amount_out_of_range"
+      }
+    },
+    {
+      "id": "invoice.line.prix-negatif",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": -1,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "unit_price_gross",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "invoice.line.remise-negative",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 5000,
+        "discount_gross": -1,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "discount_gross",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "invoice.line.taxe-comprise-exacte",
+      "operation": "invoice.line",
+      "description": "Taux FICTIF de démonstration : aucun taux fiscal réel n’est fourni (Q03).",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 11000,
+        "discount_gross": 0,
+        "tax_rate_percent": "10.0000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 11000,
+        "discount": 0,
+        "net": 11000,
+        "tax_amount": 1000
+      }
+    },
+    {
+      "id": "invoice.line.taxe-comprise-arrondie",
+      "operation": "invoice.line",
+      "description": "Taux FICTIF de démonstration : aucun taux fiscal réel n’est fourni (Q03).",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 1000,
+        "discount_gross": 0,
+        "tax_rate_percent": "10.0000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1000,
+        "discount": 0,
+        "net": 1000,
+        "tax_amount": 91
+      }
+    },
+    {
+      "id": "invoice.line.taxe-douze-et-demi",
+      "operation": "invoice.line",
+      "description": "Taux FICTIF de démonstration : aucun taux fiscal réel n’est fourni (Q03).",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 1005,
+        "discount_gross": 0,
+        "tax_rate_percent": "12.5000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1005,
+        "discount": 0,
+        "net": 1005,
+        "tax_amount": 112
+      }
+    },
+    {
+      "id": "invoice.line.taxe-nulle",
+      "operation": "invoice.line",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 1005,
+        "discount_gross": 0,
+        "tax_rate_percent": "0.0000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1005,
+        "discount": 0,
+        "net": 1005,
+        "tax_amount": 0
+      }
+    },
+    {
+      "id": "invoice.line.taxe-demi-superieur",
+      "operation": "invoice.line",
+      "description": "1 × 100/200 = 0,5 → 1 : même règle d’arrondi que la ligne. Taux FICTIF de démonstration : aucun taux fiscal réel n’est fourni (Q03).",
+      "input": {
+        "quantity": "1.000",
+        "unit_price_gross": 1,
+        "discount_gross": 0,
+        "tax_rate_percent": "100.0000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 1,
+        "discount": 0,
+        "net": 1,
+        "tax_amount": 1
+      }
+    },
+    {
+      "id": "invoice.line.taxe-sur-le-net",
+      "operation": "invoice.line",
+      "description": "La taxe comprise se calcule sur le net après remise. Taux FICTIF de démonstration : aucun taux fiscal réel n’est fourni (Q03).",
+      "input": {
+        "quantity": "2.000",
+        "unit_price_gross": 5500,
+        "discount_gross": 1000,
+        "tax_rate_percent": "10.0000",
+        "integer_only": false
+      },
+      "expected": {
+        "gross": 11000,
+        "discount": 1000,
+        "net": 10000,
+        "tax_amount": 909
+      }
+    },
+    {
+      "id": "invoice.total.trois-lignes",
+      "operation": "invoice.total",
+      "input": {
+        "lines": [
+          {
+            "quantity": "1.000",
+            "unit_price_gross": 80000,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": true
+          },
+          {
+            "quantity": "2.000",
+            "unit_price_gross": 35000,
+            "discount_gross": 5000,
+            "tax_rate_percent": null,
+            "integer_only": true
+          },
+          {
+            "quantity": "1.125",
+            "unit_price_gross": 1001,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": false
+          }
+        ]
+      },
+      "expected": {
+        "lines": [
+          {
+            "gross": 80000,
+            "discount": 0,
+            "net": 80000,
+            "tax_amount": null
+          },
+          {
+            "gross": 70000,
+            "discount": 5000,
+            "net": 65000,
+            "tax_amount": null
+          },
+          {
+            "gross": 1126,
+            "discount": 0,
+            "net": 1126,
+            "tax_amount": null
+          }
+        ],
+        "total": 146126
+      }
+    },
+    {
+      "id": "invoice.total.au-dela-du-maximum",
+      "operation": "invoice.total",
+      "input": {
+        "lines": [
+          {
+            "quantity": "1.000",
+            "unit_price_gross": 1000000000000,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": false
+          },
+          {
+            "quantity": "1.000",
+            "unit_price_gross": 1,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": false
+          }
+        ]
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "lines",
+        "rule": "invoice.total_out_of_range"
+      }
+    },
+    {
+      "id": "invoice.tax.zero",
+      "operation": "invoice.includedTax",
+      "input": {
+        "net": 0,
+        "rate_percent": "10.0000"
+      },
+      "expected": 0
+    },
+    {
+      "id": "invoice.tax.maximum",
+      "operation": "invoice.includedTax",
+      "input": {
+        "net": 1000000000000,
+        "rate_percent": "100.0000"
+      },
+      "expected": 500000000000
+    }
+  ]
+}

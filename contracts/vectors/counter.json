@@ -1,0 +1,152 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Compteurs BIGINT UNSIGNED en chaîne, au-delà des entiers sûrs de JavaScript.",
+  "cases": [
+    {
+      "id": "counter.parse.zero",
+      "operation": "counter.parse",
+      "input": {
+        "value": "0"
+      },
+      "expected": "0"
+    },
+    {
+      "id": "counter.parse.simple",
+      "operation": "counter.parse",
+      "input": {
+        "value": "42"
+      },
+      "expected": "42"
+    },
+    {
+      "id": "counter.parse.maximum",
+      "operation": "counter.parse",
+      "input": {
+        "value": "18446744073709551615"
+      },
+      "expected": "18446744073709551615"
+    },
+    {
+      "id": "counter.parse.zero-initial",
+      "operation": "counter.parse",
+      "input": {
+        "value": "007"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.format"
+      }
+    },
+    {
+      "id": "counter.parse.negatif",
+      "operation": "counter.parse",
+      "input": {
+        "value": "-1"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.format"
+      }
+    },
+    {
+      "id": "counter.parse.vide",
+      "operation": "counter.parse",
+      "input": {
+        "value": ""
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.format"
+      }
+    },
+    {
+      "id": "counter.parse.au-dela",
+      "operation": "counter.parse",
+      "input": {
+        "value": "18446744073709551616"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.out_of_range"
+      }
+    },
+    {
+      "id": "counter.next.zero",
+      "operation": "counter.next",
+      "input": {
+        "value": "0"
+      },
+      "expected": "1"
+    },
+    {
+      "id": "counter.next.au-dela-du-sur-javascript",
+      "operation": "counter.next",
+      "description": "Au-delà de Number.MAX_SAFE_INTEGER : calcul exact en chaîne et BigInt.",
+      "input": {
+        "value": "9007199254740992"
+      },
+      "expected": "9007199254740993"
+    },
+    {
+      "id": "counter.next.avant-maximum",
+      "operation": "counter.next",
+      "input": {
+        "value": "18446744073709551614"
+      },
+      "expected": "18446744073709551615"
+    },
+    {
+      "id": "counter.next.maximum",
+      "operation": "counter.next",
+      "input": {
+        "value": "18446744073709551615"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.out_of_range"
+      }
+    },
+    {
+      "id": "counter.compare.numerique",
+      "operation": "counter.compare",
+      "description": "Comparaison numérique, pas lexicale.",
+      "input": {
+        "left": "10",
+        "right": "9"
+      },
+      "expected": 1
+    },
+    {
+      "id": "counter.compare.grand",
+      "operation": "counter.compare",
+      "input": {
+        "left": "9007199254740993",
+        "right": "9007199254740992"
+      },
+      "expected": 1
+    },
+    {
+      "id": "counter.compare.egal",
+      "operation": "counter.compare",
+      "input": {
+        "left": "18446744073709551615",
+        "right": "18446744073709551615"
+      },
+      "expected": 0
+    },
+    {
+      "id": "counter.compare.inferieur",
+      "operation": "counter.compare",
+      "input": {
+        "left": "1",
+        "right": "2"
+      },
+      "expected": -1
+    }
+  ]
+}

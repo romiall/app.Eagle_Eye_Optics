@@ -1,0 +1,270 @@
+{
+  "rules_version": "2026-10-14.1",
+  "description": "Texte : blancs de bord, vide → null, Unicode conservé, clé de recherche et téléphone normalisés.",
+  "cases": [
+    {
+      "id": "text.trim.espaces",
+      "operation": "text.trim",
+      "input": {
+        "value": "  Emma  "
+      },
+      "expected": "Emma"
+    },
+    {
+      "id": "text.trim.insecables",
+      "operation": "text.trim",
+      "input": {
+        "value": "\u00a0Ngo\u202f"
+      },
+      "expected": "Ngo"
+    },
+    {
+      "id": "text.trim.interieur-conserve",
+      "operation": "text.trim",
+      "input": {
+        "value": " Jean  Pierre "
+      },
+      "expected": "Jean  Pierre"
+    },
+    {
+      "id": "text.trim.liste-fermee",
+      "operation": "text.trim",
+      "description": "U+2009 ne fait pas partie de la liste fermee des blancs : il reste.",
+      "input": {
+        "value": "\u2009A"
+      },
+      "expected": "\u2009A"
+    },
+    {
+      "id": "text.optional.blanc-vaut-null",
+      "operation": "text.optional",
+      "input": {
+        "value": "   ",
+        "max_length": 10,
+        "field": "note"
+      },
+      "expected": null
+    },
+    {
+      "id": "text.optional.null",
+      "operation": "text.optional",
+      "input": {
+        "value": null,
+        "max_length": 10,
+        "field": "note"
+      },
+      "expected": null
+    },
+    {
+      "id": "text.optional.longueur-en-caracteres",
+      "operation": "text.optional",
+      "input": {
+        "value": "Évêché",
+        "max_length": 6,
+        "field": "note"
+      },
+      "expected": "Évêché"
+    },
+    {
+      "id": "text.optional.trop-long",
+      "operation": "text.optional",
+      "input": {
+        "value": "Évêchés",
+        "max_length": 6,
+        "field": "note"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "note",
+        "rule": "text.too_long",
+        "details": {
+          "max_length": 6
+        }
+      }
+    },
+    {
+      "id": "text.optional.unicode-original-conserve",
+      "operation": "text.optional",
+      "description": "La forme decomposee saisie est conservee telle quelle, sans normalisation.",
+      "input": {
+        "value": "Jose\u0301 Ngo",
+        "max_length": 20,
+        "field": "first_names"
+      },
+      "expected": "Jose\u0301 Ngo"
+    },
+    {
+      "id": "text.search.apostrophe-tiret-accent",
+      "operation": "text.searchKey",
+      "covers": ["EE045"],
+      "input": {
+        "value": "N'Guessan-Kouamé"
+      },
+      "expected": "n guessan kouame"
+    },
+    {
+      "id": "text.search.majuscules-blancs",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "  ÉMILIE   Ndongo "
+      },
+      "expected": "emilie ndongo"
+    },
+    {
+      "id": "text.search.vietnamien",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Ngô Thị Ánh"
+      },
+      "expected": "ngo thi anh"
+    },
+    {
+      "id": "text.search.forme-decomposee",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Jose\u0301"
+      },
+      "expected": "jose"
+    },
+    {
+      "id": "text.search.ligatures-conservees",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Œuvre Ærø"
+      },
+      "expected": "œuvre ærø"
+    },
+    {
+      "id": "text.search.apostrophe-typographique",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "D’Almeida"
+      },
+      "expected": "d almeida"
+    },
+    {
+      "id": "text.search.controles",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Marie\tClaire\nAnne"
+      },
+      "expected": "marie claire anne"
+    },
+    {
+      "id": "text.search.sigma-final",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "ΟΔΟΣ"
+      },
+      "expected": "οδος"
+    },
+    {
+      "id": "text.search.i-point-turc",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "İstanbul"
+      },
+      "expected": "istanbul"
+    },
+    {
+      "id": "text.search.symbole",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Awa 😀 Bello"
+      },
+      "expected": "awa bello"
+    },
+    {
+      "id": "text.search.chiffres",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Patient 2"
+      },
+      "expected": "patient 2"
+    },
+    {
+      "id": "text.phone.international",
+      "operation": "text.phone",
+      "input": {
+        "value": "+237 6 77 12 34 56",
+        "field": "phone_primary"
+      },
+      "expected": "+237677123456"
+    },
+    {
+      "id": "text.phone.double-zero",
+      "operation": "text.phone",
+      "input": {
+        "value": "00237 677-12-34-56",
+        "field": "phone_primary"
+      },
+      "expected": "+237677123456"
+    },
+    {
+      "id": "text.phone.national",
+      "operation": "text.phone",
+      "input": {
+        "value": "677.12.34.56",
+        "field": "phone_primary"
+      },
+      "expected": "677123456"
+    },
+    {
+      "id": "text.phone.parentheses",
+      "operation": "text.phone",
+      "input": {
+        "value": "(237) 677 12 34 56",
+        "field": "phone_primary"
+      },
+      "expected": "237677123456"
+    },
+    {
+      "id": "text.phone.vide",
+      "operation": "text.phone",
+      "input": {
+        "value": "  ",
+        "field": "phone_primary"
+      },
+      "expected": null
+    },
+    {
+      "id": "text.phone.lettres",
+      "operation": "text.phone",
+      "input": {
+        "value": "677 12 AB",
+        "field": "phone_primary"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "phone_primary",
+        "rule": "phone.format"
+      }
+    },
+    {
+      "id": "text.phone.trop-court",
+      "operation": "text.phone",
+      "input": {
+        "value": "12",
+        "field": "phone_primary"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "phone_primary",
+        "rule": "phone.length"
+      }
+    },
+    {
+      "id": "text.phone.plus-seul-chiffre",
+      "operation": "text.phone",
+      "input": {
+        "value": "+0",
+        "field": "phone_primary"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "phone_primary",
+        "rule": "phone.length"
+      }
+    }
+  ]
+}

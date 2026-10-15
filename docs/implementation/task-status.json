@@ -133,13 +133,33 @@
   },
   "F07": {
    "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Travail de la session locale précédente sauvegardé au commit 1b0600d (non vérifié à ce point). Reprise le 2026-10-15 : vérification complète en cours."
+   "evidence": [
+    "docs/implementation/command-bus.md",
+    "app/Application/",
+    "app/Http/Controllers/CommandController.php",
+    "tests/Feature/Application/",
+    "tests/Unit/Application/",
+    "tests/Concurrency/CommandBusConcurrencyTest.php",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38702410317"
+   ],
+   "notes": "Sauvegarde 1b0600d, corrections 599ef06 (CI verte 38702410317), e2e Windows ddcf1f8. Revue contradictoire : pass=false (4 majeurs : rejeu SYNC non lié à l'auteur/grant, revue non déterministe, idempotency_id inaccessible aux actions, garde d'effets externes incomplète ; 7 mineurs). Traitement en cours."
   },
   "F08": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/rules.md",
+    "contracts/vectors/",
+    "contracts/schemas/rule-vectors.json",
+    "app/Domain/Shared/ValueObjects/",
+    "app/Domain/Billing/Rules/",
+    "app/Domain/Inventory/Rules/",
+    "app/Domain/Scheduling/Rules/",
+    "resources/frontend/domain/",
+    "tests/Unit/Rules/",
+    "tests/Feature/Rules/MysqlRuleParityTest.php",
+    "tests/frontend/domain/"
+   ],
+   "notes": "242 vecteurs communs (9 fichiers) : mêmes verdicts PHP (RuleVectorsTest 243) et TypeScript (test:domain 243), MySQL 8.4.9 en troisième moteur (MysqlRuleParityTest 3/80), bornes SQL (SqlBoundsTest), gardes sans flottant. Attendus recoupés par Python avant écriture. Taxe comprise : méthode proposée, taux fictifs (Q03). DONE après CI verte."
   },
   "F09": {
    "status": "NOT_STARTED",
