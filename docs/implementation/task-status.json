@@ -172,7 +172,7 @@
    "notes": "262 vecteurs communs (9 fichiers, générés et recoupés par contracts/tools/build_vectors.py --check) : mêmes verdicts PHP et TypeScript, MySQL 8.4.9 en troisième moteur, bornes SQL, gardes sans flottant (jetons PHP, arbre syntaxique TS). Revue contradictoire pass=false (3 majeurs, 6 mineurs) : tous traités (6aeab1c, 2a83599 ; tableau de rules.md). Taxe comprise : méthode proposée, taux fictifs (Q03). CI GitHub verte : run 38719061673 (2a83599)."
   },
   "F09": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/shell.md",
     "resources/frontend/app/",
@@ -181,12 +181,15 @@
     "tests/frontend/shell/",
     "tests/frontend/components/",
     "tests/frontend/bootstrap.test.ts",
-    "tests/e2e/shell.spec.ts"
+    "tests/e2e/shell.spec.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38776166494",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38782531589",
+    "tests/frontend/shell/robustness.test.ts"
    ],
-   "notes": "Coquille et composants livrés : Vitest 601 (130 nouveaux), vue-tsc, ESLint, Prettier. Aucun module futur présenté comme livré (catalogue déclaratif recoupé avec backlog.json et le référentiel des permissions). Playwright local non concluant sous forte charge (échecs par délai seulement) : CI et revue indépendante attendues avant DONE."
+   "notes": "Coquille et composants livrés (1c39c52), revue contradictoire pass=false (4 majeurs, 14 mineurs, 5 mutations survivantes) entièrement traitée au commit 7de8e2b (tableau de shell.md), chaque correction avec son test ; Vitest 621 ; 7 mutations tuées. CI GitHub verte : run 38782531589 sur 7de8e2b (PHP, Frontend, Playwright Linux 27/27). Aucun module futur présenté comme livré."
   },
   "F10": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
    "notes": ""
   },
