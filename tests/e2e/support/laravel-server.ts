@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
 
 export interface RunningServer {
@@ -48,13 +48,14 @@ export async function startLaravelServer(
     stdio: 'ignore',
     // Groupe de processus dédié : l'arrêt supprime aussi d'éventuels processus enfants.
     detached: true,
+    windowsHide: true,
   })
 
   const url = `http://127.0.0.1:${port}`
   try {
     await waitUntilReady(url, server)
   } catch (error) {
-    server.kill('SIGKILL')
+    killTree(server)
     throw error
   }
 
@@ -68,16 +69,33 @@ export async function startLaravelServer(
 
       if (server.pid !== undefined && server.exitCode === null && server.signalCode === null) {
         const exited = new Promise<void>((resolve) => server.once('exit', () => resolve()))
-        try {
-          process.kill(-server.pid, 'SIGKILL')
-        } catch {
-          // Déjà arrêté.
-        }
+        killTree(server)
         await exited
       }
 
       await waitUntilRefusing(url)
     },
+  }
+}
+
+/**
+ * Arrête le serveur et ses éventuels enfants. POSIX : signal au groupe de processus (pid négatif).
+ * Windows ne connaît pas les groupes POSIX (`process.kill(-pid)` y échoue sans rien arrêter) : l'arbre
+ * est arrêté par `taskkill /T /F`.
+ */
+function killTree(child: ChildProcess): void {
+  if (child.pid === undefined) return
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    return
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL')
+  } catch {
+    // Déjà arrêté.
   }
 }
 

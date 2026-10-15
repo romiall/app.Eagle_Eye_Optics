@@ -40,7 +40,9 @@ export default defineConfig({
     command: `node tests/e2e/prepare-env.mjs && php artisan serve --host=127.0.0.1 --port=${MAIN_PORT} --no-reload`,
     url: `${BASE_URL}/up`,
     reuseExistingServer: !process.env['CI'],
-    timeout: 60_000,
+    // La préparation remet à zéro et migre toute la base (117 tables, 464 FK) : environ 35 s sur un
+    // poste Windows à disque lent, d'où une marge large ; Playwright n'attend que le temps nécessaire.
+    timeout: 180_000,
     env: { APP_ENV: 'e2e' },
   },
 })
