@@ -18,8 +18,15 @@ const props = withDefaults(
     cancelLabel?: string
     tone?: 'default' | 'danger'
     pending?: boolean
+    /** Libellé pendant la commande (« Émission en cours… »). */
+    pendingLabel?: string
   }>(),
-  { cancelLabel: 'Annuler', tone: 'default', pending: false },
+  {
+    cancelLabel: 'Annuler',
+    tone: 'default',
+    pending: false,
+    pendingLabel: 'Traitement en cours…',
+  },
 )
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
@@ -65,6 +72,27 @@ watch(
   { flush: 'post' },
 )
 
+// Pendant la commande, les boutons sont désactivés : le focus reste dans la boîte (sur elle-même)
+// au lieu de tomber hors d'une modale.
+watch(
+  () => props.pending,
+  async (pending) => {
+    if (!pending || !props.open) return
+    await nextTick()
+    const element = dialog.value
+    const active = document.activeElement
+    if (
+      element !== null &&
+      (!(active instanceof HTMLElement) ||
+        !element.contains(active) ||
+        (active as HTMLButtonElement).disabled)
+    ) {
+      element.focus()
+    }
+  },
+  { flush: 'post' },
+)
+
 onMounted(() => {
   if (props.open) void show()
 })
@@ -100,6 +128,7 @@ function onClose(): void {
     ref="dialog"
     :aria-labelledby="titleId"
     :aria-describedby="bodyId"
+    tabindex="-1"
     class="m-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-ink/40"
     @cancel="onCancel"
     @close="onClose"
@@ -120,6 +149,7 @@ function onClose(): void {
           ref="confirmButton"
           :variant="props.tone === 'danger' ? 'danger' : 'primary'"
           :pending="props.pending"
+          :pending-label="props.pendingLabel"
           @click="emit('confirm')"
         >
           {{ props.confirmLabel }}

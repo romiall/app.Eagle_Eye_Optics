@@ -54,6 +54,17 @@ function isEnvelope(value: unknown): value is ErrorEnvelope {
   return typeof error === 'object' && error !== null && 'code' in error && 'message' in error
 }
 
+const NOT_JSON = Symbol('not-json')
+
+function parsePayload(text: string): unknown {
+  if (text === '') return null
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return NOT_JSON
+  }
+}
+
 export async function apiRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -76,7 +87,18 @@ export async function apiRequest<T>(method: Method, path: string, body?: unknown
   reportServerReachable(true)
 
   const text = await response.text()
-  const payload: unknown = text === '' ? null : (JSON.parse(text) as unknown)
+  const payload = parsePayload(text)
+  if (payload === NOT_JSON) {
+    // Page HTML d'un hébergeur (503, 504, 508), d'un pare-feu applicatif ou d'un portail captif :
+    // une erreur du serveur, jamais un plantage de l'interface ni une réponse prise pour valide.
+    // Ce n'est pas l'application qui a répondu : elle n'est pas comptée comme joignable.
+    if (!response.ok) reportServerReachable(false)
+    throw new ApiError(
+      response.ok ? 502 : response.status,
+      'HTTP_ERROR',
+      `Réponse inattendue du serveur (${response.status}).`,
+    )
+  }
   if (!response.ok) {
     if (isEnvelope(payload)) {
       const fields = (payload.error.fields ?? {}) as Record<string, readonly string[]>

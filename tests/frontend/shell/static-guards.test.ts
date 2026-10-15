@@ -5,9 +5,10 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * Gardes statiques du frontend (fichier 04, fichier 19) : aucune donnée dans localStorage ou
- * sessionStorage (le coffre local chiffré est le seul stockage des saisies) et aucune ressource
- * distante (fonte, style, script) : l'application doit fonctionner hors ligne depuis sa seule
- * origine.
+ * sessionStorage (le coffre local chiffré est le seul stockage des saisies) et aucune ressource ni
+ * connexion distante (fonte, style, script, image, appel, balise, socket) : l'application doit
+ * fonctionner hors ligne depuis sa seule origine. Les commentaires sont retirés avant l'analyse :
+ * seul le code compte. La preuve d'exécution reste l'e2e « aucune ressource hors de l'origine ».
  */
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 const SOURCES = [join(ROOT, 'resources', 'frontend'), join(ROOT, 'resources', 'views')]
@@ -20,28 +21,51 @@ function files(directory: string): string[] {
   })
 }
 
+/** Retire les commentaires `/* … *\/`, `<!-- … -->`, `{{-- … --}}` et `// …` (hors URL `://`). */
+function withoutComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\{\{--[\s\S]*?--\}\}/g, '')
+    .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1')
+}
+
 const sources = SOURCES.flatMap(files).map((path) => ({
   path: relative(ROOT, path),
-  text: readFileSync(path, 'utf8'),
+  code: withoutComments(readFileSync(path, 'utf8')),
 }))
 
+function offenders(pattern: RegExp): string[] {
+  return sources.filter((source) => pattern.test(source.code)).map((source) => source.path)
+}
+
 describe('gardes statiques du frontend', () => {
-  it('lit bien des sources du frontend', () => {
+  it('lit bien des sources du frontend, commentaires retirés', () => {
     expect(sources.some((source) => source.path.endsWith('App.vue'))).toBe(true)
     expect(sources.some((source) => source.path.endsWith('spa.blade.php'))).toBe(true)
+    expect(withoutComments('a // localStorage\nb /* sessionStorage */ c')).not.toMatch(/Storage/)
+    expect(withoutComments("fetch('https://exemple.test')")).toContain('https://')
   })
 
-  it('n’utilise ni localStorage ni sessionStorage', () => {
-    const offenders = sources
-      .filter((source) => /\b(?:local|session)Storage\s*[.[]/.test(source.text))
-      .map((source) => source.path)
-    expect(offenders).toEqual([])
+  it('n’utilise ni localStorage ni sessionStorage, même indirectement', () => {
+    expect(offenders(/\b(?:local|session)Storage\b/)).toEqual([])
+    // Accès par nom calculé : window['local' + 'Storage'].
+    expect(offenders(/['"`](?:local|session)['"`]\s*\+/)).toEqual([])
   })
 
-  it('ne charge aucune ressource distante (fonte, style, script, image, appel)', () => {
-    const remote =
-      /(?:url\(\s*['"]?|@import\s+['"]|(?:src|href)\s*=\s*['"]|fetch\(\s*['"`])https?:\/\//i
-    const offenders = sources.filter((source) => remote.test(source.text)).map((s) => s.path)
-    expect(offenders).toEqual([])
+  it('ne charge ni n’appelle aucune ressource distante', () => {
+    const remoteUrl = String.raw`(?:https?:)?\/\/[a-z0-9.-]`
+    const patterns = [
+      new RegExp(String.raw`url\(\s*['"]?${remoteUrl}`, 'i'),
+      new RegExp(String.raw`@import\s+(?:url\(\s*)?['"]?${remoteUrl}`, 'i'),
+      new RegExp(String.raw`\b(?:src|href|action|srcset)\s*=\s*['"]${remoteUrl}`, 'i'),
+      new RegExp(
+        String.raw`\b(?:fetch|import|sendBeacon|EventSource|WebSocket)\s*\(\s*['"\`]${remoteUrl}`,
+        'i',
+      ),
+      /\bnew\s+WebSocket\s*\(/,
+      /\bsendBeacon\s*\(/,
+    ]
+    for (const pattern of patterns) expect(offenders(pattern), String(pattern)).toEqual([])
   })
 })

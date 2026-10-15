@@ -1,7 +1,10 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import ComboboxField, { type ComboboxOption } from '@/components/form/ComboboxField.vue'
+import ComboboxField, {
+  type ComboboxOption,
+  type ComboboxSearchResult,
+} from '@/components/form/ComboboxField.vue'
 
 // Catalogue FICTIF : aucune donnée réelle, aucun prix réel.
 const CATALOG: ComboboxOption[] = [
@@ -26,7 +29,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-function mountCombobox(search = searchCatalog) {
+function mountCombobox(search: (query: string) => Promise<ComboboxSearchResult> = searchCatalog) {
   const wrapper = mount(ComboboxField, {
     props: { label: 'Article', modelValue: null, search },
     attachTo: document.body,
@@ -172,5 +175,76 @@ describe('ComboboxField : sélection au clavier (fichier 04)', () => {
     expect(wrapper.findAll('[role="option"]').map((option) => option.get('span').text())).toEqual([
       'Examen de vue',
     ])
+  })
+
+  it('ramène l’option active dans la partie visible de la liste', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      value: scrollIntoView,
+      configurable: true,
+    })
+    try {
+      const wrapper = mountCombobox()
+      await typeQuery(wrapper, 'mon')
+      await key(wrapper, 'ArrowDown')
+      await key(wrapper, 'ArrowDown')
+      await flushPromises()
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(2)
+      expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'nearest' })
+      expect(scrollIntoView.mock.contexts.at(-1)).toBe(
+        wrapper.get(`[id="${wrapper.get('input').attributes('aria-activedescendant') ?? ''}"]`)
+          .element,
+      )
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+    }
+  })
+
+  it('pendant une nouvelle recherche, les anciens résultats ne sont ni affichés ni choisissables', async () => {
+    const wrapper = mountCombobox()
+    await typeQuery(wrapper, 'mon')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(2)
+
+    // Nouvelle saisie : la recherche est temporisée, rien n'est encore revenu.
+    await wrapper.get('input').setValue('exa')
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
+    await key(wrapper, 'ArrowDown')
+    await key(wrapper, 'Enter')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.get('[role="status"]').text()).toBe('Recherche en cours…')
+  })
+
+  it('une réponse arrivée pendant la temporisation d’une saisie plus récente est ignorée', async () => {
+    const resolvers: ((options: readonly ComboboxOption[]) => void)[] = []
+    const wrapper = mountCombobox(
+      () => new Promise<readonly ComboboxOption[]>((resolve) => resolvers.push(resolve)),
+    )
+    await typeQuery(wrapper, 'mon')
+    // Nouvelle saisie avant la réponse, et avant la fin de sa propre temporisation.
+    await wrapper.get('input').setValue('exa')
+    resolvers[0]?.([CATALOG[1] as ComboboxOption])
+    await flushPromises()
+
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
+    expect(wrapper.get('[role="status"]').text()).toBe('Recherche en cours…')
+  })
+
+  it('affiche des résultats partiels avec leur avertissement, jamais « aucun résultat » certain', async () => {
+    const notice = 'Recherche serveur indisponible : seuls les dossiers préparés sur ce poste.'
+    const partial = mountCombobox(() =>
+      Promise.resolve({ options: [CATALOG[0] as ComboboxOption], notice }),
+    )
+    await typeQuery(partial, 'exa')
+    expect(partial.findAll('[role="option"]')).toHaveLength(1)
+    expect(partial.get('[role="status"]').text()).toContain(notice)
+    expect(partial.get('[role="status"]').text()).toContain('1 résultat')
+
+    const none = mountCombobox(() => Promise.resolve({ options: [], notice }))
+    await typeQuery(none, 'zz')
+    const status = none.get('[role="status"]').text()
+    expect(status).toContain(notice)
+    expect(status).toContain('Aucun résultat sur ce poste.')
+    expect(status).not.toContain('Aucun résultat pour')
   })
 })

@@ -33,11 +33,13 @@ const rows = computed(() => [
     :aria-label="props.title"
     class="rounded-lg border-2 border-line bg-surface p-4"
   >
-    <dl class="grid gap-3 sm:grid-cols-3">
+    <!-- Colonnes à la taille de leur contenu, qui passent à la ligne : un grand montant ne
+         déborde jamais sur son voisin (pas de colonnes de largeur fixe). -->
+    <dl class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-10">
       <div
         v-for="row in rows"
         :key="row.key"
-        class="flex flex-wrap items-baseline justify-between gap-x-3 sm:flex-col sm:items-start"
+        class="flex flex-wrap items-baseline justify-between gap-x-3 sm:flex-col sm:items-start sm:justify-start"
       >
         <dt :class="['text-base', row.emphasis ? 'font-semibold text-ink' : 'text-muted']">
           {{ row.label }}

@@ -63,6 +63,14 @@ watch(
   },
 )
 
+/**
+ * Saisie refusée : le parent ne garde pas l'ancienne valeur valide, qui partirait sinon à la place
+ * de ce que l'écran affiche ; la saisie refusée reste affichée pour être corrigée.
+ */
+function clearParentValue(): void {
+  if (props.modelValue !== null) emit('update:modelValue', null)
+}
+
 /** Lit la saisie ; rend false si elle est refusée (le message est alors affiché). */
 function commit(): boolean {
   try {
@@ -70,6 +78,7 @@ function commit(): boolean {
     if (parsed === null && props.required) {
       localError.value = 'Ce champ est obligatoire.'
       emit('invalid', 'required')
+      clearParentValue()
       return false
     }
     localError.value = null
@@ -81,6 +90,7 @@ function commit(): boolean {
     if (!(error instanceof RuleViolation)) throw error
     localError.value = error.message
     emit('invalid', error.rule)
+    clearParentValue()
     return false
   }
 }

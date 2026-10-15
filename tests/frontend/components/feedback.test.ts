@@ -220,6 +220,39 @@ describe('ConfirmDialog', () => {
 
     expect(wrapper.emitted('confirmed')).toHaveLength(1)
   })
+
+  it('pendant la commande, le focus reste dans la boîte et le libellé dit l’action', async () => {
+    const wrapper = attached(mount(Host, { attachTo: document.body }))
+    await openFrom(wrapper)
+    const vm = wrapper.vm as unknown as { pending: boolean }
+
+    vm.pending = true
+    await flushPromises()
+
+    const dialog = wrapper.get('dialog').element
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(
+      wrapper
+        .findAll('dialog button')
+        .every((button) => button.attributes('disabled') !== undefined),
+    ).toBe(true)
+  })
+
+  it('rouvre la boîte si le navigateur la ferme pendant la commande', async () => {
+    const wrapper = attached(mount(Host, { attachTo: document.body }))
+    await openFrom(wrapper)
+    const vm = wrapper.vm as unknown as { open: boolean; pending: boolean }
+    vm.pending = true
+    await flushPromises()
+
+    const dialog = wrapper.get('dialog').element as HTMLDialogElement
+    dialog.removeAttribute('open')
+    dialog.dispatchEvent(new Event('close'))
+    await flushPromises()
+
+    expect(vm.open).toBe(true)
+    expect(dialog.hasAttribute('open')).toBe(true)
+  })
 })
 
 describe('SaveStatus', () => {

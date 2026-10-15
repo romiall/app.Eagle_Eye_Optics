@@ -145,6 +145,13 @@ describe('connexion du personnel', () => {
     )
     expect(input(root, 'Mot de passe').getAttribute('aria-invalid')).toBe('true')
 
+    // Second envoi avec les mêmes erreurs : le résumé est de nouveau focalisé, donc annoncé.
+    const summary = root.querySelector('[role="alert"]') as HTMLElement
+    input(root, 'Identifiant').focus()
+    root.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }))
+    await flushPromises()
+    expect(document.activeElement).toBe(summary)
+
     unmount()
   })
 

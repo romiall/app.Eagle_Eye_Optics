@@ -20,6 +20,7 @@ async function setup() {
     history: createMemoryHistory(),
     routes: [
       { path: '/saisie', component: Editor },
+      { path: '/dossier/:id', component: Editor },
       { path: '/ailleurs', component: { render: () => h('h1', 'Ailleurs') } },
     ],
   })
@@ -77,5 +78,21 @@ describe('saisies non enregistrées (fichier 04)', () => {
     const afterUnmount = new Event('beforeunload', { cancelable: true })
     window.dispatchEvent(afterUnmount)
     expect(afterUnmount.defaultPrevented).toBe(false)
+  })
+
+  it('protège aussi le même écran ouvert avec un autre paramètre (composant réutilisé)', async () => {
+    dirty.value = true
+    const { router, wrapper } = await setup()
+    // Départ de /saisie accepté, pour arriver sur /dossier/1.
+    confirmLeave.mockClear().mockReturnValue(true)
+    await router.push('/dossier/1')
+    expect(router.currentRoute.value.path).toBe('/dossier/1')
+    confirmLeave.mockClear().mockReturnValue(false)
+
+    await router.push('/dossier/2')
+
+    expect(confirmLeave).toHaveBeenCalledWith(UNSAVED_CHANGES_MESSAGE)
+    expect(router.currentRoute.value.path).toBe('/dossier/1')
+    wrapper.unmount()
   })
 })

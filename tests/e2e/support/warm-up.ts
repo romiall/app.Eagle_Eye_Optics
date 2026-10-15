@@ -14,6 +14,9 @@ const WARM_UP_REQUESTS: readonly (readonly [string, string])[] = [
 
 export async function warmUp(baseUrl: string): Promise<void> {
   for (const [path, accept] of WARM_UP_REQUESTS) {
-    await fetch(`${baseUrl}${path}`, { headers: { Accept: accept } }).catch(() => undefined)
+    await fetch(`${baseUrl}${path}`, {
+      headers: { Accept: accept },
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => undefined)
   }
 }

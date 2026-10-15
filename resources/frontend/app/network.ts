@@ -32,6 +32,26 @@ export function reportServerReachable(reachable: boolean): void {
   serverReachable.value = reachable
 }
 
+/**
+ * Sonde de joignabilité : `/up` (hors /api, sans session, jamais servie par le service worker ni
+ * mise en cache). Seule une réponse correcte de l'application compte comme joignable : une page
+ * d'erreur de l'hébergeur ne l'est pas. `navigator.onLine` seul ne prouve rien (fichier 19).
+ */
+export async function probeServer(): Promise<boolean> {
+  try {
+    const response = await fetch('/up', {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      credentials: 'omit',
+    })
+    reportServerReachable(response.ok)
+    return response.ok
+  } catch {
+    reportServerReachable(false)
+    return false
+  }
+}
+
 /** Réservé aux tests : état initial. */
 export function resetNetworkForTests(): void {
   online.value = typeof navigator === 'undefined' ? true : navigator.onLine

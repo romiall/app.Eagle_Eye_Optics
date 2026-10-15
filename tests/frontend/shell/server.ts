@@ -32,6 +32,14 @@ function json(status: number, body: unknown): Response {
   })
 }
 
+/** Page d'erreur HTML d'un hébergeur mutualisé (limite de ressources, maintenance). */
+function htmlError(): Response {
+  return new Response('<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1></body></html>', {
+    status: 503,
+    headers: { 'Content-Type': 'text/html' },
+  })
+}
+
 export interface ScriptedError {
   status: number
   code: string
@@ -40,10 +48,13 @@ export interface ScriptedError {
 }
 
 export interface ServerScript {
-  /** GET /auth/me : compte, 401, aucune réponse (réseau coupé) ou erreur 500 du serveur. */
-  me: MeResponse | 'anonymous' | 'unreachable' | 'server-error'
+  /**
+   * GET /auth/me : compte, 401, aucune réponse (réseau coupé), erreur 500 de l'application (JSON) ou
+   * page HTML 503 d'un hébergeur (« html-error »).
+   */
+  me: MeResponse | 'anonymous' | 'unreachable' | 'server-error' | 'html-error'
   /** Réponse de POST /auth/login ; absente : aucune réponse (réseau coupé). */
-  login?: MeResponse | ScriptedError
+  login?: MeResponse | ScriptedError | 'html-error'
   /** POST /auth/logout : 204 par défaut. */
   logout?: 'ok' | 'unreachable' | ScriptedError
 }
@@ -55,6 +66,7 @@ export function stubServer(script: ServerScript): Mock {
     const method = init?.method ?? 'GET'
     if (url === '/api/v1/auth/me') {
       if (script.me === 'unreachable') throw new TypeError('Failed to fetch')
+      if (script.me === 'html-error') return htmlError()
       if (script.me === 'server-error') {
         return json(500, {
           error: { code: 'INTERNAL_ERROR', message: 'Erreur interne.' },
@@ -73,6 +85,7 @@ export function stubServer(script: ServerScript): Mock {
     if (url === '/api/v1/auth/login' && method === 'POST') {
       const login = script.login
       if (login === undefined) throw new TypeError('Failed to fetch')
+      if (login === 'html-error') return htmlError()
       if ('data' in login) return json(200, login)
       return json(login.status, {
         error: {
@@ -91,6 +104,11 @@ export function stubServer(script: ServerScript): Mock {
         error: { code: logout.code, message: logout.message },
         correlation_id: 'corr-test-0005',
       })
+    }
+    if (url === '/up') {
+      if (script.me === 'unreachable') throw new TypeError('Failed to fetch')
+      if (script.me === 'html-error') return htmlError()
+      return json(200, { status: 'ok' })
     }
     return json(404, {
       error: { code: 'RESOURCE_NOT_FOUND', message: 'Ressource introuvable.' },

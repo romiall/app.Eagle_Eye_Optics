@@ -44,8 +44,11 @@ Les chemins des entrées non livrées sont indicatifs : la tâche qui livre l'é
 Sur ordinateur (≥ 768 px), la barre latérale liste l'accueil puis les modules. Sur téléphone, la barre
 du bas montre les raccourcis Aujourd'hui, Patients et Agenda, puis « Plus » pour les autres modules.
 « Plus » est une liste dépliante native (`details`/`summary`, clavier et lecteurs d'écran natifs).
-Elle se referme à l'ouverture d'un écran ou avec Échap, et le focus revient alors sur « Plus ». Le
-titre de l'en-tête est un lien vers l'accueil, sur toutes les largeurs.
+Elle se referme à l'ouverture d'un écran, ou avec Échap qui rend le focus à « Plus » ; sa liste est
+bornée en hauteur et défile (téléphone en paysage, zoom 200 %). Une fois connecté, le titre de
+l'en-tête est un lien vers l'accueil, sur toutes les largeurs. Tant qu'aucun écran n'est livré, la
+navigation n'existe que dans les tests jsdom (catalogue fictif) : sa vérification dans un vrai
+navigateur arrive avec le premier écran livré (P01, P02).
 
 ## Coquille
 
@@ -55,21 +58,27 @@ titre de l'en-tête est un lien vers l'accueil, sur toutes les largeurs.
   arrive avec la recherche de patients (P02) et l'état de synchronisation avec le journal du poste
   (F10, O04, O05) : ils ne sont pas simulés avant d'exister.
 - **État réseau** (`NetworkStatus`) : « Hors ligne » quand le navigateur n'a plus de réseau. «
-  Serveur injoignable » quand le client HTTP n'a reçu aucune réponse ; toute réponse, même une
-  erreur, prouve que le serveur répond. Sinon « En ligne ». Chaque état a un libellé et un symbole,
-  et il est annoncé poliment. « En ligne » ne dit rien des pièces locales.
+  Serveur injoignable » quand l'application n'a pas répondu : aucune réponse, ou une page d'erreur
+  HTML de l'hébergeur ; une réponse JSON de l'application, même une erreur, prouve qu'elle répond.
+  Sinon « En ligne ». La joignabilité est vérifiée par requête (`/up`, jamais par
+  `navigator.onLine` seul) : toutes les 30 secondes tant que le serveur ne répond pas, toutes les 60
+  secondes sinon, et au retour du réseau. Chaque état a un libellé et un symbole, et il est annoncé
+  poliment. « En ligne » ne dit rien des pièces locales.
 - **Session** (`session.ts`, session Sanctum du fichier 23) : `unknown`, `anonymous`,
   `authenticated` ou `unverified`. `unverified` veut dire que la session n'a pas pu être vérifiée :
   le serveur est muet ou répond par une erreur (5xx, maintenance). Ce n'est jamais pris pour une
   déconnexion. L'accueil dit lequel des deux cas se produit (« Serveur injoignable » ou « Session
   non vérifiée »). La coquille relit la session au retour du réseau, puis toutes les 30 secondes.
-- **Garde du routeur** : sans session, la connexion s'ouvre avec `suite` = chemin interne seulement,
-  jamais de paramètre de requête ni de dossier dans l'URL. Une page protégée par des permissions ne
+- **Garde du routeur** : sans session, la connexion s'ouvre avec `suite` = le chemin demandé, sans
+  ses paramètres de requête (aucun nom, téléphone ni filtre dans l'URL). Ce chemin peut contenir un
+  identifiant opaque (ULID d'une facture), jamais une donnée personnelle ; après la connexion, seul
+  un chemin interne est suivi. Une page protégée par des permissions ne
   s'ouvre que si la session est vérifiée : sinon l'accueil explique l'état. Une page dont le compte
   n'a pas la permission mène à « Accès refusé ». Pour un compte connecté, une adresse inconnue mène
   à « Page introuvable » ; sans session, à la connexion. Aucune URL métier non livrée n'ouvre
   d'écran vide.
-- **Déconnexion** : la connexion ne s'affiche qu'une fois la session fermée par le serveur. Sans
+- **Déconnexion** : l'écran en cours est d'abord quitté ; si sa garde de saisie est refusée, rien
+  n'est fermé. Puis la connexion ne s'affiche qu'une fois la session fermée par le serveur. Sans
   réponse, ou sur une erreur, le compte reste affiché avec le message « Déconnexion impossible […]
   La session reste ouverte sur ce poste ». Sur un poste partagé, la personne suivante ne doit pas
   hériter d'une session que l'écran prétendrait fermée. Une session déjà expirée (401) est
@@ -94,15 +103,16 @@ titre de l'en-tête est un lien vers l'accueil, sur toutes les largeurs.
 | `TextField`, `SelectField` | Saisie conservée telle quelle ; liste native avec option vide explicite (null) |
 | `DecimalField` | Mesures et quantités exactes par les règles F08 (virgule ou point) ; trop de décimales refusé, jamais arrondi ; vide = null, jamais 0 ; lu à la sortie du champ **et à Entrée** (avant l'envoi du formulaire) ; `commit()` exposé ; pavé décimal pour une valeur positive, clavier texte pour une dioptrie (le pavé décimal de l'iPhone n'a pas de « - ») |
 | `MoneyField` | FCFA entiers (« 80 000 »), décimales et séparateurs ambigus refusés ; unité annoncée aux lecteurs d'écran ; affichage relu sans dérive |
-| `DateField` | JJ/MM/AAAA ou ISO ; date inexistante refusée ; jamais de date inventée |
-| `ComboboxField` | Choix avec recherche (catalogue, dossier) : motif combobox ARIA 1.2, recherche à partir de 2 caractères, ↓/↑ puis Entrée, Échap ferme ; rien n'est choisi à la place de l'utilisateur ; une réponse obsolète est ignorée ; « Recherche indisponible » distinct de « Aucun résultat ». La source des résultats est fournie par l'écran (F10) |
+| `DateField` | JJ/MM/AAAA, ISO ou 8 chiffres JJMMAAAA (pavé numérique de l'iPhone, sans « / ») ; date inexistante refusée ; jamais de date inventée |
+| Saisie refusée (`DecimalField`, `MoneyField`, `DateField`) | Message sous le champ, saisie conservée pour correction, et valeur du parent remise à null : l'ancienne valeur valide ne part jamais à la place de ce que l'écran affiche ; le formulaire bloque l'envoi sur l'événement `invalid` ou le retour de `commit()` |
+| `ComboboxField` | Choix avec recherche (catalogue, dossier) : motif combobox ARIA 1.2, recherche à partir de 2 caractères, ↓/↑ puis Entrée, Échap ferme ; rien n'est choisi à la place de l'utilisateur ; les résultats d'une saisie précédente disparaissent dès la nouvelle saisie et toute réponse obsolète est ignorée ; l'option active est ramenée dans la partie visible de la liste ; « Recherche indisponible » distinct de « Aucun résultat » ; résultats partiels avec avertissement (`{ options, notice }` : dossiers préparés sur ce poste quand la recherche serveur est indisponible). La source des résultats est fournie par l'écran (F10) |
 | `ErrorSummary` | Résumé focalisé quand de nouvelles erreurs apparaissent ; chaque erreur mène à son champ ; `focus()` exposé pour un nouvel échec identique |
-| `ConfirmDialog` | `<dialog>` modal natif (reste de la page inerte) ; focus initial sur l'action, ou sur « Annuler » pour une action risquée ; focus rendu au déclencheur ; Échap annule par le parent, sauf pendant la commande ; fermeture imposée par le navigateur signalée au parent |
+| `ConfirmDialog` | `<dialog>` modal natif (reste de la page inerte) ; focus initial sur l'action, ou sur « Annuler » pour une action risquée ; focus rendu au déclencheur ; Échap annule par le parent, sauf pendant la commande ; pendant la commande, focus gardé dans la boîte et libellé propre (`pendingLabel`) ; fermeture imposée par le navigateur signalée au parent, ou boîte rouverte pendant la commande |
 | `SaveStatus` | « Enregistré sur ce poste à 10h42 » (heure du cabinet), « Synchronisé avec le serveur », « Échec de l'enregistrement : vos saisies restent affichées » ; il affiche l'état fourni, ne le déduit pas |
 | `StateMessage` | États du fichier 04 : chargement, vide, succès, erreur, conflit, droits insuffisants, connexion indisponible ; rôle `alert` pour erreur et conflit ; symbole et titre, jamais la seule couleur |
 | `OpticalTable` | OD toujours avant OG, OU seulement sur demande (acuité) ; libellé complet par champ (mesure, unité, œil) ; grille sur grand écran, blocs OD puis OG sur téléphone ; aucune recopie d'un œil à l'autre ; cellule dioptrie par défaut, autre nature (axe, acuité, hauteur) par la fente `cellule-<clé>` dont les règles appartiennent à C02/C04 |
-| `AmountSummary` | Total, Versé, Reste (reste mis en évidence) en FCFA entiers ; aucun solde calculé par le composant (projection ou serveur) ; aucun montant tronqué |
-| `useUnsavedChangesGuard` | Quitter un écran avec une saisie non enregistrée demande confirmation (navigation interne et fermeture de l'onglet) ; rien n'est conservé ailleurs |
+| `AmountSummary` | Total, Versé, Reste (reste mis en évidence) en FCFA entiers ; aucun solde calculé par le composant (projection ou serveur) ; colonnes à la taille de leur contenu qui passent à la ligne, jamais de chevauchement ni de coupe (mise en page vérifiée par l'e2e de l'écran qui l'emploiera, B02–B04) |
+| `useUnsavedChangesGuard` | Quitter un écran avec une saisie non enregistrée demande confirmation : navigation interne, même écran avec un autre paramètre (`/dossier/1` → `/dossier/2`), fermeture de l'onglet ; rien n'est conservé ailleurs |
 
 Un composant ne lit ni n'écrit aucune table locale et n'appelle aucune API métier lui-même : les
 écrans passent par les services de lecture et le répartiteur de mutations (F10). Les gardes
@@ -159,3 +169,36 @@ isolée. Les comptes de démonstration sont fictifs. Le test vérifie :
   P02, B02 à B04, D01). F09 fournit les composants et la coquille de ce parcours.
 - Recherche rapide de l'en-tête (P02) ; état de synchronisation des pièces (F10, O04, O05) ;
   déverrouillage hors-ligne d'un profil préparé (O01, O02) ; règles des cellules axe et acuité (C02).
+
+## Revue contradictoire (2026-10-15) et traitement
+
+Revue indépendante et adverse des commits `1c39c52`, `0354212` et `5ff7363`, en lecture seule, avec
+sondes et mutations sur une copie : **pass=false**, 4 majeurs et 14 mineurs. Elle a aussi relevé ce
+qui tient : aucun module futur présenté comme livré, aucune redirection ouverte, déconnexion
+honnête, relecture de session sans fuite, champs exacts, OD avant OG, contrastes exacts et correction
+F05 sans effet de bord. Tous les constats sont traités ci-dessous, chacun avec son test.
+
+| Constat | Gravité | Traitement |
+| --- | --- | --- |
+| Page d'erreur HTML d'un hébergeur (503, pare-feu, portail captif) : `SyntaxError`, session « inconnue » sans relecture, connexion sans message | Majeur | Réponse non JSON = `ApiError` `HTTP_ERROR`, serveur compté injoignable ; tests au démarrage (relecture rétablie) et à la connexion |
+| Garde de saisie contournée par un changement de paramètre de route | Majeur | `onBeforeRouteUpdate` avec la même condition ; test `/dossier/1` → `/dossier/2` |
+| Date impossible à saisir au pavé numérique de l'iPhone | Majeur | 8 chiffres JJMMAAAA mis en forme dans le champ (règle F08 inchangée, date ISO envoyée) ; test |
+| Option active hors de la partie visible de la liste | Majeur | `scrollIntoView({ block: 'nearest' })` à chaque changement ; test |
+| Résultats périmés choisissables pendant une recherche | Mineur | Résultats vidés dès la nouvelle saisie ; test |
+| Résumé d'erreurs non réannoncé à l'identique | Mineur | La connexion refocalise le résumé à chaque échec ; test |
+| État réseau figé (retour du serveur non vu, liaison perdue affichée « En ligne ») | Mineur | Sonde `/up` périodique (30 s / 60 s) et au retour du réseau ; deux tests |
+| Session fermée avant la garde de saisie | Mineur | L'écran est quitté d'abord, la déconnexion s'arrête si la saisie est gardée ; test |
+| Trois associations de couleurs employées mais non vérifiées | Mineur | Ajoutées au test de contraste ; commentaire de `tokens.css` corrigé |
+| Menu « Plus » rogné en paysage ou à 200 % ; navigation jamais vue dans un vrai navigateur | Mineur | Liste bornée en hauteur et défilante ; e2e de la navigation avec le premier écran livré (P01, P02) |
+| Grands montants qui débordent entre 640 et 767 px | Mineur | Colonnes à la taille du contenu qui passent à la ligne |
+| Saisie refusée : le parent gardait l'ancienne valeur valide | Mineur | Valeur du parent remise à null, saisie conservée ; test |
+| Pas de résultats locaux avec « Recherche serveur indisponible » | Mineur | Résultat `{ options, notice }` ; test |
+| `ConfirmDialog` : focus hors de la boîte pendant la commande, libellé générique | Mineur | Focus gardé dans la boîte, `pendingLabel` ; tests (dont la réouverture) |
+| Accueil : module livré sans action d'accueil annoncé « aucun module livré » | Mineur | Modules pris en compte, renvoi au menu ; test |
+| Gardes statiques contournables | Mineur | Commentaires retirés avant analyse, accès indirects, URL sans protocole, `import()`, `sendBeacon`, `WebSocket` |
+| Affirmations inexactes de ce document | Mineur | Corrigées (`suite`, focus de « Plus », lien de l'en-tête, réponses obsolètes) |
+| `opcache.enable_cli` sans effet pour `php -S`, préchauffage sans délai | Mineur | Option retirée (le serveur intégré suit `opcache.enable`), délai de 30 s par requête de préchauffage |
+
+Les cinq mutations qui survivaient (réponse obsolète, focus au premier affichage, paramètres de
+requête dans `suite`, saisie refusée écrasée, boîte non rouverte), plus deux nouvelles (garde sans
+`onBeforeRouteUpdate`, réponse HTML non protégée), font maintenant échouer au moins un test.

@@ -8,7 +8,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { useNavigationCatalog, visibleHomeActions } from '@/app/navigation'
+import { useNavigationCatalog, visibleHomeActions, visibleModules } from '@/app/navigation'
 import { useNetworkStatus } from '@/app/network'
 import { currentPermissions, session } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
@@ -16,7 +16,10 @@ import StateMessage from '@/components/feedback/StateMessage.vue'
 const catalog = useNavigationCatalog()
 const { serverReachable } = useNetworkStatus()
 const actions = computed(() => visibleHomeActions(currentPermissions.value, catalog.homeActions))
-const anyDelivered = computed(() => catalog.homeActions.some((action) => action.delivered))
+const anyDelivered = computed(() =>
+  [...catalog.homeActions, ...catalog.modules].some((entry) => entry.delivered),
+)
+const menuModules = computed(() => visibleModules(currentPermissions.value, catalog.modules))
 </script>
 
 <template>
@@ -53,9 +56,18 @@ const anyDelivered = computed(() => catalog.homeActions.some((action) => action.
       </ul>
     </nav>
 
-    <StateMessage v-else-if="anyDelivered" state="empty" title="Aucune action ouverte à ce compte">
-      Demandez à la gérante d’attribuer les droits nécessaires si une tâche fait partie de votre
-      travail.
+    <StateMessage
+      v-else-if="anyDelivered"
+      state="empty"
+      title="Aucune action d’accueil ouverte à ce compte"
+    >
+      <template v-if="menuModules.length > 0"
+        >Les écrans ouverts à ce compte sont dans le menu.</template
+      >
+      <template v-else
+        >Demandez à la gérante d’attribuer les droits nécessaires si une tâche fait partie de votre
+        travail.</template
+      >
     </StateMessage>
 
     <StateMessage v-else state="empty" title="Aucun module métier livré pour l’instant">

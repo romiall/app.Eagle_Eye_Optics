@@ -8,9 +8,11 @@
  *
  * Les résultats viennent de la fonction `search` fournie par l'écran (service de lecture, F10) : le
  * composant n'interroge aucune table ni aucune API lui-même. Une recherche impossible (hors ligne,
- * serveur injoignable, erreur) est dite « indisponible », jamais « aucun résultat ».
+ * serveur injoignable, erreur) est dite « indisponible », jamais « aucun résultat ». Une recherche
+ * partielle rend ses résultats avec un avertissement (`{ options, notice }`). Les résultats d'une
+ * saisie précédente disparaissent dès la nouvelle saisie ; l'option active reste visible.
  */
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 
 import { controlClasses } from './classes'
 import FieldShell from './FieldShell.vue'
@@ -22,6 +24,14 @@ export interface ComboboxOption {
   description?: string
 }
 
+/**
+ * Résultat d'une recherche : une liste, ou une liste partielle avec son avertissement (par exemple
+ * les seuls dossiers préparés sur ce poste quand la recherche serveur est indisponible : fichier 04,
+ * jamais « aucun dossier » avec certitude).
+ */
+export type ComboboxSearchResult =
+  readonly ComboboxOption[] | { options: readonly ComboboxOption[]; notice: string }
+
 type SearchStatus = 'idle' | 'loading' | 'ready' | 'unavailable'
 
 const props = withDefaults(
@@ -31,7 +41,7 @@ const props = withDefaults(
     modelValue: string | null
     /** Libellé de l'option déjà choisie, affiché dans le champ. */
     selectedLabel?: string | null
-    search: (query: string) => Promise<readonly ComboboxOption[]>
+    search: (query: string) => Promise<ComboboxSearchResult>
     minLength?: number
     debounceMs?: number
     hint?: string | undefined
@@ -67,6 +77,7 @@ const options = ref<readonly ComboboxOption[]>([])
 const activeIndex = ref(-1)
 const open = ref(false)
 const status = ref<SearchStatus>('idle')
+const notice = ref<string | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 let requestNumber = 0
 
@@ -92,9 +103,13 @@ const message = computed(() => {
   if (status.value === 'unavailable') return props.unavailableText
   if (status.value === 'ready') {
     const count = options.value.length
-    return count === 0
-      ? `Aucun résultat pour « ${query} ».`
-      : `${count} résultat${count > 1 ? 's' : ''} : flèches haut et bas pour parcourir, Entrée pour choisir.`
+    const found =
+      count === 0
+        ? notice.value === null
+          ? `Aucun résultat pour « ${query} ».`
+          : 'Aucun résultat sur ce poste.'
+        : `${count} résultat${count > 1 ? 's' : ''} : flèches haut et bas pour parcourir, Entrée pour choisir.`
+    return notice.value === null ? found : `${notice.value} ${found}`
   }
   return ''
 })
@@ -118,11 +133,18 @@ async function runSearch(query: string): Promise<void> {
   try {
     const results = await props.search(query)
     if (number !== requestNumber) return
-    options.value = results
+    if ('notice' in results) {
+      options.value = results.options
+      notice.value = results.notice
+    } else {
+      options.value = results
+      notice.value = null
+    }
     status.value = 'ready'
   } catch {
     if (number !== requestNumber) return
     options.value = []
+    notice.value = null
     status.value = 'unavailable'
   }
 }
@@ -132,9 +154,11 @@ function scheduleSearch(): void {
   // Toute réponse encore attendue devient obsolète : seule la dernière saisie compte.
   requestNumber += 1
   activeIndex.value = -1
+  // Les résultats de la saisie précédente ne restent ni affichés ni choisissables.
+  options.value = []
+  notice.value = null
   const query = text.value.trim()
   if (query.length < props.minLength) {
-    options.value = []
     status.value = 'idle'
     open.value = query.length > 0
     return
@@ -143,6 +167,13 @@ function scheduleSearch(): void {
   open.value = true
   timer = setTimeout(() => void runSearch(query), props.debounceMs)
 }
+
+// L'option active reste visible dans une liste qui défile (clavier, WCAG 2.4.7).
+watch(activeIndex, async (index) => {
+  if (index < 0) return
+  await nextTick()
+  document.getElementById(optionId(index))?.scrollIntoView?.({ block: 'nearest' })
+})
 
 function onInput(event: Event): void {
   text.value = (event.target as HTMLInputElement).value

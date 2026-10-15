@@ -156,7 +156,9 @@ describe('coquille : navigation des modules livrés et autorisés', () => {
     const { root, unmount } = await mountShell(['agenda.read'])
 
     expect(root.querySelector('main nav')).toBeNull()
-    expect(root.textContent).toContain('Aucune action ouverte à ce compte')
+    expect(root.textContent).toContain('Aucune action d’accueil ouverte à ce compte')
+    // L'agenda (autorisé) est dans le menu : l'accueil y renvoie.
+    expect(root.textContent).toContain('Les écrans ouverts à ce compte sont dans le menu.')
     expect(root.textContent).not.toContain('Aucun module métier livré')
 
     unmount()

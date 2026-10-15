@@ -11,19 +11,26 @@
  * recherche de patients (P02) et l'état de synchronisation avec le journal du poste (F10, O04, O05).
  */
 import { computed, ref, watch, watchEffect } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import {
+  isNavigationFailure,
+  NavigationFailureType,
+  RouterLink,
+  RouterView,
+  useRoute,
+  useRouter,
+} from 'vue-router'
 
 import NetworkStatus from '@/components/feedback/NetworkStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
-import { useNetworkStatus } from './network'
+import { probeServer, useNetworkStatus } from './network'
 import { currentPermissions, refreshSession, session, signOut } from './session'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useNavigationCatalog()
-const { online } = useNetworkStatus()
+const { online, serverReachable } = useNetworkStatus()
 
 const signedIn = computed(() => session.status === 'authenticated' && session.account !== null)
 const modules = computed(() =>
@@ -73,7 +80,24 @@ async function recheckSession(): Promise<void> {
 }
 
 watch(online, (isOnline) => {
-  if (isOnline) void recheckSession()
+  if (!isOnline) return
+  void probeServer()
+  void recheckSession()
+})
+
+/**
+ * Joignabilité du serveur vérifiée par requête, pas seulement par `navigator.onLine` : toutes les
+ * 30 secondes quand le serveur ne répond pas (l'en-tête redevient « En ligne » à son retour), toutes
+ * les 60 secondes sinon (une liaison Internet perdue n'est pas affichée « En ligne » sans limite).
+ */
+const PROBE_UNREACHABLE_MS = 30_000
+const PROBE_REACHABLE_MS = 60_000
+
+watchEffect((onCleanup) => {
+  if (!online.value) return
+  const delay = serverReachable.value === false ? PROBE_UNREACHABLE_MS : PROBE_REACHABLE_MS
+  const timer = setInterval(() => void probeServer(), delay)
+  onCleanup(() => clearInterval(timer))
 })
 
 watchEffect((onCleanup) => {
@@ -82,9 +106,15 @@ watchEffect((onCleanup) => {
   onCleanup(() => clearInterval(timer))
 })
 
-/** La connexion ne s'affiche qu'une fois la session fermée par le serveur (voir signOut). */
+/**
+ * Déconnexion : l'écran en cours est d'abord quitté (sa garde de saisie peut refuser : la session
+ * reste alors ouverte et la saisie intacte), puis la session est fermée par le serveur, et la
+ * connexion ne s'affiche qu'après sa confirmation (voir signOut).
+ */
 async function logout(): Promise<void> {
   logoutError.value = null
+  const left = await router.push({ name: 'accueil' })
+  if (isNavigationFailure(left, NavigationFailureType.aborted)) return
   loggingOut.value = true
   try {
     await signOut()
@@ -185,7 +215,7 @@ const linkClass =
           <details ref="moreMenu" @keydown.esc="closeMoreMenu(true)">
             <summary :class="[linkClass, 'cursor-pointer list-none']">Plus</summary>
             <ul
-              class="absolute right-0 bottom-full mb-2 w-56 space-y-1 rounded-lg border border-line bg-surface p-2 shadow-lg"
+              class="absolute right-0 bottom-full mb-2 max-h-[min(70vh,24rem)] w-56 space-y-1 overflow-y-auto rounded-lg border border-line bg-surface p-2 shadow-lg"
             >
               <li v-for="module in others" :key="module.id">
                 <RouterLink :to="module.path" :class="linkClass">{{ module.label }}</RouterLink>

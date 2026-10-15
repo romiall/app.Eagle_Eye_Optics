@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
- * Date civile : saisie « JJ/MM/AAAA » (ou ISO), lue par les règles F08 à la sortie du champ ou à
- * Entrée ; une date inexistante (29/02/2026) est refusée. Vide → null : une date inconnue n'est
- * jamais remplacée par une date inventée (le motif d'absence est un autre champ). `commit()` est
- * exposé pour qu'un formulaire lise le champ avant son envoi.
+ * Date civile : saisie « JJ/MM/AAAA », ISO, ou 8 chiffres « JJMMAAAA » (le pavé numérique de
+ * l'iPhone n'a pas de « / » : « 15102026 » est mis en forme « 15/10/2026 » avant lecture), lue par
+ * les règles F08 à la sortie du champ ou à Entrée ; une date inexistante (29/02/2026) est refusée.
+ * Vide → null : une date inconnue n'est jamais remplacée par une date inventée (le motif d'absence
+ * est un autre champ). `commit()` est exposé pour qu'un formulaire lise le champ avant son envoi.
  */
 import { ref, watch } from 'vue'
 
@@ -28,7 +29,7 @@ const props = withDefaults(
   }>(),
   {
     field: 'date',
-    hint: 'Format JJ/MM/AAAA',
+    hint: 'Format JJ/MM/AAAA ou 8 chiffres (15102026)',
     error: null,
     required: false,
     disabled: false,
@@ -49,13 +50,30 @@ watch(
   },
 )
 
+/** « 15102026 » → « 15/10/2026 » ; toute autre saisie est lue telle quelle par la règle F08. */
+function withSlashes(value: string): string {
+  const digits = value.trim()
+  return /^[0-9]{8}$/.test(digits)
+    ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+    : value
+}
+
+/**
+ * Saisie refusée : le parent ne garde pas l'ancienne valeur valide, qui partirait sinon à la place
+ * de ce que l'écran affiche ; la saisie refusée reste affichée pour être corrigée.
+ */
+function clearParentValue(): void {
+  if (props.modelValue !== null) emit('update:modelValue', null)
+}
+
 /** Lit la saisie ; rend false si elle est refusée (le message est alors affiché). */
 function commit(): boolean {
   try {
-    const date = CivilDate.parse(text.value, props.field)
+    const date = CivilDate.parse(withSlashes(text.value), props.field)
     if (date === null && props.required) {
       localError.value = 'Ce champ est obligatoire.'
       emit('invalid', 'required')
+      clearParentValue()
       return false
     }
     localError.value = null
@@ -67,6 +85,7 @@ function commit(): boolean {
     if (!(error instanceof RuleViolation)) throw error
     localError.value = error.message
     emit('invalid', error.rule)
+    clearParentValue()
     return false
   }
 }

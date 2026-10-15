@@ -121,7 +121,9 @@ describe('DecimalField : mesures et quantités exactes (règles F08)', () => {
 
     await type(wrapper, '1,255')
 
-    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    // L'ancienne valeur valide n'est plus celle du parent : elle ne partirait pas à la place de
+    // ce que l'écran affiche.
+    expect(wrapper.emitted('update:modelValue')).toEqual([[null]])
     expect(wrapper.emitted('invalid')).toEqual([['decimal.scale']])
     expect((wrapper.get('input').element as HTMLInputElement).value).toBe('1,255')
     expect(wrapper.get('input').attributes('aria-invalid')).toBe('true')
@@ -255,6 +257,19 @@ describe('MoneyField : FCFA entiers', () => {
 
     expect(describedText(wrapper)).toBe('Espèces | FCFA')
   })
+
+  it('une saisie refusée vide la valeur du parent et reste affichée quand il la reçoit', async () => {
+    const wrapper = track(mount(MoneyField, { props: { label: 'Montant', modelValue: 80000 } }))
+
+    await type(wrapper, '80 000,50')
+    expect(wrapper.emitted('update:modelValue')).toEqual([[null]])
+
+    // Le parent applique null : la saisie refusée n'est pas écrasée, elle reste à corriger.
+    await wrapper.setProps({ modelValue: null })
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('80 000,50')
+    await wrapper.setProps({ modelValue: 5000 })
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('80 000,50')
+  })
 })
 
 describe('DateField : date civile', () => {
@@ -267,6 +282,18 @@ describe('DateField : date civile', () => {
 
     expect(wrapper.emitted('update:modelValue')).toEqual([['1984-03-05']])
     expect((wrapper.get('input').element as HTMLInputElement).value).toBe('05/03/1984')
+  })
+
+  it('accepte 8 chiffres (pavé numérique de l’iPhone, sans « / »)', async () => {
+    const wrapper = track(mount(DateField, { props: { label: 'Date', modelValue: null } }))
+
+    await type(wrapper, '15102026')
+    expect(wrapper.emitted('update:modelValue')).toEqual([['2026-10-15']])
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('15/10/2026')
+
+    await type(wrapper, '31022026')
+    expect(wrapper.emitted('invalid')).toHaveLength(1)
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('31022026')
   })
 
   it('refuse une date inexistante et garde la saisie', async () => {

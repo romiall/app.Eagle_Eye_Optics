@@ -29,6 +29,7 @@ const fieldErrors = ref<{ login: string | null; password: string | null }>({
   password: null,
 })
 const general = ref<string | null>(null)
+const summaryBox = ref<{ focus: () => Promise<void> } | null>(null)
 
 const summary = computed<FieldErrorItem[]>(() => {
   const items: FieldErrorItem[] = []
@@ -61,6 +62,8 @@ async function submit(): Promise<void> {
       login: missingLogin ? 'Saisissez votre identifiant.' : null,
       password: missingPassword ? 'Saisissez votre mot de passe.' : null,
     }
+    // Même erreur qu'à l'envoi précédent : le résumé est de nouveau focalisé, donc annoncé.
+    await summaryBox.value?.focus()
     return
   }
 
@@ -84,6 +87,7 @@ async function submit(): Promise<void> {
     } else {
       throw error
     }
+    await summaryBox.value?.focus()
   } finally {
     pending.value = false
   }
@@ -93,7 +97,7 @@ async function submit(): Promise<void> {
 <template>
   <section aria-labelledby="titre-connexion" class="mx-auto max-w-md space-y-6">
     <h1 id="titre-connexion" class="text-2xl font-semibold tracking-tight">Connexion</h1>
-    <ErrorSummary :errors="summary" title="Connexion impossible" />
+    <ErrorSummary ref="summaryBox" :errors="summary" title="Connexion impossible" />
     <form class="space-y-4" novalidate @submit.prevent="submit">
       <TextField
         v-model="login"

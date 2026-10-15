@@ -1,11 +1,13 @@
 /*
  * Palette du fichier 04 (proposition de design, aucune charte fournie) : fond #F6F8FB, surface blanche,
  * texte #172B3A, action principale #155E75, accent #167D65. Les autres teintes en dérivent pour les
- * états. Chaque association utilisée est vérifiée par tests/frontend/shell/palette.test.ts (texte
- * ≥ 4,5:1, bordures de champ et focus ≥ 3:1, états désactivés compris). Un état n'est jamais signalé
- * par la seule couleur : chaque état a aussi un libellé ou un symbole.
+ * états. Les associations employées par la coquille et les composants sont listées et vérifiées
+ * dans tests/frontend/shell/palette.test.ts (texte ≥ 4,5:1, bordures de champ et focus ≥ 3:1, états
+ * désactivés compris). Un état n'est jamais signalé par la seule couleur : chaque état a aussi un
+ * libellé ou un symbole.
  *
- * Une teinte ajoutée ici doit être ajoutée aux associations du test de contraste.
+ * Une teinte ajoutée ici, ou un nouvel usage d'une teinte sur un fond, s'ajoute aux associations du
+ * test de contraste.
  */
 @theme {
   --color-canvas: #f6f8fb;
