@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante : F10 (lectures locales et états de synchronisation) — IN_PROGRESS.
+- Tâche courante : F10 (lectures locales et états de synchronisation) — IN_REVIEW : livré, CI et revue indépendante à constater.
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -191,3 +191,16 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 | Traitement | Tous les constats traités, chacun avec son test (tableau de `shell.md`) : réponse non JSON = `ApiError`, `onBeforeRouteUpdate`, date en 8 chiffres, `scrollIntoView`, résultats vidés à la nouvelle saisie, résumé refocalisé, sonde `/up` 30 s / 60 s, écran quitté avant la déconnexion, 3 associations de couleurs ajoutées, liste « Plus » bornée, montants qui passent à la ligne, valeur du parent remise à null sur refus, résultats `{ options, notice }`, focus gardé et `pendingLabel`, accueil qui renvoie au menu, gardes statiques élargies, documentation corrigée. Vitest **621** ; les 5 mutations survivantes et 2 nouvelles sont tuées (mutation appliquée, test visé lancé, fichier restauré à l’identique) ; vue-tsc, ESLint, Prettier |
 | Correction associée | F05 : 401 au lieu de 500 sans en-tête Accept (ligne « Correction ultérieure » de F05) |
 | Reprise | F10, puis O01 |
+
+### F10 — Définir lectures locales et états de synchronisation
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | IN_REVIEW — interfaces, règles, composants et tests livrés ; CI GitHub et revue indépendante à constater |
+| Objectif | Aucune écriture Dexie directe depuis un écran ; aucun total local + serveur compté deux fois ; états d'enregistrement et de synchronisation distincts du réseau (AT29, AT42, AT45 ; EE023, EE042, EE044) |
+| Fichiers | `resources/frontend/offline/projections/{syncStates,merge,ledger}.ts`, `resources/frontend/app/services/{commandIndex,mutations,useMutation,reads,sync,projections}.ts`, `resources/frontend/components/SyncStatus.vue`, `resources/frontend/components/feedback/{SyncBadge,FreshnessNote}.vue`, `resources/frontend/components/session/ReauthDialog.vue`, `resources/frontend/domain/values/ulid.ts`, `eslint.config.js`, `docs/implementation/local-reads.md` |
+| Contrats / tables | `contracts/sync/ack.json` (états), `contracts/commands/index.json` (routes directes, versions attendues, lues par le client sans copie), `common.json#/$defs/Ulid` ; règle F08 `LedgerBalance` (jumelle de `vw_invoice_balances`) |
+| Tests exécutés | Poste local : Vitest **689** (27 fichiers ; 68 nouveaux : fusion par identifiant et solde sans double comptage, conflit montré à part et jamais « soldé », rejet non compté, faits acceptés après l'instantané comptés une fois ; répartiteur : route directe, en-tête et version attendue, journal local prioritaire, classement de chaque réponse ; `useMutation` : même clé pour une même intention, nouvelle clé pour une autre charge, double clic, session expirée puis reprise ; lectures ; `SyncStatus`, `SyncBadge`, `FreshnessNote`, `ReauthDialog` ; ULID ; règle d'architecture vérifiée par l'API ESLint sur du code d'exemple et sur le code réel) ; vue-tsc, ESLint, Prettier |
+| Défauts ouverts | `LocalCommandEngine` réel, coffre et journal du poste (O01, O04) ; push, pull et ACK (O05) ; PDF (D01) ; recette AT42 et AT45 avec ces tâches ; écrans qui emploieront les services (P01–P03, B02–B08, C01–C04) |
+| Décision nouvelle | Commandes d'un poste préparé toujours enregistrées dans son journal, même en ligne (autorité temporaire de ses écritures) ; routes directes lues dans le contrat F06 ; fait en conflit ni compté ni oublié (montré « en litige ») ; « soldée » seulement avec des données distantes complètes ; reconnexion sur place limitée au même compte ; clés d'idempotence et identifiants d'effets en ULID générés sur le poste ; `app/services` seul accès des écrans au moteur local |
+| Reprise | CI et revue indépendante, puis DONE ; ensuite O01 |

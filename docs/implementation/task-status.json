@@ -189,9 +189,17 @@
    "notes": "Coquille et composants livrés (1c39c52), revue contradictoire pass=false (4 majeurs, 14 mineurs, 5 mutations survivantes) entièrement traitée au commit 7de8e2b (tableau de shell.md), chaque correction avec son test ; Vitest 621 ; 7 mutations tuées. CI GitHub verte : run 38782531589 sur 7de8e2b (PHP, Frontend, Playwright Linux 27/27). Aucun module futur présenté comme livré."
   },
   "F10": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/local-reads.md",
+    "resources/frontend/offline/projections/",
+    "resources/frontend/app/services/",
+    "resources/frontend/components/SyncStatus.vue",
+    "tests/frontend/offline/projections.test.ts",
+    "tests/frontend/services/",
+    "tests/frontend/architecture.test.ts"
+   ],
+   "notes": "Interfaces de lecture et de mutation, états local/en attente/ACK/conflit/rejet/PDF, fusion par identifiant et solde sans double comptage (LedgerBalance F08), SyncStatus distinct du réseau, reconnexion sur place du même compte. Vitest 689. CI et revue indépendante attendues avant DONE."
   },
   "O01": {
    "status": "NOT_STARTED",

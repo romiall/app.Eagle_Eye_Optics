@@ -65,8 +65,13 @@ function parsePayload(text: string): unknown {
   }
 }
 
-export async function apiRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+export async function apiRequest<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  extraHeaders: Readonly<Record<string, string>> = {},
+): Promise<T> {
+  const headers: Record<string, string> = { ...extraHeaders, Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   const token = method === 'GET' ? null : xsrfToken()
   if (token !== null) headers['X-XSRF-TOKEN'] = token

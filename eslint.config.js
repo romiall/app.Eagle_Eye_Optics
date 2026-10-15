@@ -52,11 +52,11 @@ export default defineConfig([
 
   {
     // Contrat 23 : « Les composants Vue appellent un service d'application, jamais une table Dexie
-    // directement. » Seul resources/frontend/offline accède à IndexedDB.
+    // directement. » Écrans et composants passent par resources/frontend/app/services : ils
+    // n'importent ni Dexie ni rien de resources/frontend/offline.
     files: [
       'resources/frontend/components/**/*.{ts,vue}',
       'resources/frontend/pages/**/*.{ts,vue}',
-      'resources/frontend/app/**/*.{ts,vue}',
     ],
     rules: {
       'no-restricted-imports': [
@@ -65,7 +65,7 @@ export default defineConfig([
           paths: [
             {
               name: 'dexie',
-              message: 'Passer par un service d’application de resources/frontend/offline.',
+              message: 'Passer par un service d’application de resources/frontend/app/services.',
             },
           ],
           patterns: [
@@ -74,7 +74,37 @@ export default defineConfig([
               message: 'Le code frontend ne doit pas dépendre des API Node.',
             },
             {
-              group: ['@/offline/*', '**/offline/db*'],
+              group: ['@/offline/*', '**/offline/*'],
+              message:
+                'Un écran ou un composant passe par resources/frontend/app/services, jamais par le moteur local.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    // Les services d'application (app/) lisent les projections du moteur local, jamais ses tables :
+    // seul resources/frontend/offline accède à IndexedDB.
+    files: ['resources/frontend/app/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'dexie',
+              message: 'Accès aux tables locales réservé au dossier resources/frontend/offline.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['node:*'],
+              message: 'Le code frontend ne doit pas dépendre des API Node.',
+            },
+            {
+              group: ['@/offline/db*', '**/offline/db*', '@/offline/**/db*'],
               message: 'Accès aux tables locales réservé aux services du dossier offline.',
             },
           ],

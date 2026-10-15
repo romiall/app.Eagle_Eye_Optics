@@ -8,7 +8,8 @@
  *
  * Le titre est écrit en casse normale et affiché en capitales par le style : les lecteurs d'écran le
  * lisent comme des mots, pas lettre par lettre. La recherche rapide de l'en-tête arrive avec la
- * recherche de patients (P02) et l'état de synchronisation avec le journal du poste (F10, O04, O05).
+ * recherche de patients (P02). L'état de synchronisation du poste (F10) s'affiche dès qu'un poste
+ * préparé le fournit (journal du poste, O04, O05) ; il est distinct de l'état du réseau.
  */
 import { computed, ref, watch, watchEffect } from 'vue'
 import {
@@ -21,6 +22,7 @@ import {
 } from 'vue-router'
 
 import NetworkStatus from '@/components/feedback/NetworkStatus.vue'
+import SyncStatus from '@/components/SyncStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
@@ -157,6 +159,7 @@ const linkClass =
         </p>
         <div class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
           <NetworkStatus />
+          <SyncStatus v-if="signedIn" />
           <template v-if="signedIn && session.account">
             <p class="text-sm text-ink">
               <span class="sr-only">Compte connecté : </span>{{ session.account.display_name }}

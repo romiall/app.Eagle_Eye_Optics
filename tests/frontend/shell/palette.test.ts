@@ -74,6 +74,7 @@ const TEXT_PAIRS: readonly [string, string, string][] = [
   ['accent', 'surface', 'état « En ligne », « Synchronisé »'],
   ['ink', 'accent-soft', 'message de succès'],
   ['warning', 'surface', 'état « Hors ligne », « Serveur injoignable »'],
+  ['warning', 'canvas', 'fraîcheur incomplète, pièces en attente sur le fond'],
   ['ink', 'warning-soft', 'message de conflit ou de connexion indisponible'],
   ['danger', 'surface', 'message d’erreur sous un champ'],
   ['danger', 'danger-soft', 'titre du résumé d’erreurs'],
