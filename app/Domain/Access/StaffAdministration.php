@@ -22,10 +22,23 @@ final class StaffAdministration
 
     public function __construct(private readonly EffectivePermissions $permissions) {}
 
+    /**
+     * Verrouille le cabinet puis relit l'auteur. Pour les flux qui n'ont pas déjà pris le verrou.
+     */
     public function lockAndAuthorize(User $actor): User
     {
         StaffRoles::lockClinic($actor->clinic_id);
 
+        return $this->authorizeLocked($actor);
+    }
+
+    /**
+     * Relit l'auteur sous un verrou du cabinet DÉJÀ tenu — le chemin central de commandes (F07) l'acquiert
+     * toujours en premier, avant d'appeler l'action. Le profil Gérante est une règle propre à la gestion des
+     * comptes, en plus de la permission relue par le chemin central.
+     */
+    public function authorizeLocked(User $actor): User
+    {
         /** @var User|null $fresh */
         $fresh = User::query()->where('clinic_id', $actor->clinic_id)->find($actor->getKey());
         if ($fresh === null || ! $fresh->active || ! in_array(StaffRoles::MANAGER, StaffRoles::activeRoles($actor->clinic_id, $fresh->id), true)) {

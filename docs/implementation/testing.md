@@ -49,6 +49,27 @@ docker start eeo-mysql
 tools/dev/mysql-up.sh            # ou, en une seule commande : EEO_START_DOCKERD=1 tools/dev/mysql-up.sh
 ```
 
+### Poste Windows sans Docker
+
+Un MySQL Community 8.4 installé sur le poste suffit. `tools/dev/mysql-windows.ps1` est l'équivalent de `mysql-up.sh` :
+
+```text
+powershell -ExecutionPolicy Bypass -File tools\dev\mysql-windows.ps1            # démarre / prépare (port 3316)
+powershell -ExecutionPolicy Bypass -File tools\dev\mysql-windows.ps1 -Action status
+powershell -ExecutionPolicy Bypass -File tools\dev\mysql-windows.ps1 -Action stop
+export EEO_TEST_DB_PORT=3316        # Git Bash ; le script rappelle cette ligne
+tools/dev/check-all.sh --strict
+```
+
+- **Moteur dédié.** Il a son répertoire de données (`%LOCALAPPDATA%\eeo-mysql-test` ou `-Root`), son port, son journal ; aucune instance MySQL existante n'est utilisée ni modifiée. Le compte `root` du moteur n'a pas de mot de passe et n'écoute que `127.0.0.1`.
+- **Durabilité relâchée, pour les tests seulement** (`innodb_flush_log_at_trx_commit=0`, `sync_binlog=0`, pas de double écriture) : sur un disque lent, chaque DDL de la baseline coûte plusieurs `fsync`. Ne jamais appliquer ces réglages à une base qui garde des données réelles.
+- **Migration de la baseline.** Les 464 clés étrangères sont ajoutées sans vérification des lignes existantes **seulement quand toutes les tables sont vides** (installation neuve), ce qui permet à MySQL de les ajouter sur place plutôt que par recopie de la table (mesuré : 0,04 à 0,1 s contre 0,6 à 1,3 s par clé sur ce poste). Si une table contient des lignes, la vérification reste active. Le schéma obtenu est identique (tests d'équivalence de F04).
+- **Réutiliser le schéma migré** : `EEO_TEST_REUSE_SCHEMA=1` évite le `migrate:fresh` de chaque processus PHPUnit quand la base isolée contient déjà exactement les migrations du dépôt (jamais en CI). Une migration existante modifiée sans changer de nom n'est pas détectée : relancer sans la variable. Exemple de boucle locale : `EEO_TEST_DB_PORT=3316 EEO_TEST_REUSE_SCHEMA=1 vendor/bin/phpunit tests/Feature/Application`.
+- **Délai de Composer.** `composer run test` interrompt PHPUnit après 300 s ; sur un disque lent, la suite complète les dépasse. Lancer `COMPOSER_PROCESS_TIMEOUT=0 composer run test` ou `vendor/bin/phpunit` directement.
+- **Fins de ligne.** Git for Windows convertit en CRLF à l'extraction (`core.autocrlf=true`). `.gitattributes` force LF pour le code et la configuration de l'application (`*.php`, `*.ts`, `*.vue`, `*.py`…) : sans cela, Pint (`line_ending`) et les générateurs `--check` échouent sans défaut de code.
+- **Tests dépendant de POSIX** : le mode `0600` du fichier des comptes de démonstration et le refus d'un lien symbolique ne se vérifient que sous Linux (CI) ; sous Windows, la première assertion est omise et le second test est ignoré avec un message explicite.
+- **Chromium des tests e2e** : renseigner `PLAYWRIGHT_CHROMIUM_EXECUTABLE` (par exemple le chemin de Microsoft Edge) ; `openssl` est fourni par Git for Windows.
+
 ## Garde de base de données
 
 Objectif (contrats 23 et 25) : détruire une base de production ou de développement est impossible par erreur ou par mauvaise configuration.

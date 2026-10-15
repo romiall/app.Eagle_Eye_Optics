@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\AuditRecorder;
 use App\Domain\Access\ClinicContext;
 use App\Domain\Access\PasswordPolicy;
@@ -46,6 +47,7 @@ final class AuthenticateStaff
     public function __construct(
         private readonly ClinicContext $clinics,
         private readonly AuditRecorder $audit,
+        private readonly TransactionRunner $transactions,
     ) {}
 
     public function __invoke(string $login, #[\SensitiveParameter] string $password, string $ipAddress): User
@@ -89,8 +91,8 @@ final class AuthenticateStaff
         // Ordre des verrous du contrat 23 : cabinet d'abord (partagé : les connexions ne se bloquent pas
         // entre elles), puis la ligne du compte. Sans cela, l'UPDATE de users puis l'INSERT d'audit (clé
         // étrangère vers clinics) verrouillent dans l'ordre inverse de l'administration des comptes :
-        // interblocage. Au plus trois tentatives sur interblocage, sans effet partiel.
-        DB::transaction(function () use ($user, $rehash, $clinicId): void {
+        // interblocage. Au plus trois tentatives sur interblocage, sans effet partiel (TransactionRunner).
+        $this->transactions->run(function () use ($user, $rehash, $clinicId): void {
             DB::table('clinics')->where('id', $clinicId)->sharedLock()->first();
             $changes = ['last_login_at' => CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u')];
             if ($rehash !== null) {
@@ -99,7 +101,7 @@ final class AuthenticateStaff
             // Connexion : pas d'incrément de version (ce n'est pas une modification du compte).
             DB::table('users')->where('clinic_id', $clinicId)->where('id', $user->id)->update($changes);
             $this->audit->record($clinicId, $user, 'auth.login', 'users', $user->id);
-        }, 3);
+        });
 
         return $user->refresh();
     }

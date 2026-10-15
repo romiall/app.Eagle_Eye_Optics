@@ -19,3 +19,27 @@ composer.lock -diff linguist-generated
 package-lock.json -diff linguist-generated
 *.png binary
 *.webmanifest text eol=lf
+# Code et configuration de l'application : LF dans le dépôt ET dans l'arbre de travail, même sur un poste
+# Windows en core.autocrlf=true (réglage par défaut de Git for Windows). Pint, Prettier, ESLint et les
+# générateurs « --check » comparent des octets : une copie de travail en CRLF les fait échouer sans défaut
+# de code. Les catalogues SQL/JSON/journaux restent intacts (-text ci-dessus) ; *.md reste hors de cette
+# liste car quelques spécifications sont versionnées en CRLF.
+*.php text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.vue text eol=lf
+*.css text eol=lf
+*.py text eol=lf
+*.neon text eol=lf
+*.xml text eol=lf
+composer.lock text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+.env.example text eol=lf
+.npmrc text eol=lf
+.nvmrc text eol=lf
+.prettierignore text eol=lf
+.htaccess text eol=lf

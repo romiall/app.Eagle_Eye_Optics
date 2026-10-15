@@ -245,7 +245,7 @@ OPERATIONS_TABLE = [
        permission=['finance.global.read'], response=OPERATIONS + 'FinancialReportResponse', task='R01',
        params=(('query', 'from', 'Date civile de début.'), ('query', 'to', 'Date civile de fin.'))),
     op('get', '/v1/audit-events', 'ListAuditEvents', 'Consulter le journal d\'audit', 'Rapports',
-       permission=['audit.read'], response=OPERATIONS + 'AuditEventPage', task='F07',
+       permission=['audit.read'], response=OPERATIONS + 'AuditEventPage', implemented=True, task='F07', errors=(422,),
        params=(('query', 'target_type', 'Type de cible.'), ('query', 'target_id', 'Identifiant de la cible.'), ('query', 'from', 'Instant UTC de début.'),
                ('query', 'to', 'Instant UTC de fin.'), PAGE)),
 

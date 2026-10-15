@@ -89,7 +89,22 @@ final class BaselineInstaller
             throw new BaselineStateRefused($existing.' clé(s) étrangère(s) déjà présente(s) : installation partielle ou base déjà initialisée, étape 02 refusée.');
         }
 
-        $this->run('02_foreign_keys');
+        // Tables fraîchement créées par l'étape 01, donc vides : il n'y a aucune ligne à vérifier. Avec la
+        // vérification des clés étrangères active, MySQL ajoute chaque clé par recopie de la table (ALGORITHM=COPY) ;
+        // sans elle, par ALGORITHM=INPLACE, 10 à 20 fois plus vite (0,05 s contre 1 s par clé sur un disque lent, 464
+        // clés). Le schéma obtenu est identique ; si une table contenait déjà des lignes, la vérification reste active.
+        $this->run('02_foreign_keys', foreignKeyChecks: ! $this->businessTablesAreEmpty());
+    }
+
+    private function businessTablesAreEmpty(): bool
+    {
+        foreach ($this->baseline->businessTables() as $table) {
+            if ($this->connection->table($table)->exists()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function installReferenceDataAndViews(): void
@@ -159,11 +174,22 @@ final class BaselineInstaller
         );
     }
 
-    private function run(string $step): void
+    private function run(string $step, bool $foreignKeyChecks = true): void
     {
-        $this->withBaselineSession(function () use ($step): void {
-            foreach ($this->baseline->statements($step) as $sql) {
-                $this->execute($sql);
+        $this->withBaselineSession(function () use ($step, $foreignKeyChecks): void {
+            $previous = (int) $this->connection->selectOne('SELECT @@SESSION.foreign_key_checks AS value')->value;
+            if (! $foreignKeyChecks) {
+                $this->connection->statement('SET SESSION foreign_key_checks = 0');
+            }
+
+            try {
+                foreach ($this->baseline->statements($step) as $sql) {
+                    $this->execute($sql);
+                }
+            } finally {
+                if (! $foreignKeyChecks) {
+                    $this->connection->statement('SET SESSION foreign_key_checks = ?', [$previous]);
+                }
             }
         });
     }

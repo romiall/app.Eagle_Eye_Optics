@@ -2,16 +2,16 @@
 
 namespace App\Domain\Access\Actions;
 
-use App\Domain\Access\AuditRecorder;
-use App\Domain\Access\EffectivePermissions;
-use App\Domain\Access\StaffAdministration;
+use App\Application\Command;
+use App\Application\CommandBus;
+use App\Domain\Access\Handlers\UpdateStaffMemberHandler;
 use App\Domain\Access\StaffRoles;
-use App\Domain\Access\StaffSessions;
 use App\Domain\Shared\BusinessError;
+use App\Domain\Shared\CommandContext;
+use App\Http\Middleware\AssignCorrelationId;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -23,15 +23,13 @@ use Illuminate\Validation\Rule;
  * au moins une gérante active capable de gérer les comptes, une gérante ne se désactive pas elle-même et
  * personne ne modifie ses propres profils (pas d'auto-attribution ni d'auto-rétrogradation qui
  * contournerait le contrôle d'une autre gérante).
+ *
+ * Cette classe valide la saisie ; les règles ci-dessus s'appliquent dans UpdateStaffMemberHandler, exécuté par
+ * le chemin central de commandes (F07) sous le verrou du cabinet.
  */
 final class UpdateStaffMember
 {
-    public function __construct(
-        private readonly AuditRecorder $audit,
-        private readonly StaffSessions $sessions,
-        private readonly EffectivePermissions $permissions,
-        private readonly StaffAdministration $administration,
-    ) {}
+    public function __construct(private readonly CommandBus $bus) {}
 
     /**
      * @param  array<array-key, mixed>  $input
@@ -51,104 +49,16 @@ final class UpdateStaffMember
         ])->validate();
 
         try {
-            return DB::transaction(fn (): User => $this->apply($actor, $clinicId, $userId, $data), 3);
+            $this->bus->dispatch(
+                new Command(UpdateStaffMemberHandler::COMMAND, Arr::except($data, ['expected_version']), $userId, (int) $data['expected_version']),
+                CommandContext::direct($actor, AssignCorrelationId::current(request())),
+            );
         } catch (UniqueConstraintViolationException) {
             // Course entre la validation `unique` (hors verrou) et l'écriture : même réponse qu'une
             // validation, sans message SQL.
             throw BusinessError::validation(['email' => ['La valeur du champ adresse électronique est déjà utilisée.']]);
         }
-    }
 
-    /**
-     * @param  array<array-key, mixed>  $data
-     */
-    private function apply(User $actor, string $clinicId, string $userId, array $data): User
-    {
-        $actor = $this->administration->lockAndAuthorize($actor);
-
-        /** @var object{id: string, display_name: string, email: ?string, active: int|bool, version: int}|null $target */
-        $target = DB::table('users')->where('clinic_id', $clinicId)->where('id', $userId)->lockForUpdate()->first();
-        if ($target === null) {
-            throw BusinessError::notFound();
-        }
-        if ((int) $target->version !== (int) $data['expected_version']) {
-            throw BusinessError::versionConflict();
-        }
-
-        $diff = [];
-        $changes = [];
-        foreach (['display_name', 'email'] as $field) {
-            if (array_key_exists($field, $data) && $data[$field] !== $target->{$field}) {
-                $value = $data[$field] === null ? null : trim((string) $data[$field]);
-                $changes[$field] = $value;
-                $diff[$field] = ['avant' => $target->{$field}, 'apres' => $value];
-            }
-        }
-
-        $deactivating = array_key_exists('active', $data) && ! (bool) $data['active'] && (bool) $target->active;
-        $reactivating = array_key_exists('active', $data) && (bool) $data['active'] && ! (bool) $target->active;
-
-        /** @var list<string>|null $wantedRoles */
-        $wantedRoles = array_key_exists('roles', $data) ? array_values(array_map('strval', (array) $data['roles'])) : null;
-        $currentRoles = StaffRoles::activeRoles($clinicId, $userId);
-        $losingManager = $wantedRoles !== null && in_array(StaffRoles::MANAGER, $currentRoles, true) && ! in_array(StaffRoles::MANAGER, $wantedRoles, true);
-        $removingRoles = $wantedRoles !== null && array_diff($currentRoles, $wantedRoles) !== [];
-
-        $reason = isset($data['reason']) ? trim((string) $data['reason']) : '';
-        if (($deactivating || $removingRoles) && $reason === '') {
-            throw BusinessError::validation(['reason' => ['Le motif est obligatoire pour désactiver un compte ou retirer un profil.']]);
-        }
-        if ($deactivating && $userId === $actor->id) {
-            throw new BusinessError('SELF_DEACTIVATION_FORBIDDEN', 'Une gérante ne peut pas désactiver son propre compte.', 409);
-        }
-        if ($wantedRoles !== null && $userId === $actor->id && self::sorted($wantedRoles) !== $currentRoles) {
-            throw new BusinessError('SELF_ROLE_CHANGE_FORBIDDEN', 'Vos propres profils sont modifiés par une autre gérante.', 409);
-        }
-        if (($deactivating || $losingManager) && in_array(StaffRoles::MANAGER, $currentRoles, true)) {
-            StaffRoles::assertAnotherActiveManager($clinicId, $userId);
-        }
-
-        if ($deactivating || $reactivating) {
-            $changes['active'] = $reactivating;
-            $diff['active'] = ['avant' => (bool) $target->active, 'apres' => $reactivating];
-        }
-
-        if ($wantedRoles !== null) {
-            [$added, $revoked] = StaffRoles::sync($clinicId, $userId, $wantedRoles, $actor->id);
-            if ($added !== [] || $revoked !== []) {
-                $diff['roles'] = ['ajoutes' => $added, 'revoques' => $revoked];
-            }
-        }
-
-        if ($diff === []) {
-            return User::query()->where('clinic_id', $clinicId)->findOrFail($userId);
-        }
-
-        $changes['version'] = (int) $target->version + 1;
-        $changes['updated_at'] = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
-        DB::table('users')->where('clinic_id', $clinicId)->where('id', $userId)->update($changes);
-
-        $this->audit->record($clinicId, $actor, $deactivating ? 'staff.deactivated' : 'staff.updated', 'users', $userId, $reason !== '' ? $reason : null, $diff);
-
-        if ($deactivating) {
-            $this->sessions->closeAll($userId);
-        }
-
-        /** @var User $updated */
-        $updated = User::query()->where('clinic_id', $clinicId)->findOrFail($userId);
-        $this->permissions->forget($updated);
-
-        return $updated;
-    }
-
-    /**
-     * @param  list<string>  $roles
-     * @return list<string>
-     */
-    private static function sorted(array $roles): array
-    {
-        sort($roles);
-
-        return $roles;
+        return User::query()->where('clinic_id', $clinicId)->findOrFail($userId);
     }
 }

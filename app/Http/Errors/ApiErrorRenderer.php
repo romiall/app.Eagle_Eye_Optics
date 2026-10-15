@@ -47,7 +47,7 @@ final class ApiErrorRenderer
     {
         return match (true) {
             $exception instanceof BusinessError => [
-                $exception->httpStatus, $exception->errorCode, $exception->getMessage(), $exception->fields, [],
+                $exception->httpStatus, $exception->errorCode, $exception->getMessage(), $exception->fields, $exception->headers,
             ],
             $exception instanceof AuthenticationException => [
                 401, 'AUTH_REQUIRED', 'Connexion requise : reconnectez-vous. Les saisies en cours sont conservées.', [], [],

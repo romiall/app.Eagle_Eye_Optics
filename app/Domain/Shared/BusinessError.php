@@ -13,6 +13,7 @@ final class BusinessError extends RuntimeException
 {
     /**
      * @param  array<string, list<string>>  $fields
+     * @param  array<string, string>  $headers  en-têtes de réponse (ex. Retry-After)
      */
     public function __construct(
         public readonly string $errorCode,
@@ -20,8 +21,37 @@ final class BusinessError extends RuntimeException
         public readonly int $httpStatus = 409,
         public readonly array $fields = [],
         ?Throwable $previous = null,
+        public readonly array $headers = [],
     ) {
         parent::__construct($message, 0, $previous);
+    }
+
+    /**
+     * Interblocage ou attente de verrou épuisés (chemin central, contrat 23) : aucune modification n'a été
+     * appliquée. Le client renvoie la MÊME demande, avec la même clé d'idempotence, sans risque de doublon.
+     */
+    public static function serverBusy(?Throwable $previous = null): self
+    {
+        return new self(
+            'SERVER_BUSY',
+            'Le serveur est occupé : renvoyez la même demande dans un instant. Aucune modification n\'a été appliquée.',
+            503,
+            [],
+            $previous,
+            ['Retry-After' => '2'],
+        );
+    }
+
+    /**
+     * Clé d'idempotence déjà employée pour une AUTRE demande : l'effet d'origine est conservé tel quel.
+     */
+    public static function idempotencyMismatch(): self
+    {
+        return new self(
+            'IDEMPOTENCY_PAYLOAD_MISMATCH',
+            'Cette clé d\'idempotence a déjà servi pour une demande différente : utilisez une nouvelle clé pour une nouvelle intention.',
+            409,
+        );
     }
 
     public static function forbidden(string $message = 'Action non autorisée pour ce compte.'): self

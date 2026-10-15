@@ -26,8 +26,10 @@ const pascal = (text) =>
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join('')
 
+// Parcours en ordre ASCII des noms (celui que rend Linux en locale C) : sans ce tri l'ordre des types générés
+// dépend du système de fichiers (sous Windows « envelope.json » viendrait entre « D… » et « F… »).
 function walk(directory) {
-  return readdirSync(directory).flatMap((entry) => {
+  return readdirSync(directory).sort().flatMap((entry) => {
     const path = join(directory, entry)
     return statSync(path).isDirectory() ? walk(path) : path.endsWith('.json') ? [path] : []
   })
@@ -110,17 +112,25 @@ function titled(path) {
   return schema
 }
 
+// Clé d'un fichier dans la table des copies. L'analyseur de références fournit une URL « file: » sous Linux, et
+// sous Windows un chemin du système dont la lettre de lecteur est en minuscule et les séparateurs en « / »
+// (c:/xampp/...), alors que resolve() rend C:\xampp\... : sans normalisation, aucune copie n'est retrouvée et la
+// génération lit les schémas bruts, d'où des types différents de ceux de Linux. La casse n'est ignorée que sous
+// Windows, dont le système de fichiers l'ignore aussi.
+const keyOf = (path) => (process.platform === 'win32' ? resolve(path).toLowerCase() : resolve(path))
+const pathOf = (location) => keyOf(location.startsWith('file:') ? fileURLToPath(location) : location)
+
 const files = DIRECTORIES.flatMap((directory) => walk(join(CONTRACTS, directory))).filter(
-  (path) => !path.endsWith('commands/index.json'),
+  (path) => !path.split('\\').join('/').endsWith('commands/index.json'),
 )
-const copies = new Map(files.map((path) => [resolve(path), titled(path)]))
+const copies = new Map(files.map((path) => [keyOf(path), titled(path)]))
 
 // Racine : une propriété par type exporté (racines et définitions de chaque fichier ; dispatch.json ne
 // fournit que le type CommandName).
 const properties = {}
 for (const path of files) {
   const rel = relative(CONTRACTS, path).split('\\').join('/')
-  const schema = copies.get(resolve(path))
+  const schema = copies.get(keyOf(path))
   const isDispatch = rel === 'commands/dispatch.json'
   if (!isDispatch && (schema.type !== undefined || schema.properties !== undefined || schema.anyOf !== undefined || schema.const !== undefined)) {
     properties[schema.title ?? pascal(rel)] = { $ref: `./${rel}` }
@@ -151,8 +161,8 @@ const output = await compile(
       resolve: {
         contracts: {
           order: 1,
-          canRead: (file) => copies.has(resolve(fileURLToPath(new URL(file.url, 'file://')))),
-          read: (file) => JSON.stringify(copies.get(resolve(fileURLToPath(new URL(file.url, 'file://'))))),
+          canRead: (file) => copies.has(pathOf(file.url)),
+          read: (file) => JSON.stringify(copies.get(pathOf(file.url))),
         },
       },
     },

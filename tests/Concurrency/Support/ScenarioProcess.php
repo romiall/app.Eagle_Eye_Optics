@@ -9,14 +9,20 @@ use RuntimeException;
  * MySQL distincte). Le test tient une barrière (verrou MySQL dans une transaction ouverte), attend que les
  * enfants soient bloqués sur la requête attendue, puis la relâche : l'entrelacement est contrôlé, pas
  * laissé au hasard d'un sleep.
+ *
+ * Les sorties de l'enfant vont dans des fichiers temporaires, pas dans des tubes : sous Windows,
+ * stream_set_blocking(false) est sans effet sur les tubes de proc_open, donc lire un tube BLOQUE jusqu'à la fin de
+ * l'enfant — or l'enfant attend justement que le test relâche sa barrière (interblocage du test lui-même). Un
+ * fichier se lit sans attente sur tous les systèmes.
  */
 final class ScenarioProcess
 {
     /** @var resource */
     private $process;
 
-    /** @var array<int, resource> */
-    private array $pipes;
+    private string $stdoutFile;
+
+    private string $stderrFile;
 
     private string $stdout = '';
 
@@ -30,30 +36,33 @@ final class ScenarioProcess
      */
     private function __construct(string $script, string $scenario, array $arguments, array $environment)
     {
+        $this->stdoutFile = self::temporaryFile('eeo-scenario-out-');
+        $this->stderrFile = self::temporaryFile('eeo-scenario-err-');
+
         $process = proc_open(
             [PHP_BINARY, $script, $scenario, json_encode($arguments, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)],
-            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            [0 => ['pipe', 'r'], 1 => ['file', $this->stdoutFile, 'w'], 2 => ['file', $this->stderrFile, 'w']],
             $pipes,
             dirname(__DIR__, 3),
             $environment,
         );
         if (! is_resource($process)) {
+            $this->removeFiles();
+
             throw new RuntimeException('Lancement du processus enfant impossible.');
         }
         fclose($pipes[0]);
-        stream_set_blocking($pipes[1], false);
-        stream_set_blocking($pipes[2], false);
         $this->process = $process;
-        $this->pipes = $pipes;
     }
 
     /**
      * @param  array<string, mixed>  $arguments
      * @param  array<string, string>  $environment
+     * @param  string  $script  scénario de tests/Concurrency/bin (access-scenario.php par défaut)
      */
-    public static function start(string $scenario, array $arguments, array $environment): self
+    public static function start(string $scenario, array $arguments, array $environment, string $script = 'access-scenario.php'): self
     {
-        return new self(dirname(__DIR__).'/bin/access-scenario.php', $scenario, $arguments, $environment);
+        return new self(dirname(__DIR__).'/bin/'.$script, $scenario, $arguments, $environment);
     }
 
     public function isRunning(): bool
@@ -82,6 +91,7 @@ final class ScenarioProcess
         $this->drain();
         proc_close($this->process);
         $this->closed = true;
+        $this->removeFiles();
 
         $lines = array_values(array_filter(array_map('trim', explode("\n", $this->stdout)), static fn (string $line): bool => $line !== ''));
         $decoded = $lines === [] ? null : json_decode($lines[count($lines) - 1], true);
@@ -112,15 +122,34 @@ final class ScenarioProcess
         }
         proc_close($this->process);
         $this->closed = true;
+        $this->drainFinal();
+        $this->removeFiles();
     }
 
     private function drain(): void
     {
-        foreach ([1 => 'stdout', 2 => 'stderr'] as $index => $buffer) {
-            $chunk = stream_get_contents($this->pipes[$index]);
-            if (is_string($chunk)) {
-                $this->{$buffer} .= $chunk;
-            }
+        $this->stdout = (string) @file_get_contents($this->stdoutFile);
+        $this->stderr = (string) @file_get_contents($this->stderrFile);
+    }
+
+    private function drainFinal(): void
+    {
+        $this->drain();
+    }
+
+    private function removeFiles(): void
+    {
+        @unlink($this->stdoutFile);
+        @unlink($this->stderrFile);
+    }
+
+    private static function temporaryFile(string $prefix): string
+    {
+        $path = tempnam(sys_get_temp_dir(), $prefix);
+        if ($path === false) {
+            throw new RuntimeException('Fichier temporaire impossible à créer pour le processus enfant.');
         }
+
+        return $path;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\AuditRecorder;
 use App\Domain\Access\PasswordPolicy;
 use App\Domain\Access\StaffRoles;
@@ -20,7 +21,10 @@ use Illuminate\Support\Facades\Validator;
  */
 final class SetupClinic
 {
-    public function __construct(private readonly AuditRecorder $audit) {}
+    public function __construct(
+        private readonly AuditRecorder $audit,
+        private readonly TransactionRunner $transactions,
+    ) {}
 
     /**
      * @param  array{clinic_name: mixed, manager_name: mixed, login: mixed, email?: mixed, password: mixed}  $input
@@ -40,7 +44,7 @@ final class SetupClinic
 
         $passwordHash = Hash::make((string) $data['password']);
 
-        return DB::transaction(function () use ($data, $passwordHash): array {
+        return $this->transactions->run(function () use ($data, $passwordHash): array {
             // Sentinelle : la ligne de référence du profil Gérante (seedée par la baseline, toujours
             // présente) sérialise les mises en service quel que soit le niveau d'isolation. Un verrou sur
             // la table clinics vide reposerait sur les verrous d'intervalle de REPEATABLE READ (interblocage)
@@ -86,6 +90,6 @@ final class SetupClinic
             ]);
 
             return ['clinic_id' => $clinicId, 'user_id' => $userId];
-        }, 3);
+        });
     }
 }

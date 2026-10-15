@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\AuditRecorder;
 use App\Domain\Access\PasswordPolicy;
 use App\Domain\Access\StaffSessions;
@@ -24,6 +25,7 @@ final class ChangeOwnPassword
     public function __construct(
         private readonly AuditRecorder $audit,
         private readonly StaffSessions $sessions,
+        private readonly TransactionRunner $transactions,
     ) {}
 
     /**
@@ -46,7 +48,7 @@ final class ChangeOwnPassword
 
         // Ordre des verrous du contrat 23 : cabinet (partagé) puis compte, comme l'administration des
         // comptes (verrou exclusif du cabinet puis compte) ; au plus trois tentatives sur interblocage.
-        DB::transaction(function () use ($user, $passwordHash, $currentSessionId): void {
+        $this->transactions->run(function () use ($user, $passwordHash, $currentSessionId): void {
             DB::table('clinics')->where('id', $user->clinic_id)->sharedLock()->first();
             $updated = DB::table('users')
                 ->where('clinic_id', $user->clinic_id)
@@ -64,7 +66,7 @@ final class ChangeOwnPassword
 
             $this->audit->record($user->clinic_id, $user, 'auth.password_changed', 'users', $user->id);
             $this->sessions->closeAllExcept($user->id, $currentSessionId);
-        }, 3);
+        });
 
         // Le garde de session tient cette instance : AuthenticateSession enregistre en fin de requête
         // l'empreinte du hash qu'elle porte. Sans relecture, l'ancienne empreinte resterait en session et

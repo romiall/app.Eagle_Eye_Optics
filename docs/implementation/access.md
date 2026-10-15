@@ -103,7 +103,7 @@ Actions journalisées dans `audit_events`, append-only :
 
 Chaque événement porte le nom à la date, l'instant UTC, la cible, le motif, la corrélation, un diff nettoyé et le SHA-256 du contenu. Un événement authentifié porte son auteur. Un échec de connexion n'a pas d'auteur (« Tentative de connexion non authentifiée ») : le compte visé est la cible, et l'identifiant tenté n'est conservé que sous forme d'empreinte HMAC à clé serveur, inattaquable par dictionnaire. Les diffs donnent les valeurs avant et après pour les paramètres du cabinet, et l'état précédent d'une dérogation remplacée ou supprimée. Les mots de passe et hashes sont refusés dans un diff.
 
-La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision à prendre au chemin central F07, sous le verrou du cabinet.
+La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision prise en F07, avec ses raisons, dans [command-bus.md](command-bus.md) (« Décisions et limites »).
 
 ## Preuves
 
@@ -160,7 +160,7 @@ La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision
 | Session courante fermée au changement de mot de passe (attaque m3, conformité 7) | Empreinte de session mise à jour ; test |
 | `document_settings` liste ou `{}` → 500 (attaque m4, conformité 2) | Objet exigé, `{}` conservé |
 | Fichier de démonstration suivant les liens (attaque m5) | Création exclusive puis renommage |
-| Droits de l'auteur non revérifiés sous verrou (attaque m6, conformité 8) | `StaffAdministration::lockAndAuthorize` ; tests direct et à processus séparés |
+| Droits de l'auteur non revérifiés sous verrou (attaque m6, conformité 8) | `StaffAdministration::authorizeLocked` (profil Gérante et permission relus) sous le verrou du cabinet, désormais pris par le chemin central F07 qui relit aussi le compte actif ; tests direct et à processus séparés |
 | Interblocage connexion / administration (conformité M1) | Verrou partagé du cabinet d'abord, relances bornées ; test à processus séparés |
 | Pas de reset contrôlé pour la gérante (conformité M4) | `eeo:staff:recover-manager` |
 | Mutations survivantes (conformité M5) | Tests ajoutés : verrou du cabinet, régénération de session, invalidation à la déconnexion, autres sessions, motifs, auto-reset, audit transactionnel, filtre de cabinet |
@@ -185,7 +185,7 @@ La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision
 
 | Sujet | Tâche |
 | --- | --- |
-| Clés d'idempotence et chemin central des mutations de comptes | F07 (CommandBus) |
+| ~~Clés d'idempotence et chemin central des mutations de comptes~~ | **Fait en F07** : les cinq mutations de comptes et du cabinet passent par le chemin central ([command-bus.md](command-bus.md)) ; leur idempotence tient à la version attendue et à l'unicité de `login` et `email` (contrat F06 : `x-idempotency: none`) |
 | Verrouillage du coffre local à la déconnexion ou à la désactivation, droits locaux bornés | O01, O02 |
 | Refus des PDF au mauvais rôle | D01 et D02 (Policies de documents) |
 | Écrans, garde de navigation et avertissement d'inactivité | F09 et F10 |

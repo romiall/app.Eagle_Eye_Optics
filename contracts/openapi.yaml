@@ -2835,11 +2835,13 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "audit.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "F07"
   /v1/documents/{id}/download:
     get:

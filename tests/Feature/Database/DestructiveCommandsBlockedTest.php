@@ -146,6 +146,8 @@ final class DestructiveCommandsBlockedTest extends TestCase
             'DB_USERNAME' => 'utilisateur_inexistant',
             'DB_PASSWORD' => 'sans-objet',
         ]);
+        // Le démarrage à froid d'un processus PHP + Laravel dépasse 60 s sur un disque lent (cache froid, antivirus).
+        $process->setTimeout(300);
         $process->run();
 
         $this->assertNotSame(0, $process->getExitCode());

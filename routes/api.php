@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
 use App\Http\Controllers\Api\V1\StaffController;
@@ -40,6 +41,11 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('clinic/settings', [ClinicSettingsController::class, 'update'])
             ->middleware(['can:users.manage', 'reauthenticated'])
             ->name('api.clinic.settings.update');
+
+        // Journal d'audit append-only : lecture seule, permission audit.read (gérante), limitée au cabinet.
+        Route::get('audit-events', [AuditEventController::class, 'index'])
+            ->middleware('can:audit.read')
+            ->name('api.audit-events.index');
 
         // Comptes du personnel : gérante seulement (users.manage), mutations après réauthentification.
         Route::middleware('can:users.manage')->group(function (): void {

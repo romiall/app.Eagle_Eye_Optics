@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access\Actions;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\AuditRecorder;
 use App\Domain\Access\ClinicContext;
 use App\Domain\Access\EffectivePermissions;
@@ -35,6 +36,7 @@ final class RecoverManagerAccount
         private readonly AuditRecorder $audit,
         private readonly StaffSessions $sessions,
         private readonly EffectivePermissions $permissions,
+        private readonly TransactionRunner $transactions,
     ) {}
 
     /**
@@ -52,7 +54,7 @@ final class RecoverManagerAccount
 
         $passwordHash = Hash::make((string) $data['password']);
 
-        return DB::transaction(function () use ($clinicId, $normalized, $passwordHash, $data): array {
+        return $this->transactions->run(function () use ($clinicId, $normalized, $passwordHash, $data): array {
             StaffRoles::lockClinic($clinicId);
 
             /** @var object{id: string, active: int|bool, version: int}|null $target */

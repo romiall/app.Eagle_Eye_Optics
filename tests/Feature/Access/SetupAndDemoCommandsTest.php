@@ -80,7 +80,11 @@ final class SetupAndDemoCommandsTest extends TestCase
         try {
             $this->artisan('eeo:demo:accounts', ['--output' => $file])->assertSuccessful();
             $first = json_decode((string) file_get_contents($file), true);
-            $this->assertSame('0600', substr(sprintf('%o', fileperms($file)), -4));
+            // Modes POSIX : sans objet sous Windows (fileperms() y rend 0666 pour tout fichier modifiable) ;
+            // l'hébergement et la CI sont sous Linux, où le mode 0600 est exigé et vérifié.
+            if (DIRECTORY_SEPARATOR === '/') {
+                $this->assertSame('0600', substr(sprintf('%o', fileperms($file)), -4));
+            }
 
             $this->assertIsArray($first);
             $this->assertSame(['MANAGER', 'RECEPTION', 'CLINICIAN', 'CASHIER'], array_column($first, 'role'));
@@ -161,7 +165,10 @@ final class SetupAndDemoCommandsTest extends TestCase
         $target = $this->temporaryFile();
         file_put_contents($target, 'contenu protégé');
         $link = sys_get_temp_dir().'/eeo-demo-lien-'.bin2hex(random_bytes(4));
-        symlink($target, $link);
+        if (! @symlink($target, $link)) {
+            @unlink($target);
+            $this->markTestSkipped('Création de liens symboliques non permise sur ce poste (Windows sans mode développeur ni droits administrateur) : vérifié en CI Linux.');
+        }
 
         try {
             $this->artisan('eeo:demo:accounts', ['--output' => $link])->assertFailed();

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Application\TransactionRunner;
 use App\Domain\Access\AuditRecorder;
 use App\Domain\Access\StaffRoles;
 use App\Domain\Access\StaffSessions;
@@ -47,7 +48,7 @@ final class CreateDemoAccounts extends Command
 
     private const ACTOR = 'Commande de démonstration';
 
-    public function handle(AuditRecorder $audit, StaffSessions $sessions): int
+    public function handle(AuditRecorder $audit, StaffSessions $sessions, TransactionRunner $transactions): int
     {
         if (! app()->environment(self::ALLOWED_ENVIRONMENTS)) {
             $this->components->error('Comptes de démonstration refusés dans cet environnement ('.app()->environment().') : admis seulement en '.implode(', ', self::ALLOWED_ENVIRONMENTS).'. Jamais en production.');
@@ -63,7 +64,7 @@ final class CreateDemoAccounts extends Command
         }
 
         try {
-            $credentials = DB::transaction(fn (): array => $this->provision($audit, $sessions));
+            $credentials = $transactions->run(fn (): array => $this->provision($audit, $sessions));
         } catch (\DomainException $refused) {
             // Refus métier : la transaction est annulée, aucune écriture.
             $this->components->error($refused->getMessage());

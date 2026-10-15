@@ -79,6 +79,8 @@ final class MigrateRollbackGuardTest extends TestCase
             'DB_USERNAME' => (string) $connection['username'],
             'DB_PASSWORD' => (string) $connection['password'],
         ]);
+        // Démarrage à froid d'un processus PHP + Laravel : plus de 60 s sur un disque lent (cache froid, antivirus).
+        $process->setTimeout(300);
         $process->run();
 
         return $process;

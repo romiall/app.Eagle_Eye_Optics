@@ -33,6 +33,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Transactions du chemin central de commandes (F07, contrat 23)
+    |--------------------------------------------------------------------------
+    |
+    | max_attempts : tentatives internes sur interblocage (3 au plus), puis erreur réessayable SERVER_BUSY.
+    | lock_wait_timeout_seconds : attente maximale d'un verrou de ligne (innodb_lock_wait_timeout de la
+    | session) ; au-delà, SERVER_BUSY sans nouvelle tentative interne. Le verrou du cabinet sérialise les
+    | mutations centrales : mesurer avant de l'affiner (fichier 05).
+    |
+    */
+
+    'transactions' => [
+        'max_attempts' => (int) env('EEO_TRANSACTION_MAX_ATTEMPTS', 3),
+        'lock_wait_timeout_seconds' => (int) env('EEO_LOCK_WAIT_TIMEOUT', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Postes hors-ligne
+    |--------------------------------------------------------------------------
+    |
+    | max_clock_skew_seconds : tolérance entre l'horloge d'un poste et l'heure du serveur pour le contexte
+    | d'autorisation HISTORIQUE d'une commande synchronisée (au-delà : revue par la gérante). Règles
+    | d'horloge à confirmer avec la préparation des postes (O02).
+    |
+    */
+
+    'offline' => [
+        'max_clock_skew_seconds' => (int) env('EEO_MAX_CLOCK_SKEW', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Documents de production
     |--------------------------------------------------------------------------
     |
