@@ -79,19 +79,25 @@ jobs:
       - name: Analyse statique PHP (PHPStan niveau 8 + Larastan)
         run: composer run analyse
 
+      # Rapports JUnit : en cas d'échec, l'étape « Échecs PHPUnit en annotations » les publie (lisibles sans les
+      # droits d'administration nécessaires au journal brut).
       - name: PHPUnit - Unit
-        run: composer run test:unit
+        run: mkdir -p build && composer run test:unit -- --log-junit build/junit-unit.xml
 
       - name: PHPUnit - Feature (MySQL réel)
-        run: composer run test:mysql
+        run: composer run test:mysql -- --log-junit build/junit-feature.xml
 
       - name: PHPUnit - Concurrency (plusieurs connexions MySQL)
-        run: composer run test:concurrency
+        run: composer run test:concurrency -- --log-junit build/junit-concurrency.xml
 
       # Contrats F06 : fixtures exécutables (Opis), déclaration de compatibilité, codes d'erreur,
       # routes Laravel identiques aux opérations IMPLEMENTED de l'OpenAPI.
       - name: PHPUnit - Contracts
-        run: composer run test:contracts
+        run: composer run test:contracts -- --log-junit build/junit-contracts.xml
+
+      - name: Échecs PHPUnit en annotations
+        if: failure()
+        run: python3 tools/ci/junit_annotations.py "build/junit-*.xml"
 
       - name: Contrats - fichiers générés à jour (énumérations, commandes, événements, ressources, OpenAPI)
         run: |
