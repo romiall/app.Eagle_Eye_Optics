@@ -48,7 +48,10 @@ final class AuditEventController extends Controller
             $query->where('recorded_at', '>=', self::column((string) $filters['from']));
         }
         if (isset($filters['to'])) {
-            $query->where('recorded_at', '<=', self::column((string) $filters['to']));
+            // Borne incluse à la milliseconde, précision du contrat, alors que `recorded_at` garde les
+            // microsecondes : un événement de 10:00:00.123456 affiché « 10:00:00.123Z » appartient bien à
+            // « to = 10:00:00.123Z ».
+            $query->where('recorded_at', '<', self::column((string) $filters['to'], 1));
         }
 
         $page = $query->orderByDesc('recorded_at')->orderByDesc('id')
@@ -60,9 +63,9 @@ final class AuditEventController extends Controller
         ]);
     }
 
-    private static function column(string $instant): string
+    private static function column(string $instant, int $plusMilliseconds = 0): string
     {
-        return CarbonImmutable::parse($instant, 'UTC')->format('Y-m-d H:i:s.u');
+        return CarbonImmutable::parse($instant, 'UTC')->addMilliseconds($plusMilliseconds)->format('Y-m-d H:i:s.u');
     }
 
     /**

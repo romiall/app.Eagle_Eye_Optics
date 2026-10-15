@@ -6,7 +6,12 @@ use stdClass;
 
 /**
  * JSON déterministe pour les empreintes INTERNES du serveur (audit, idempotence) : clés d'objet triées
- * récursivement, Unicode et barres obliques non échappés.
+ * récursivement par octets (ordre total : `SORT_STRING`, jamais la comparaison mixte nombre/chaîne de PHP,
+ * qui n'est pas transitive), Unicode et barres obliques non échappés. Un objet `stdClass` vide reste `{}`.
+ *
+ * Limite assumée : un tableau PHP ne distingue pas `{}` de `[]` ni `{"0":"a","1":"b"}` de `["a","b"]`. Une
+ * charge de commande est validée contre son schéma AVANT l'empreinte, et le schéma fixe le type de chaque
+ * champ : deux charges valides ne peuvent pas différer seulement par cette forme.
  *
  * Ce n'est pas la canonicalisation JCS (RFC 8785) des commandes signées du poste (tâche O02, avec ses
  * vecteurs croisés PHP/navigateur) : elle ne sert qu'à reconnaître le même contenu côté serveur, jamais à
@@ -29,12 +34,15 @@ final class CanonicalJson
     {
         if ($value instanceof stdClass) {
             $value = (array) $value;
+            if ($value === []) {
+                return new stdClass;
+            }
         }
         if (! is_array($value)) {
             return $value;
         }
         if (! array_is_list($value)) {
-            ksort($value);
+            ksort($value, SORT_STRING);
         }
 
         return array_map(self::sortKeys(...), $value);

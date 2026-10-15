@@ -113,6 +113,18 @@ final class AuditEventsRouteTest extends TestCase
         }
     }
 
+    public function test_la_borne_to_inclut_toute_la_milliseconde_affichee(): void
+    {
+        // Constat de revue F07 : `recorded_at` garde les microsecondes, le contrat ne montre que les millisecondes.
+        $this->insertAudit('a.microsecondes', 'invoices', self::FIRST_TARGET, '2026-10-14 10:00:00.123456');
+        $this->insertAudit('a.suivant', 'invoices', self::FIRST_TARGET, '2026-10-14 10:00:00.124000');
+
+        $response = $this->actingAsFresh($this->manager)->getJson('/api/v1/audit-events?to=2026-10-14T10:00:00.123Z')->assertOk();
+
+        $this->assertSame(['a.microsecondes'], collect($response->json('data'))->pluck('action')->all());
+        $this->assertSame('2026-10-14T10:00:00.123Z', $response->json('data.0.recorded_at'));
+    }
+
     public function test_la_pagination_se_fait_par_pages_de_cinquante(): void
     {
         for ($i = 0; $i < 55; $i++) {

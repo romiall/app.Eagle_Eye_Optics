@@ -30,14 +30,18 @@ final class ConsumeCounterHandler implements CommandHandler
 
     public static int $handled = 0;
 
+    /** Identifiant de ligne d'idempotence reçu au dernier appel (null : commande sans clé). */
+    public static ?string $lastIdempotencyId = null;
+
     public function permissions(): array
     {
         return ['payment.collect'];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         self::$handled++;
+        self::$lastIdempotencyId = $idempotencyId;
 
         $row = $locks->sequences([[self::COUNTER_TYPE, self::COUNTER_YEAR]])[self::COUNTER_TYPE.':'.self::COUNTER_YEAR]
             ?? throw BusinessError::notFound('Compteur introuvable.');

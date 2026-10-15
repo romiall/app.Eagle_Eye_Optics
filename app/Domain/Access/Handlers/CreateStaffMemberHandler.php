@@ -31,7 +31,7 @@ final class CreateStaffMemberHandler implements CommandHandler
         return [StaffAdministration::MANAGE_PERMISSION];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         $actor = $this->administration->authorizeLocked($context->user ?? throw new LogicException('Compte connecté requis.'));
         $clinicId = $context->clinicId;

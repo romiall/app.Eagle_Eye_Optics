@@ -92,6 +92,27 @@ final class HistoricalAuthorizationTest extends TestCase
         $this->assertDecision(AuthorizationDecision::NeedsReview, $this->grant(), $this->context(occurred: '2026-10-14 16:00:00', now: '2026-10-14 15:00:00'));
     }
 
+    public function test_une_revue_reste_une_revue_quand_la_commande_est_jugee_de_nouveau_plus_tard(): void
+    {
+        // Constat de revue F07 : avec l'heure courante comme référence, la même commande renvoyée à 16:10 passait.
+        // La référence est la première réception (15:00), conservée par l'inbox : le verdict ne bouge plus.
+        $first = $this->context(occurred: '2026-10-14 16:00:00', now: '2026-10-14 15:00:00', receivedAt: '2026-10-14 15:00:00');
+        $retried = $this->context(occurred: '2026-10-14 16:00:00', now: '2026-10-14 16:10:00', receivedAt: '2026-10-14 15:00:00');
+
+        $this->assertDecision(AuthorizationDecision::NeedsReview, $this->grant(), $first);
+        $this->assertDecision(AuthorizationDecision::NeedsReview, $this->grant(), $retried);
+    }
+
+    public function test_la_tolerance_d_horloge_s_applique_avant_la_revocation(): void
+    {
+        $grant = $this->grant(revokedAt: '2026-10-14 12:00:00');
+
+        // 11:54 : avant la révocation moins la tolérance de 5 minutes, accordée ; 11:58 : dans la tolérance,
+        // le poste a pu agir après une révocation qu'il ne connaissait pas encore : revue.
+        $this->assertDecision(AuthorizationDecision::Allowed, $grant, $this->context(occurred: '2026-10-14 11:54:00'));
+        $this->assertDecision(AuthorizationDecision::NeedsReview, $grant, $this->context(occurred: '2026-10-14 11:58:00'));
+    }
+
     public function test_une_action_anterieure_a_l_emission_du_grant_passe_en_revue(): void
     {
         $context = $this->context(occurred: '2026-10-14 07:00:00', lastServer: '2026-10-14 06:00:00', now: '2026-10-14 15:00:00');
@@ -145,11 +166,13 @@ final class HistoricalAuthorizationTest extends TestCase
         string $occurred = '2026-10-14 12:00:00',
         string $lastServer = '2026-10-14 08:30:00',
         string $now = '2026-10-14 15:00:00',
+        ?string $receivedAt = null,
     ): CommandContext {
         return CommandContext::sync(
             self::CLINIC, self::DEVICE, self::USER, 'Profil de test',
             $this->grant(), 'corr-sync-0001',
-            CarbonImmutable::parse($occurred, 'UTC'), CarbonImmutable::parse($lastServer, 'UTC'), CarbonImmutable::parse($now, 'UTC'),
+            CarbonImmutable::parse($occurred, 'UTC'), CarbonImmutable::parse($lastServer, 'UTC'),
+            CarbonImmutable::parse($receivedAt ?? $now, 'UTC'), CarbonImmutable::parse($now, 'UTC'),
         );
     }
 }

@@ -25,6 +25,8 @@ final class TransactionLocks
 
     private bool $clinicExclusive = false;
 
+    private bool $clinicShared = false;
+
     /** @var list<string> */
     private array $acquired = [];
 
@@ -39,6 +41,11 @@ final class TransactionLocks
      */
     public function clinic(): stdClass
     {
+        // Monter un verrou partagé en exclusif ferait attendre deux lecteurs l'un sur l'autre (interblocage
+        // classique), et après d'autres verrous il violerait l'ordre : une mutation prend l'exclusif d'emblée.
+        if ($this->clinicShared && ! $this->clinicExclusive) {
+            throw new LockOrderViolation('Ordre des verrous violé : le verrou partagé du cabinet ne se transforme pas en verrou exclusif ; une mutation prend le verrou exclusif en premier.');
+        }
         $this->enter(LockRank::Clinic, $this->clinicId);
         $row = DB::table('clinics')->where('id', $this->clinicId)->lockForUpdate()->first();
         if ($row === null) {
@@ -61,6 +68,9 @@ final class TransactionLocks
         if ($row === null) {
             throw BusinessError::notFound('Cabinet introuvable.');
         }
+        if (! $this->clinicExclusive) {
+            $this->clinicShared = true;
+        }
 
         return $row;
     }
@@ -68,6 +78,16 @@ final class TransactionLocks
     public function holdsClinicExclusively(): bool
     {
         return $this->clinicExclusive;
+    }
+
+    /**
+     * Compte du personnel (`users`) du cabinet, au rang « compte » : après le cabinet, avant tout le reste.
+     */
+    public function account(string $userId): ?stdClass
+    {
+        $this->enter(LockRank::Account, $userId);
+
+        return $this->byId('users', $userId);
     }
 
     public function device(string $deviceId): ?stdClass
@@ -245,7 +265,7 @@ final class TransactionLocks
         if ($rank->value < $this->highestRank) {
             throw new LockOrderViolation(sprintf(
                 'Ordre des verrous violé : « %s » demandé après un verrou de rang supérieur (« %s » déjà tenu). '
-                .'Ordre du contrat 23 : cabinet, appareil, idempotence, séquences, propriété de facture, facture, session de caisse, stock, approbation.',
+                .'Ordre du contrat 23 : cabinet, compte, appareil, idempotence, séquences, propriété de facture, facture, session de caisse, stock, approbation.',
                 $rank->label(),
                 LockRank::from($this->highestRank)->label(),
             ));

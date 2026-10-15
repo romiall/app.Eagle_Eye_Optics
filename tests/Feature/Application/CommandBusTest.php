@@ -108,7 +108,7 @@ final class CommandBusTest extends TestCase
         $idempotency = DB::table('idempotency_requests')->where('clinic_id', $this->clinicId)->get();
         $this->assertCount(1, $idempotency);
         $this->assertSame('COMMITTED', $idempotency[0]->status);
-        $this->assertSame('cle-paiement-0001', $idempotency[0]->request_key);
+        $this->assertSame('CLE-PAIEMENT-0001', $idempotency[0]->request_key, 'Clé insensible à la casse, conservée en majuscules.');
         $this->assertSame('user:'.$this->cashier->id, $idempotency[0]->namespace);
         $this->assertSame(TestCommands::CONSUME, $idempotency[0]->command_name);
         $this->assertSame($this->counterId, $idempotency[0]->result_id);
@@ -604,6 +604,64 @@ final class CommandBusTest extends TestCase
     /**
      * @return array{0: string, 1: GrantSnapshot}
      */
+    public function test_le_rejeu_d_une_commande_de_poste_est_lie_a_son_auteur_et_a_son_grant(): void
+    {
+        // Constat de revue F07 : l'espace de noms « device:<poste> » est commun aux profils du poste. Le même
+        // identifiant de commande présenté par l'accueil (grant sans payment.collect) ne doit ni rejouer ni rendre
+        // le résultat de la caisse : c'est un conflit d'intégrité (fichier 19), sans aucun effet.
+        [$deviceId, $grant] = $this->syncFixture();
+        $receptionGrant = $this->makeGrant(
+            $this->clinicId, $deviceId, $this->receptionist->id, ['patient.create'],
+            '2026-10-14 08:00:00.000000', '2026-10-14 20:00:00.000000',
+        );
+        $commandId = Ulid::generate();
+        $this->bus()->dispatch(
+            $this->consume($this->counterId, 5000),
+            $this->syncContext($this->clinicId, $deviceId, $this->cashier, $grant, '2026-10-14 12:00:00', '2026-10-14 08:30:00', '2026-10-14 15:00:00'),
+            $commandId,
+        );
+        $counts = $this->effectCounts($this->clinicId);
+
+        try {
+            $this->bus()->dispatch(
+                $this->consume($this->counterId, 5000),
+                $this->syncContext($this->clinicId, $deviceId, $this->receptionist, $receptionGrant, '2026-10-14 12:00:00', '2026-10-14 08:30:00', '2026-10-14 15:00:00'),
+                $commandId,
+            );
+            $this->fail('Un autre profil du poste ne rejoue pas la commande de la caisse.');
+        } catch (BusinessError $error) {
+            $this->assertSame('IDEMPOTENCY_PAYLOAD_MISMATCH', $error->errorCode);
+        }
+
+        $this->assertSame(45000, $this->counterBalance($this->counterId));
+        $this->assertSame($counts, $this->effectCounts($this->clinicId));
+    }
+
+    public function test_l_action_recoit_l_identifiant_de_sa_ligne_d_idempotence(): void
+    {
+        // Les faits financiers portent `idempotency_id` NOT NULL (payments, refunds, deliveries…) : l'action le reçoit.
+        $this->bus()->dispatch($this->consume($this->counterId, 1000), $this->directContext($this->cashier), 'cle-faits-0001');
+
+        $row = DB::table('idempotency_requests')->where('clinic_id', $this->clinicId)->where('request_key', 'cle-faits-0001')->value('id');
+        $this->assertIsString($row);
+        $this->assertSame($row, ConsumeCounterHandler::$lastIdempotencyId);
+
+        // Commande dont la clé est facultative, envoyée sans clé : aucune ligne, donc aucun identifiant.
+        $this->bus()->dispatch($this->consume($this->counterId, 1000), $this->directContext($this->cashier));
+        $this->assertNull(ConsumeCounterHandler::$lastIdempotencyId);
+    }
+
+    public function test_la_cle_d_idempotence_est_insensible_a_la_casse_et_conservee_en_majuscules(): void
+    {
+        $bus = $this->bus();
+        $bus->dispatch($this->consume($this->counterId, 1000), $this->directContext($this->cashier), 'cle-casse-0001');
+        $replay = $bus->dispatch($this->consume($this->counterId, 1000), $this->directContext($this->cashier), 'CLE-CASSE-0001');
+
+        $this->assertTrue($replay->replayed, 'Même clé à la casse près : même demande, comme la collation de la colonne.');
+        $this->assertSame(1, ConsumeCounterHandler::$handled);
+        $this->assertTrue(DB::table('idempotency_requests')->whereRaw('request_key = BINARY ?', ['CLE-CASSE-0001'])->exists());
+    }
+
     private function syncFixture(?string $revokedAt = null): array
     {
         $deviceId = $this->makeDevice($this->clinicId, $this->manager->id);

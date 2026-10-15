@@ -29,7 +29,7 @@ final class MisbehavingHandler implements CommandHandler
         return ['payment.collect'];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         // Fait écrit AVANT l'infraction : il doit disparaître avec la transaction.
         DB::table('document_sequences')->insert([

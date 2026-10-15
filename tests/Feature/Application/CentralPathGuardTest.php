@@ -32,16 +32,31 @@ final class CentralPathGuardTest extends TestCase
 
     /**
      * Effets externes : jamais dans la transaction (ils passent par l'outbox, lue après le commit). Motifs de
-     * code, sans les noms de méthodes du bus lui-même (`dispatch` y est une méthode, pas un appel de file).
+     * code, sans les noms de méthodes du bus lui-même (`dispatch` y est une méthode, pas un appel de file) :
+     * façades et classes de messagerie, réseau, fichiers, processus et files ; fonctions PHP de réseau, de fichier
+     * et de processus (appel de fonction, pas méthode d'objet) ; services résolus par leur nom dans le conteneur.
      */
     private const EXTERNAL_EFFECTS = [
-        '/\b(?:Http|Mail|Notification|Storage|Queue|Bus|Event|Broadcast)::/',
-        '/(?<![\w>$])(?<!function )(?:event|dispatch|dispatch_sync|mail)\s*\(/',
-        '/\b(?:curl_init|fsockopen|stream_socket_client)\b|file_get_contents\(\s*[\x27"]https?:/',
-        '/Illuminate\\\\Support\\\\Facades\\\\(?:Http|Mail|Notification|Storage|Queue)\b/',
+        '/\b(?:Http|Mail|Notification|Storage|Queue|Bus|Event|Broadcast|File|Process|Artisan|Redis)::/',
+        '/(?<![\w>$:])(?<!function )(?:event|dispatch|dispatch_sync|broadcast|mail)\s*\(/',
+        '/(?<![\w>$:])(?<!function )(?:curl_\w+|fsockopen|pfsockopen|stream_socket_client|socket_create|socket_connect|exec|shell_exec|system|passthru|proc_open|popen|fopen|fwrite|fputs|file_put_contents|unlink|rename|copy|mkdir|rmdir|touch|tempnam|move_uploaded_file)\s*\(/',
+        '/file_get_contents\(\s*[\x27"](?:https?|ftp):/',
+        '/->notify(?:Now)?\(/',
+        '/\b(?:app|resolve)\(\s*[\x27"](?:mailer|mail\.manager|queue|events|filesystem|files|redis|http|broadcaster)[\x27"]/',
+        '/\b(?:GuzzleHttp|Symfony\\\\Component\\\\Process)\\\\|Illuminate\\\\Http\\\\Client\\\\|Illuminate\\\\Support\\\\Facades\\\\(?:Http|Mail|Notification|Storage|Queue|Bus|Event|Broadcast|File|Process|Artisan|Redis)\b/',
     ];
 
-    public function test_aucune_transaction_n_est_ouverte_hors_de_l_executeur_commun(): void
+    /**
+     * Contrôle de transaction hors de l'exécuteur : ouverture, validation ou annulation par l'API de Laravel, par le
+     * PDO brut ou par du SQL écrit à la main.
+     */
+    private const TRANSACTION_CONTROL = [
+        '/DB::(?:transaction|beginTransaction|commit|rollBack)\(|->(?:transaction|beginTransaction|commit|rollBack)\(/',
+        '/->(?:getPdo|unprepared)\(/',
+        '/[\x27"]\s*(?:START\s+TRANSACTION|BEGIN\b|COMMIT\b|ROLLBACK\b|SAVEPOINT\b|RELEASE\s+SAVEPOINT|SET\s+(?:SESSION\s+)?autocommit)/i',
+    ];
+
+    public function test_aucune_transaction_n_est_ouverte_ni_conclue_hors_de_l_executeur_commun(): void
     {
         $offenders = [];
 
@@ -49,29 +64,76 @@ final class CentralPathGuardTest extends TestCase
             if (in_array($relative, self::TRANSACTION_ALLOWED, true)) {
                 continue;
             }
-            if (preg_match('/DB::(?:transaction|beginTransaction)\(|->(?:transaction|beginTransaction)\(/', $source) === 1) {
-                $offenders[] = $relative;
+            $code = self::withoutComments($source);
+            foreach (self::TRANSACTION_CONTROL as $pattern) {
+                if (preg_match($pattern, $code, $match) === 1) {
+                    $offenders[] = $relative.' : '.trim($match[0]);
+                }
             }
         }
 
-        $this->assertSame([], $offenders, 'Ces fichiers ouvrent leur propre transaction : passer par TransactionRunner (ou par le CommandBus pour une mutation).');
+        $this->assertSame([], $offenders, 'Ces fichiers contrôlent eux-mêmes une transaction : passer par TransactionRunner (ou par le CommandBus pour une mutation).');
     }
 
-    public function test_la_couche_de_commande_ne_declenche_aucun_effet_externe(): void
+    public function test_ni_le_chemin_central_ni_les_actions_du_domaine_ne_declenchent_d_effet_externe(): void
     {
         $offenders = [];
 
-        foreach ($this->sources(app_path('Application')) as $relative => $source) {
-            // Les commentaires expliquent la règle sans l'enfreindre : on ne lit que le code.
-            $code = (string) preg_replace('~/\*.*?\*/|(?<![:\'"])//[^\n]*~s', '', $source);
+        // Tout ce qui peut s'exécuter dans la transaction : le chemin central ET le domaine (actions, règles,
+        // services appelés sous verrou), pas seulement app/Application.
+        foreach ([...$this->sources(app_path('Application')), ...$this->sources(app_path('Domain'))] as $relative => $source) {
+            $code = self::withoutComments($source);
             foreach (self::EXTERNAL_EFFECTS as $pattern) {
                 if (preg_match($pattern, $code, $match) === 1) {
-                    $offenders[] = $relative.' : '.$match[0];
+                    $offenders[] = $relative.' : '.trim($match[0]);
                 }
             }
         }
 
         $this->assertSame([], $offenders);
+    }
+
+    public function test_les_motifs_d_effet_externe_reconnaissent_les_formes_courantes(): void
+    {
+        // Contrôle négatif du garde-fou lui-même : chaque forme relevée par la revue doit être détectée.
+        $samples = [
+            'file_put_contents($p, $x);', 'File::put($p, $x);', 'new \GuzzleHttp\Client();', "app('mailer')->send(\$m);",
+            "fopen('https://exemple.invalid', 'r');", 'Process::run($c);', 'Http::post($u);', '$user->notify($n);',
+            'event(new Paid());', 'exec($c);', 'Mail::to($a);', 'curl_exec($h);',
+        ];
+        foreach ($samples as $sample) {
+            $matched = array_filter(self::EXTERNAL_EFFECTS, static fn (string $pattern): bool => preg_match($pattern, $sample) === 1);
+            $this->assertNotSame([], $matched, 'Non détecté : '.$sample);
+        }
+        foreach (["DB::statement('START TRANSACTION');", '$pdo = DB::connection()->getPdo();', "DB::unprepared('COMMIT');", 'DB::commit();'] as $sample) {
+            $matched = array_filter(self::TRANSACTION_CONTROL, static fn (string $pattern): bool => preg_match($pattern, $sample) === 1);
+            $this->assertNotSame([], $matched, 'Non détecté : '.$sample);
+        }
+        // Et pas de faux positif sur les méthodes du bus ou d'un objet.
+        foreach (['$this->bus->dispatch($c, $x);', '$query->update([]);', '$locks->clinic();'] as $sample) {
+            $matched = array_filter(self::EXTERNAL_EFFECTS, static fn (string $pattern): bool => preg_match($pattern, $sample) === 1);
+            $this->assertSame([], $matched, 'Faux positif : '.$sample);
+        }
+    }
+
+    public function test_aucun_controleur_n_ecrit_en_base(): void
+    {
+        // Une écriture hors du chemin central serait validée seule (autocommit), sans verrou ni audit.
+        $offenders = [];
+        foreach ($this->sources(app_path('Http')) as $relative => $source) {
+            $code = self::withoutComments($source);
+            if (preg_match('/DB::table\([^;]*->(?:insert\w*|update\w*|upsert|delete|truncate|increment|decrement)\(|->(?:save|forceDelete|push)\(\)|::(?:create|insert|upsert|updateOrCreate|firstOrCreate)\(/s', $code, $match) === 1) {
+                $offenders[] = $relative.' : '.trim($match[0]);
+            }
+        }
+
+        $this->assertSame([], $offenders, 'Un contrôleur ne modifie rien lui-même : il confie la mutation au CommandBus.');
+    }
+
+    private static function withoutComments(string $source): string
+    {
+        // Les commentaires expliquent la règle sans l'enfreindre : on ne lit que le code.
+        return (string) preg_replace('~/\*.*?\*/|(?<![:\'"])//[^\n]*~s', '', $source);
     }
 
     public function test_toute_action_de_commande_est_enregistree_et_declare_des_permissions_connues(): void

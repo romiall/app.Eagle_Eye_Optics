@@ -24,5 +24,11 @@ interface CommandHandler
      */
     public function permissions(): array;
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome;
+    /**
+     * @param  string|null  $idempotencyId  identifiant de la ligne `idempotency_requests` réservée pour cette
+     *                                      commande : les faits qui l'exigent (`payments`, `refunds`, `deliveries`,
+     *                                      `stock_movements`… colonne `idempotency_id` NOT NULL) le reçoivent ici.
+     *                                      Jamais null pour une commande dont la clé est obligatoire.
+     */
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome;
 }

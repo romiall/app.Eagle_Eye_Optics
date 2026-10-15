@@ -11,14 +11,17 @@ use App\Domain\Shared\GrantSnapshot;
  * détruit pas une pièce valable hier ; une action qui contredit l'horloge du serveur, ou qui tombe autour d'une
  * révocation sans que le poste l'ait pu connaître, passe en revue au lieu d'être acceptée ou rejetée à tort.
  *
- * Fonction pure (aucune base, aucune horloge système) : l'heure du serveur est `context->now`. Les règles
- * d'horloge ci-dessous posent la structure ; la tâche O02 les confirmera avec la préparation du poste
+ * Fonction pure (aucune base, aucune horloge système) et DÉTERMINISTE : l'heure du serveur de référence est
+ * `context->receivedAt`, première réception de la commande conservée par l'inbox (O05), jamais l'heure courante.
+ * La même commande jugée de nouveau (renvoi, reprise) reçoit le même verdict ; une revue reste une revue. Les
+ * règles d'horloge ci-dessous posent la structure ; la tâche O02 les confirmera avec la préparation du poste
  * (« horloge suspecte », révocation différée).
  *
  *  1. Identité : le grant est celui de cet appareil et de cet auteur, sinon refus (substitution).
  *  2. Droit : une des permissions de la commande figure dans `permissions_snapshot`, sinon refus.
  *  3. Horloge : l'instant déclaré par le poste n'est ni antérieur à la dernière heure serveur qu'il connaissait
- *     (antidatage), ni postérieur à l'heure du serveur (horloge avancée), à la tolérance près : revue.
+ *     (antidatage), ni postérieur à la première réception par le serveur (horloge avancée), à la tolérance
+ *     près : revue.
  *  4. Fenêtre : l'instant est dans [émission, validité], à la tolérance près ; avant l'émission : revue ;
  *     après la validité : refus (le moteur local refuse d'agir avec un grant expiré).
  *  5. Révocation : si le poste avait déjà synchronisé après la révocation, il la connaissait : refus. Sinon,
@@ -33,8 +36,9 @@ final class HistoricalAuthorization
     {
         $occurred = $context->occurredAtLocal;
         $lastServerTime = $context->lastServerTime;
+        $receivedAt = $context->receivedAt;
 
-        if ($context->deviceId === null || $occurred === null || $lastServerTime === null) {
+        if ($context->deviceId === null || $occurred === null || $lastServerTime === null || $receivedAt === null) {
             return AuthorizationVerdict::denied('Contexte de poste incomplet : appareil ou horloge manquants.');
         }
         if ($grant->deviceId !== $context->deviceId || $grant->userId !== $context->actorId) {
@@ -49,8 +53,8 @@ final class HistoricalAuthorization
         if ($occurred < $lastServerTime->subSeconds($skew)) {
             return AuthorizationVerdict::needsReview('L\'horloge du poste est antérieure à la dernière heure serveur qu\'il connaissait (antidatage possible).');
         }
-        if ($occurred > $context->now->addSeconds($skew)) {
-            return AuthorizationVerdict::needsReview('L\'horloge du poste est en avance sur l\'heure du serveur.');
+        if ($occurred > $receivedAt->addSeconds($skew)) {
+            return AuthorizationVerdict::needsReview('L\'horloge du poste est en avance sur l\'heure de réception du serveur.');
         }
         if ($occurred < $grant->issuedAt->subSeconds($skew)) {
             return AuthorizationVerdict::needsReview('L\'action déclarée précède l\'émission du grant.');

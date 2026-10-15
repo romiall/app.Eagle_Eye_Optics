@@ -59,15 +59,83 @@ final class ContractValidator
         $validator = $this->validator();
         $decoded = json_decode((string) json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
 
-        $result = $validator->validate($decoded, self::BASE_URI.ltrim($schema, '/'));
-        if ($result->isValid() || $result->error() === null) {
-            return [];
+        // Un tableau PHP vide ne dit pas s'il venait de `{}` ou de `[]` (la requête est décodée en tableaux) : là où
+        // le schéma attend un objet et ne reçoit qu'un tableau VIDE, il est relu comme l'objet vide `{}`, puis la
+        // validation est rejouée. Une liste non vide n'est jamais transformée.
+        for ($pass = 0; ; $pass++) {
+            $result = $validator->validate($decoded, self::BASE_URI.ltrim($schema, '/'));
+            $error = $result->error();
+            if ($result->isValid() || $error === null) {
+                return [];
+            }
+            $paths = [];
+            self::emptyListsExpectedAsObjects($error, $decoded, $paths);
+            if ($paths === [] || $pass >= 8) {
+                break;
+            }
+            foreach ($paths as $path) {
+                $decoded = self::replaceAt($decoded, $path);
+            }
         }
 
         $fields = [];
-        $this->collect($result->error(), $fields);
+        $this->collect($error, $fields);
 
         return $fields;
+    }
+
+    /**
+     * @param  array<string, list<int|string>>  $paths
+     */
+    private static function emptyListsExpectedAsObjects(ValidationError $error, mixed $root, array &$paths): void
+    {
+        foreach ($error->subErrors() as $child) {
+            self::emptyListsExpectedAsObjects($child, $root, $paths);
+        }
+        if ($error->keyword() !== 'type') {
+            return;
+        }
+        $expected = (array) ($error->args()['expected'] ?? []);
+        $path = array_values($error->data()->fullPath());
+        if (in_array('object', $expected, true) && self::valueAt($root, $path) === []) {
+            $paths[implode("\0", array_map('strval', $path))] = $path;
+        }
+    }
+
+    /**
+     * @param  list<int|string>  $path
+     */
+    private static function valueAt(mixed $node, array $path): mixed
+    {
+        foreach ($path as $key) {
+            if ($node instanceof \stdClass && property_exists($node, (string) $key)) {
+                $node = $node->{(string) $key};
+            } elseif (is_array($node) && array_key_exists($key, $node)) {
+                $node = $node[$key];
+            } else {
+                return null;
+            }
+        }
+
+        return $node;
+    }
+
+    /**
+     * @param  list<int|string>  $path
+     */
+    private static function replaceAt(mixed $node, array $path): mixed
+    {
+        if ($path === []) {
+            return new \stdClass;
+        }
+        $key = array_shift($path);
+        if ($node instanceof \stdClass) {
+            $node->{(string) $key} = self::replaceAt($node->{(string) $key}, $path);
+        } elseif (is_array($node)) {
+            $node[$key] = self::replaceAt($node[$key], $path);
+        }
+
+        return $node;
     }
 
     private function validator(): Validator

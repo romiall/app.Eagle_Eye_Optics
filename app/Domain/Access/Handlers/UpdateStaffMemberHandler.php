@@ -42,15 +42,15 @@ final class UpdateStaffMemberHandler implements CommandHandler
         return [StaffAdministration::MANAGE_PERMISSION];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         $actor = $this->administration->authorizeLocked($context->user ?? throw new LogicException('Compte connecté requis.'));
         $clinicId = $context->clinicId;
         $userId = (string) $command->entityId;
         $data = $command->payload;
 
-        /** @var object{id: string, display_name: string, email: ?string, active: int|bool, version: int}|null $target */
-        $target = DB::table('users')->where('clinic_id', $clinicId)->where('id', $userId)->lockForUpdate()->first();
+        // Ligne `users` verrouillée au rang « compte » : id, display_name, email, active, version.
+        $target = $locks->account($userId);
         if ($target === null) {
             throw BusinessError::notFound();
         }

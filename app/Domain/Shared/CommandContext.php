@@ -30,6 +30,7 @@ final readonly class CommandContext
         public ?GrantSnapshot $grant = null,
         public ?CarbonImmutable $occurredAtLocal = null,
         public ?CarbonImmutable $lastServerTime = null,
+        public ?CarbonImmutable $receivedAt = null,
     ) {}
 
     /**
@@ -52,7 +53,13 @@ final readonly class CommandContext
     /**
      * Commande d'un poste, déjà vérifiée (signature, hash, appareil enrôlé) par la couche de synchronisation.
      * `occurredAtLocal` et `lastServerTime` viennent du cœur signé ; `now` reste l'heure du serveur.
-     * Les clés d'idempotence sont propres à l'appareil (la clé est l'identifiant de la commande).
+     *
+     * `receivedAt` est l'heure de la PREMIÈRE réception de cette commande par le serveur, conservée avec elle
+     * par l'inbox de synchronisation (O05) : le jugement d'horloge s'y réfère, pas à `now`, pour qu'un simple
+     * renvoi plus tard ne transforme jamais une revue en acceptation.
+     *
+     * Les clés d'idempotence sont propres à l'appareil (la clé est l'identifiant de la commande) ; l'empreinte
+     * comparée au rejeu lie en plus l'auteur et le grant (Command::fingerprint).
      */
     public static function sync(
         string $clinicId,
@@ -63,6 +70,7 @@ final readonly class CommandContext
         string $correlationId,
         CarbonImmutable $occurredAtLocal,
         CarbonImmutable $lastServerTime,
+        CarbonImmutable $receivedAt,
         ?CarbonImmutable $now = null,
     ): self {
         return new self(
@@ -77,6 +85,7 @@ final readonly class CommandContext
             grant: $grant,
             occurredAtLocal: $occurredAtLocal,
             lastServerTime: $lastServerTime,
+            receivedAt: $receivedAt,
         );
     }
 

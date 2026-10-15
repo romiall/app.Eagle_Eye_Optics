@@ -36,12 +36,12 @@ final class IdempotencyStore
 
     /**
      * Ligne laissée RECEIVED ou FAILED sans résultat durable (jamais produite par ce chemin, qui annule la
-     * réservation avec la transaction) : la commande est rejouée sur la même ligne.
+     * réservation avec la transaction) : la commande est rejouée sur la même ligne. L'empreinte n'est jamais
+     * réécrite : le chemin central a déjà vérifié qu'elle est la même (sinon conflit).
      */
-    public function restart(CommandContext $context, string $id, string $payloadHash): void
+    public function restart(CommandContext $context, string $id): void
     {
         DB::table('idempotency_requests')->where('clinic_id', $context->clinicId)->where('id', $id)->update([
-            'payload_hash' => $payloadHash,
             'status' => 'RECEIVED',
             'result_type' => null,
             'result_id' => null,

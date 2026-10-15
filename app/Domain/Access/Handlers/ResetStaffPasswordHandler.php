@@ -38,7 +38,7 @@ final class ResetStaffPasswordHandler implements CommandHandler
         return [StaffAdministration::MANAGE_PERMISSION];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         $this->administration->authorizeLocked($context->user ?? throw new LogicException('Compte connecté requis.'));
         $clinicId = $context->clinicId;
@@ -49,7 +49,7 @@ final class ResetStaffPasswordHandler implements CommandHandler
             throw new BusinessError('MANAGER_RESET_REQUIRES_CONSOLE', 'Le mot de passe d\'une gérante se réinitialise par la procédure de secours sur le serveur.', 409);
         }
 
-        $version = DB::table('users')->where('clinic_id', $clinicId)->where('id', $userId)->lockForUpdate()->value('version');
+        $version = $locks->account($userId)?->version;
         if ((int) $version !== $command->expectedVersion) {
             throw BusinessError::versionConflict();
         }

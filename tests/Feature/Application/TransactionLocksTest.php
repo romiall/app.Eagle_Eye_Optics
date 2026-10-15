@@ -138,6 +138,74 @@ final class TransactionLocksTest extends TestCase
         $this->assertFalse($locks->holdsClinicExclusively());
     }
 
+    public function test_le_verrou_partage_du_cabinet_ne_devient_jamais_exclusif(): void
+    {
+        // Constat de revue F07 : partagé → facture → exclusif passait et émettait le FOR UPDATE du cabinet après un
+        // verrou de rang 60. La montée est refusée avant toute requête, même sans verrou intermédiaire.
+        $after = new TransactionLocks($this->clinicId);
+        $after->clinicShared();
+        $after->invoice(Ulid::generate());
+        $this->assertLockOrderViolation(static fn () => $after->clinic());
+
+        $direct = new TransactionLocks($this->clinicId);
+        $direct->clinicShared();
+        $this->assertLockOrderViolation(static fn () => $direct->clinic());
+
+        // L'inverse reste permis : l'exclusif couvre déjà la lecture partagée.
+        $exclusive = new TransactionLocks($this->clinicId);
+        $exclusive->clinic();
+        $exclusive->clinicShared();
+        $this->assertTrue($exclusive->holdsClinicExclusively());
+    }
+
+    public function test_le_compte_se_verrouille_apres_le_cabinet_et_avant_le_reste(): void
+    {
+        $user = $this->makeStaff($this->clinicId, 'CASHIER', 'rang.compte');
+
+        $locks = new TransactionLocks($this->clinicId);
+        $locks->clinic();
+        $this->assertSame($user->id, $locks->account($user->id)?->id);
+        $locks->device(Ulid::generate());
+        $this->assertSame(['10', '15', '20'], array_map(static fn (string $token): string => explode(':', $token, 2)[0], $locks->acquired()));
+
+        $late = new TransactionLocks($this->clinicId);
+        $late->clinic();
+        $late->invoice(Ulid::generate());
+        $this->assertLockOrderViolation(static fn () => $late->account($user->id));
+    }
+
+    public function test_un_compte_ou_une_cle_d_un_autre_cabinet_reste_invisible(): void
+    {
+        // Mutations non détectées relevées par la revue : retirer le filtre clinic_id de byId() ou d'idempotency().
+        $otherClinic = $this->makeClinic('TEST CABINET C');
+        $stranger = $this->makeStaff($otherClinic, 'CASHIER', 'autre.cabinet');
+        DB::table('idempotency_requests')->insert([
+            'id' => Ulid::generate(), 'clinic_id' => $otherClinic, 'namespace' => 'job:rapprochement', 'command_name' => 'TestJob',
+            'request_key' => 'CLE-PARTAGEE-0001', 'payload_hash' => str_repeat('a', 64), 'status' => 'COMMITTED',
+            'created_at' => '2026-10-14 08:00:00.000000', 'updated_at' => '2026-10-14 08:00:00.000000',
+        ]);
+
+        $locks = new TransactionLocks($this->clinicId);
+        $locks->clinic();
+        $this->assertNull($locks->account($stranger->id), 'Compte d\'un autre cabinet.');
+        $this->assertNull($locks->idempotency('job:rapprochement', 'TestJob', 'CLE-PARTAGEE-0001'), 'Même espace « job: » dans un autre cabinet.');
+
+        $owner = new TransactionLocks($otherClinic);
+        $owner->clinic();
+        $this->assertSame($stranger->id, $owner->account($stranger->id)?->id);
+        $this->assertNotNull($owner->idempotency('job:rapprochement', 'TestJob', 'CLE-PARTAGEE-0001'));
+    }
+
+    private function assertLockOrderViolation(\Closure $acquire): void
+    {
+        try {
+            $acquire();
+            $this->fail('Ordre des verrous violé sans LockOrderViolation.');
+        } catch (LockOrderViolation) {
+            $this->addToAssertionCount(1);
+        }
+    }
+
     public function test_un_cabinet_inconnu_est_introuvable(): void
     {
         try {

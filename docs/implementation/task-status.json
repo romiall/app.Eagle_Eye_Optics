@@ -132,7 +132,7 @@
    "notes": "check-all --strict --with-e2e : PHPUnit 403 / 23950 assertions (Contracts 156), générateurs à jour, Vitest 192, Playwright 18. 26 commandes, 13 événements, 86 opérations OpenAPI, 150 fixtures (verdicts identiques PHP/TS). CI GitHub verte sur le commit final 8614fd5 : run 38592637925 (2026-10-14). Vecteurs F08/O02, coffre O01 et modèles D01/D02 à déclarer par leurs tâches."
   },
   "F07": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/command-bus.md",
     "app/Application/",
@@ -140,9 +140,12 @@
     "tests/Feature/Application/",
     "tests/Unit/Application/",
     "tests/Concurrency/CommandBusConcurrencyTest.php",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38702410317"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38702410317",
+    "tests/Feature/Application/MutationRoutesTest.php",
+    "tests/Feature/Application/ContractValidatorTest.php",
+    "tests/Feature/Application/CentralPathGuardTest.php"
    ],
-   "notes": "Sauvegarde 1b0600d, corrections 599ef06 (CI verte 38702410317), e2e Windows ddcf1f8. Revue contradictoire : pass=false (4 majeurs : rejeu SYNC non lié à l'auteur/grant, revue non déterministe, idempotency_id inaccessible aux actions, garde d'effets externes incomplète ; 7 mineurs). Traitement en cours."
+   "notes": "Sauvegarde 1b0600d, corrections 599ef06 (CI verte 38702410317), e2e Windows ddcf1f8. Revue contradictoire pass=false (4 majeurs, 7 mineurs) : tous traités (tableau de command-bus.md), chaque correction avec son test. PHPUnit complet 775 / 40 308 assertions, 0 échec (poste local, MySQL 8.4.9). DONE après CI verte du commit de correction."
   },
   "F08": {
    "status": "IN_REVIEW",

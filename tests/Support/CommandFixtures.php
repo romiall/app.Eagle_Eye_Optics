@@ -152,11 +152,15 @@ trait CommandFixtures
         );
     }
 
-    protected function syncContext(string $clinicId, string $deviceId, User $actor, GrantSnapshot $grant, string $occurredAtLocal, string $lastServerTime, string $now): CommandContext
+    /**
+     * `receivedAt` : première réception de la commande par le serveur (par défaut l'instant `now` du traitement).
+     */
+    protected function syncContext(string $clinicId, string $deviceId, User $actor, GrantSnapshot $grant, string $occurredAtLocal, string $lastServerTime, string $now, ?string $receivedAt = null): CommandContext
     {
         return CommandContext::sync(
             $clinicId, $deviceId, $actor->id, $actor->display_name, $grant, 'corr-sync-0001',
-            CarbonImmutable::parse($occurredAtLocal, 'UTC'), CarbonImmutable::parse($lastServerTime, 'UTC'), CarbonImmutable::parse($now, 'UTC'),
+            CarbonImmutable::parse($occurredAtLocal, 'UTC'), CarbonImmutable::parse($lastServerTime, 'UTC'),
+            CarbonImmutable::parse($receivedAt ?? $now, 'UTC'), CarbonImmutable::parse($now, 'UTC'),
         );
     }
 }

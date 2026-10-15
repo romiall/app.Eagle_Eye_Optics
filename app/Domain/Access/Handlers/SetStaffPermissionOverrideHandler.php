@@ -37,14 +37,14 @@ final class SetStaffPermissionOverrideHandler implements CommandHandler
         return [StaffAdministration::MANAGE_PERMISSION];
     }
 
-    public function handle(Command $command, CommandContext $context, TransactionLocks $locks): CommandOutcome
+    public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
         $actor = $this->administration->authorizeLocked($context->user ?? throw new LogicException('Compte connecté requis.'));
         $clinicId = $context->clinicId;
         $userId = (string) $command->entityId;
         $data = $command->payload;
 
-        $version = DB::table('users')->where('clinic_id', $clinicId)->where('id', $userId)->lockForUpdate()->value('version');
+        $version = $locks->account($userId)?->version;
         if ($version === null) {
             throw BusinessError::notFound();
         }

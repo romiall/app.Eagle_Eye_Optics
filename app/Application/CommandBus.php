@@ -33,7 +33,11 @@ use stdClass;
  */
 final class CommandBus
 {
-    /** Forme admise d'une clé d'idempotence (colonne `request_key` VARCHAR(128)). */
+    /**
+     * Forme admise d'une clé d'idempotence (colonne `request_key` VARCHAR(128)). La clé est insensible à la casse,
+     * comme la collation de la colonne : elle est ramenée en majuscules avant tout usage, pour que la comparaison
+     * soit explicite et ne dépende pas de la base (un ULID est déjà en majuscules).
+     */
     private const KEY_PATTERN = '/^[A-Za-z0-9._:-]{8,128}\z/';
 
     public function __construct(
@@ -58,12 +62,13 @@ final class CommandBus
         }
 
         $this->assertIdempotencyKey($definition, $idempotencyKey);
+        $idempotencyKey = $idempotencyKey === null ? null : strtoupper($idempotencyKey);
         if ($definition->schema !== null) {
             $this->contracts->assertCommandPayload($definition->schema, $command->payload);
         }
         $this->authorizer->precheck($context, $definition, $handler);
 
-        $hash = $command->hash();
+        $hash = $command->fingerprint($context);
 
         return $this->transactions->run(
             fn (int $attempt): CommandResult => $this->execute($command, $context, $handler, $idempotencyKey, $hash),
@@ -105,15 +110,20 @@ final class CommandBus
         $reservation = null;
         if ($idempotencyKey !== null) {
             if ($existing !== null) {
+                // Ligne non committée (RECEIVED ou FAILED) : reprise sur la même ligne, pour la MÊME empreinte
+                // seulement. Une autre intention sous la même clé reste un conflit, comme après un commit.
+                if (! hash_equals((string) $existing->payload_hash, $hash)) {
+                    throw BusinessError::idempotencyMismatch();
+                }
                 $reservation = (string) $existing->id;
-                $this->idempotency->restart($context, $reservation, $hash);
+                $this->idempotency->restart($context, $reservation);
             } else {
                 $reservation = $this->idempotency->reserve($context, $command->name, $idempotencyKey, $hash);
             }
         }
         $this->probe->reached(Checkpoint::IdempotencyChecked, $context);
 
-        $outcome = $handler->handle($command, $context, $locks);
+        $outcome = $handler->handle($command, $context, $locks, $reservation);
         $this->probe->reached(Checkpoint::HandlerReturned, $context);
 
         $this->audit->write($context, $outcome->audit);

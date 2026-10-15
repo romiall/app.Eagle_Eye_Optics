@@ -28,6 +28,7 @@ final class TestCommands
     public static function register(CommandRegistry $registry): void
     {
         ConsumeCounterHandler::$handled = 0;
+        ConsumeCounterHandler::$lastIdempotencyId = null;
 
         $registry->register(new CommandDefinition(self::CONSUME, ConsumeCounterHandler::class, [CommandSource::Direct, CommandSource::Sync]));
         $registry->register(new CommandDefinition(self::CONSUME_STRICT, ConsumeCounterHandler::class, [CommandSource::Direct, CommandSource::Sync], null, true));
