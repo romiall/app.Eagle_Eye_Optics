@@ -74,11 +74,12 @@ test.describe('origine HTTPS derrière un proxy qui termine TLS', () => {
     await page.goto(`${origin}/`)
 
     expect(new URL(page.url()).protocol).toBe('https:')
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Application du cabinet' }),
-    ).toBeVisible()
+    // Sans session, la coquille ouvre la connexion (F09).
+    await expect(page.getByRole('heading', { level: 1, name: 'Connexion' })).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe('/connexion')
     await expect(page.locator('#app')).not.toBeEmpty()
-    expect(problems).toEqual([])
+    // Seul le refus 401 de /auth/me (aucune session), que le navigateur note en console, est admis.
+    expect(problems.filter((problem) => !problem.includes('401'))).toEqual([])
   })
 
   test('enregistre le service worker avec la portée de l’origine HTTPS', async ({ page }) => {
@@ -119,7 +120,11 @@ test.describe('origine HTTPS derrière un proxy qui termine TLS', () => {
     // la racine fonctionne partout.
     await openShell(page, '/ventes/factures/01HZY3K9Q2A7B6C5D4E3F2G1H0')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeVisible()
+    // Sans session : connexion, avec le chemin demandé pour y revenir ensuite.
+    await expect(page.getByRole('heading', { level: 1, name: 'Connexion' })).toBeVisible()
+    expect(new URL(page.url()).searchParams.get('suite')).toBe(
+      '/ventes/factures/01HZY3K9Q2A7B6C5D4E3F2G1H0',
+    )
     await expect(page.locator('script[type="module"][src]')).toHaveAttribute(
       'src',
       /^\/build\/assets\/main-[\w-]+\.js$/,

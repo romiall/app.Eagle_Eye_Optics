@@ -1,28 +1,7 @@
 /* Tailwind ne lit que les sources du frontend : ni la documentation, ni les spécifications, ni vendor/. */
 @import 'tailwindcss' source(none);
+/* Palette et règles de base de la coquille (resources/frontend/styles/, F09). */
+@import '../styles/tokens.css';
+@import '../styles/base.css';
+
 @source '../';
-
-@theme {
-  --color-brand: #0f3d3e;
-  --color-brand-contrast: #f6f4ef;
-  --color-surface: #f6f4ef;
-  --color-ink: #1b2a2b;
-  --color-muted: #51605f;
-  --color-line: #d8d3c7;
-  --font-sans:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-}
-
-/* Aucune fonte distante : les fontes et modèles doivent rester locaux pour le hors-ligne. */
-html {
-  background-color: var(--color-surface);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}

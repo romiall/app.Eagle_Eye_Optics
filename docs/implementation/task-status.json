@@ -132,7 +132,7 @@
    "notes": "check-all --strict --with-e2e : PHPUnit 403 / 23950 assertions (Contracts 156), générateurs à jour, Vitest 192, Playwright 18. 26 commandes, 13 événements, 86 opérations OpenAPI, 150 fixtures (verdicts identiques PHP/TS). CI GitHub verte sur le commit final 8614fd5 : run 38592637925 (2026-10-14). Vecteurs F08/O02, coffre O01 et modèles D01/D02 à déclarer par leurs tâches."
   },
   "F07": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/command-bus.md",
     "app/Application/",
@@ -143,12 +143,14 @@
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38702410317",
     "tests/Feature/Application/MutationRoutesTest.php",
     "tests/Feature/Application/ContractValidatorTest.php",
-    "tests/Feature/Application/CentralPathGuardTest.php"
+    "tests/Feature/Application/CentralPathGuardTest.php",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38716810524",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38719061673"
    ],
-   "notes": "Sauvegarde 1b0600d, corrections 599ef06 (CI verte 38702410317), e2e Windows ddcf1f8. Revue contradictoire pass=false (4 majeurs, 7 mineurs) : tous traités (tableau de command-bus.md), chaque correction avec son test. PHPUnit complet 775 / 40 308 assertions, 0 échec (poste local, MySQL 8.4.9). DONE après CI verte du commit de correction."
+   "notes": "Sauvegarde 1b0600d, corrections 599ef06 (CI verte 38702410317), e2e Windows ddcf1f8. Revue contradictoire pass=false (4 majeurs, 7 mineurs) : tous traités au commit 9347d7f (tableau de command-bus.md), chaque correction avec son test. PHPUnit complet 775 / 40 308 assertions, 0 échec (poste local, MySQL 8.4.9). CI GitHub verte : run 38716810524 (78d9cb2, contient 9347d7f) et run 38719061673 (2a83599, tête de branche)."
   },
   "F08": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/rules.md",
     "contracts/vectors/",
@@ -164,14 +166,24 @@
     "contracts/tools/build_vectors.py",
     "tests/Unit/Rules/ValueBoundsTest.php",
     "tests/Feature/Http/RuleViolationResponseTest.php",
-    "tests/frontend/domain/value-guards.test.ts"
+    "tests/frontend/domain/value-guards.test.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38719061673"
    ],
-   "notes": "262 vecteurs communs (9 fichiers, générés et recoupés par contracts/tools/build_vectors.py --check) : mêmes verdicts PHP et TypeScript, MySQL 8.4.9 en troisième moteur, bornes SQL, gardes sans flottant (jetons PHP, arbre syntaxique TS). Revue contradictoire pass=false (3 majeurs, 6 mineurs) : tous traités (tableau de rules.md). Taxe comprise : méthode proposée, taux fictifs (Q03). DONE après CI verte."
+   "notes": "262 vecteurs communs (9 fichiers, générés et recoupés par contracts/tools/build_vectors.py --check) : mêmes verdicts PHP et TypeScript, MySQL 8.4.9 en troisième moteur, bornes SQL, gardes sans flottant (jetons PHP, arbre syntaxique TS). Revue contradictoire pass=false (3 majeurs, 6 mineurs) : tous traités (6aeab1c, 2a83599 ; tableau de rules.md). Taxe comprise : méthode proposée, taux fictifs (Q03). CI GitHub verte : run 38719061673 (2a83599)."
   },
   "F09": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/shell.md",
+    "resources/frontend/app/",
+    "resources/frontend/components/",
+    "resources/frontend/styles/",
+    "tests/frontend/shell/",
+    "tests/frontend/components/",
+    "tests/frontend/bootstrap.test.ts",
+    "tests/e2e/shell.spec.ts"
+   ],
+   "notes": "Coquille et composants livrés : Vitest 601 (130 nouveaux), vue-tsc, ESLint, Prettier. Aucun module futur présenté comme livré (catalogue déclaratif recoupé avec backlog.json et le référentiel des permissions). Playwright local non concluant sous forte charge (échecs par délai seulement) : CI et revue indépendante attendues avant DONE."
   },
   "F10": {
    "status": "NOT_STARTED",

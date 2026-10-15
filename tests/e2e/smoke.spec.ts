@@ -14,13 +14,14 @@ test.describe('application construite : coquille, PWA et API', () => {
 
     await page.goto('/')
 
-    await expect(page).toHaveTitle(/Eagle’s Eye Optics — Gestion du cabinet/)
+    // Sans session, la coquille ouvre la connexion (F09).
+    await expect(page).toHaveURL(/\/connexion$/)
+    await expect(page).toHaveTitle(/Eagle’s Eye Optics Medical/)
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Application du cabinet' }),
-    ).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Connexion' })).toBeVisible()
     await expect(page.getByRole('banner')).toContainText('Eagle’s Eye Optics Medical')
-    expect(problems).toEqual([])
+    // Le refus 401 de /auth/me (aucune session) est attendu : seul ce message de la console est admis.
+    expect(problems.filter((problem) => !problem.includes('401'))).toEqual([])
   })
 
   test('enregistre le service worker à la racine avec la portée de toute l’origine', async ({
@@ -76,10 +77,16 @@ test.describe('application construite : coquille, PWA et API', () => {
 
       await server.stop()
 
+      // La page de connexion se recharge depuis la coquille précachée…
       await page.reload()
+      await expect(page.getByRole('heading', { level: 1, name: 'Connexion' })).toBeVisible()
+
+      // …et l'accueil dit que le serveur ne répond pas, sans conclure à une déconnexion.
+      await page.goto(`${server.url}/`)
       await expect(
         page.getByRole('heading', { level: 1, name: 'Application du cabinet' }),
       ).toBeVisible()
+      await expect(page.getByRole('main').getByText('Serveur injoignable')).toBeVisible()
 
       // Une URL du routeur Vue est aussi servie depuis la coquille précachée.
       await page.goto(`${server.url}/patients`)

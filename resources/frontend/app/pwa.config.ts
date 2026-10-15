@@ -73,8 +73,9 @@ export function createPwaOptions(
       scope: '/',
       display: 'standalone',
       orientation: 'any',
-      background_color: '#f6f4ef',
-      theme_color: '#0f3d3e',
+      // Palette du fichier 04 : fond et action principale (resources/frontend/styles/tokens.css).
+      background_color: '#f6f8fb',
+      theme_color: '#155e75',
       icons: PWA_ICONS.map((icon) => ({ ...icon })),
     },
     workbox: {

@@ -1,0 +1,43 @@
+/*
+ * Règles de base de la coquille (fichier 04) : texte courant de 16 px qui suit le réglage du
+ * navigateur (zoom 200 % compris), focus toujours visible, animations réduites sur demande.
+ */
+html {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/*
+ * Focus clavier toujours visible (WCAG 2.4.7) : contour de l'action principale doublé d'un liseré
+ * blanc, lisible sur le fond, la surface et un bouton plein. Hors couche : aucun utilitaire ne peut
+ * le retirer par mégarde.
+ */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/*
+ * Le contenu principal reçoit le focus après une navigation ou le lien d'évitement pour que le
+ * lecteur d'écran annonce le nouvel écran ; ce n'est pas une commande : aucun contour.
+ */
+main[tabindex='-1']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,35 @@
+/*
+ * Palette du fichier 04 (proposition de design, aucune charte fournie) : fond #F6F8FB, surface blanche,
+ * texte #172B3A, action principale #155E75, accent #167D65. Les autres teintes en dérivent pour les
+ * états. Chaque association utilisée est vérifiée par tests/frontend/shell/palette.test.ts (texte
+ * ≥ 4,5:1, bordures de champ et focus ≥ 3:1, états désactivés compris). Un état n'est jamais signalé
+ * par la seule couleur : chaque état a aussi un libellé ou un symbole.
+ *
+ * Une teinte ajoutée ici doit être ajoutée aux associations du test de contraste.
+ */
+@theme {
+  --color-canvas: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-ink: #172b3a;
+  --color-muted: #4a5b6a;
+  --color-line: #d5dde5;
+  --color-field: #6b7a88;
+  --color-primary: #155e75;
+  --color-primary-strong: #0f4a5d;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #e6f1f4;
+  --color-accent: #167d65;
+  --color-accent-soft: #e8f5f1;
+  --color-danger: #b42318;
+  --color-danger-strong: #912018;
+  --color-danger-soft: #fef3f2;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #fff6e0;
+  /* Désactivé : teintes pleines lisibles, jamais une opacité qui rendrait le texte illisible. */
+  --color-disabled: #e4e9ee;
+  --color-disabled-ink: #4a5b6a;
+
+  /* Police système : accents français, aucune fonte distante (hors-ligne, fichier 04). */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}

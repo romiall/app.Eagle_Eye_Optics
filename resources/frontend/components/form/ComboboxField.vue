@@ -1,0 +1,269 @@
+<script setup lang="ts">
+/**
+ * Choix dans une liste avec recherche (fichier 04 : « sélection du catalogue avec flèches/Entrée »,
+ * dossier patient de la facture) : motif « combobox » ARIA 1.2 à liste, sélection manuelle. La
+ * recherche démarre à `minLength` caractères (2 par défaut) ; ↓/↑ parcourent les résultats, Entrée
+ * choisit le résultat actif, Échap ferme la liste. Rien n'est choisi à la place de l'utilisateur :
+ * modifier le texte annule le choix précédent.
+ *
+ * Les résultats viennent de la fonction `search` fournie par l'écran (service de lecture, F10) : le
+ * composant n'interroge aucune table ni aucune API lui-même. Une recherche impossible (hors ligne,
+ * serveur injoignable, erreur) est dite « indisponible », jamais « aucun résultat ».
+ */
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+
+import { controlClasses } from './classes'
+import FieldShell from './FieldShell.vue'
+
+export interface ComboboxOption {
+  value: string
+  label: string
+  /** Précision affichée sous le libellé (référence, prix, numéro de dossier). */
+  description?: string
+}
+
+type SearchStatus = 'idle' | 'loading' | 'ready' | 'unavailable'
+
+const props = withDefaults(
+  defineProps<{
+    label: string
+    /** Valeur de l'option choisie, ou null. */
+    modelValue: string | null
+    /** Libellé de l'option déjà choisie, affiché dans le champ. */
+    selectedLabel?: string | null
+    search: (query: string) => Promise<readonly ComboboxOption[]>
+    minLength?: number
+    debounceMs?: number
+    hint?: string | undefined
+    error?: string | null
+    required?: boolean
+    disabled?: boolean
+    placeholder?: string | undefined
+    controlId?: string | undefined
+    unavailableText?: string
+  }>(),
+  {
+    selectedLabel: null,
+    minLength: 2,
+    debounceMs: 200,
+    hint: undefined,
+    error: null,
+    required: false,
+    disabled: false,
+    placeholder: undefined,
+    controlId: undefined,
+    unavailableText: 'Recherche indisponible : rien n’est conclu sur l’existence d’un résultat.',
+  },
+)
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string | null]
+  select: [option: ComboboxOption | null]
+}>()
+
+const listId = `${useId()}-liste`
+const text = ref(props.selectedLabel ?? '')
+const options = ref<readonly ComboboxOption[]>([])
+const activeIndex = ref(-1)
+const open = ref(false)
+const status = ref<SearchStatus>('idle')
+let timer: ReturnType<typeof setTimeout> | null = null
+let requestNumber = 0
+
+watch(
+  () => props.selectedLabel,
+  (label) => {
+    if (!open.value) text.value = label ?? ''
+  },
+)
+
+function optionId(index: number): string {
+  return `${listId}-${index}`
+}
+
+const activeDescendant = computed(() =>
+  open.value && activeIndex.value >= 0 ? optionId(activeIndex.value) : undefined,
+)
+
+const message = computed(() => {
+  const query = text.value.trim()
+  if (query.length < props.minLength) return `Saisissez au moins ${props.minLength} caractères.`
+  if (status.value === 'loading') return 'Recherche en cours…'
+  if (status.value === 'unavailable') return props.unavailableText
+  if (status.value === 'ready') {
+    const count = options.value.length
+    return count === 0
+      ? `Aucun résultat pour « ${query} ».`
+      : `${count} résultat${count > 1 ? 's' : ''} : flèches haut et bas pour parcourir, Entrée pour choisir.`
+  }
+  return ''
+})
+
+function clearTimer(): void {
+  if (timer !== null) {
+    clearTimeout(timer)
+    timer = null
+  }
+}
+
+function close(): void {
+  open.value = false
+  activeIndex.value = -1
+}
+
+async function runSearch(query: string): Promise<void> {
+  timer = null
+  requestNumber += 1
+  const number = requestNumber
+  try {
+    const results = await props.search(query)
+    if (number !== requestNumber) return
+    options.value = results
+    status.value = 'ready'
+  } catch {
+    if (number !== requestNumber) return
+    options.value = []
+    status.value = 'unavailable'
+  }
+}
+
+function scheduleSearch(): void {
+  clearTimer()
+  // Toute réponse encore attendue devient obsolète : seule la dernière saisie compte.
+  requestNumber += 1
+  activeIndex.value = -1
+  const query = text.value.trim()
+  if (query.length < props.minLength) {
+    options.value = []
+    status.value = 'idle'
+    open.value = query.length > 0
+    return
+  }
+  status.value = 'loading'
+  open.value = true
+  timer = setTimeout(() => void runSearch(query), props.debounceMs)
+}
+
+function onInput(event: Event): void {
+  text.value = (event.target as HTMLInputElement).value
+  if (props.modelValue !== null) {
+    emit('update:modelValue', null)
+    emit('select', null)
+  }
+  scheduleSearch()
+}
+
+function choose(index: number): void {
+  const option = options.value[index]
+  if (option === undefined) return
+  text.value = option.label
+  close()
+  emit('update:modelValue', option.value)
+  emit('select', option)
+}
+
+function onKeydown(event: KeyboardEvent): void {
+  const count = options.value.length
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault()
+      if (!open.value) {
+        if (text.value.trim().length >= props.minLength) {
+          open.value = true
+          if (status.value === 'idle') scheduleSearch()
+        }
+        return
+      }
+      if (count > 0) activeIndex.value = (activeIndex.value + 1) % count
+      break
+    case 'ArrowUp':
+      event.preventDefault()
+      if (open.value && count > 0)
+        activeIndex.value = activeIndex.value <= 0 ? count - 1 : activeIndex.value - 1
+      break
+    case 'Enter':
+      // Entrée sans résultat actif garde son rôle habituel (envoi du formulaire).
+      if (open.value && activeIndex.value >= 0) {
+        event.preventDefault()
+        choose(activeIndex.value)
+      }
+      break
+    case 'Escape':
+      if (open.value) {
+        event.preventDefault()
+        close()
+      }
+      break
+    default:
+      break
+  }
+}
+
+onBeforeUnmount(() => {
+  clearTimer()
+  requestNumber += 1
+})
+</script>
+
+<template>
+  <FieldShell
+    v-slot="{ id, describedBy, invalid }"
+    :label="props.label"
+    :hint="props.hint"
+    :error="props.error"
+    :required="props.required"
+    :control-id="props.controlId"
+  >
+    <div class="relative">
+      <input
+        :id="id"
+        :value="text"
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        aria-autocomplete="list"
+        :aria-expanded="open ? 'true' : 'false'"
+        :aria-controls="listId"
+        :aria-activedescendant="activeDescendant"
+        :aria-invalid="invalid ? 'true' : undefined"
+        :aria-describedby="describedBy"
+        :placeholder="props.placeholder"
+        :required="props.required"
+        :disabled="props.disabled"
+        :class="controlClasses(invalid)"
+        @input="onInput"
+        @keydown="onKeydown"
+        @blur="close"
+      />
+      <div
+        v-show="open"
+        class="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-line bg-surface shadow-lg"
+      >
+        <ul :id="listId" role="listbox" :aria-label="props.label" class="max-h-72 overflow-y-auto">
+          <li
+            v-for="(option, index) in options"
+            :id="optionId(index)"
+            :key="option.value"
+            role="option"
+            :aria-selected="index === activeIndex ? 'true' : 'false'"
+            :class="[
+              'min-h-11 cursor-pointer border-l-4 px-3 py-2',
+              index === activeIndex
+                ? 'border-primary bg-primary-soft text-primary'
+                : 'border-transparent text-ink hover:bg-canvas',
+            ]"
+            @mousedown.prevent
+            @click="choose(index)"
+          >
+            <span class="block font-medium">{{ option.label }}</span>
+            <span v-if="option.description" class="block text-sm text-muted">{{
+              option.description
+            }}</span>
+          </li>
+        </ul>
+        <p v-if="message" aria-hidden="true" class="px-3 py-2 text-sm text-muted">{{ message }}</p>
+      </div>
+      <p class="sr-only" role="status" aria-live="polite">{{ open ? message : '' }}</p>
+    </div>
+  </FieldShell>
+</template>
