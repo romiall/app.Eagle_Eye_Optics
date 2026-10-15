@@ -65,7 +65,9 @@ final class Text
         if ($decomposed === false) {
             throw RuleViolation::invalid('text', 'text.encoding', 'Le texte n\'est pas un UTF-8 valide.');
         }
-        $withoutMarks = (string) preg_replace('/\p{Mn}+/u', '', $decomposed);
+        // Marques combinantes (accents) et caractères de format invisibles (trait d'union conditionnel U+00AD,
+        // espace sans chasse U+200B, U+FEFF…) disparaissent : un prénom écrit avec un trait d'union conditionnel garde la clé « marie ».
+        $withoutMarks = (string) preg_replace('/[\p{Mn}\p{Cf}]+/u', '', $decomposed);
         $spaced = (string) preg_replace('/[\p{Z}\p{P}\p{S}\p{Cc}]+/u', ' ', $withoutMarks);
 
         return trim($spaced, ' ');
@@ -82,7 +84,7 @@ final class Text
         if ($trimmed === '') {
             return null;
         }
-        if (preg_match('/^\+?[0-9 .\-\/()\x{00A0}\x{202F}]+$/u', $trimmed) !== 1) {
+        if (preg_match('/^\+?[0-9 .\-\/()\x{00A0}\x{202F}]+\z/u', $trimmed) !== 1) {
             throw RuleViolation::invalid($field, 'phone.format', 'Numéro de téléphone invalide : chiffres, espaces, points, tirets ou parenthèses seulement.');
         }
         $international = str_starts_with($trimmed, '+');

@@ -1,0 +1,15 @@
+{
+  "schema": "schemas/error.json",
+  "valid": false,
+  "description": "Détails imbriqués refusés : valeurs simples seulement, jamais un objet métier recopié",
+  "data": {
+    "error": {
+      "code": "STOCK_UNAVAILABLE",
+      "message": "Quantité demandée supérieure au stock disponible.",
+      "details": {
+        "patient": { "last_name": "FICTIF" }
+      }
+    },
+    "correlation_id": "01J9ZXK4M2Q8R7S6T5V4W3XAAK"
+  }
+}

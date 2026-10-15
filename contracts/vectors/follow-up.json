@@ -5,7 +5,9 @@
     {
       "id": "followup.recommended.trois-mois-fin-de-mois",
       "operation": "followUp.recommended",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "anchor": "2026-01-31",
         "value": 3,
@@ -16,7 +18,9 @@
     {
       "id": "followup.recommended.un-mois-fin-octobre",
       "operation": "followUp.recommended",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "anchor": "2026-10-31",
         "value": 1,
@@ -28,7 +32,9 @@
       "id": "followup.recommended.collyre-dix-jours",
       "operation": "followUp.recommended",
       "description": "Départ choisi par le professionnel (début ou fin de traitement) : aucune durée supposée.",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "anchor": "2026-10-15",
         "value": 10,
@@ -39,7 +45,9 @@
     {
       "id": "followup.recommended.collyre-quatorze-jours",
       "operation": "followUp.recommended",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "anchor": "2026-10-20",
         "value": 14,

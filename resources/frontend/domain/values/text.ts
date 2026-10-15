@@ -52,7 +52,7 @@ export function searchKey(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFD')
-    .replace(/\p{Mn}+/gu, '')
+    .replace(/[\p{Mn}\p{Cf}]+/gu, '')
     .replace(/[\p{Z}\p{P}\p{S}\p{Cc}]+/gu, ' ')
     .replace(/^ +| +$/g, '')
 }

@@ -1,5 +1,6 @@
 import { RuleViolation } from '../errors'
 import type { CivilDate } from '../values/civilDate'
+import { assertSafeInteger } from '../values/integer'
 
 /**
  * Dates d'un contrôle recommandé (AT22), jumelles de `app/Domain/Scheduling/Rules/FollowUpDates.php` :
@@ -9,6 +10,7 @@ export type IntervalUnit = 'DAY' | 'MONTH' | 'YEAR'
 export type AdvanceUnit = 'DAY' | 'MONTH'
 
 export function recommendedDate(anchor: CivilDate, value: number, unit: string): CivilDate {
+  assertSafeInteger(value, 'interval_value')
   if (value < 1) {
     throw RuleViolation.invalid(
       'interval_value',
@@ -23,6 +25,7 @@ export function recommendedDate(anchor: CivilDate, value: number, unit: string):
 }
 
 export function reminderDate(recommended: CivilDate, advance: number, unit: string): CivilDate {
+  assertSafeInteger(advance, 'advance_value')
   if (advance < 0) {
     throw RuleViolation.invalid(
       'advance_value',

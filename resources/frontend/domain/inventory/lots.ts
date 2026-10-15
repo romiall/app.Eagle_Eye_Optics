@@ -43,7 +43,21 @@ export function fefoOrder(lots: readonly { id: string; expiresOn: CivilDate | nu
               ? -1
               : left.expiresOn.compare(right.expiresOn)
       if (byDate !== 0) return byDate
-      return left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+      return compareCodePoints(left.id, right.id)
     })
     .map((lot) => lot.id)
+}
+
+/**
+ * Ordre par points de code, identique à l'ordre des octets UTF-8 de `strcmp` côté PHP (l'opérateur `<`
+ * compare des unités UTF-16, qui diffèrent pour les caractères hors du plan de base).
+ */
+function compareCodePoints(left: string, right: string): number {
+  const a = [...left]
+  const b = [...right]
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    const difference = (a[index]?.codePointAt(0) ?? 0) - (b[index]?.codePointAt(0) ?? 0)
+    if (difference !== 0) return difference < 0 ? -1 : 1
+  }
+  return a.length === b.length ? 0 : a.length < b.length ? -1 : 1
 }

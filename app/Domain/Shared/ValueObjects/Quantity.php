@@ -22,19 +22,31 @@ final class Quantity
         return FixedDecimal::parse($text, self::SCALE, self::INTEGER_DIGITS, false, $field);
     }
 
-    public static function of(string $canonical): FixedDecimal
+    /**
+     * Valeur de confiance (forme canonique ou rendue par MySQL), bornée comme la colonne `DECIMAL(12,3)` : au plus
+     * 999 999 999,999 en valeur absolue (un écart de stock peut être négatif).
+     */
+    public static function of(string $canonical, string $field = 'quantity'): FixedDecimal
     {
-        return FixedDecimal::fromString($canonical, self::SCALE);
+        $quantity = FixedDecimal::fromString($canonical, self::SCALE);
+        if (abs($quantity->units) > self::MAX_UNITS) {
+            throw RuleViolation::invalid($field, 'decimal.out_of_range', 'Valeur hors des bornes admises.', ['integer_digits' => self::INTEGER_DIGITS]);
+        }
+
+        return $quantity;
     }
 
     /**
-     * Quantité d'une ligne : strictement positive (CHECK quantity > 0) et entière pour un article qui l'exige
-     * (`catalog_items.quantity_integer_only`).
+     * Quantité d'une ligne : strictement positive (CHECK quantity > 0), dans les bornes de la colonne, et entière
+     * pour un article qui l'exige (`catalog_items.quantity_integer_only`).
      */
     public static function forLine(FixedDecimal $quantity, bool $integerOnly, string $field = 'quantity'): FixedDecimal
     {
         if ($quantity->units <= 0) {
             throw RuleViolation::invalid($field, 'quantity.positive_required', 'La quantité doit être strictement positive.');
+        }
+        if ($quantity->units > self::MAX_UNITS) {
+            throw RuleViolation::invalid($field, 'decimal.out_of_range', 'Valeur hors des bornes admises.', ['integer_digits' => self::INTEGER_DIGITS]);
         }
         if ($integerOnly && ! $quantity->isInteger()) {
             throw RuleViolation::invalid($field, 'quantity.integer_required', 'Cet article se vend à l\'unité : quantité entière obligatoire.');

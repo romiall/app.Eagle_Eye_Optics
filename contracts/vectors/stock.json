@@ -5,7 +5,10 @@
     {
       "id": "stock.central.quota-local",
       "operation": "stock.central",
-      "covers": ["AT40", "IT15"],
+      "covers": [
+        "AT40",
+        "IT15"
+      ],
       "input": {
         "physical": "5.000",
         "central_reserved": "0.000",
@@ -16,7 +19,10 @@
     {
       "id": "stock.central.apres-sync",
       "operation": "stock.central",
-      "covers": ["AT40", "IT15"],
+      "covers": [
+        "AT40",
+        "IT15"
+      ],
       "input": {
         "physical": "4.000",
         "central_reserved": "0.000",
@@ -48,7 +54,9 @@
     {
       "id": "stock.local.quota-entier",
       "operation": "stock.local",
-      "covers": ["AT40"],
+      "covers": [
+        "AT40"
+      ],
       "input": {
         "allocated": "3.000",
         "consumed": "0.000",
@@ -60,7 +68,9 @@
     {
       "id": "stock.local.apres-remise-locale",
       "operation": "stock.local",
-      "covers": ["AT40"],
+      "covers": [
+        "AT40"
+      ],
       "input": {
         "allocated": "3.000",
         "consumed": "1.000",
@@ -72,7 +82,9 @@
     {
       "id": "stock.local.reservation-locale",
       "operation": "stock.local",
-      "covers": ["IT15"],
+      "covers": [
+        "IT15"
+      ],
       "input": {
         "allocated": "3.000",
         "consumed": "0.000",
@@ -154,7 +166,10 @@
       "id": "stock.sync.remise-sous-quota",
       "operation": "stock.syncQuotaDelivery",
       "description": "Physique 5, quota A 3, A remet 1 hors-ligne : après sync physique 4, quota 2, disponible central 2.",
-      "covers": ["AT40", "IT15"],
+      "covers": [
+        "AT40",
+        "IT15"
+      ],
       "input": {
         "physical": "5.000",
         "central_reserved": "0.000",
@@ -285,7 +300,12 @@
           }
         ]
       },
-      "expected": ["LOT-C", "LOT-D", "LOT-B", "LOT-A"]
+      "expected": [
+        "LOT-C",
+        "LOT-D",
+        "LOT-B",
+        "LOT-A"
+      ]
     }
   ]
 }

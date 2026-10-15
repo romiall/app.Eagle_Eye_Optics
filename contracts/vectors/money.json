@@ -93,6 +93,20 @@
       "expected": 1000000000000
     },
     {
+      "id": "money.parse.espace-fine-ordinaire",
+      "operation": "money.parse",
+      "description": "U+2009 ne sépare pas les milliers : seuls l’espace, U+00A0 et U+202F sont admis.",
+      "input": {
+        "text": "80\u2009000",
+        "field": "amount"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "amount",
+        "rule": "money.format"
+      }
+    },
+    {
       "id": "money.parse.groupe-incomplet",
       "operation": "money.parse",
       "input": {

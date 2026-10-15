@@ -14,6 +14,7 @@ final class BusinessError extends RuntimeException
     /**
      * @param  array<string, list<string>>  $fields
      * @param  array<string, string>  $headers  en-têtes de réponse (ex. Retry-After)
+     * @param  array<string, int|string|null>  $details  valeurs actualisées à proposer (reste dû, quantité disponible)
      */
     public function __construct(
         public readonly string $errorCode,
@@ -22,6 +23,7 @@ final class BusinessError extends RuntimeException
         public readonly array $fields = [],
         ?Throwable $previous = null,
         public readonly array $headers = [],
+        public readonly array $details = [],
     ) {
         parent::__construct($message, 0, $previous);
     }

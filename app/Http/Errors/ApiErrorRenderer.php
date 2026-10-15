@@ -32,6 +32,11 @@ final class ApiErrorRenderer
         if ($fields !== []) {
             $error['fields'] = $fields;
         }
+        // Valeurs actualisées d'un refus d'état (fichier 08 : « solde actualisé », « quantité disponible
+        // actualisée ») : jamais une donnée personnelle ni clinique.
+        if ($exception instanceof BusinessError && $exception->details !== []) {
+            $error['details'] = $exception->details;
+        }
 
         return new JsonResponse(
             ['error' => $error, 'correlation_id' => AssignCorrelationId::current($request)],

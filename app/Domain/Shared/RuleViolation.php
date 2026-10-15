@@ -45,12 +45,24 @@ final class RuleViolation extends DomainException
     }
 
     /**
-     * Réponse API : refus de saisie en 422, refus lié à l'état (solde, stock, lot) en 409 avec son code propre.
+     * Réponse API selon le fichier 08 : saisie invalide et lot interdit en 422 ; solde ou stock dépassé en 409, avec
+     * les valeurs actualisées à proposer dans `details` (AT12 : le reste dû de 10 000).
      */
     public function toBusinessError(): BusinessError
     {
-        $status = $this->errorCode === self::VALIDATION_FAILED ? 422 : 409;
+        $status = match ($this->errorCode) {
+            self::VALIDATION_FAILED, self::LOT_EXPIRED => 422,
+            default => 409,
+        };
 
-        return new BusinessError($this->errorCode, $this->getMessage(), $status, [$this->field => [$this->getMessage()]]);
+        return new BusinessError(
+            $this->errorCode,
+            $this->getMessage(),
+            $status,
+            [$this->field => [$this->getMessage()]],
+            $this,
+            [],
+            $this->details,
+        );
     }
 }

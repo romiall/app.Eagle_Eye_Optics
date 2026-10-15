@@ -40,7 +40,7 @@ final readonly class FixedDecimal
         if ($value === '') {
             return null;
         }
-        if (preg_match('/^([+\-\x{2212}]?)([0-9]+)(?:[.,]([0-9]+))?$/u', $value, $matches) !== 1) {
+        if (preg_match('/^([+\-\x{2212}]?)([0-9]+)(?:[.,]([0-9]+))?\z/u', $value, $matches) !== 1) {
             throw RuleViolation::invalid($field, 'decimal.format', 'Nombre invalide : chiffres, avec une virgule ou un point décimal.');
         }
         $negative = $matches[1] === '-' || $matches[1] === "\u{2212}";
@@ -65,8 +65,12 @@ final readonly class FixedDecimal
      */
     public static function fromString(string $text, int $scale): self
     {
-        if (preg_match('/^(-?)([0-9]+)(?:\.([0-9]+))?$/', $text, $matches) !== 1 || strlen($matches[3] ?? '') > $scale) {
+        if (preg_match('/^(-?)([0-9]+)(?:\.([0-9]+))?\z/', $text, $matches) !== 1 || strlen($matches[3] ?? '') > $scale) {
             throw new InvalidArgumentException("Décimal non canonique : {$text}");
+        }
+        // Au-delà de 18 chiffres, l'entier d'unités ne tient plus dans un int 64 bits : refus, jamais de flottant.
+        if (strlen(ltrim($matches[2], '0')) + $scale > 18) {
+            throw new InvalidArgumentException("Décimal hors de la précision admise : {$text}");
         }
         $units = (int) $matches[2] * (10 ** $scale) + (int) str_pad($matches[3] ?? '', $scale, '0');
 

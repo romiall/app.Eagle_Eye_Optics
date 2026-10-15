@@ -40,10 +40,10 @@ final readonly class CivilDate
         if ($value === '') {
             return null;
         }
-        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $value, $iso) === 1) {
+        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})\z/', $value, $iso) === 1) {
             return self::of((int) $iso[1], (int) $iso[2], (int) $iso[3], $field);
         }
-        if (preg_match('/^([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})$/', $value, $french) === 1) {
+        if (preg_match('/^([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})\z/', $value, $french) === 1) {
             return self::of((int) $french[3], (int) $french[2], (int) $french[1], $field);
         }
 
@@ -52,7 +52,7 @@ final readonly class CivilDate
 
     public static function fromString(string $iso, string $field = 'date'): self
     {
-        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $iso, $parts) !== 1) {
+        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})\z/', $iso, $parts) !== 1) {
             throw RuleViolation::invalid($field, 'date.format', 'Date invalide : JJ/MM/AAAA ou AAAA-MM-JJ.');
         }
 

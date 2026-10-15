@@ -8,6 +8,10 @@ use App\Domain\Shared\RuleViolation;
  * Instant UTC à la milliseconde, forme contractuelle fixe `2026-10-14T09:30:00.000Z` (`common.json#Instant`).
  * Porté par un nombre entier de millisecondes depuis 1970 ; le jour civil se calcule dans le fuseau du cabinet
  * (`CivilDate::fromInstant`).
+ *
+ * Un instant de l'application (événement, pièce, synchronisation) ne précède jamais 1970 : la borne inférieure
+ * est l'origine. Elle écarte aussi les années où les bases de fuseaux de PHP et des navigateurs divergent pour
+ * Africa/Douala (avant 1919). Une date de naissance est une date civile, pas un instant.
  */
 final readonly class Instant
 {
@@ -15,6 +19,10 @@ final readonly class Instant
 
     public static function fromEpochMilliseconds(int $milliseconds): self
     {
+        if ($milliseconds < 0) {
+            throw new \InvalidArgumentException('Instant antérieur à 1970.');
+        }
+
         return new self($milliseconds);
     }
 
@@ -23,7 +31,7 @@ final readonly class Instant
         if ($text === null || $text === '') {
             return null;
         }
-        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})\.([0-9]{3})Z$/', $text, $parts) !== 1) {
+        if (preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})\.([0-9]{3})Z\z/', $text, $parts) !== 1) {
             throw RuleViolation::invalid($field, 'instant.format', 'Instant invalide : forme AAAA-MM-JJTHH:MM:SS.mmmZ en UTC.');
         }
         $date = CivilDate::of((int) $parts[1], (int) $parts[2], (int) $parts[3], $field);
@@ -32,7 +40,12 @@ final readonly class Instant
             throw RuleViolation::invalid($field, 'instant.format', 'Instant invalide : forme AAAA-MM-JJTHH:MM:SS.mmmZ en UTC.');
         }
 
-        return new self((($date->dayNumber() * 24 + $hour) * 60 + $minute) * 60_000 + $second * 1000 + (int) $parts[7]);
+        $milliseconds = (($date->dayNumber() * 24 + $hour) * 60 + $minute) * 60_000 + $second * 1000 + (int) $parts[7];
+        if ($milliseconds < 0) {
+            throw RuleViolation::invalid($field, 'instant.out_of_range', 'Instant antérieur au 1er janvier 1970 (UTC).');
+        }
+
+        return new self($milliseconds);
     }
 
     public function toString(): string

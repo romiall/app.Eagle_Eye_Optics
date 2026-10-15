@@ -35,6 +35,7 @@ final class NoFloatArithmeticTest extends TestCase
                 if (is_array($token)) {
                     $this->assertNotSame(T_DOUBLE_CAST, $token[0], $where.'conversion en flottant ligne '.$token[2]);
                     $this->assertNotSame(T_DNUMBER, $token[0], $where.'littéral décimal ligne '.$token[2]);
+                    $this->assertNotSame(T_DIV_EQUAL, $token[0], $where.'division flottante « /= » ligne '.$token[2]);
                     if ($token[0] === T_STRING && in_array(strtolower($token[1]), self::FORBIDDEN_FUNCTIONS, true) && self::isCall($tokens, $index)) {
                         // sprintf n'est admis que pour formater des entiers (%d) : CivilDate et Instant.
                         $allowed = strtolower($token[1]) === 'sprintf' && in_array(basename($file), ['CivilDate.php', 'Instant.php'], true);

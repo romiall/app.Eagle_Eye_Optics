@@ -5,7 +5,9 @@
     {
       "id": "ledger.balance.facture-emise",
       "operation": "ledger.balance",
-      "covers": ["AT10"],
+      "covers": [
+        "AT10"
+      ],
       "input": {
         "total_gross": 80000,
         "payments": [],
@@ -24,10 +26,14 @@
     {
       "id": "ledger.balance.apres-acompte",
       "operation": "ledger.balance",
-      "covers": ["AT10"],
+      "covers": [
+        "AT10"
+      ],
       "input": {
         "total_gross": 80000,
-        "payments": [30000],
+        "payments": [
+          30000
+        ],
         "reversals": [],
         "credits": [],
         "refunds": []
@@ -44,10 +50,15 @@
       "id": "ledger.balance.soldee",
       "operation": "ledger.balance",
       "description": "Deux reçus, même facture : l’impayé disparaît sans nouvelle vente.",
-      "covers": ["AT10"],
+      "covers": [
+        "AT10"
+      ],
       "input": {
         "total_gross": 80000,
-        "payments": [30000, 50000],
+        "payments": [
+          30000,
+          50000
+        ],
         "reversals": [],
         "credits": [],
         "refunds": []
@@ -64,12 +75,19 @@
       "id": "ledger.balance.avoir-partiel",
       "operation": "ledger.balance",
       "description": "Vecteur du contrat 23 : avoir 10 000, paiements 50 000, dette 20 000.",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "total_gross": 80000,
-        "payments": [30000, 20000],
+        "payments": [
+          30000,
+          20000
+        ],
         "reversals": [],
-        "credits": [10000],
+        "credits": [
+          10000
+        ],
         "refunds": []
       },
       "expected": {
@@ -84,12 +102,18 @@
       "id": "ledger.balance.avoir-total",
       "operation": "ledger.balance",
       "description": "Avoir total 80 000 après paiement de 50 000 : 50 000 à rembourser, jamais une dette négative cachée.",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "total_gross": 80000,
-        "payments": [50000],
+        "payments": [
+          50000
+        ],
         "reversals": [],
-        "credits": [80000],
+        "credits": [
+          80000
+        ],
         "refunds": []
       },
       "expected": {
@@ -103,13 +127,21 @@
     {
       "id": "ledger.balance.rembourse",
       "operation": "ledger.balance",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "total_gross": 80000,
-        "payments": [50000],
+        "payments": [
+          50000
+        ],
         "reversals": [],
-        "credits": [80000],
-        "refunds": [50000]
+        "credits": [
+          80000
+        ],
+        "refunds": [
+          50000
+        ]
       },
       "expected": {
         "signed_balance": 0,
@@ -125,8 +157,12 @@
       "description": "Le paiement contre-passé ne compte plus comme encaissé ; les deux faits restent.",
       "input": {
         "total_gross": 80000,
-        "payments": [30000],
-        "reversals": [30000],
+        "payments": [
+          30000
+        ],
+        "reversals": [
+          30000
+        ],
         "credits": [],
         "refunds": []
       },
@@ -141,10 +177,14 @@
     {
       "id": "ledger.balance.reprise-papier",
       "operation": "ledger.balance",
-      "covers": ["AT26"],
+      "covers": [
+        "AT26"
+      ],
       "input": {
         "total_gross": 50000,
-        "payments": [20000],
+        "payments": [
+          20000
+        ],
         "reversals": [],
         "credits": [],
         "refunds": []
@@ -158,11 +198,53 @@
       }
     },
     {
+      "id": "ledger.balance.paiements-au-dela",
+      "operation": "ledger.balance",
+      "input": {
+        "total_gross": 1000000000000,
+        "payments": [
+          1000000000000,
+          1
+        ],
+        "reversals": [],
+        "credits": [],
+        "refunds": []
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "payments",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
+      "id": "ledger.balance.solde-signe-au-dela",
+      "operation": "ledger.balance",
+      "description": "Solde signé au-delà de -10^12 : refus, jamais de troncature.",
+      "input": {
+        "total_gross": 0,
+        "payments": [
+          1000000000000
+        ],
+        "reversals": [],
+        "credits": [
+          1000000000000
+        ],
+        "refunds": []
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "balance",
+        "rule": "money.out_of_range"
+      }
+    },
+    {
       "id": "ledger.balance.paiement-nul",
       "operation": "ledger.balance",
       "input": {
         "total_gross": 80000,
-        "payments": [0],
+        "payments": [
+          0
+        ],
         "reversals": [],
         "credits": [],
         "refunds": []
@@ -176,11 +258,15 @@
     {
       "id": "ledger.payment.premier-de-deux",
       "operation": "ledger.payment",
-      "covers": ["AT12"],
+      "covers": [
+        "AT12"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000],
+          "payments": [
+            30000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -199,11 +285,16 @@
       "id": "ledger.payment.second-de-deux",
       "operation": "ledger.payment",
       "description": "Le second encaissement simultané de 40 000 est refusé et propose le solde de 10 000.",
-      "covers": ["AT12"],
+      "covers": [
+        "AT12"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000, 40000],
+          "payments": [
+            30000,
+            40000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -222,11 +313,15 @@
     {
       "id": "ledger.payment.solde-exact",
       "operation": "ledger.payment",
-      "covers": ["AT10"],
+      "covers": [
+        "AT10"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000],
+          "payments": [
+            30000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -266,7 +361,9 @@
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [80000],
+          "payments": [
+            80000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -285,7 +382,9 @@
     {
       "id": "ledger.payment.reprise-papier",
       "operation": "ledger.payment",
-      "covers": ["AT26"],
+      "covers": [
+        "AT26"
+      ],
       "input": {
         "ledger": {
           "total_gross": 50000,
@@ -307,11 +406,16 @@
     {
       "id": "ledger.credit.partiel",
       "operation": "ledger.creditNote",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000, 20000],
+          "payments": [
+            30000,
+            20000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -329,11 +433,15 @@
     {
       "id": "ledger.credit.total",
       "operation": "ledger.creditNote",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [50000],
+          "payments": [
+            50000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -351,13 +459,19 @@
     {
       "id": "ledger.credit.plafonne",
       "operation": "ledger.creditNote",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [50000],
+          "payments": [
+            50000
+          ],
           "reversals": [],
-          "credits": [10000],
+          "credits": [
+            10000
+          ],
           "refunds": []
         },
         "amount": 80000
@@ -374,13 +488,19 @@
     {
       "id": "ledger.refund.credit-exact",
       "operation": "ledger.refund",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [50000],
+          "payments": [
+            50000
+          ],
           "reversals": [],
-          "credits": [80000],
+          "credits": [
+            80000
+          ],
           "refunds": []
         },
         "amount": 50000
@@ -396,13 +516,19 @@
     {
       "id": "ledger.refund.au-dela-du-credit",
       "operation": "ledger.refund",
-      "covers": ["AT14"],
+      "covers": [
+        "AT14"
+      ],
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [50000],
+          "payments": [
+            50000
+          ],
           "reversals": [],
-          "credits": [80000],
+          "credits": [
+            80000
+          ],
           "refunds": []
         },
         "amount": 50001
@@ -422,7 +548,9 @@
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000],
+          "payments": [
+            30000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -444,7 +572,9 @@
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000],
+          "payments": [
+            30000
+          ],
           "reversals": [],
           "credits": [],
           "refunds": []
@@ -467,8 +597,12 @@
       "input": {
         "ledger": {
           "total_gross": 80000,
-          "payments": [30000],
-          "reversals": [30000],
+          "payments": [
+            30000
+          ],
+          "reversals": [
+            30000
+          ],
           "credits": [],
           "refunds": []
         },
@@ -488,7 +622,9 @@
     {
       "id": "legacy.opening.reprise",
       "operation": "legacy.openingBalance",
-      "covers": ["AT26"],
+      "covers": [
+        "AT26"
+      ],
       "input": {
         "original_total": 80000,
         "already_paid": 30000
@@ -538,7 +674,9 @@
       "id": "legacy.revenue.reprise",
       "operation": "legacy.revenue",
       "description": "Une créance reprise n’est pas une vente de la période : chiffre d’affaires initial 0.",
-      "covers": ["AT26"],
+      "covers": [
+        "AT26"
+      ],
       "input": {
         "origin": "LEGACY_BALANCE",
         "total_gross": 50000

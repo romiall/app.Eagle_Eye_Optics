@@ -26,4 +26,6 @@ contracts/schemas/resources
 contracts/schemas/requests
 contracts/snapshots
 contracts/openapi.yaml
+# Vecteurs F08 générés et recoupés par contracts/tools/build_vectors.py (--check compare les octets).
+contracts/vectors
 resources/frontend/domain/contracts/generated.ts

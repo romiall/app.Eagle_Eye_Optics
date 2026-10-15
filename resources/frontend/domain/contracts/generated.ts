@@ -2966,6 +2966,12 @@ fields?: {
  */
 [k: string]: [string, ...(string)[]] | undefined
 }
+/**
+ * Valeurs actualisées d'un refus d'état, à proposer au client (fichier 08 : « solde actualisé » de PAYMENT_EXCEEDS_BALANCE, « quantité disponible actualisée » de STOCK_UNAVAILABLE). Valeurs simples seulement, jamais une donnée personnelle ni clinique.
+ */
+details?: {
+[k: string]: string | number | null | undefined
+}
 }
 correlation_id: string
 }

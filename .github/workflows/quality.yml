@@ -106,6 +106,7 @@ jobs:
           python3 contracts/tools/build_events.py --check
           python3 contracts/tools/build_resources.py --check
           python3 contracts/tools/build_openapi.py --check
+          python3 contracts/tools/build_vectors.py --check
 
       - name: Baseline - instructions des migrations identiques aux scripts SQL validés
         run: python3 database/tools/build_migrations.py --check

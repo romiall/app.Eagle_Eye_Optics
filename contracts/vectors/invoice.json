@@ -6,7 +6,9 @@
       "id": "invoice.line.contrat-1125-x-1001",
       "operation": "invoice.line",
       "description": "Vecteur du contrat 23 : 1,125 × 1001 = 1126,125 → 1126.",
-      "covers": ["IT03"],
+      "covers": [
+        "IT03"
+      ],
       "input": {
         "quantity": "1.125",
         "unit_price_gross": 1001,
@@ -24,7 +26,9 @@
     {
       "id": "invoice.line.monture",
       "operation": "invoice.line",
-      "covers": ["AT10"],
+      "covers": [
+        "AT10"
+      ],
       "input": {
         "quantity": "1.000",
         "unit_price_gross": 80000,
@@ -174,6 +178,26 @@
         "discount": 0,
         "net": 999999999999,
         "tax_amount": null
+      }
+    },
+    {
+      "id": "invoice.line.quantite-au-dela-sql",
+      "operation": "invoice.line",
+      "description": "Au-delà de DECIMAL(12,3) : refus avant tout calcul (MySQL ne pourrait pas stocker la ligne).",
+      "input": {
+        "quantity": "1000000000.000",
+        "unit_price_gross": 999,
+        "discount_gross": 0,
+        "tax_rate_percent": null,
+        "integer_only": false
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "quantity",
+        "rule": "decimal.out_of_range",
+        "details": {
+          "integer_digits": 9
+        }
       }
     },
     {
@@ -432,6 +456,45 @@
           }
         ],
         "total": 146126
+      }
+    },
+    {
+      "id": "invoice.total.maximum-exact",
+      "operation": "invoice.total",
+      "input": {
+        "lines": [
+          {
+            "quantity": "1.000",
+            "unit_price_gross": 999999999999,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": false
+          },
+          {
+            "quantity": "1.000",
+            "unit_price_gross": 1,
+            "discount_gross": 0,
+            "tax_rate_percent": null,
+            "integer_only": false
+          }
+        ]
+      },
+      "expected": {
+        "lines": [
+          {
+            "gross": 999999999999,
+            "discount": 0,
+            "net": 999999999999,
+            "tax_amount": null
+          },
+          {
+            "gross": 1,
+            "discount": 0,
+            "net": 1,
+            "tax_amount": null
+          }
+        ],
+        "total": 1000000000000
       }
     },
     {

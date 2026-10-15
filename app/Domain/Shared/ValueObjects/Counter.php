@@ -17,7 +17,7 @@ final readonly class Counter
 
     public static function parse(?string $text, string $field = 'device_sequence'): self
     {
-        if ($text === null || preg_match('/^(0|[1-9][0-9]{0,19})$/', $text) !== 1) {
+        if ($text === null || preg_match('/^(0|[1-9][0-9]{0,19})\z/', $text) !== 1) {
             throw RuleViolation::invalid($field, 'counter.format', 'Compteur invalide : chiffres sans zéro initial.');
         }
         if (BigInteger::of($text)->isGreaterThan(BigInteger::of(self::MAX))) {

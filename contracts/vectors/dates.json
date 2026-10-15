@@ -52,6 +52,40 @@
       "expected": null
     },
     {
+      "id": "date.parse.29-fevrier-1900",
+      "operation": "date.parse",
+      "description": "Année séculaire non bissextile.",
+      "input": {
+        "text": "29/02/1900"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.invalid"
+      }
+    },
+    {
+      "id": "date.parse.29-fevrier-2000",
+      "operation": "date.parse",
+      "description": "Divisible par 400 : bissextile.",
+      "input": {
+        "text": "29/02/2000"
+      },
+      "expected": "2000-02-29"
+    },
+    {
+      "id": "date.parse.29-fevrier-2100",
+      "operation": "date.parse",
+      "input": {
+        "text": "2100-02-29"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "date",
+        "rule": "date.invalid"
+      }
+    },
+    {
       "id": "date.parse.29-fevrier-non-bissextile",
       "operation": "date.parse",
       "input": {
@@ -126,7 +160,9 @@
     {
       "id": "date.add.fin-janvier-plus-un-mois",
       "operation": "date.add",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "date": "2026-01-31",
         "amount": 1,
@@ -167,7 +203,9 @@
     {
       "id": "date.add.trois-mois-fin-janvier",
       "operation": "date.add",
-      "covers": ["AT22"],
+      "covers": [
+        "AT22"
+      ],
       "input": {
         "date": "2026-01-31",
         "amount": 3,
@@ -204,6 +242,16 @@
         "unit": "DAY"
       },
       "expected": "2027-01-01"
+    },
+    {
+      "id": "date.add.fin-fevrier-2100",
+      "operation": "date.add",
+      "input": {
+        "date": "2100-02-28",
+        "amount": 1,
+        "unit": "DAY"
+      },
+      "expected": "2100-03-01"
     },
     {
       "id": "date.add.29-fevrier-plus-un-an",
@@ -429,9 +477,46 @@
       "input": {
         "text": "1969-12-31T23:59:59.999Z"
       },
-      "expected": {
-        "canonical": "1969-12-31T23:59:59.999Z",
-        "epoch_ms": -1
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.out_of_range"
+      }
+    },
+    {
+      "id": "instant.parse.minute-soixante",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:60:00.000Z"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
+      }
+    },
+    {
+      "id": "instant.parse.seconde-soixante",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:30:60.000Z"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
+      }
+    },
+    {
+      "id": "instant.parse.saut-de-ligne-final",
+      "operation": "instant.parse",
+      "input": {
+        "text": "2026-10-14T09:30:00.000Z\n"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "occurred_at",
+        "rule": "instant.format"
       }
     },
     {

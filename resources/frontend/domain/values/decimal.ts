@@ -86,6 +86,9 @@ export class FixedDecimal {
     const fraction = match?.[3] ?? ''
     if (match === null || fraction.length > scale)
       throw new Error(`Décimal non canonique : ${text}`)
+    if ((match[2] ?? '').replace(/^0+/, '').length + scale > 18) {
+      throw new Error(`Décimal hors de la précision admise : ${text}`)
+    }
     const padded = fraction.padEnd(scale, '0')
     const units =
       BigInt(match[2] ?? '0') * 10n ** BigInt(scale) + BigInt(padded === '' ? '0' : padded)
@@ -142,8 +145,21 @@ export const Quantity = {
     return FixedDecimal.parse(text, 3, 9, false, field)
   },
 
-  of(canonical: string): FixedDecimal {
-    return FixedDecimal.fromString(canonical, 3)
+  /** Valeur de confiance bornée comme la colonne : au plus 999 999 999,999 en valeur absolue. */
+  of(canonical: string, field = 'quantity'): FixedDecimal {
+    const quantity = FixedDecimal.fromString(canonical, 3)
+    const absolute = quantity.units < 0n ? -quantity.units : quantity.units
+    if (absolute > 999_999_999_999n) {
+      throw RuleViolation.invalid(
+        field,
+        'decimal.out_of_range',
+        'Valeur hors des bornes admises.',
+        {
+          integer_digits: 9,
+        },
+      )
+    }
+    return quantity
   },
 
   /** Quantité de ligne : strictement positive, entière si l'article l'exige. */
@@ -153,6 +169,16 @@ export const Quantity = {
         field,
         'quantity.positive_required',
         'La quantité doit être strictement positive.',
+      )
+    }
+    if (quantity.units > 999_999_999_999n) {
+      throw RuleViolation.invalid(
+        field,
+        'decimal.out_of_range',
+        'Valeur hors des bornes admises.',
+        {
+          integer_digits: 9,
+        },
       )
     }
     if (integerOnly && !quantity.isInteger()) {

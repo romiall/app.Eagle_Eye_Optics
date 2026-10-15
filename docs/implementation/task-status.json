@@ -160,9 +160,13 @@
     "resources/frontend/domain/",
     "tests/Unit/Rules/",
     "tests/Feature/Rules/MysqlRuleParityTest.php",
-    "tests/frontend/domain/"
+    "tests/frontend/domain/",
+    "contracts/tools/build_vectors.py",
+    "tests/Unit/Rules/ValueBoundsTest.php",
+    "tests/Feature/Http/RuleViolationResponseTest.php",
+    "tests/frontend/domain/value-guards.test.ts"
    ],
-   "notes": "242 vecteurs communs (9 fichiers) : mêmes verdicts PHP (RuleVectorsTest 243) et TypeScript (test:domain 243), MySQL 8.4.9 en troisième moteur (MysqlRuleParityTest 3/80), bornes SQL (SqlBoundsTest), gardes sans flottant. Attendus recoupés par Python avant écriture. Taxe comprise : méthode proposée, taux fictifs (Q03). DONE après CI verte."
+   "notes": "262 vecteurs communs (9 fichiers, générés et recoupés par contracts/tools/build_vectors.py --check) : mêmes verdicts PHP et TypeScript, MySQL 8.4.9 en troisième moteur, bornes SQL, gardes sans flottant (jetons PHP, arbre syntaxique TS). Revue contradictoire pass=false (3 majeurs, 6 mineurs) : tous traités (tableau de rules.md). Taxe comprise : méthode proposée, taux fictifs (Q03). DONE après CI verte."
   },
   "F09": {
    "status": "NOT_STARTED",

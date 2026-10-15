@@ -19,6 +19,14 @@
       "expected": "Ngo"
     },
     {
+      "id": "text.trim.controles-de-bord",
+      "operation": "text.trim",
+      "input": {
+        "value": "\t\r\n Emma \n"
+      },
+      "expected": "Emma"
+    },
+    {
       "id": "text.trim.interieur-conserve",
       "operation": "text.trim",
       "input": {
@@ -96,7 +104,9 @@
     {
       "id": "text.search.apostrophe-tiret-accent",
       "operation": "text.searchKey",
-      "covers": ["EE045"],
+      "covers": [
+        "EE045"
+      ],
       "input": {
         "value": "N'Guessan-Kouamé"
       },
@@ -183,6 +193,31 @@
       "expected": "patient 2"
     },
     {
+      "id": "text.search.trait-union-conditionnel",
+      "operation": "text.searchKey",
+      "description": "Caractères de format invisibles retirés de la clé (U+00AD, U+200B, U+FEFF).",
+      "input": {
+        "value": "Ma\u00adrie"
+      },
+      "expected": "marie"
+    },
+    {
+      "id": "text.search.espace-sans-chasse",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "Jean\u200bPaul"
+      },
+      "expected": "jeanpaul"
+    },
+    {
+      "id": "text.search.indicateur-ordre-octets",
+      "operation": "text.searchKey",
+      "input": {
+        "value": "\ufeffAwa"
+      },
+      "expected": "awa"
+    },
+    {
       "id": "text.phone.international",
       "operation": "text.phone",
       "input": {
@@ -238,6 +273,37 @@
         "code": "VALIDATION_FAILED",
         "field": "phone_primary",
         "rule": "phone.format"
+      }
+    },
+    {
+      "id": "text.phone.trois-chiffres",
+      "operation": "text.phone",
+      "input": {
+        "value": "123",
+        "field": "phone_primary"
+      },
+      "expected": "123"
+    },
+    {
+      "id": "text.phone.trente-et-un-chiffres",
+      "operation": "text.phone",
+      "input": {
+        "value": "1111111111111111111111111111111",
+        "field": "phone_primary"
+      },
+      "expected": "1111111111111111111111111111111"
+    },
+    {
+      "id": "text.phone.trente-deux-chiffres",
+      "operation": "text.phone",
+      "input": {
+        "value": "11111111111111111111111111111111",
+        "field": "phone_primary"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "phone_primary",
+        "rule": "phone.length"
       }
     },
     {

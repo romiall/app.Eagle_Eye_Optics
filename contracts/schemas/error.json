@@ -18,6 +18,12 @@
           "type": "object",
           "minProperties": 1,
           "additionalProperties": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+        },
+        "details": {
+          "description": "Valeurs actualisées d'un refus d'état, à proposer au client (fichier 08 : « solde actualisé » de PAYMENT_EXCEEDS_BALANCE, « quantité disponible actualisée » de STOCK_UNAVAILABLE). Valeurs simples seulement, jamais une donnée personnelle ni clinique.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": ["string", "integer", "null"] }
         }
       }
     },

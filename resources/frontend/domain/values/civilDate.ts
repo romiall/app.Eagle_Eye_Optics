@@ -1,10 +1,12 @@
 import { RuleViolation } from '../errors'
+import { assertSafeInteger, floorMod, intDiv } from './integer'
 import { trimBlanks } from './text'
 
 /**
  * Date civile `YYYY-MM-DD` dans le fuseau du cabinet, jamais déduite d'un minuit UTC (contrat 23).
  * Jumelle de `app/Domain/Shared/ValueObjects/CivilDate.php` : arithmétique entière (numéro de jour),
- * mois et années au calendrier civil avec report au dernier jour du mois, bornes 1000..9999.
+ * mois et années au calendrier civil avec report au dernier jour du mois, bornes 1000..9999. Un
+ * délai non entier (NaN, 1,5) est refusé, jamais transformé en date.
  */
 export class CivilDate {
   readonly year: number
@@ -18,6 +20,13 @@ export class CivilDate {
   }
 
   static of(year: number, month: number, day: number, field = 'date'): CivilDate {
+    if (!Number.isSafeInteger(year) || !Number.isSafeInteger(month) || !Number.isSafeInteger(day)) {
+      throw RuleViolation.invalid(
+        field,
+        'date.invalid',
+        'Cette date n’existe pas dans le calendrier.',
+      )
+    }
     if (year < 1000 || year > 9999) {
       throw RuleViolation.invalid(
         field,
@@ -72,20 +81,17 @@ export class CivilDate {
   }
 
   static fromDayNumber(days: number, field = 'date'): CivilDate {
+    assertSafeInteger(days, field)
     const shifted = days + 719468
-    const era = Math.trunc((shifted - floorMod(shifted, 146097)) / 146097)
+    const era = intDiv(shifted - floorMod(shifted, 146097), 146097)
     const dayOfEra = shifted - era * 146097
-    const yearOfEra = Math.trunc(
-      (dayOfEra -
-        Math.trunc(dayOfEra / 1460) +
-        Math.trunc(dayOfEra / 36524) -
-        Math.trunc(dayOfEra / 146096)) /
-        365,
+    const yearOfEra = intDiv(
+      dayOfEra - intDiv(dayOfEra, 1460) + intDiv(dayOfEra, 36524) - intDiv(dayOfEra, 146096),
+      365,
     )
-    const dayOfYear =
-      dayOfEra - (365 * yearOfEra + Math.trunc(yearOfEra / 4) - Math.trunc(yearOfEra / 100))
-    const monthIndex = Math.trunc((5 * dayOfYear + 2) / 153)
-    const day = dayOfYear - Math.trunc((153 * monthIndex + 2) / 5) + 1
+    const dayOfYear = dayOfEra - (365 * yearOfEra + intDiv(yearOfEra, 4) - intDiv(yearOfEra, 100))
+    const monthIndex = intDiv(5 * dayOfYear + 2, 153)
+    const day = dayOfYear - intDiv(153 * monthIndex + 2, 5) + 1
     const month = monthIndex < 10 ? monthIndex + 3 : monthIndex - 9
     return CivilDate.of(yearOfEra + era * 400 + (month <= 2 ? 1 : 0), month, day, field)
   }
@@ -97,22 +103,21 @@ export class CivilDate {
   /** Numéro de jour depuis le 1970-01-01 (« days_from_civil »). */
   dayNumber(): number {
     const year = this.month <= 2 ? this.year - 1 : this.year
-    const era = Math.trunc(year / 400)
+    const era = intDiv(year, 400)
     const yearOfEra = year - era * 400
     const dayOfYear =
-      Math.trunc((153 * (this.month > 2 ? this.month - 3 : this.month + 9) + 2) / 5) + this.day - 1
-    const dayOfEra =
-      yearOfEra * 365 + Math.trunc(yearOfEra / 4) - Math.trunc(yearOfEra / 100) + dayOfYear
+      intDiv(153 * (this.month > 2 ? this.month - 3 : this.month + 9) + 2, 5) + this.day - 1
+    const dayOfEra = yearOfEra * 365 + intDiv(yearOfEra, 4) - intDiv(yearOfEra, 100) + dayOfYear
     return era * 146097 + dayOfEra - 719468
   }
 
   addDays(days: number, field = 'date'): CivilDate {
-    return CivilDate.fromDayNumber(this.dayNumber() + days, field)
+    return CivilDate.fromDayNumber(this.dayNumber() + assertSafeInteger(days, field), field)
   }
 
   addMonths(months: number, field = 'date'): CivilDate {
-    const index = this.year * 12 + (this.month - 1) + months
-    const year = Math.trunc((index - floorMod(index, 12)) / 12)
+    const index = this.year * 12 + (this.month - 1) + assertSafeInteger(months, field)
+    const year = intDiv(index - floorMod(index, 12), 12)
     const month = floorMod(index, 12) + 1
     if (year < 1000 || year > 9999) {
       throw RuleViolation.invalid(
@@ -125,7 +130,7 @@ export class CivilDate {
   }
 
   addYears(years: number, field = 'date'): CivilDate {
-    return this.addMonths(12 * years, field)
+    return this.addMonths(12 * assertSafeInteger(years, field), field)
   }
 
   compare(other: CivilDate): number {
@@ -163,8 +168,4 @@ export function isLeapYear(year: number): boolean {
 export function daysInMonth(year: number, month: number): number {
   if (month === 2) return isLeapYear(year) ? 29 : 28
   return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31
-}
-
-function floorMod(value: number, divisor: number): number {
-  return ((value % divisor) + divisor) % divisor
 }

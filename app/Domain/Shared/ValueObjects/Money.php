@@ -53,7 +53,7 @@ final class Money
         if ($value === '') {
             return null;
         }
-        if (preg_match('/^(?:[0-9]+|[0-9]{1,3}(?:[\x{0020}\x{00A0}\x{202F}][0-9]{3})+)$/u', $value) !== 1) {
+        if (preg_match('/^(?:[0-9]+|[0-9]{1,3}(?:[\x{0020}\x{00A0}\x{202F}][0-9]{3})+)\z/u', $value) !== 1) {
             throw RuleViolation::invalid($field, 'money.format', 'Montant invalide : un nombre entier de FCFA, par exemple 80 000.');
         }
         $digits = ltrim((string) preg_replace('/[^0-9]/', '', $value), '0');

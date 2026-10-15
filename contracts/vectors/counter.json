@@ -51,6 +51,18 @@
       }
     },
     {
+      "id": "counter.parse.saut-de-ligne-final",
+      "operation": "counter.parse",
+      "input": {
+        "value": "1\n"
+      },
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "field": "device_sequence",
+        "rule": "counter.format"
+      }
+    },
+    {
       "id": "counter.parse.vide",
       "operation": "counter.parse",
       "input": {

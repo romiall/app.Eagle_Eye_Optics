@@ -1,5 +1,6 @@
 import { RuleViolation } from '../errors'
 import { type FixedDecimal, Quantity, Rate } from '../values/decimal'
+import { divideRoundHalfUp } from '../values/integer'
 import { moneyAmount, MONEY_MAX } from '../values/money'
 
 /**
@@ -22,7 +23,7 @@ export function includedTax(netGross: number, ratePercent: FixedDecimal): number
   const rate = Rate.of(ratePercent.canonical())
   const denominator = 1_000_000n + rate.units
   const numerator = BigInt(netGross) * rate.units
-  return Number((numerator * 2n + denominator) / (denominator * 2n))
+  return Number(divideRoundHalfUp(numerator, denominator))
 }
 
 export function computeLineAmounts(
@@ -37,7 +38,7 @@ export function computeLineAmounts(
   moneyAmount(discount, 'discount_gross')
 
   const thousandths = quantity.units * BigInt(unitPrice)
-  const gross = (thousandths + 500n) / 1000n
+  const gross = divideRoundHalfUp(thousandths, 1000n)
   if (gross > MAX) {
     throw RuleViolation.invalid(
       'unit_price_gross',

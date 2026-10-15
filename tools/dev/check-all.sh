@@ -56,7 +56,7 @@ step "PHPUnit (Unit, Feature, Concurrency, Contracts)"
 composer run test
 
 step "Contrats : fichiers générés à jour (Python et types TypeScript)"
-for generator in build_enums build_commands build_events build_resources build_openapi; do
+for generator in build_enums build_commands build_events build_resources build_openapi build_vectors; do
   python3 "contracts/tools/${generator}.py" --check
 done
 node contracts/tools/generate-types.mjs --check
