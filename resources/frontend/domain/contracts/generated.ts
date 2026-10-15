@@ -510,6 +510,26 @@ export type WorkshopOrdersStatus = ("ORDERED" | "RECEIVED" | "MOUNTING" | "QUALI
  * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route.
  */
 export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
+export type VectorCase = (({
+expected: unknown
+} | {
+error: unknown
+}) & {
+id: string
+operation: string
+description?: string
+/**
+ * Scénarios de recette (fichier 14), exigences (fichier 17) ou tests d'intégration (fichier 25) illustrés par ce cas.
+ * 
+ * @minItems 1
+ */
+covers?: [string, ...(string)[]]
+input: {
+
+}
+expected?: unknown
+error?: VectorRefusal
+})
 /**
  * Commandes disponibles dans le journal local (actions du fichier 08 jouables hors-ligne).
  */
@@ -789,6 +809,9 @@ SchemasResourcesStockJsonOpeningStockResult?: OpeningStockResult
 SchemasResourcesStockJsonOpeningStockResponse?: OpeningStockResponse
 SchemasResourcesStockJsonPhysicalReturn?: PhysicalReturn
 SchemasResourcesStockJsonPhysicalReturnResponse?: PhysicalReturnResponse
+SchemasRuleVectorsJson?: RuleVectors
+SchemasRuleVectorsJsonVectorCase?: VectorCase
+SchemasRuleVectorsJsonVectorRefusal?: VectorRefusal
 Ack?: Ack
 CommandCore?: CommandCore
 PullPage?: PullPage
@@ -4457,6 +4480,28 @@ credit_note_id: NullableUlid
 }
 export interface PhysicalReturnResponse {
 data: PhysicalReturn
+}
+export interface RuleVectors {
+/**
+ * Version des règles (contracts/compatibility.json, rules_versions).
+ */
+rules_version: string
+description: string
+/**
+ * @minItems 1
+ */
+cases: [VectorCase, ...(VectorCase)[]]
+}
+export interface VectorRefusal {
+/**
+ * Code d'erreur du fichier 08 (sous-ensemble de error.json#/$defs/ErrorCode).
+ */
+code: ("VALIDATION_FAILED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "LOT_EXPIRED")
+field: string
+rule: string
+details?: {
+[k: string]: string | number | null | undefined
+}
 }
 export interface Ack {
 command_id: Ulid
