@@ -117,6 +117,18 @@ final class AuthenticationTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
+    public function test_sans_session_ni_en_tete_accept_json_l_api_repond_401_et_jamais_500(): void
+    {
+        // Client qui n'annonce pas JSON (script, sonde, navigateur ouvert sur l'URL) : jamais de
+        // redirection vers une page « login » inexistante côté serveur, jamais d'erreur 500.
+        foreach (['/api/v1/auth/me', '/api/v1/staff', '/api/v1/audit-events'] as $path) {
+            $response = $this->fromSpa()->get($path, ['Accept' => 'text/html']);
+
+            $response->assertStatus(401)->assertJsonPath('error.code', 'AUTH_REQUIRED');
+            $this->assertStringContainsString('application/json', (string) $response->headers->get('Content-Type'), $path);
+        }
+    }
+
     public function test_la_deconnexion_ferme_la_session_serveur(): void
     {
         $this->makeStaff($this->clinicId, 'RECEPTION', 'accueil.test');

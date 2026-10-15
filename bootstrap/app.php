@@ -38,6 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Session SPA Sanctum (cookie du seul domaine applicatif + CSRF), sans jeton d'API personnel.
         $middleware->statefulApi();
 
+        // Aucune page de connexion côté serveur : la connexion est un écran de la SPA. Sans session, un
+        // appel /api reçoit 401 AUTH_REQUIRED dans l'enveloppe, même sans en-tête Accept JSON, au lieu
+        // d'une redirection vers une route « login » inexistante (erreur 500).
+        $middleware->redirectGuestsTo(null);
+
         // En-têtes de protection sur toutes les réponses : CSP d'origine unique, API no-store (fichier 09).
         $middleware->append(SecurityHeaders::class);
 
