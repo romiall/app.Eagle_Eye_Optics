@@ -22,8 +22,15 @@ export interface DeviceSyncSummary {
   waitingDependency: number
   /** Conflits à résoudre par décision explicite. */
   conflicts: number
+  /**
+   * Commandes d'autres profils du même poste, chiffrées dans leur compartiment : elles ne partent
+   * qu'à l'ouverture de leur profil (contrat 23 : journal commun, compartiments par droits).
+   */
+  otherProfiles: number
   /** PDF locaux à régénérer (échec de génération ou d'impression). */
   documentsFailed: number
+  /** PDF prêts sur le poste mais pas encore déposés sur le serveur (statut central en attente). */
+  documentsToUpload: number
   /** Instant serveur du dernier échange réussi (push ou pull), ou null. */
   lastExchangeAt: string | null
   /** Le dernier essai d'échange a échoué (serveur muet ou en erreur). */

@@ -2,49 +2,19 @@
 // Contrats exécutables (F06) côté navigateur/TypeScript : mêmes schémas et mêmes fixtures que
 // tests/Contracts/ContractFixturesTest.php (PHP). Un verdict différent entre les deux runtimes est
 // un défaut de contrat.
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-import { Ajv2020 } from 'ajv/dist/2020.js'
 import { describe, expect, it } from 'vitest'
 
-const ROOT = join(import.meta.dirname, '..', '..', 'contracts')
-const BASE_URI = 'https://eeo.invalid/contracts/'
-
-function walk(directory: string): string[] {
-  if (!existsSync(directory)) {
-    return []
-  }
-  return readdirSync(directory).flatMap((entry) => {
-    const path = join(directory, entry)
-    return statSync(path).isDirectory() ? walk(path) : path.endsWith('.json') ? [path] : []
-  })
-}
-
-function loadJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8')) as unknown
-}
-
-const SCHEMA_DIRECTORIES = ['schemas', 'sync', 'commands', 'events', 'snapshots'] as const
-
-interface Vocabulary {
-  json_schema: Record<string, string>
-}
-
-const vocabulary = loadJson(join(ROOT, 'vocabulary.json')) as Vocabulary
-
-export function contractValidator(): Ajv2020 {
-  const ajv = new Ajv2020({ strict: true, allErrors: true, allowUnionTypes: true })
-  // Annotations x-* : documentaires, déclarées une fois (contracts/vocabulary.json) ; tout autre
-  // mot-clé inconnu reste refusé par le mode strict.
-  ajv.addVocabulary(Object.keys(vocabulary.json_schema))
-  for (const directory of SCHEMA_DIRECTORIES) {
-    for (const file of walk(join(ROOT, directory))) {
-      ajv.addSchema(loadJson(file) as object)
-    }
-  }
-  return ajv
-}
+import {
+  CONTRACTS_BASE_URI as BASE_URI,
+  CONTRACTS_ROOT as ROOT,
+  contractValidator,
+  loadJson,
+  SCHEMA_DIRECTORIES,
+  vocabulary,
+  walkJson as walk,
+} from './support/contracts'
 
 interface PatchOperation {
   op: 'add' | 'remove' | 'replace'

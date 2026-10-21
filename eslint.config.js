@@ -52,8 +52,8 @@ export default defineConfig([
 
   {
     // Contrat 23 : « Les composants Vue appellent un service d'application, jamais une table Dexie
-    // directement. » Écrans et composants passent par resources/frontend/app/services : ils
-    // n'importent ni Dexie ni rien de resources/frontend/offline.
+    // directement. » Écrans et composants passent par resources/frontend/app/services : ni Dexie,
+    // ni rien de resources/frontend/offline, ni IndexedDB, par import statique ou dynamique.
     files: [
       'resources/frontend/components/**/*.{ts,vue}',
       'resources/frontend/pages/**/*.{ts,vue}',
@@ -67,6 +67,10 @@ export default defineConfig([
               name: 'dexie',
               message: 'Passer par un service d’application de resources/frontend/app/services.',
             },
+            {
+              name: '@/offline',
+              message: 'Un écran ou un composant passe par resources/frontend/app/services.',
+            },
           ],
           patterns: [
             {
@@ -74,19 +78,33 @@ export default defineConfig([
               message: 'Le code frontend ne doit pas dépendre des API Node.',
             },
             {
-              group: ['@/offline/*', '**/offline/*'],
+              group: ['dexie/**', '@/offline/**', '**/offline', '**/offline/**'],
               message:
                 'Un écran ou un composant passe par resources/frontend/app/services, jamais par le moteur local.',
             },
           ],
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/^(dexie|@\\/offline)|(^|\\/)offline(\\/|$)/]',
+          message: 'Import dynamique du moteur local interdit : passer par app/services.',
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'indexedDB',
+          message: 'IndexedDB est réservé au dossier resources/frontend/offline.',
+        },
+      ],
     },
   },
 
   {
-    // Les services d'application (app/) lisent les projections du moteur local, jamais ses tables :
-    // seul resources/frontend/offline accède à IndexedDB.
+    // Les services d'application (app/) lisent les projections du moteur local, jamais ses tables
+    // ni son journal : seul resources/frontend/offline accède à IndexedDB.
     files: ['resources/frontend/app/**/*.{ts,vue}'],
     rules: {
       'no-restricted-imports': [
@@ -97,6 +115,10 @@ export default defineConfig([
               name: 'dexie',
               message: 'Accès aux tables locales réservé au dossier resources/frontend/offline.',
             },
+            {
+              name: '@/offline',
+              message: 'Importer seulement les projections : @/offline/projections/….',
+            },
           ],
           patterns: [
             {
@@ -104,10 +126,73 @@ export default defineConfig([
               message: 'Le code frontend ne doit pas dépendre des API Node.',
             },
             {
-              group: ['@/offline/db*', '**/offline/db*', '@/offline/**/db*'],
-              message: 'Accès aux tables locales réservé aux services du dossier offline.',
+              group: [
+                'dexie/**',
+                '@/offline/**',
+                '!@/offline/projections',
+                '!@/offline/projections/**',
+                '**/offline/**',
+                '!**/offline/projections',
+                '!**/offline/projections/**',
+              ],
+              message:
+                'Les services d’application ne lisent que les projections du moteur local (@/offline/projections/…).',
             },
           ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'ImportExpression[source.value=/^dexie|(^|\\/)offline(\\/(?!projections(\\/|$))|$)/]',
+          message: 'Import dynamique du moteur local interdit hors des projections.',
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'indexedDB',
+          message: 'IndexedDB est réservé au dossier resources/frontend/offline.',
+        },
+      ],
+    },
+  },
+
+  {
+    // Règles pures (domain/) et modèles de documents (documents/) : aucun stockage local.
+    files: ['resources/frontend/domain/**/*.ts', 'resources/frontend/documents/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'dexie', message: 'Aucun stockage local dans les règles ni les modèles.' },
+          ],
+          patterns: [
+            {
+              group: ['node:*'],
+              message: 'Le code frontend ne doit pas dépendre des API Node.',
+            },
+            {
+              group: ['dexie/**', '@/offline', '@/offline/**', '**/offline', '**/offline/**'],
+              message: 'Les règles et les modèles ne dépendent pas du moteur local.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/^(dexie|@\\/offline)|(^|\\/)offline(\\/|$)/]',
+          message: 'Import dynamique du moteur local interdit : les règles ignorent le stockage.',
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'indexedDB',
+          message: 'IndexedDB est réservé au dossier resources/frontend/offline.',
         },
       ],
     },

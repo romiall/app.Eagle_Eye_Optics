@@ -11,7 +11,7 @@
  * recherche de patients (P02). L'état de synchronisation du poste (F10) s'affiche dès qu'un poste
  * préparé le fournit (journal du poste, O04, O05) ; il est distinct de l'état du réseau.
  */
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import {
   isNavigationFailure,
   NavigationFailureType,
@@ -35,6 +35,11 @@ const catalog = useNavigationCatalog()
 const { online, serverReachable } = useNetworkStatus()
 
 const signedIn = computed(() => session.status === 'authenticated' && session.account !== null)
+/** Session perdue pendant le travail : l'écran et ses saisies restent, la reconnexion se fait sur place. */
+const sessionExpired = computed(
+  () =>
+    session.status === 'anonymous' && session.lastAccount !== null && route.meta.public !== true,
+)
 const modules = computed(() =>
   signedIn.value && route.meta.public !== true
     ? visibleModules(currentPermissions.value, catalog.modules)
@@ -109,6 +114,26 @@ watchEffect((onCleanup) => {
 })
 
 /**
+ * Retour sur l'onglet : la session est relue (autre onglet connecté à un autre compte, session
+ * expirée). Aucune navigation n'est provoquée : une saisie en cours reste à l'écran, et la
+ * reconnexion se fait sur place à l'enregistrement (`ReauthDialog`, `useMutation`).
+ */
+function revalidateSession(): void {
+  if (document.visibilityState !== 'visible' || session.status !== 'authenticated') return
+  void refreshSession().catch(() => undefined)
+}
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', revalidateSession)
+  window.addEventListener('focus', revalidateSession)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', revalidateSession)
+  window.removeEventListener('focus', revalidateSession)
+})
+
+/**
  * Déconnexion : l'écran en cours est d'abord quitté (sa garde de saisie peut refuser : la session
  * reste alors ouverte et la saisie intacte), puis la session est fermée par le serveur, et la
  * connexion ne s'affiche qu'après sa confirmation (voir signOut).
@@ -159,7 +184,15 @@ const linkClass =
         </p>
         <div class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
           <NetworkStatus />
-          <SyncStatus v-if="signedIn" />
+          <SyncStatus />
+          <p
+            v-if="sessionExpired"
+            role="status"
+            class="flex items-center gap-1 text-sm font-medium text-warning"
+          >
+            <span aria-hidden="true">⚠</span
+            ><span>Session expirée : reconnexion à l’enregistrement</span>
+          </p>
           <template v-if="signedIn && session.account">
             <p class="text-sm text-ink">
               <span class="sr-only">Compte connecté : </span>{{ session.account.display_name }}

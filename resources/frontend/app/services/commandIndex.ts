@@ -19,6 +19,20 @@ export interface CommandContract {
   entityType: string
   entityIdField: string
   numberType: string | null
+  /**
+   * Champ du numéro de pièce dans la charge : renseigné par le poste (plage préparée) dans son
+   * journal, mais `null` sur la route directe, où le serveur numérote (contrat `DirectRequest`).
+   */
+  directNumberField: string | null
+}
+
+/** Champ de numéro par type de numéro (vérifié contre chaque `DirectRequest` par les tests). */
+const NUMBER_FIELDS: Readonly<Record<string, string>> = {
+  PATIENT: 'record_number',
+  INVOICE: 'number',
+  RECEIPT: 'receipt_number',
+  CREDIT_NOTE: 'number',
+  REFUND: 'number',
 }
 
 interface RawContract {
@@ -44,6 +58,11 @@ function parse(name: string, raw: RawContract): CommandContract {
   if (match === null || kind === undefined) {
     throw new Error(`Contrat de commande illisible : ${name}.`)
   }
+  const numberType = raw.number_type ?? null
+  const directNumberField = numberType === null ? null : (NUMBER_FIELDS[numberType] ?? null)
+  if (numberType !== null && directNumberField === null) {
+    throw new Error(`Type de numéro sans champ connu : ${name} (${numberType}).`)
+  }
   return {
     name: name as CommandName,
     method: match[1] as 'POST' | 'PATCH',
@@ -52,7 +71,8 @@ function parse(name: string, raw: RawContract): CommandContract {
     expectedVersion: kind,
     entityType: raw.entity_type,
     entityIdField: raw.entity_id_field,
-    numberType: raw.number_type ?? null,
+    numberType,
+    directNumberField,
   }
 }
 

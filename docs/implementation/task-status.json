@@ -197,9 +197,12 @@
     "resources/frontend/components/SyncStatus.vue",
     "tests/frontend/offline/projections.test.ts",
     "tests/frontend/services/",
-    "tests/frontend/architecture.test.ts"
+    "tests/frontend/architecture.test.ts",
+    "tests/frontend/services/direct-body-contract.test.ts",
+    "tests/frontend/components/sync.test.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38787924175"
    ],
-   "notes": "Interfaces de lecture et de mutation, états local/en attente/ACK/conflit/rejet/PDF, fusion par identifiant et solde sans double comptage (LedgerBalance F08), SyncStatus distinct du réseau, reconnexion sur place du même compte. Vitest 689. CI et revue indépendante attendues avant DONE."
+   "notes": "Livré au commit bf4e165 (CI verte, run 38787924175). Revue contradictoire pass=false (6 majeurs, nombreux mineurs, 6 mutations survivantes) entièrement traitée (tableau de local-reads.md), chaque correction avec son test : Vitest 827 (28 fichiers), corps des 26 commandes validés contre leur DirectRequest, 13 mutations ciblées tuées. CI du correctif et seconde revue indépendante attendues avant DONE."
   },
   "O01": {
    "status": "NOT_STARTED",

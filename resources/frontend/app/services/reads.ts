@@ -10,7 +10,8 @@ export type { Freshness } from '@/offline/projections/merge'
  * une interface de lecture commune aux pages »). Un écran fournit une fonction de lecture (service
  * de lecture du serveur, projection locale ou fusion des deux par identifiant) qui rend la donnée et
  * sa fraîcheur ; l'interface traduit l'issue en états d'écran du fichier 04 :
- * - `offline` : serveur injoignable et aucune donnée locale suffisante — jamais « aucun dossier » ;
+ * - `offline` : serveur injoignable ou en erreur, ou résultat vide sans données complètes du
+ *   serveur — jamais « aucun dossier » ;
  * - `session-expired` : la lecture demande une reconnexion ;
  * - `forbidden`, `error`, `empty`, `ready`.
  * Les données locales seules sont `ready`, avec une fraîcheur qui le dit (`serverAsOf` null).
@@ -33,6 +34,8 @@ export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadO
   const data = shallowRef<T | null>(null)
   const freshness = ref<Freshness | null>(null)
   const error = shallowRef<ApiError | null>(null)
+  /** Échec inattendu du chargeur (doublon d'identifiant, défaut de programmation). */
+  const failure = shallowRef<unknown>(null)
   let generation = 0
 
   async function reload(): Promise<void> {
@@ -40,27 +43,39 @@ export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadO
     const current = generation
     state.value = 'loading'
     error.value = null
+    failure.value = null
     try {
       const result = await loader()
       if (current !== generation) return
       data.value = result.data
       freshness.value = result.freshness
-      state.value = options.isEmpty?.(result.data) === true ? 'empty' : 'ready'
-    } catch (failure) {
+      if (options.isEmpty?.(result.data) === true) {
+        // Vide sans données complètes du serveur : rien n'est conclu (fichier 04 : « Recherche
+        // serveur indisponible », jamais « aucun dossier »).
+        const certain = result.freshness.serverAsOf !== null && result.freshness.complete
+        state.value = certain ? 'empty' : 'offline'
+      } else {
+        state.value = 'ready'
+      }
+    } catch (caught) {
       if (current !== generation) return
       // La donnée précédemment affichée n'est pas effacée : seul l'état change.
-      if (failure instanceof NetworkUnavailable) {
+      if (caught instanceof NetworkUnavailable) {
         state.value = 'offline'
-      } else if (failure instanceof ApiError) {
-        error.value = failure
+      } else if (caught instanceof ApiError) {
+        error.value = caught
         state.value =
-          failure.status === 401 || failure.status === 419
+          caught.status === 401 || caught.status === 419
             ? 'session-expired'
-            : failure.status === 403
+            : caught.status === 403
               ? 'forbidden'
-              : 'error'
+              : caught.status >= 500 || !caught.fromApplication
+                ? 'offline'
+                : 'error'
       } else {
-        throw failure
+        // Jamais un écran bloqué en chargement ni une promesse rejetée sans traitement.
+        failure.value = caught
+        state.value = 'error'
       }
     }
   }
@@ -72,6 +87,7 @@ export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadO
     data,
     freshness: readonly(freshness),
     error,
+    failure,
     reload,
   }
 }

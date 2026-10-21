@@ -1,7 +1,9 @@
 import { computed, readonly, ref } from 'vue'
 
 import type { ApiError } from '@/app/api'
+import { refreshSession, session } from '@/app/session'
 import type { SaveState } from '@/components/feedback/SaveStatus.vue'
+import { newUlid } from '@/domain/values/ulid'
 
 import {
   type MutationDispatcher,
@@ -14,25 +16,42 @@ import {
 /**
  * Envoi d'une saisie par le répartiteur, sans jamais toucher au formulaire de l'écran (fichier 04 :
  * « conserver les saisies valides » ; F10 : formulaire préservé lors d'un conflit ou d'une session
- * expirée). Une même intention (même commande, même charge) garde la même clé d'idempotence à
- * chaque reprise : une réponse perdue puis un nouvel envoi n'appliquent jamais deux fois la commande.
- * Une charge modifiée est une nouvelle intention, avec une nouvelle clé (les identifiants d'effets
- * de la charge empêchent par ailleurs tout doublon côté serveur).
+ * expirée).
+ *
+ * Une instance par formulaire. La clé d'idempotence et les identifiants d'effets (`effectId`) lui
+ * sont liés : ils restent les mêmes pour toute reprise, et même après un succès (un renvoi est alors
+ * un rejeu, qui rend le résultat déjà enregistré). Seule une charge différente (montant corrigé,
+ * version actualisée) est une nouvelle intention, avec une nouvelle clé ; `reset()` (nouveau
+ * formulaire) renouvelle clé et identifiants. La clé vit en mémoire : un rechargement de la page la
+ * perd (les identifiants d'effets de la charge empêchent alors le doublon côté serveur, O04 les
+ * conserve dans le journal du poste).
  */
 export type MutationState =
   | 'idle'
   | 'saving'
   | 'saved-local'
   | 'synced'
+  | 'local-failed'
   | 'conflict'
   | 'refused'
   | 'session-expired'
+  | 'reauthentication-required'
   | 'retryable'
+  | 'uncertain'
   | 'unavailable'
+  | 'account-changed'
 
 export type MutationIntent = Omit<MutationRequest, 'idempotencyKey'>
 
-/** Empreinte stable d'une intention (clés triées), pour savoir si une reprise est la même. */
+/** Une autre saisie est envoyée pendant qu'un envoi est en cours : refus explicite. */
+export class MutationBusyError extends Error {
+  constructor() {
+    super('Un enregistrement est déjà en cours pour ce formulaire.')
+    this.name = 'MutationBusyError'
+  }
+}
+
+/** Empreinte stable d'une intention (clés triées), version attendue comprise. */
 function fingerprint(intent: MutationIntent): string {
   const canonical = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(canonical)
@@ -45,7 +64,7 @@ function fingerprint(intent: MutationIntent): string {
     }
     return value
   }
-  return JSON.stringify(canonical(intent))
+  return JSON.stringify(canonical({ ...intent, expectedVersion: intent.expectedVersion ?? null }))
 }
 
 export function useMutation(dispatcher: MutationDispatcher = useMutationDispatcher()) {
@@ -55,10 +74,40 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
   let key: string | null = null
   let lastFingerprint: string | null = null
   let lastIntent: MutationIntent | null = null
-  let inFlight: Promise<MutationOutcome> | null = null
+  let inFlight: { fingerprint: string; promise: Promise<MutationOutcome> } | null = null
+  let effectIds = new Map<string, string>()
+  /** Compte qui a commencé la saisie : une commande ne part jamais au nom d'un autre compte. */
+  let accountId: string | null = null
 
-  async function send(intent: MutationIntent): Promise<MutationOutcome> {
-    const print = fingerprint(intent)
+  /** Identifiant d'effet stable pour ce formulaire (`payment_id`, `receipt_id`…) jusqu'à `reset()`. */
+  function effectId(name: string): string {
+    let id = effectIds.get(name)
+    if (id === undefined) {
+      id = newUlid()
+      effectIds.set(name, id)
+    }
+    return id
+  }
+
+  /** Sortie anticipée sans rien envoyer : l'issue est rendue telle quelle à l'écran. */
+  function stop(result: MutationOutcome): MutationOutcome {
+    outcome.value = result
+    state.value = result.kind
+    return result
+  }
+
+  async function send(intent: MutationIntent, print: string): Promise<MutationOutcome> {
+    const previous = outcome.value
+    if (previous?.kind === 'session-expired' || previous?.kind === 'reauthentication-required') {
+      // La session a été perdue : elle est relue avant tout renvoi (reconnexion, autre onglet).
+      await refreshSession().catch(() => undefined)
+      if (session.status === 'unverified') return stop({ kind: 'unavailable' })
+      if (session.status !== 'authenticated') return stop(previous)
+    }
+    const current = session.account?.id ?? null
+    if (accountId === null) accountId = current
+    else if (current !== accountId) return stop({ kind: 'account-changed' })
+
     if (key === null || print !== lastFingerprint) {
       key = newIdempotencyKey()
       lastFingerprint = print
@@ -69,47 +118,54 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
       const result = await dispatcher.dispatch({ ...intent, idempotencyKey: key })
       outcome.value = result
       state.value = result.kind
-      if (result.kind === 'synced' || result.kind === 'saved-local') {
-        recordedAt.value = result.at
-        // Intention aboutie : un nouvel envoi sera une nouvelle intention.
-        key = null
-        lastFingerprint = null
-      }
+      if (result.kind === 'synced' || result.kind === 'saved-local') recordedAt.value = result.at
       return result
     } catch (error) {
+      // Erreur de programmation (clé ou version invalide) : rien n'a été envoyé.
       state.value = 'idle'
       throw error
     }
   }
 
-  /** Envoie la saisie ; un envoi déjà en cours n'est pas doublé (double clic). */
+  /** Envoie la saisie ; la même saisie pendant un envoi en cours n'est pas doublée (double clic). */
   function submit(intent: MutationIntent): Promise<MutationOutcome> {
-    if (inFlight !== null) return inFlight
-    inFlight = send(intent).finally(() => {
+    const print = fingerprint(intent)
+    if (inFlight !== null) {
+      if (inFlight.fingerprint === print) return inFlight.promise
+      return Promise.reject(new MutationBusyError())
+    }
+    const promise = send(intent, print).finally(() => {
       inFlight = null
     })
-    return inFlight
+    inFlight = { fingerprint: print, promise }
+    return promise
   }
 
   /** Reprend la dernière intention avec la même clé (après reconnexion, retour du réseau). */
   function retry(): Promise<MutationOutcome> {
-    if (lastIntent === null) throw new Error('Aucune saisie à reprendre.')
+    if (lastIntent === null) return Promise.reject(new Error('Aucune saisie à reprendre.'))
     return submit(lastIntent)
   }
 
-  /** Nouvelle saisie (formulaire vidé par l'écran) : l'intention précédente est oubliée. */
+  /** Nouveau formulaire : clé, identifiants d'effets et issue précédente sont oubliés. */
   function reset(): void {
+    if (inFlight !== null) throw new MutationBusyError()
     key = null
     lastFingerprint = null
     lastIntent = null
+    effectIds = new Map()
+    accountId = null
     outcome.value = null
     recordedAt.value = null
     state.value = 'idle'
   }
 
-  const error = computed<ApiError | null>(() =>
-    outcome.value !== null && 'error' in outcome.value ? outcome.value.error : null,
-  )
+  const error = computed<ApiError | null>(() => {
+    const current = outcome.value
+    return current !== null && 'error' in current && current.kind !== 'local-failed'
+      ? (current.error as ApiError)
+      : null
+  })
 
   /** État pour `SaveStatus` : jamais « enregistré » avant un commit réussi. */
   const saveState = computed<SaveState>(() => {
@@ -129,18 +185,31 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
 
   /** Message d'échec à montrer, la saisie restant affichée. */
   const failureMessage = computed<string | null>(() => {
+    const current = outcome.value
     switch (state.value) {
+      case 'local-failed':
+        return 'Échec de l’enregistrement sur ce poste : rien n’est enregistré ; vos saisies sont conservées.'
       case 'conflict':
         return 'La pièce a changé entre-temps : vos saisies sont conservées ; vérifiez la version actuelle avant de reprendre.'
       case 'refused':
         return error.value?.message ?? 'Le serveur a refusé l’enregistrement.'
       case 'session-expired':
         return 'Session expirée : vos saisies sont conservées ; reconnectez-vous pour les enregistrer.'
-      case 'retryable':
-        return 'Le serveur n’a pas pu traiter la demande : vos saisies sont conservées ; réessayez dans un instant.'
+      case 'reauthentication-required':
+        return 'Opération sensible : confirmez votre mot de passe ; vos saisies sont conservées.'
+      case 'retryable': {
+        const delay =
+          current?.kind === 'retryable' && current.retryAfterSeconds !== null
+            ? ` dans ${current.retryAfterSeconds} s`
+            : ' dans un instant'
+        return `Le serveur a demandé de patienter : rien n’a été appliqué ; vos saisies sont conservées, réessayez${delay}.`
+      }
+      case 'account-changed':
+        return 'Le compte connecté n’est plus celui qui a commencé cette saisie : rien n’a été envoyé ; vos saisies sont conservées. Reconnectez-vous avec le compte d’origine.'
+      case 'uncertain':
       case 'unavailable':
-        // Sans réponse, la commande a pu être appliquée : rien n'est conclu, la reprise garde la clé.
-        return 'Serveur injoignable : l’enregistrement n’est pas confirmé. Vos saisies sont conservées et seront renvoyées sans doublon.'
+        // La commande a pu être appliquée : rien n'est conclu, la reprise garde la clé.
+        return 'L’enregistrement n’est pas confirmé : la commande a pu être appliquée. Vos saisies sont conservées ; « Réessayer » les renvoie sans doublon tant que cet écran reste ouvert.'
       default:
         return null
     }
@@ -153,6 +222,7 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
     error,
     saveState,
     failureMessage,
+    effectId,
     submit,
     retry,
     reset,

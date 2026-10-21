@@ -1,23 +1,26 @@
 import { inject, type InjectionKey } from 'vue'
 
-import { ApiError, apiRequest, NetworkUnavailable } from '@/app/api'
+import { ApiError, apiRequest, NetworkUnavailable, prepareSession } from '@/app/api'
 import type { CommandName } from '@/domain/contracts/generated'
 import { newUlid } from '@/domain/values/ulid'
 
-import { commandContract, commandPath } from './commandIndex'
+import { commandContract, commandPath, type CommandContract } from './commandIndex'
 
 /**
  * Répartiteur de mutations (fichier 23 : « Les composants Vue appellent un service d'application,
  * jamais une table Dexie directement ») : un écran décrit une commande du contrat F06 ; le
  * répartiteur choisit le chemin et rend une issue explicite.
  *
- * - Poste préparé dont le journal enregistre cette commande (O04) : commit local atomique, toujours,
- *   même en ligne (le poste est l'autorité temporaire de ses écritures ; la synchronisation suit).
- * - Sinon : route directe du contrat (même action serveur que la synchronisation), en-tête
+ * - Journal du poste préparé qui prend cette commande (O04 : facture dont le poste est propriétaire,
+ *   droits préparés…) : commit local atomique, même en ligne (le poste est l'autorité temporaire de
+ *   ses écritures ; la synchronisation suit).
+ * - Sinon : route directe du contrat (même action serveur que la synchronisation). Corps conforme
+ *   à `DirectRequest` : la charge, `expected_version` (nombre, ou null pour une commande sans
+ *   version ou de nature « état »), et le champ de numéro à null (le serveur numérote). En-tête
  *   `Idempotency-Key` identique pour toutes les reprises d'une même intention.
  *
- * Aucune issue n'est devinée : une absence de réponse n'est ni un succès ni un refus (la commande a
- * pu être appliquée) ; elle se reprend avec la même clé.
+ * Aucune issue n'est devinée : sans réponse de l'application, la commande a pu être appliquée ;
+ * elle se reprend avec la même clé.
  */
 export interface MutationRequest {
   name: CommandName
@@ -25,8 +28,11 @@ export interface MutationRequest {
   path?: Readonly<Record<string, string>>
   /** Charge du contrat F06, identifiants des effets compris (connus avant tout envoi). */
   payload: Readonly<Record<string, unknown>>
-  /** Version attendue quand la commande en a une (brouillon, grand livre, entité, état). */
-  expectedVersion?: number
+  /**
+   * Version attendue : obligatoire pour une commande versionnée (brouillon, grand livre, entité),
+   * absente ou null pour une commande sans version ou de nature « état ».
+   */
+  expectedVersion?: number | null
   /** Clé d'idempotence : la même pour toutes les reprises d'une même intention. */
   idempotencyKey: string
 }
@@ -36,20 +42,29 @@ export type MutationOutcome =
   | { kind: 'synced'; at: string; result: unknown }
   /** Commit local durable sur ce poste ; synchronisation à suivre (journal du poste). */
   | { kind: 'saved-local'; at: string }
+  /** Le journal du poste a refusé le commit (atomique : rien n'est écrit). */
+  | { kind: 'local-failed'; error: unknown }
   /** La pièce a changé entre-temps (version) ou la clé a déjà servi pour une autre charge. */
   | { kind: 'conflict'; error: ApiError }
   /** Refus du serveur : droits, validation, règle métier (avec valeurs actualisées). */
   | { kind: 'refused'; error: ApiError }
-  /** Session expirée : la saisie est conservée, reprise après reconnexion avec la même clé. */
+  /** Session expirée : saisie conservée, reprise après reconnexion avec la même clé. */
   | { kind: 'session-expired'; error: ApiError }
-  /** Serveur occupé ou en erreur : rien n'est conclu, reprise avec la même clé. */
-  | { kind: 'retryable'; error: ApiError }
-  /** Aucune réponse et aucun journal local pour cette commande : rien n'est conclu. */
+  /** Opération sensible : confirmation du mot de passe demandée (423), puis reprise. */
+  | { kind: 'reauthentication-required'; error: ApiError }
+  /** Refus temporaire avant toute exécution (trop de demandes, serveur occupé) : reprendre plus tard. */
+  | { kind: 'retryable'; error: ApiError; retryAfterSeconds: number | null }
+  /** Erreur du serveur ou page d'un hébergeur : la commande a pu être appliquée, rien n'est conclu. */
+  | { kind: 'uncertain'; error: ApiError }
+  /** Aucune réponse complète et aucun journal local pour cette commande : rien n'est conclu. */
   | { kind: 'unavailable' }
+  /** Le compte connecté n'est plus celui qui a commencé la saisie (autre onglet) : rien n'est envoyé. */
+  | { kind: 'account-changed' }
 
 /** Journal du poste préparé (O04) : seul autorisé à écrire dans le coffre local. */
 export interface LocalCommandEngine {
-  handles(name: CommandName): boolean
+  /** Vrai si ce poste enregistre lui-même cette commande (propriété de la pièce, droits préparés). */
+  handles(request: MutationRequest): boolean
   /** Commit local atomique (entités, séquence, audit, file de sortie) ; instant durable. */
   commit(request: MutationRequest): Promise<{ recordedAt: string }>
 }
@@ -65,12 +80,36 @@ export function newIdempotencyKey(): string {
   return newUlid()
 }
 
+/** Corps de la route directe conforme au `DirectRequest` du contrat de la commande. */
+export function directBody(
+  contract: CommandContract,
+  request: MutationRequest,
+): Record<string, unknown> {
+  const versioned = contract.expectedVersion !== 'none' && contract.expectedVersion !== 'state'
+  const version = request.expectedVersion ?? null
+  if (versioned && version === null) {
+    throw new Error(`Version attendue obligatoire pour ${request.name}.`)
+  }
+  if (!versioned && version !== null) {
+    throw new Error(`${request.name} n'a pas de version attendue (null sur la route directe).`)
+  }
+  const body: Record<string, unknown> = { ...request.payload, expected_version: version }
+  if (contract.directNumberField !== null) body[contract.directNumberField] = null
+  return body
+}
+
 function classify(error: ApiError): MutationOutcome {
   if (error.status === 401 || error.status === 419) return { kind: 'session-expired', error }
+  if (error.code === 'REAUTHENTICATION_REQUIRED')
+    return { kind: 'reauthentication-required', error }
   if (error.code === 'VERSION_CONFLICT' || error.code === 'IDEMPOTENCY_PAYLOAD_MISMATCH') {
     return { kind: 'conflict', error }
   }
-  if (error.status >= 500 || error.code === 'SERVER_BUSY') return { kind: 'retryable', error }
+  // Refusées avant exécution par l'application elle-même : rien n'a été appliqué.
+  if (error.fromApplication && (error.code === 'RATE_LIMITED' || error.code === 'SERVER_BUSY')) {
+    return { kind: 'retryable', error, retryAfterSeconds: error.retryAfterSeconds }
+  }
+  if (!error.fromApplication || error.status >= 500) return { kind: 'uncertain', error }
   return { kind: 'refused', error }
 }
 
@@ -79,6 +118,15 @@ export function createMutationDispatcher(
 ): MutationDispatcher {
   const localEngine = options.localEngine ?? null
   const now = options.now ?? (() => new Date())
+
+  async function send(contract: CommandContract, request: MutationRequest): Promise<unknown> {
+    return apiRequest<unknown>(
+      contract.method,
+      commandPath(contract, request.path ?? {}),
+      directBody(contract, request),
+      { 'Idempotency-Key': request.idempotencyKey },
+    )
+  }
 
   return {
     async dispatch(request: MutationRequest): Promise<MutationOutcome> {
@@ -89,26 +137,27 @@ export function createMutationDispatcher(
       }
       const contract = commandContract(request.name)
 
-      if (localEngine?.handles(request.name) === true) {
-        const { recordedAt } = await localEngine.commit(request)
-        return { kind: 'saved-local', at: recordedAt }
+      if (localEngine?.handles(request) === true) {
+        try {
+          const { recordedAt } = await localEngine.commit(request)
+          return { kind: 'saved-local', at: recordedAt }
+        } catch (error) {
+          return { kind: 'local-failed', error }
+        }
       }
 
-      if (contract.expectedVersion !== 'none' && request.expectedVersion === undefined) {
-        throw new Error(`Version attendue obligatoire pour ${request.name}.`)
-      }
-      const body =
-        contract.expectedVersion === 'none'
-          ? { ...request.payload }
-          : { ...request.payload, expected_version: request.expectedVersion }
-
+      // Contrôle du corps avant tout envoi : une erreur de programmation n'atteint pas le serveur.
+      directBody(contract, request)
       try {
-        const result = await apiRequest<unknown>(
-          contract.method,
-          commandPath(contract, request.path ?? {}),
-          body,
-          { 'Idempotency-Key': request.idempotencyKey },
-        )
+        let result: unknown
+        try {
+          result = await send(contract, request)
+        } catch (error) {
+          // Jeton CSRF périmé (419) : renouvelé une fois, même clé, avant de demander une reconnexion.
+          if (!(error instanceof ApiError) || error.status !== 419) throw error
+          await prepareSession()
+          result = await send(contract, request)
+        }
         return { kind: 'synced', at: now().toISOString(), result }
       } catch (error) {
         if (error instanceof NetworkUnavailable) return { kind: 'unavailable' }

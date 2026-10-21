@@ -17,9 +17,14 @@ export type SessionStatus = 'unknown' | 'anonymous' | 'authenticated' | 'unverif
 interface SessionState {
   status: SessionStatus
   account: Me | null
+  /**
+   * Dernier compte connu de cet écran, conservé quand la session expire : la reconnexion sur place
+   * (`ReauthDialog`) ne vaut que pour ce compte, jamais pour un autre. Effacé par la déconnexion.
+   */
+  lastAccount: Me | null
 }
 
-const state = reactive<SessionState>({ status: 'unknown', account: null })
+const state = reactive<SessionState>({ status: 'unknown', account: null, lastAccount: null })
 
 export const session = readonly(state)
 
@@ -39,6 +44,7 @@ export async function refreshSession(): Promise<SessionStatus> {
   try {
     const response = await apiRequest<MeResponse>('GET', '/api/v1/auth/me')
     state.account = response.data
+    state.lastAccount = response.data
     state.status = 'authenticated'
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 419)) {
@@ -58,6 +64,7 @@ export async function signIn(credentials: LoginRequest): Promise<Me> {
   await prepareSession()
   const response = await apiRequest<MeResponse>('POST', '/api/v1/auth/login', credentials)
   state.account = response.data
+  state.lastAccount = response.data
   state.status = 'authenticated'
   return response.data
 }
@@ -82,11 +89,13 @@ export async function signOut(): Promise<void> {
     }
   }
   state.account = null
+  state.lastAccount = null
   state.status = 'anonymous'
 }
 
 /** Réservé aux tests : état initial. */
 export function resetSessionForTests(): void {
   state.account = null
+  state.lastAccount = null
   state.status = 'unknown'
 }

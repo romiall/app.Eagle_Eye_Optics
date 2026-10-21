@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * État de synchronisation du poste (F10), distinct de l'état du réseau : pièces encore à envoyer,
- * conflits à revoir, PDF à régénérer, dernier échange réussi. Rien n'est affiché tant qu'aucun poste
- * n'est préparé (aucune pièce locale) ; « Synchronisé » n'est dit que si rien n'attend et qu'un
- * échange a réussi. Libellés et symboles : jamais la seule couleur.
+ * État de synchronisation du poste (F10), distinct de l'état du réseau : pièces encore à envoyer
+ * (dont celles d'autres profils, qui partent à l'ouverture de leur profil), conflits à revoir, PDF à
+ * régénérer ou à déposer, dernier échange réussi. Rien n'est affiché tant qu'aucun poste n'est
+ * préparé (aucune pièce locale). « Synchronisé » n'est dit que si rien n'attend, qu'un échange a
+ * réussi et que le dernier essai n'a pas échoué. Libellés et symboles : jamais la seule couleur.
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useSyncStateSource } from '@/app/services/sync'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -14,6 +15,8 @@ const props = withDefaults(defineProps<{ timeZone?: string }>(), { timeZone: 'Af
 
 const source = useSyncStateSource()
 const summary = computed(() => source?.summary.value ?? null)
+const syncing = ref(false)
+const syncError = ref(false)
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count > 1 ? many : one}`
@@ -61,12 +64,36 @@ const lines = computed<Line[]>(() => {
       tone: 'text-warning',
     })
   }
+  if (value.otherProfiles > 0) {
+    result.push({
+      key: 'others',
+      icon: '↻',
+      text: `${plural(value.otherProfiles, 'pièce', 'pièces')} d’autres profils : à envoyer à l’ouverture de leur profil`,
+      tone: 'text-warning',
+    })
+  }
   if (value.documentsFailed > 0) {
     result.push({
       key: 'documents',
       icon: '⚠',
       text: `${plural(value.documentsFailed, 'PDF', 'PDF')} à régénérer`,
       tone: 'text-danger',
+    })
+  }
+  if (value.documentsToUpload > 0) {
+    result.push({
+      key: 'uploads',
+      icon: '↻',
+      text: `${plural(value.documentsToUpload, 'PDF', 'PDF')} à déposer sur le serveur`,
+      tone: 'text-warning',
+    })
+  }
+  if (value.lastAttemptFailed || syncError.value) {
+    result.push({
+      key: 'failed',
+      icon: '⚠',
+      text: 'Dernier essai d’échange sans réponse du serveur',
+      tone: 'text-warning',
     })
   }
   if (result.length === 0) {
@@ -84,20 +111,26 @@ const lines = computed<Line[]>(() => {
     result.push({
       key: 'last',
       icon: '·',
-      text: `Dernier échange le ${clock(value.lastExchangeAt)}`,
+      text: `Dernier échange réussi le ${clock(value.lastExchangeAt)}`,
       tone: 'text-muted',
-    })
-  }
-  if (value.lastAttemptFailed) {
-    result.push({
-      key: 'failed',
-      icon: '⚠',
-      text: 'Dernier essai d’échange sans réponse du serveur',
-      tone: 'text-warning',
     })
   }
   return result
 })
+
+async function syncNow(): Promise<void> {
+  if (source?.syncNow === undefined || syncing.value) return
+  syncing.value = true
+  syncError.value = false
+  try {
+    await source.syncNow()
+  } catch {
+    // L'échec est annoncé ; les pièces restent dans le journal du poste.
+    syncError.value = true
+  } finally {
+    syncing.value = false
+  }
+}
 </script>
 
 <template>
@@ -113,7 +146,12 @@ const lines = computed<Line[]>(() => {
         ><span>{{ line.text }}</span>
       </span>
     </p>
-    <AppButton v-if="source?.syncNow" variant="ghost" @click="source.syncNow()"
+    <AppButton
+      v-if="source?.syncNow"
+      variant="ghost"
+      :pending="syncing"
+      pending-label="Synchronisation en cours…"
+      @click="syncNow"
       >Synchroniser</AppButton
     >
   </div>
