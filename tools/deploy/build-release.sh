@@ -62,7 +62,7 @@ git archive "$COMMIT" | tar -x -C "$WORK/app"
     resources/frontend contracts/tools contracts/fixtures contracts/vectors
   rm -f package.json package-lock.json vite.config.ts tsconfig.json tsconfig.*.json eslint.config.js \
     vitest.config.ts playwright.config.ts phpstan.neon phpunit.xml pint.json .prettierrc* .prettierignore \
-    .editorconfig .npmrc CLAUDE.md
+    .editorconfig .npmrc CLAUDE.md README.md *.zip *.docx *.pdf
   # Scripts SQL d'origine et rapports : l'installation passe par les migrations et database/baseline/.
   rm -f database/*.sql database/*.md database/*.json 2>/dev/null || true
 )

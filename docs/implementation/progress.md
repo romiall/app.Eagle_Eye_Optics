@@ -71,6 +71,17 @@ pas une recette de L0.
 | Traitement | Majeurs traités avec test ; mineurs peu coûteux traités (identifiant non ULID, texte mal encodé, bornes de page et de longueur, caractères de contrôle, clé de recherche trop longue, séquence en retard, limite de débit, parité du schéma direct). **Reportés** (docs/implementation/patients.md) : ligatures et noms collés dans la recherche, plafond de 15 chiffres du téléphone, horloge du numéro avant l'attente du verrou, unicité des identifiants entre cabinets |
 | Reprise | CI, puis C01 (démarrage de l'examen et rubriques narratives) ; hors-ligne O01 à O05 ensuite |
 
+## Kit de déploiement (hors backlog, avant H01)
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | LIVRÉ en répétition locale ; **non exécuté sur Hostinger** (offre, PHP, MySQL ou MariaDB, droits, racine web inconnus) |
+| Objectif | Mettre en ligne rapidement les premières fonctions (patients, arrivée, file du jour) sur l'hébergement SSH annoncé par le demandeur (2026-10-22), sans attendre H01 |
+| Fichiers | `php artisan eeo:preflight` (`app/Console/Commands/PreflightCheck.php`, `app/Support/Deployment/*`), `tools/deploy/build-release.sh` (archive `.tar.gz` + SHA-256), `tools/deploy/smoke.sh` (contrôle de fumée en lecture seule), `docs/implementation/deploiement.md` |
+| Preuves | Répétition : archive extraite dans un dossier neuf, base MySQL 8.4 vierge, diagnostic production sans point bloquant, `migrate --force` 40 s, `eeo:setup-clinic`, `eagle:verify-schema` sans écart, serveur démarré, contrôle de fumée complet (connexion, `enabled_modules`, recherche, file du jour, aucun fichier de configuration servi) ; mauvais mot de passe détecté. 16 tests du diagnostic (verdicts MariaDB/MySQL, production non sécurisée, droits réels dont le trigger, objets temporaires supprimés, identifiants jamais affichés) |
+| Risque principal | Hostinger peut fournir **MariaDB** ou refuser les **triggers** (88) : le diagnostic le dit avant toute installation ; sinon base MySQL 8 à obtenir (écart à consigner au fichier 15) |
+| Reprise | Exécuter le diagnostic sur le serveur, consigner le rapport (`--json`) dans `hosting-audit.md`, dérouler `deploiement.md` |
+
 ## Environnement de développement (cloud)
 
 PHP 8.3.6 (sans bcmath/gmp/pcov), Composer 2.8.12, Node 22.22.0, npm 10.9.4, Chromium Playwright dans `/opt/pw-browsers`. MySQL 8.4.9 par Docker (`mirror.gcr.io/library/mysql:8.4.9`, conteneur `eeo-mysql`, base isolée `eeo_test`). Reprise après redémarrage du conteneur de session : relancer `dockerd`, puis le conteneur MySQL. Détails : `startup.md`.

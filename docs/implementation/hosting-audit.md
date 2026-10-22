@@ -2,6 +2,14 @@
 
 Statut : **non réalisé, accès à l'offre non disponible** (F01, 2026-10-14). Ce fichier est la grille à remplir avant H01/G4. Aucune réponse ci-dessous n'est supposée.
 
+## Outil de diagnostic
+
+Les points 2, 3, 6, 7, 8 et 13 à 18 se vérifient **sur le serveur** par `php artisan eeo:preflight` (rapport lisible, ou
+`--json` à consigner) : version de PHP, extensions, réglages, droits d'écriture, version et droits MySQL réels (création
+d'une table avec CHECK, d'une clé étrangère, d'une colonne générée, d'une vue et d'un **trigger exécuté**), MariaDB
+refusée. Procédure complète : `deploiement.md`. L'hébergeur retenu est **Hostinger, accès SSH** (communiqué le
+2026-10-22) ; l'offre exacte reste à relever.
+
 ## À obtenir de l'hébergeur ou du panneau
 
 | # | Point | Exigence du projet | Réponse |

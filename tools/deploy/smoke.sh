@@ -63,11 +63,23 @@ fi
 code="$(http_code "${BASE}/sw.js")"
 check "Le service worker /sw.js est servi" "$([[ "$code" == "200" ]] && echo 0 || echo 1)" "(reçu ${code})"
 
-# Les fichiers de configuration ne doivent jamais être servis.
-for path in /.env /.git/config /composer.json /artisan /storage/logs/laravel.log; do
-  code="$(http_code "${BASE}${path}")"
-  check "${path} n'est pas servi" "$([[ "$code" == "404" || "$code" == "403" || "$code" == "301" || "$code" == "302" ]] && echo 0 || echo 1)" "(reçu ${code} : la racine web doit être le dossier public/)"
-done
+# Les fichiers de configuration ne doivent jamais être servis. La coquille de l'application répond 200 à une
+# adresse inconnue : on contrôle donc le CONTENU (signature du fichier), pas seulement le code de réponse.
+check_not_served() { # chemin, expression de signature
+  local page
+  page="$(curl -sS --max-time 30 "${BASE}$1" || true)"
+  if printf '%s' "$page" | grep -Eq "$2"; then
+    check "$1 n'est pas servi" 1 "(contenu exposé : la racine web doit être le dossier public/)"
+  else
+    check "$1 n'est pas servi" 0 ""
+  fi
+}
+check_not_served /.env 'APP_KEY|DB_PASSWORD|APP_ENV='
+check_not_served /.git/config '\[core\]|\[remote '
+check_not_served /composer.json '"require"'
+check_not_served /artisan '<\?php|Illuminate'
+check_not_served /storage/logs/laravel.log 'Stack trace|production\.(ERROR|WARNING)'
+check_not_served /RELEASE.json '"commit"'
 
 code="$(http_code -H 'Accept: application/json' "${BASE}/api/v1/auth/me")"
 check "Sans connexion, /api/v1/auth/me répond 401" "$([[ "$code" == "401" ]] && echo 0 || echo 1)" "(reçu ${code})"

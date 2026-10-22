@@ -2,6 +2,9 @@
 
 Ce document décrit comment construire l'application et ce qui doit être déployé. Il couvre le socle F02 : Laravel 13 (API privée) et SPA/PWA Vue 3 construite en fichiers statiques servis par Laravel sur une seule origine HTTPS. Aucune fonction métier n'est livrée à ce stade ; `php artisan migrate` ne crée encore aucune table (les 117 tables métier et les tables `fw_*` arrivent avec F04/F05).
 
+> Livraison sur l'hébergement (archive sans dépendances de développement, diagnostic, installation, contrôle de
+> fumée, mise à jour) : voir `deploiement.md`.
+
 ## Principe : aucun serveur Node en production
 
 Node ne sert qu'à **construire** les fichiers (poste de développement ou CI). En production, il n'y a que PHP et MySQL : Laravel sert la coquille HTML, l'API sous `/api`, le service worker (`/sw.js`) et le manifeste (`/manifest.webmanifest`) ; les fichiers versionnés du build sont des fichiers statiques de `public/build/`. Ni `npm run dev`, ni Vite, ni `node_modules` ne tournent ou n'existent sur le serveur.
