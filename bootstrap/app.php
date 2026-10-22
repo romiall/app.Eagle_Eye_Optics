@@ -5,6 +5,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Errors\ApiErrorRenderer;
 use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\RequireAnyPermission;
 use App\Http\Middleware\RequireEnabledModule;
 use App\Http\Middleware\RequireRecentReauthentication;
 use App\Http\Middleware\SecurityHeaders;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
+            'any-permission' => RequireAnyPermission::class,
             'module' => RequireEnabledModule::class,
             'reauthenticated' => RequireRecentReauthentication::class,
         ]);

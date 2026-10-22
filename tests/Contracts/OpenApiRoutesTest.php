@@ -86,6 +86,9 @@ final class OpenApiRoutesTest extends TestCase
             foreach ($middleware as $entry) {
                 if (is_string($entry) && preg_match('/^(?:can|.*\\\\Authorize):(.+)$/', $entry, $match) === 1) {
                     $abilities[] = $match[1];
+                } elseif (is_string($entry) && preg_match('/^any-permission:(.+)$/', $entry, $match) === 1) {
+                    // « L'une ou l'autre » : les permissions de la liste, dans l'ordre déclaré.
+                    array_push($abilities, ...explode(',', $match[1]));
                 }
             }
             $reauth = in_array('reauthenticated', $middleware, true)

@@ -4,6 +4,7 @@ namespace App\Domain\Patients;
 
 use App\Application\CommandDefinition;
 use App\Domain\Patients\Handlers\CreatePatientHandler;
+use App\Domain\Patients\Handlers\RegisterVisitHandler;
 use App\Domain\Patients\Handlers\UpdatePatientHandler;
 use App\Domain\Shared\CommandSource;
 
@@ -28,6 +29,14 @@ final class PatientCommands
                 'commands/CreatePatient.v1.json',
                 true,
                 'commands/CreatePatient.v1.json#/$defs/DirectRequest',
+            ),
+            new CommandDefinition(
+                RegisterVisitHandler::COMMAND,
+                RegisterVisitHandler::class,
+                $both,
+                'commands/RegisterVisit.v1.json',
+                true,
+                'commands/RegisterVisit.v1.json#/$defs/DirectRequest',
             ),
             new CommandDefinition(
                 UpdatePatientHandler::COMMAND,

@@ -74,6 +74,35 @@ format du numéro), `tests/Concurrency/CommandBusConcurrencyTest.php` (cinq cré
 cinq processus : cinq numéros consécutifs distincts ; double clic : une seule fiche),
 `TransactionLocksTest` (rang 45).
 
+## Visites et file du jour (P03, premier jalon : sans contrôle de paiement)
+
+| Méthode et route | Permission | Rôle |
+| --- | --- | --- |
+| `POST /api/v1/visits` | `visit.register` | Arrivée d'un patient (commande `RegisterVisit`, `Idempotency-Key` obligatoire) |
+| `GET /api/v1/visits?date=&page=` | l'une OU l'autre de `visit.register`, `agenda.read` (middleware `any-permission`) | File du jour : 50 par page, arrivée croissante |
+
+Module `today`. Aucune donnée clinique : la visite porte l'identité de base du patient (`patient`) et
+le marqueur `exam_fee_control`.
+
+- **Statut décidé par le serveur** : `ARRIVED`. `AWAITING_EXAM_FEE` et `READY_FOR_EXAM` ne sont **jamais
+  écrits** tant que le contrôle du paiement de l'examen n'existe pas (B04, B06) : « prêt pour examen »
+  dirait que la règle est satisfaite, ce qui serait faux. Un test le verrouille.
+- **Marqueur `exam_fee_control`** : `NOT_CONTROLLED` pour un examen ou un suivi, `NOT_APPLICABLE` pour un
+  achat ou un retrait. L'écran écrit « Paiement de l'examen non contrôlé », jamais « payé », « soldé » ni
+  « gratuit ». À dire à la cliente : l'examen n'est pas encore bloqué faute de règlement.
+- **Un achat ou un retrait ne crée jamais de consultation.** Une autre visite du même patient le même
+  jour ne bloque pas.
+- **Jour civil du cabinet** : `DayWindow` convertit minuit local en UTC (à Douala, le 22 octobre local
+  commence le 21 à 23 h UTC), jamais « minuit UTC ». Sans `date`, c'est aujourd'hui au fuseau du cabinet.
+- Contrôles : patient du cabinet, non archivé, non fusionné ; identifiant de visite libre (422 sinon) ;
+  rendez-vous du cabinet, du même patient, ni annulé ni manqué ; heure d'arrivée pas dans le futur au-delà de
+  la tolérance d'horloge (`eeo.offline.max_clock_skew_seconds`). Une arrivée passée est acceptée
+  (saisie rétrospective : fenêtre à confirmer).
+- Source de poste hors-ligne refusée (403) jusqu'à O03/O05.
+- Rangs de verrou 46 « visite » et 47 « consultation » ajoutés d'avance pour C01 (`LockRank`).
+- Reste du plan P03 : démarrage de l'examen (`StartConsultation`, avec C01), annulation d'une visite
+  (commande absente du contrat), contrôle du paiement (B04, B06).
+
 ## Écarts et points ouverts
 
 | Point | Décision / état |
@@ -81,6 +110,7 @@ cinq processus : cinq numéros consécutifs distincts ; double clic : une seule 
 | « Correction proposée » du professionnel et de la caisse (matrice 09) | Aucune table ni commande au contrat : ces rôles lisent seulement. À décider avec le demandeur. |
 | Détection de doublons côté serveur | Signalement par l'écran (recherche avant création) ; pas de route dédiée au contrat. Règle de ressemblance à confirmer (nom identique et même naissance ou même téléphone). |
 | Création depuis un poste hors-ligne | Refusée (403) jusqu'à O03 (plages) et O05 (synchronisation). |
+| Alignement des droits de la navigation « Aujourd'hui » avec la route de la file (`visit.register` ou `agenda.read`) | À faire dans l'écran P03. |
 | Recherche : fiches archivées | Proposées (indicateur `archived`) ; à confirmer. |
 | Structure du contact du responsable (`guardian_contact`) | Objet JSON libre, sans écran dans P01. |
 | Performance de la recherche | À mesurer (20 000 patients) ; un index de préfixe ou une recherche plein texte seront envisagés si la cible n'est pas tenue. |

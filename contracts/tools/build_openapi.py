@@ -119,9 +119,11 @@ OPERATIONS_TABLE = [
        permission=['patient.read'], response=PATIENTS + 'PatientHistoryResponse', task='P02', params=(ID,),
        read_scope={'ADMINISTRATIVE': 'visits', 'CLINICAL': 'consultations (clinical.read)', 'FINANCIAL': 'invoices (invoice.read)'}),
     op('post', '/v1/visits', 'RegisterVisit', 'Enregistrer une arrivée', 'Patients',
-       permission=['visit.register'], command='RegisterVisit', response=PATIENTS + 'VisitResponse', status=201, task='P03', errors=(409, 422)),
+       permission=['visit.register'], command='RegisterVisit', response=PATIENTS + 'VisitResponse', status=201, implemented=True,
+       task='P03', errors=(409, 422)),
     op('get', '/v1/visits', 'ListVisits', 'Visites d\'une journée', 'Patients',
-       permission=['visit.register', 'agenda.read'], response=PATIENTS + 'VisitPage', task='P03',
+       permission=['visit.register', 'agenda.read'], response=PATIENTS + 'VisitPage', implemented=True, task='P03', errors=(422,),
+       description="Lecture ouverte à qui détient l’une OU l’autre des permissions listées (middleware any-permission).",
        params=(('query', 'date', 'Date civile AAAA-MM-JJ (fuseau du cabinet).'), PAGE)),
 
     # --- Clinique ------------------------------------------------------------------------------------

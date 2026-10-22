@@ -743,13 +743,14 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "RegisterVisit"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P03"
     get:
       operationId: "ListVisits"
       summary: "Visites d'une journée"
       tags:
         - "Patients"
+      description: "Lecture ouverte à qui détient l’une OU l’autre des permissions listées (middleware any-permission)."
       security:
         - sessionCookie: []
       parameters:
@@ -779,12 +780,14 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "visit.register"
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P03"
   /v1/visits/{id}/consultations:
     post:

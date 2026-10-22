@@ -159,6 +159,26 @@ final class TransactionLocks
     }
 
     /**
+     * Visite (`visits`) du cabinet, au rang « visite » : après le dossier patient, avant la consultation.
+     */
+    public function visit(string $visitId): ?stdClass
+    {
+        $this->enter(LockRank::Visit, $visitId);
+
+        return $this->byId('visits', $visitId);
+    }
+
+    /**
+     * Consultation (`consultations`) du cabinet, au rang « consultation » : après la visite qui la contient.
+     */
+    public function consultation(string $consultationId): ?stdClass
+    {
+        $this->enter(LockRank::Consultation, $consultationId);
+
+        return $this->byId('consultations', $consultationId);
+    }
+
+    /**
      * Propriétaires d'écriture d'une facture (une ligne par époque), du plus ancien au plus récent.
      *
      * @return list<stdClass>
@@ -277,7 +297,7 @@ final class TransactionLocks
         if ($rank->value < $this->highestRank) {
             throw new LockOrderViolation(sprintf(
                 'Ordre des verrous violé : « %s » demandé après un verrou de rang supérieur (« %s » déjà tenu). '
-                .'Ordre du contrat 23 : cabinet, compte, appareil, idempotence, séquences, dossier patient, propriété de facture, facture, session de caisse, stock, approbation.',
+                .'Ordre du contrat 23 : cabinet, compte, appareil, idempotence, séquences, dossier patient, visite, consultation, propriété de facture, facture, session de caisse, stock, approbation.',
                 $rank->label(),
                 LockRank::from($this->highestRank)->label(),
             ));

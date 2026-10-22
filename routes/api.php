@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\VisitController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -76,6 +77,17 @@ Route::prefix('v1')->group(function (): void {
             Route::patch('patients/{id}', [PatientController::class, 'update'])
                 ->middleware('can:patient.update')
                 ->name('api.patients.update');
+        });
+
+        // Visites et file du jour (P03) : module « today ». La file se lit avec l'une ou l'autre des
+        // permissions listées ; l'enregistrement d'une arrivée exige visit.register.
+        Route::middleware('module:today')->group(function (): void {
+            Route::get('visits', [VisitController::class, 'index'])
+                ->middleware('any-permission:visit.register,agenda.read')
+                ->name('api.visits.index');
+            Route::post('visits', [VisitController::class, 'store'])
+                ->middleware('can:visit.register')
+                ->name('api.visits.store');
         });
     });
 });

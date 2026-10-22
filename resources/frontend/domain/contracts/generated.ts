@@ -780,6 +780,7 @@ SchemasResourcesPatientsJsonPatientResponse?: PatientResponse
 SchemasResourcesPatientsJsonPatientPage?: PatientPage
 SchemasResourcesPatientsJsonPatientHistoryResponse?: PatientHistoryResponse
 SchemasResourcesPatientsJsonVisit?: Visit
+SchemasResourcesPatientsJsonVisitPatient?: VisitPatient
 SchemasResourcesPatientsJsonVisitResponse?: VisitResponse
 SchemasResourcesPatientsJsonVisitPage?: VisitPage
 SchemasResourcesPublicJsonPublicService?: PublicService
@@ -4237,6 +4238,9 @@ meta: Pagination
 export interface PatientHistoryResponse {
 data: PatientHistory
 }
+/**
+ * Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ».
+ */
 export interface Visit {
 id: Ulid
 patient_id: Ulid
@@ -4250,6 +4254,19 @@ arrival_at: NullableInstant
 closed_at: NullableInstant
 administrative_note: (string | null)
 version: Version
+patient: VisitPatient
+exam_fee_control: ("NOT_CONTROLLED" | "NOT_APPLICABLE")
+}
+/**
+ * Identité administrative de base du patient d’une visite.
+ */
+export interface VisitPatient {
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+sex: PatientRecordsSex
+birth_date: NullableCivilDate
 }
 export interface VisitResponse {
 data: Visit

@@ -40,6 +40,8 @@ final class TransactionLocksTest extends TestCase
         $this->assertNull($locks->idempotency('user:ABC', 'RegisterPayment', 'cle-0000001'));
         $this->assertSame([], $locks->sequences([['RECEIPT', 2026], ['INVOICE', 2026], ['INVOICE', 2025]]));
         $this->assertNull($locks->patient(Ulid::generate()));
+        $this->assertNull($locks->visit(Ulid::generate()));
+        $this->assertNull($locks->consultation(Ulid::generate()));
         $this->assertSame([], $locks->invoiceOwners(Ulid::generate()));
         $this->assertNull($locks->invoice(Ulid::generate()));
         $this->assertNull($locks->cashSession(Ulid::generate()));
@@ -50,16 +52,16 @@ final class TransactionLocksTest extends TestCase
 
         $ranks = array_map(static fn (string $token): string => explode(':', $token, 2)[0], $locks->acquired());
         $this->assertSame(
-            ['10', '20', '30', '40', '40', '40', '45', '50', '60', '70', '80', '80', '81', '81', '82', '82', '90'],
+            ['10', '20', '30', '40', '40', '40', '45', '46', '47', '50', '60', '70', '80', '80', '81', '81', '82', '82', '90'],
             $ranks,
             'Un rang par verrou, jamais décroissant.',
         );
 
         $acquired = $locks->acquired();
         $this->assertSame(['40:INVOICE:2025', '40:INVOICE:2026', '40:RECEIPT:2026'], array_slice($acquired, 3, 3), 'Séquences par clé croissante.');
-        $this->assertSame(['80:A', '80:B'], array_slice($acquired, 10, 2), 'Positions par identifiant trié, sans doublon.');
-        $this->assertSame(['81:C', '81:D'], array_slice($acquired, 12, 2));
-        $this->assertSame(['82:E', '82:F'], array_slice($acquired, 14, 2));
+        $this->assertSame(['80:A', '80:B'], array_slice($acquired, 12, 2), 'Positions par identifiant trié, sans doublon.');
+        $this->assertSame(['81:C', '81:D'], array_slice($acquired, 14, 2));
+        $this->assertSame(['82:E', '82:F'], array_slice($acquired, 16, 2));
     }
 
     public function test_redemander_un_verrou_deja_tenu_est_permis(): void
