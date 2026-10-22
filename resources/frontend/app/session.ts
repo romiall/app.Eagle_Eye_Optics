@@ -42,6 +42,15 @@ let epoch = 0
 
 export const session = readonly(state)
 
+/**
+ * Modules ouverts par l'exploitant (mise en service progressive, `EEO_ENABLED_MODULES` côté serveur),
+ * lus dans `/auth/me`. Un module livré dans le code reste invisible tant qu'il n'y figure pas ; le
+ * serveur répond 404 à ses routes. Sans session connectée, aucun module n'est ouvert.
+ */
+export const enabledModules = computed<readonly string[]>(
+  () => state.account?.clinic.enabled_modules ?? [],
+)
+
 export const currentPermissions = computed<readonly string[]>(
   () => state.account?.permissions ?? [],
 )

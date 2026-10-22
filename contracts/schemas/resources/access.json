@@ -133,6 +133,7 @@
       }
     },
     "ClinicSummary": {
+      "description": "enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -140,7 +141,8 @@
         "name",
         "timezone",
         "currency",
-        "production_documents_enabled"
+        "production_documents_enabled",
+        "enabled_modules"
       ],
       "properties": {
         "id": {
@@ -161,6 +163,15 @@
         },
         "production_documents_enabled": {
           "type": "boolean"
+        },
+        "enabled_modules": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
         }
       }
     },

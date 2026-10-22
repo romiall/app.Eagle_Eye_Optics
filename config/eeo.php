@@ -33,6 +33,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mise en service progressive des modules
+    |--------------------------------------------------------------------------
+    |
+    | Codes des modules ouverts aux utilisateurs, séparés par des virgules (voir App\Support\Modules).
+    | Vide : aucun module métier n'est exposé, ni à l'écran ni dans l'API. Cette liste appartient au
+    | déploiement ; elle n'est pas un paramètre du cabinet.
+    |
+    */
+
+    'enabled_modules' => array_values(array_filter(
+        array_map('trim', explode(',', (string) env('EEO_ENABLED_MODULES', ''))),
+        static fn (string $code): bool => $code !== '',
+    )),
+
+    /*
+    |--------------------------------------------------------------------------
     | Transactions du chemin central de commandes (F07, contrat 23)
     |--------------------------------------------------------------------------
     |

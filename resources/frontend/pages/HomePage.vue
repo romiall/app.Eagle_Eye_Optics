@@ -10,16 +10,20 @@ import { RouterLink } from 'vue-router'
 
 import { useNavigationCatalog, visibleHomeActions, visibleModules } from '@/app/navigation'
 import { useNetworkStatus } from '@/app/network'
-import { currentPermissions, session } from '@/app/session'
+import { currentPermissions, enabledModules, session } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 
 const catalog = useNavigationCatalog()
 const { serverReachable } = useNetworkStatus()
-const actions = computed(() => visibleHomeActions(currentPermissions.value, catalog.homeActions))
+const actions = computed(() =>
+  visibleHomeActions(currentPermissions.value, enabledModules.value, catalog.homeActions),
+)
 const anyDelivered = computed(() =>
   [...catalog.homeActions, ...catalog.modules].some((entry) => entry.delivered),
 )
-const menuModules = computed(() => visibleModules(currentPermissions.value, catalog.modules))
+const menuModules = computed(() =>
+  visibleModules(currentPermissions.value, enabledModules.value, catalog.modules),
+)
 </script>
 
 <template>

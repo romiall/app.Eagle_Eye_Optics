@@ -6,7 +6,7 @@ import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
 
-import { canAny, refreshSession, session } from './session'
+import { canAny, enabledModules, refreshSession, session } from './session'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -16,6 +16,11 @@ declare module 'vue-router' {
     permissions?: readonly string[]
     /** Titre de l'onglet (WCAG 2.4.2), suivi du nom de l'application. */
     title?: string
+    /**
+     * Module de mise en service progressive dont dépend la page : tant que l'exploitant ne l'a pas
+     * ouvert, la page répond « introuvable », comme la route du serveur (404).
+     */
+    module?: string
   }
 }
 
@@ -62,6 +67,12 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
     if (session.status === 'anonymous' || session.status === 'expired') {
       // Seul le chemin interne est conservé, jamais de paramètre de requête (aucun dossier dans l'URL).
       return { name: 'connexion', query: to.path === '/' ? {} : { suite: to.path } }
+    }
+    if (to.meta.module !== undefined && session.status === 'authenticated') {
+      if (!enabledModules.value.includes(to.meta.module)) {
+        const pathMatch = to.path.split('/').slice(1)
+        return { name: 'introuvable', params: { pathMatch }, replace: true }
+      }
     }
     const required = to.meta.permissions
     if (required !== undefined) {

@@ -14,6 +14,9 @@ import {
 
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 
+/** Modules ouverts par l'exploitant : tous (les tests de filtrage le restreignent). */
+const ALL_MODULES = APP_MODULES.map((module) => module.id)
+
 /** Identifiants des tâches du backlog (plan d'exécution, jamais régénéré ici). */
 function backlogTaskIds(): Set<string> {
   const backlog = JSON.parse(
@@ -86,8 +89,8 @@ describe('navigation de la coquille (fichier 04)', () => {
     const entries: readonly NavigationEntry[] = [...APP_MODULES, ...HOME_ACTIONS]
     expect(entries.filter((entry) => entry.delivered)).toEqual([])
     const everything = [...seededPermissions()]
-    expect(visibleModules(everything)).toEqual([])
-    expect(visibleHomeActions(everything)).toEqual([])
+    expect(visibleModules(everything, ALL_MODULES)).toEqual([])
+    expect(visibleHomeActions(everything, ALL_MODULES)).toEqual([])
   })
 
   it('rattache chaque entrée à une tâche du backlog et à des permissions du référentiel', () => {
@@ -116,14 +119,14 @@ describe('navigation de la coquille (fichier 04)', () => {
       fake('non-livre', ['patient.read'], false),
     ]
 
-    expect(visibleModules(['agenda.read'], modules).map((module) => module.id)).toEqual([
+    const open = modules.map((module) => module.id)
+    expect(visibleModules(['agenda.read'], open, modules).map((module) => module.id)).toEqual([
       'livre-autorise',
     ])
-    expect(visibleModules([], modules)).toEqual([])
-    expect(visibleModules(['users.manage', 'patient.read'], modules).map((m) => m.id)).toEqual([
-      'livre-autorise',
-      'livre-interdit',
-    ])
+    expect(visibleModules([], open, modules)).toEqual([])
+    expect(
+      visibleModules(['users.manage', 'patient.read'], open, modules).map((m) => m.id),
+    ).toEqual(['livre-autorise', 'livre-interdit'])
   })
 
   it('montre à la caisse les actions de caisse et jamais les écrans cliniques', () => {
@@ -136,15 +139,66 @@ describe('navigation de la coquille (fichier 04)', () => {
     ]
     const delivered = APP_MODULES.map((module) => ({ ...module, delivered: true }))
 
-    const labels = visibleModules(cashier, delivered).map((module) => module.label)
+    const labels = visibleModules(cashier, ALL_MODULES, delivered).map((module) => module.label)
     expect(labels).toContain('Ventes et caisse')
     expect(labels).not.toContain('Consultations')
     expect(labels).not.toContain('Paramètres')
 
     const actions = visibleHomeActions(
       cashier,
+      ALL_MODULES,
       HOME_ACTIONS.map((action) => ({ ...action, delivered: true })),
     ).map((action) => action.label)
     expect(actions).toEqual(['Rechercher'])
+  })
+})
+
+describe('mise en service progressive : un module livré reste caché tant qu’il n’est pas ouvert', () => {
+  const modules = [fake('patients', ['patient.read'], true), fake('sales', ['invoice.read'], true)]
+  const permissions = ['patient.read', 'invoice.read']
+
+  it('n’affiche que les modules ouverts par l’exploitant', () => {
+    expect(visibleModules(permissions, ['patients'], modules).map((m) => m.id)).toEqual([
+      'patients',
+    ])
+    expect(visibleModules(permissions, ['sales', 'patients'], modules).map((m) => m.id)).toEqual([
+      'patients',
+      'sales',
+    ])
+  })
+
+  it('n’affiche rien sans module ouvert, même livré et autorisé', () => {
+    expect(visibleModules(permissions, [], modules)).toEqual([])
+  })
+
+  it('un module inconnu de la liste n’ouvre pas les autres', () => {
+    expect(visibleModules(permissions, ['stock'], modules)).toEqual([])
+  })
+
+  it('une action d’accueil dépend de son module, pas de son identifiant', () => {
+    const actions = HOME_ACTIONS.map((action) => ({ ...action, delivered: true }))
+
+    const labels = (enabled: string[]) =>
+      visibleHomeActions(['patient.create', 'patient.read', 'agenda.write'], enabled, actions).map(
+        (action) => action.label,
+      )
+
+    expect(labels(['patients'])).toEqual(['Nouveau patient', 'Rechercher'])
+    expect(labels(['agenda'])).toEqual(['Rendez-vous'])
+    expect(labels([])).toEqual([])
+  })
+
+  it('chaque module d’action d’accueil existe dans la navigation', () => {
+    const codes = new Set(APP_MODULES.map((module) => module.id))
+    for (const action of HOME_ACTIONS) {
+      expect(codes.has(action.module ?? action.id), action.id).toBe(true)
+    }
+  })
+
+  it('les codes de la navigation sont ceux du serveur (App\Support\Modules)', () => {
+    const php = readFileSync(join(ROOT, 'app', 'Support', 'Modules.php'), 'utf8')
+    const block = php.slice(php.indexOf('public const CODES'), php.indexOf('];'))
+    const server = [...block.matchAll(/'([a-z]+)'/g)].map((match) => match[1])
+    expect(server).toEqual(APP_MODULES.map((module) => module.id))
   })
 })

@@ -6,9 +6,9 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante : F10 (lectures locales et états de synchronisation) — IN_REVIEW : seconde revue `pass=false` (14 majeurs) traitée pour la base, le reste reporté avec sa tâche ; CI du correctif à constater. Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
+- Tâche courante : M01 (interrupteur de mise en service des modules, hors backlog), puis P01 (patients). F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
-- Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09.
+- Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
 - Prochaine action concrète : CI de F10, puis M01 (interrupteur de mise en service des modules), P01 et P02 (patients), consultation par étapes, prescription et impression ; O01–O05 (hors-ligne) ensuite, sans changer G1.
 
@@ -45,6 +45,17 @@ corrections majeures), deux jours sans session, et l'ordre du graphe qui place l
 Les trois derniers gates (G2, G3, G4) et le déploiement (H01) ne sont pas avancés par ce choix :
 la recette L0 reste la définition de « livré ». Le premier jalon est une **démonstration de base**,
 pas une recette de L0.
+
+## M01 — Mise en service progressive des modules (hors backlog)
+
+| Champ | Valeur |
+| --- | --- |
+| Statut | DONE — CI à constater sur le commit |
+| Objectif | Un module terminé reste invisible de la cliente (écran et API) tant que le demandeur ne l'ouvre pas (message du 2026-10-22) |
+| Fichiers | `app/Support/Modules.php`, `app/Http/Middleware/RequireEnabledModule.php` (alias `module`), `config/eeo.php` (`enabled_modules`), `StaffMemberPresenter` (`clinic.enabled_modules` dans `/auth/me`), contrat `ClinicSummary`, `resources/frontend/app/{navigation,router,session,App.vue}`, `pages/HomePage.vue`, `.env.example` (`EEO_ENABLED_MODULES`), `docs/implementation/modules.md` |
+| Tests exécutés | PHPUnit : `ModulesTest`, `ModuleGateTest`, `EnvExampleTest`, `ConfigurationContractTest`, contrats (175 tests) ; Pint, PHPStan niveau 8. Vitest : navigation (filtrage et cohérence avec le serveur), `module-gate.test.ts` (menu, actions, route introuvable) |
+| Décision nouvelle | Liste du déploiement (pas un paramètre du cabinet) ; route fermée = 404 `RESOURCE_NOT_FOUND` ; valeur inconnue ignorée ; défaut vide = rien d'exposé |
+| Défauts ouverts | Refus des commandes d'un module fermé reçues d'un poste (O05) |
 
 ## Environnement de développement (cloud)
 
@@ -230,7 +241,7 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 
 | Champ | Valeur |
 | --- | --- |
-| Statut | IN_REVIEW — livré au commit `bf4e165` (CI verte, run 38787924175) ; première revue contradictoire `pass=false` traitée au commit `36e380b` (CI verte, run 26) ; seconde revue `pass=false` (14 majeurs, 26 mineurs) : majeurs de base traités (session, compte, solde, lectures vides, accessibilité), reste reporté avec sa tâche destinataire (tableau de `local-reads.md`) ; CI du commit de correction à constater |
+| Statut | DONE — livré au commit `bf4e165` (CI verte, run 38787924175) ; première revue contradictoire `pass=false` traitée au commit `36e380b` (CI verte, run 26) ; seconde revue `pass=false` (14 majeurs, 26 mineurs) : majeurs de base traités au commit `8892e22` (session, compte, solde, lectures vides, accessibilité), reste reporté avec sa tâche destinataire (tableau de `local-reads.md`) ; CI GitHub verte : [run 39702365074](https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39702365074) sur `85717e4` (PHP, Frontend, Playwright) |
 | Objectif | Aucune écriture Dexie directe depuis un écran ; aucun total local + serveur compté deux fois ; états d'enregistrement et de synchronisation distincts du réseau (AT29, AT42, AT45 ; EE023, EE042, EE044) |
 | Fichiers | `resources/frontend/offline/projections/{syncStates,merge,ledger}.ts`, `resources/frontend/app/services/{commandIndex,mutations,useMutation,reads,sync,projections}.ts`, `resources/frontend/components/SyncStatus.vue`, `resources/frontend/components/feedback/{SyncBadge,FreshnessNote}.vue`, `resources/frontend/components/session/ReauthDialog.vue`, `resources/frontend/domain/values/ulid.ts`, `resources/frontend/app/{session,api,network}.ts`, `resources/frontend/app/App.vue` (sonde, revalidation au retour sur l'onglet), `eslint.config.js`, `tests/frontend/support/contracts.ts`, `docs/implementation/local-reads.md` |
 | Contrats / tables | `contracts/sync/ack.json` (états), `contracts/commands/index.json` (routes directes, versions attendues, lues par le client sans copie), `common.json#/$defs/Ulid` ; règle F08 `LedgerBalance` (jumelle de `vw_invoice_balances`) |
@@ -241,4 +252,4 @@ Restent ouverts (non bloquants pour F02/F03, reportés) : `trustProxies`/`TrustH
 | Traitement | Tous les constats traités, chacun avec son test (tableau de `local-reads.md`) : `mergeFacts` / `mergeVersioned` (une proposition du poste non finalisée n'est jamais masquée, version du serveur gardée), `parentId` et revue en chaîne dans `projectLedger`, `collectionBlocked` / `assertCollectable` / `confirmedLedgerVersion`, `directBody` conforme au contrat, issues `reauthentication-required`, `retryable` (`Retry-After`), `uncertain`, `local-failed`, `account-changed`, délai de 30 s, 419 renouvelé une fois, clé gardée après succès, `effectId`, `MutationBusyError`, `lastAccount` et garde de compte, vide « certain » seulement avec données complètes, `failure`, `SyncStatus` complet, règle ESLint à quatre blocs, `LocalCommandEngine.handles(requête)` |
 | Seconde revue | Vérificateur indépendant et adverse sur `36e380b` (finance, transport, vérité de l'interface, architecture et tests) : **pass=false**, 14 majeurs, 26 mineurs, 14 constats réfutés — « soldée » avec un crédit à rembourser, compte épinglé au premier envoi, session dégradée par une panne réseau au retour sur l'onglet, expulsion de la saisie, accueil accusant un manque de droits, boîte de reconnexion inaccessible, vide « certain » sans lecture serveur, confirmation du mot de passe (423) sans remède |
 | Traitement de la seconde revue | Traités avec test : `settled` / `creditDue`, compte épinglé à l'ouverture du formulaire, état `expired` et reconnexion sur place, `revalidateSession` (seul un 401/419 change une session ouverte), aucune navigation forcée, `ReadOutcome.live`, focus et erreurs de la boîte, double soumission, intention figée, époque de session, message « rien n'a été envoyé » ; 14 mutations ciblées tuées (une survivante tuée par un test ajouté). **Reportés avec motif et tâche** : confirmation du mot de passe (B06), contrôle serveur de l'acteur attendu (avant G1), 3 routes de `CreatePrescription` (C04), cohérence type/origine des faits financiers (B07), `SyncStatus`/fuseau/accords (O04, O05), règle ESLint (O01), `LocalCommandEngine` (O04), délais d'`api.ts` (D01) |
-| Reprise | CI du commit de correction, puis DONE ; ensuite les écrans de base (M01, P01, P02, consultation, prescription) selon la priorité du demandeur, puis O01 |
+| Reprise | M01, puis P01, P02, consultation et prescription selon la priorité du demandeur ; O01 à O05 ensuite |

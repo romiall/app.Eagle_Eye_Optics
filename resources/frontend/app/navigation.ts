@@ -17,6 +17,16 @@ export interface NavigationEntry {
   /** Tâche du backlog qui livre l'écran. */
   deliveredBy: string
   delivered: boolean
+  /**
+   * Module de mise en service progressive dont l'entrée dépend (code de `EEO_ENABLED_MODULES`) ;
+   * à défaut, l'identifiant de l'entrée (un module de la navigation est son propre code).
+   */
+  module?: string
+}
+
+/** Code du module qui doit être ouvert pour que l'entrée apparaisse. */
+export function moduleOf(entry: NavigationEntry): string {
+  return entry.module ?? entry.id
 }
 
 /** Module de la navigation principale, dans l'ordre du fichier 04. */
@@ -129,6 +139,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['patient.create'],
     deliveredBy: 'P01',
     delivered: false,
+    module: 'patients',
   },
   {
     id: 'search',
@@ -137,6 +148,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['patient.read'],
     deliveredBy: 'P02',
     delivered: false,
+    module: 'patients',
   },
   {
     id: 'appointment',
@@ -145,6 +157,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['agenda.write'],
     deliveredBy: 'S01',
     delivered: false,
+    module: 'agenda',
   },
   {
     id: 'consultations-today',
@@ -153,6 +166,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['clinical.read', 'visit.register'],
     deliveredBy: 'P03',
     delivered: false,
+    module: 'today',
   },
   {
     id: 'statistics',
@@ -161,6 +175,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['statistics.activity', 'statistics.clinical'],
     deliveredBy: 'R02',
     delivered: false,
+    module: 'reports',
   },
   {
     id: 'settings',
@@ -169,32 +184,42 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     permissions: ['users.manage', 'approval.decide'],
     deliveredBy: 'B06',
     delivered: false,
+    module: 'settings',
   },
 ]
 
-/** Entrées à présenter à un compte : livrées ET autorisées, dans l'ordre déclaré. */
+/**
+ * Entrées à présenter à un compte : livrées dans le code, autorisées par ses droits ET ouvertes par
+ * l'exploitant (`enabledModules`), dans l'ordre déclaré. Sans liste de modules ouverts, aucune entrée
+ * n'apparaît : un module terminé reste caché tant qu'il n'est pas activé.
+ */
 export function visibleEntries<T extends NavigationEntry>(
   permissions: readonly string[],
   entries: readonly T[],
+  enabledModules: readonly string[],
 ): T[] {
   return entries.filter(
     (entry) =>
-      entry.delivered && entry.permissions.some((permission) => permissions.includes(permission)),
+      entry.delivered &&
+      enabledModules.includes(moduleOf(entry)) &&
+      entry.permissions.some((permission) => permissions.includes(permission)),
   )
 }
 
 export function visibleModules(
   permissions: readonly string[],
+  enabledModules: readonly string[],
   modules: readonly AppModule[] = APP_MODULES,
 ): AppModule[] {
-  return visibleEntries(permissions, modules)
+  return visibleEntries(permissions, modules, enabledModules)
 }
 
 export function visibleHomeActions(
   permissions: readonly string[],
+  enabledModules: readonly string[],
   actions: readonly HomeAction[] = HOME_ACTIONS,
 ): HomeAction[] {
-  return visibleEntries(permissions, actions)
+  return visibleEntries(permissions, actions, enabledModules)
 }
 
 /** Catalogue de navigation de l'application ; les tests en injectent un autre (écrans fictifs). */

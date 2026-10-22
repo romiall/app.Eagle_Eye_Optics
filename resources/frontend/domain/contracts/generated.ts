@@ -3238,12 +3238,19 @@ roles: []|[("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION")]|[("CASHIER" | "C
  */
 permissions: PermissionCode[]
 }
+/**
+ * enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé.
+ */
 export interface ClinicSummary {
 id: Ulid
 name: string
 timezone: string
 currency: Currency
 production_documents_enabled: boolean
+/**
+ * @minItems 0
+ */
+enabled_modules: string[]
 }
 /**
  * Compte connecté : profils, permissions effectives, cabinet (nom, fuseau, monnaie).

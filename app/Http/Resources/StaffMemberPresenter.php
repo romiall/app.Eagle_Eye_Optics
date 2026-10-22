@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Clinic;
 use App\Models\User;
+use App\Support\Modules;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -58,6 +59,7 @@ final class StaffMemberPresenter
                 'timezone' => $clinic->timezone,
                 'currency' => $clinic->currency,
                 'production_documents_enabled' => $clinic->production_documents_enabled,
+                'enabled_modules' => Modules::enabled(),
             ],
         ];
     }

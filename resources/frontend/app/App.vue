@@ -28,7 +28,14 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
 import { probeServer, useNetworkStatus } from './network'
-import { currentPermissions, refreshSession, revalidateSession, session, signOut } from './session'
+import {
+  currentPermissions,
+  enabledModules,
+  refreshSession,
+  revalidateSession,
+  session,
+  signOut,
+} from './session'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,7 +48,7 @@ const sessionExpired = computed(() => session.status === 'expired' && route.meta
 const reconnecting = ref(false)
 const modules = computed(() =>
   signedIn.value && route.meta.public !== true
-    ? visibleModules(currentPermissions.value, catalog.modules)
+    ? visibleModules(currentPermissions.value, enabledModules.value, catalog.modules)
     : [],
 )
 const shortcuts = computed(() => modules.value.filter((module) => module.mobileShortcut))

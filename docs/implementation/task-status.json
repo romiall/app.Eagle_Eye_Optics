@@ -189,7 +189,7 @@
    "notes": "Coquille et composants livrés (1c39c52), revue contradictoire pass=false (4 majeurs, 14 mineurs, 5 mutations survivantes) entièrement traitée au commit 7de8e2b (tableau de shell.md), chaque correction avec son test ; Vitest 621 ; 7 mutations tuées. CI GitHub verte : run 38782531589 sur 7de8e2b (PHP, Frontend, Playwright Linux 27/27). Aucun module futur présenté comme livré."
   },
   "F10": {
-   "status": "IN_REVIEW",
+   "status": "DONE",
    "evidence": [
     "docs/implementation/local-reads.md",
     "resources/frontend/offline/projections/",
@@ -200,9 +200,11 @@
     "tests/frontend/architecture.test.ts",
     "tests/frontend/services/direct-body-contract.test.ts",
     "tests/frontend/components/sync.test.ts",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38787924175"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/38787924175",
+    "tests/frontend/shell/session-lifecycle.test.ts",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39702365074"
    ],
-   "notes": "Livré au commit bf4e165 (CI verte, run 38787924175). Revue contradictoire pass=false (6 majeurs, nombreux mineurs, 6 mutations survivantes) entièrement traitée (tableau de local-reads.md), chaque correction avec son test : Vitest 827 (28 fichiers), corps des 26 commandes validés contre leur DirectRequest, 13 mutations ciblées tuées. CI du correctif et seconde revue indépendante attendues avant DONE."
+   "notes": "Livré au commit bf4e165, première revue (6 majeurs) traitée au commit 36e380b (CI run 26), seconde revue pass=false (14 majeurs, 26 mineurs) : majeurs de base traités au commit 8892e22 avec test (session expirée, compte épinglé, solde, lectures vides, accessibilité), reste reporté avec motif et tâche destinataire (tableau de local-reads.md : réauthentification B06, contrôle serveur de l'acteur, CreatePrescription C04, etc.). Vitest 853 (29 fichiers), 14 mutations ciblées tuées. CI GitHub verte : run 39702365074 sur 85717e4 (PHP, Frontend, Playwright). Aucune écriture Dexie depuis un écran ; le moteur du poste (O04) et le hors-ligne restent à faire."
   },
   "O01": {
    "status": "NOT_STARTED",

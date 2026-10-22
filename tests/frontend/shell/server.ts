@@ -4,7 +4,31 @@ import { vi, type Mock } from 'vitest'
 
 import type { Me, MeResponse } from '@/domain/contracts/generated'
 
-export function meResponse(permissions: string[], displayName = 'Gérante Fictive'): MeResponse {
+/** Modules ouverts par défaut dans les tests : tous ceux de la navigation et les modules fictifs. */
+export const ALL_TEST_MODULES = [
+  'today',
+  'patients',
+  'consultations',
+  'agenda',
+  'sales',
+  'stock',
+  'workshop',
+  'communication',
+  'reports',
+  'settings',
+  'i01',
+  'p01',
+  'aujourdhui',
+  'ventes',
+  'parametres',
+  'recherche',
+]
+
+export function meResponse(
+  permissions: string[],
+  displayName = 'Gérante Fictive',
+  enabledModules: readonly string[] = ALL_TEST_MODULES,
+): MeResponse {
   const me: Me = {
     id: '01J9ZXK4M2Q8R7S6T5V4W30002',
     login: 'gerante.fictive',
@@ -20,6 +44,7 @@ export function meResponse(permissions: string[], displayName = 'Gérante Fictiv
       timezone: 'Africa/Douala',
       currency: 'XAF',
       production_documents_enabled: false,
+      enabled_modules: [...enabledModules],
     },
   }
   return { data: me }
