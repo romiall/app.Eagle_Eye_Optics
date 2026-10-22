@@ -43,9 +43,10 @@ export const APP_MODULES: readonly AppModule[] = [
     id: 'today',
     label: 'Aujourd’hui',
     path: '/aujourdhui',
-    permissions: ['visit.register', 'clinical.read', 'invoice.read'],
+    // Comme la route de la file du serveur : l'une OU l'autre suffit (aucune donnée clinique).
+    permissions: ['visit.register', 'agenda.read'],
     deliveredBy: 'P03',
-    delivered: false,
+    delivered: true,
     mobileShortcut: true,
   },
   {
@@ -54,7 +55,7 @@ export const APP_MODULES: readonly AppModule[] = [
     path: '/patients',
     permissions: ['patient.read'],
     deliveredBy: 'P02',
-    delivered: false,
+    delivered: true,
     mobileShortcut: true,
   },
   {
@@ -138,7 +139,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     path: '/patients/nouveau',
     permissions: ['patient.create'],
     deliveredBy: 'P01',
-    delivered: false,
+    delivered: true,
     module: 'patients',
   },
   {
@@ -147,7 +148,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     path: '/patients',
     permissions: ['patient.read'],
     deliveredBy: 'P02',
-    delivered: false,
+    delivered: true,
     module: 'patients',
   },
   {
@@ -163,9 +164,9 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     id: 'consultations-today',
     label: 'Consultations du jour',
     path: '/aujourdhui',
-    permissions: ['clinical.read', 'visit.register'],
+    permissions: ['visit.register', 'agenda.read'],
     deliveredBy: 'P03',
-    delivered: false,
+    delivered: true,
     module: 'today',
   },
   {

@@ -89,7 +89,7 @@ test.describe('application construite : coquille, PWA et API', () => {
       await expect(page.getByRole('main').getByText('Serveur injoignable')).toBeVisible()
 
       // Une URL du routeur Vue est aussi servie depuis la coquille précachée.
-      await page.goto(`${server.url}/patients`)
+      await page.goto(`${server.url}/stock`)
       await expect(page.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeVisible()
 
       // /api n'est jamais remplacé par la coquille ni servi depuis un cache.

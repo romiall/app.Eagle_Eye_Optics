@@ -5,6 +5,12 @@ import ForbiddenPage from '@/pages/ForbiddenPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
+import PatientCreatePage from '@/pages/patients/PatientCreatePage.vue'
+import PatientEditPage from '@/pages/patients/PatientEditPage.vue'
+import PatientListPage from '@/pages/patients/PatientListPage.vue'
+import PatientViewPage from '@/pages/patients/PatientViewPage.vue'
+import ArrivalPage from '@/pages/today/ArrivalPage.vue'
+import TodayPage from '@/pages/today/TodayPage.vue'
 
 import { canAny, enabledModules, refreshSession, session } from './session'
 
@@ -26,6 +32,9 @@ declare module 'vue-router' {
 
 export const APPLICATION_TITLE = 'Eagle’s Eye Optics Medical'
 
+/** Identifiant ULID d'une fiche dans l'adresse : toute autre forme est « page introuvable ». */
+const PATIENT_ID = ':id([0-9A-HJKMNP-TV-Z]{26})'
+
 export function createEeoRouter(history: RouterHistory = createWebHistory()): Router {
   const router = createRouter({
     history,
@@ -42,6 +51,51 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'acces-refuse',
         component: ForbiddenPage,
         meta: { title: 'Accès refusé' },
+      },
+      {
+        // La file se lit avec l'une OU l'autre de ces permissions, comme la route du serveur.
+        path: '/aujourdhui',
+        name: 'aujourdhui',
+        component: TodayPage,
+        meta: {
+          title: 'Aujourd’hui',
+          permissions: ['visit.register', 'agenda.read'],
+          module: 'today',
+        },
+      },
+      {
+        path: '/aujourdhui/arrivee',
+        name: 'arrivee',
+        component: ArrivalPage,
+        meta: {
+          title: 'Enregistrer une arrivée',
+          permissions: ['visit.register'],
+          module: 'today',
+        },
+      },
+      {
+        path: '/patients',
+        name: 'patients',
+        component: PatientListPage,
+        meta: { title: 'Patients', permissions: ['patient.read'], module: 'patients' },
+      },
+      {
+        path: '/patients/nouveau',
+        name: 'patient-nouveau',
+        component: PatientCreatePage,
+        meta: { title: 'Nouveau patient', permissions: ['patient.create'], module: 'patients' },
+      },
+      {
+        path: `/patients/${PATIENT_ID}`,
+        name: 'patient',
+        component: PatientViewPage,
+        meta: { title: 'Dossier patient', permissions: ['patient.read'], module: 'patients' },
+      },
+      {
+        path: `/patients/${PATIENT_ID}/modifier`,
+        name: 'patient-modifier',
+        component: PatientEditPage,
+        meta: { title: 'Modifier le patient', permissions: ['patient.update'], module: 'patients' },
       },
       {
         path: '/:pathMatch(.*)*',

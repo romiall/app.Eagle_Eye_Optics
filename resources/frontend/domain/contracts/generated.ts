@@ -5137,7 +5137,9 @@ phone_missing_reason: (string | null)
 address: (string | null)
 profession: (string | null)
 guardian_contact: ({
-
+name?: string
+relationship?: string
+phone?: string
 } | null)
 legacy_record: boolean
 first_known_visit_on: NullableCivilDate
@@ -5166,7 +5168,9 @@ phone_missing_reason: (string | null)
 address: (string | null)
 profession: (string | null)
 guardian_contact: ({
-
+name?: string
+relationship?: string
+phone?: string
 } | null)
 legacy_record: boolean
 first_known_visit_on: NullableCivilDate
@@ -7427,7 +7431,9 @@ phone_missing_reason?: (string | null)
 address?: (string | null)
 profession?: (string | null)
 guardian_contact?: ({
-
+name?: string
+relationship?: string
+phone?: string
 } | null)
 }
 }
@@ -7449,7 +7455,9 @@ phone_missing_reason?: (string | null)
 address?: (string | null)
 profession?: (string | null)
 guardian_contact?: ({
-
+name?: string
+relationship?: string
+phone?: string
 } | null)
 }
 }

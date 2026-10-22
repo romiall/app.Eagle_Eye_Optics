@@ -3,12 +3,18 @@
  * Accueil : le compte, le cabinet et les actions d'accueil du dossier patient (Nouveau patient,
  * Rechercher, Rendez-vous, Consultations du jour, Statistiques, Paramètres : fichier 04) réellement
  * livrées pour ce compte. Tant qu'aucune n'est livrée, la page le dit au lieu d'afficher des
- * boutons vers des écrans vides.
+ * boutons vers des écrans vides. « Livrée » veut dire terminée dans le code et ouverte par
+ * l'exploitant (`enabled_modules`, mise en service progressive).
  */
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { useNavigationCatalog, visibleHomeActions, visibleModules } from '@/app/navigation'
+import {
+  moduleOf,
+  useNavigationCatalog,
+  visibleHomeActions,
+  visibleModules,
+} from '@/app/navigation'
 import { useNetworkStatus } from '@/app/network'
 import { currentPermissions, enabledModules, session } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
@@ -18,8 +24,12 @@ const { serverReachable } = useNetworkStatus()
 const actions = computed(() =>
   visibleHomeActions(currentPermissions.value, enabledModules.value, catalog.homeActions),
 )
-const anyDelivered = computed(() =>
-  [...catalog.homeActions, ...catalog.modules].some((entry) => entry.delivered),
+// Écran livré ET ouvert par l'exploitant : un module terminé mais pas encore ouvert (mise en service
+// progressive) ne compte pas, l'accueil ne parle alors ni de droits ni de menu.
+const anyOpen = computed(() =>
+  [...catalog.homeActions, ...catalog.modules].some(
+    (entry) => entry.delivered && enabledModules.value.includes(moduleOf(entry)),
+  ),
 )
 const menuModules = computed(() =>
   visibleModules(currentPermissions.value, enabledModules.value, catalog.modules),
@@ -66,7 +76,7 @@ const menuModules = computed(() =>
     </nav>
 
     <StateMessage
-      v-else-if="anyDelivered"
+      v-else-if="anyOpen"
       state="empty"
       title="Aucune action d’accueil ouverte à ce compte"
     >

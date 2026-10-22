@@ -36,9 +36,18 @@ test.describe('coquille de l’application (F09)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       'Bonjour Gérante (démonstration)',
     )
-    // La gérante a toutes les permissions, mais aucun écran métier n'est encore livré.
-    await expect(page.getByText('Aucun module métier livré pour l’instant')).toBeVisible()
-    await expect(page.getByRole('navigation')).toHaveCount(0)
+    // La gérante a toutes les permissions ; seuls les modules « patients » (P01, P02) et « today »
+    // (P03) sont ouverts par l'environnement de test (EEO_ENABLED_MODULES) : ni autre module, ni
+    // message « aucun module livré ».
+    await expect(page.getByText('Aucun module métier livré pour l’instant')).toHaveCount(0)
+    await expect(page.getByRole('main').getByRole('link')).toHaveText([
+      'Nouveau patient',
+      'Rechercher',
+      'Consultations du jour',
+    ])
+    await expect(
+      page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link'),
+    ).toHaveText(['Accueil', 'Aujourd’hui', 'Patients'])
     const banner = page.getByRole('banner')
     await expect(banner.getByRole('link', { name: /Gestion des patients/ })).toHaveAttribute(
       'href',
@@ -96,8 +105,14 @@ test.describe('coquille de l’application (F09)', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('main#contenu')).toBeFocused()
 
-    // Depuis le contenu, la tabulation suivante revient dans l'ordre logique (aucun piège).
+    // Depuis le contenu, la tabulation arrière revient dans l'ordre logique (aucun piège) : d'abord la
+    // dernière entrée du menu latéral (livré avec les modules ouverts), puis, de lien en lien, le bouton de
+    // déconnexion de l'en-tête.
+    const menu = page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link')
+    const entries = await menu.count()
     await page.keyboard.press('Shift+Tab')
+    await expect(menu.last()).toBeFocused()
+    for (let step = 0; step < entries; step += 1) await page.keyboard.press('Shift+Tab')
     await expect(page.getByRole('button', { name: 'Se déconnecter' })).toBeFocused()
   })
 
@@ -153,7 +168,8 @@ test.describe('coquille de l’application (F09)', () => {
     page,
   }) => {
     await signInThroughForm(page, 'MANAGER')
-    await page.goto('/patients')
+    // Le stock n'est pas livré (I01) ; les écrans patient, eux, le sont (P01, P02).
+    await page.goto('/stock')
 
     await expect(page.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeVisible()
     await page.getByRole('link', { name: 'Retour à l’accueil' }).click()

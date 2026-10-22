@@ -38,7 +38,7 @@ const overrides = {
   SESSION_SECURE_COOKIE: 'false',
   EEO_CLINIC_ID: '',
   // Modules ouverts pour les parcours e2e (mise en service progressive : fermés par défaut en production).
-  EEO_ENABLED_MODULES: 'patients',
+  EEO_ENABLED_MODULES: 'patients,today',
 }
 
 const lines = readFileSync(join(root, '.env.example'), 'utf8')

@@ -227,14 +227,27 @@
    "notes": ""
   },
   "P01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "docs/implementation/patients.md",
+    "app/Domain/Patients/",
+    "app/Http/Controllers/Api/V1/PatientController.php",
+    "tests/Feature/Patients/PatientCommandsTest.php",
+    "tests/Unit/Patients/PatientIdentityTest.php",
+    "tests/Concurrency/CommandBusConcurrencyTest.php",
+    "resources/frontend/pages/patients/",
+    "tests/frontend/patients/",
+    "tests/e2e/patients.spec.ts"
+   ],
+   "notes": "Serveur et écrans EN LIGNE livrés : création numérotée EE-AAAA-NNNN par le chemin central, signalement de ressemblance sans fusion, modification avec version, droits, isolation des cabinets, concurrence sur 5 processus. Revue adverse du serveur (46 agents) traitée. PAS de hors-ligne : AT36 et AT42 (même identifiant après synchronisation, patient hors ligne après redémarrage) restent à prouver avec O01 à O05. Correction proposée par rôle (matrice 09) sans table ni commande au contrat."
   },
   "P02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_REVIEW",
+   "evidence": [
+    "tests/Feature/Patients/PatientSearchTest.php",
+    "resources/frontend/app/services/patients.ts"
+   ],
+   "notes": "Recherche serveur et écran en ligne : nom (accents, casse, ordre), téléphone dans les deux sens, numéro de dossier, 25 par page, limite de débit. Annuaire préparé du poste, recherche rapide de l'en-tête et PatientPicker partagé restent à faire (hors-ligne)."
   },
   "B01": {
    "status": "NOT_STARTED",
@@ -322,9 +335,14 @@
    "notes": ""
   },
   "P03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "tests/Feature/Patients/VisitTest.php",
+    "resources/frontend/pages/today/",
+    "tests/frontend/visits/",
+    "tests/e2e/today.spec.ts"
+   ],
+   "notes": "Arrivée (RegisterVisit) et file du jour livrées en ligne, premier jalon SANS contrôle du paiement de l'examen (statuts d'attente jamais écrits, marqueur « non contrôlé »). Reste : démarrage de l'examen (avec C01), annulation d'une visite (commande absente du contrat), contrôle examen payé ou dérogation (B04, B06), hors-ligne."
   },
   "C01": {
    "status": "NOT_STARTED",

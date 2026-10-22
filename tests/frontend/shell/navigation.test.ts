@@ -83,14 +83,79 @@ describe('navigation de la coquille (fichier 04)', () => {
     ])
   })
 
-  it('ne présente aucun écran futur comme livré dans cette version', () => {
-    // Aucun écran métier n'existe encore : chaque tâche qui en livre un passe son entrée à true
-    // en même temps que sa route et ses tests (et met ce test à jour).
+  it('ne présente aucun écran futur comme livré : seuls les écrans patient et la file du jour (P01 à P03) le sont', () => {
+    // Chaque tâche qui livre un écran passe son entrée à true en même temps que sa route et ses
+    // tests (et met ce test à jour) : ici P01 (Nouveau patient), P02 (module Patients, Rechercher) et
+    // P03 (module Aujourd'hui, action « Consultations du jour » qui mène à la file du jour).
     const entries: readonly NavigationEntry[] = [...APP_MODULES, ...HOME_ACTIONS]
-    expect(entries.filter((entry) => entry.delivered)).toEqual([])
+    expect(
+      entries.filter((entry) => entry.delivered).map((entry) => `${entry.id}:${entry.deliveredBy}`),
+    ).toEqual([
+      'today:P03',
+      'patients:P02',
+      'new-patient:P01',
+      'search:P02',
+      'consultations-today:P03',
+    ])
+
     const everything = [...seededPermissions()]
-    expect(visibleModules(everything, ALL_MODULES)).toEqual([])
-    expect(visibleHomeActions(everything, ALL_MODULES)).toEqual([])
+    expect(visibleModules(everything, ALL_MODULES).map((module) => module.label)).toEqual([
+      'Aujourd’hui',
+      'Patients',
+    ])
+    expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([
+      'Nouveau patient',
+      'Rechercher',
+      'Consultations du jour',
+    ])
+    // Livrés mais pas ouverts par l'exploitant : rien n'apparaît.
+    expect(visibleModules(everything, [])).toEqual([])
+    expect(visibleHomeActions(everything, ['sales', 'agenda'])).toEqual([])
+  })
+
+  it('les écrans patient suivent les droits : lecture seule sans « Nouveau patient »', () => {
+    const open = ['patients']
+    const readOnly = ['patient.read']
+    expect(visibleModules(readOnly, open).map((module) => module.id)).toEqual(['patients'])
+    expect(visibleHomeActions(readOnly, open).map((action) => action.id)).toEqual(['search'])
+
+    const reception = ['patient.read', 'patient.create', 'patient.update']
+    expect(visibleHomeActions(reception, open).map((action) => action.id)).toEqual([
+      'new-patient',
+      'search',
+    ])
+
+    // Sans patient.read ni patient.create : aucun écran patient.
+    expect(visibleModules(['invoice.read'], open)).toEqual([])
+    expect(visibleHomeActions(['invoice.read'], open)).toEqual([])
+  })
+
+  it('la file du jour (P03) suit les droits de la route du serveur : visit.register OU agenda.read', () => {
+    const open = ['today']
+    const labels = (permissions: string[]) =>
+      visibleModules(permissions, open).map((module) => module.label)
+    const actions = (permissions: string[]) =>
+      visibleHomeActions(permissions, open).map((action) => action.label)
+
+    // L'une ou l'autre suffit, comme le middleware « any-permission » de GET /api/v1/visits.
+    expect(labels(['visit.register'])).toEqual(['Aujourd’hui'])
+    expect(labels(['agenda.read'])).toEqual(['Aujourd’hui'])
+    expect(actions(['visit.register'])).toEqual(['Consultations du jour'])
+    expect(actions(['agenda.read'])).toEqual(['Consultations du jour'])
+    // Les anciens droits cliniques ou de facture n'ouvrent plus la file : elle est administrative.
+    expect(labels(['clinical.read', 'invoice.read'])).toEqual([])
+    expect(actions(['clinical.read'])).toEqual([])
+    // Module fermé : rien n'apparaît, même autorisé.
+    expect(visibleModules(['visit.register'], ['patients'])).toEqual([])
+    expect(visibleHomeActions(['visit.register'], ['patients'])).toEqual([])
+
+    // Le module et l'action d'accueil mènent au même écran, avec les mêmes droits que la route.
+    const module = APP_MODULES.find((entry) => entry.id === 'today')
+    const action = HOME_ACTIONS.find((entry) => entry.id === 'consultations-today')
+    expect(module?.path).toBe('/aujourdhui')
+    expect(action?.path).toBe('/aujourdhui')
+    expect(module?.permissions).toEqual(['visit.register', 'agenda.read'])
+    expect(action?.permissions).toEqual(module?.permissions)
   })
 
   it('rattache chaque entrée à une tâche du backlog et à des permissions du référentiel', () => {
@@ -149,7 +214,9 @@ describe('navigation de la coquille (fichier 04)', () => {
       ALL_MODULES,
       HOME_ACTIONS.map((action) => ({ ...action, delivered: true })),
     ).map((action) => action.label)
-    expect(actions).toEqual(['Rechercher'])
+    // La caisse lit la file du jour (agenda.read, identité administrative seulement) mais n'ouvre ni
+    // nouveau patient, ni rendez-vous, ni statistiques, ni paramètres.
+    expect(actions).toEqual(['Rechercher', 'Consultations du jour'])
   })
 })
 
@@ -195,7 +262,7 @@ describe('mise en service progressive : un module livré reste caché tant qu’
     }
   })
 
-  it('les codes de la navigation sont ceux du serveur (App\Support\Modules)', () => {
+  it('les codes de la navigation sont ceux du serveur (liste de Modules.php)', () => {
     const php = readFileSync(join(ROOT, 'app', 'Support', 'Modules.php'), 'utf8')
     const block = php.slice(php.indexOf('public const CODES'), php.indexOf('];'))
     const server = [...block.matchAll(/'([a-z]+)'/g)].map((match) => match[1])

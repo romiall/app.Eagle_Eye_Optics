@@ -56,15 +56,43 @@ describe('amorçage de la coquille Vue', () => {
     unmount()
   })
 
-  it('ne déclare que les routes de la coquille, aucune route métier', () => {
+  it('ne déclare que les routes de la coquille, des écrans patient (P01, P02) et de la file du jour (P03)', () => {
     const { router } = createEeoApp(createMemoryHistory())
 
-    expect(router.getRoutes().map((route) => route.name)).toEqual([
-      'connexion',
-      'accueil',
-      'acces-refuse',
-      'introuvable',
-    ])
+    expect(router.getRoutes().map((route) => String(route.name))).toEqual(
+      expect.arrayContaining([
+        'connexion',
+        'accueil',
+        'acces-refuse',
+        'introuvable',
+        'aujourdhui',
+        'arrivee',
+        'patients',
+        'patient-nouveau',
+        'patient',
+        'patient-modifier',
+      ]),
+    )
+    expect(router.getRoutes()).toHaveLength(10)
+    // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
+    for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/patients'))) {
+      expect(route.meta.module, String(route.name)).toBe('patients')
+      expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
+    }
+    // La file se lit avec l'une OU l'autre permission ; l'arrivée s'enregistre avec visit.register.
+    const today = new Map(
+      router
+        .getRoutes()
+        .filter((entry) => entry.path.startsWith('/aujourdhui'))
+        .map((route) => [
+          String(route.name),
+          [route.path, route.meta.module, route.meta.permissions],
+        ]),
+    )
+    expect(Object.fromEntries(today)).toEqual({
+      aujourdhui: ['/aujourdhui', 'today', ['visit.register', 'agenda.read']],
+      arrivee: ['/aujourdhui/arrivee', 'today', ['visit.register']],
+    })
   })
 
   it('renvoie vers la connexion sans session, avec le seul chemin interne', async () => {
@@ -80,8 +108,15 @@ describe('amorçage de la coquille Vue', () => {
   })
 
   it('accueille le compte connecté sans présenter de module futur comme livré', async () => {
-    // Gérante : toutes les permissions, mais aucun module n'est encore livré dans cette version.
-    stubServer({ me: meResponse(['patient.read', 'invoice.read', 'agenda.read', 'users.manage']) })
+    // Gérante : toutes les permissions, mais l'exploitant n'a encore ouvert aucun module (les écrans
+    // patient sont livrés dans le code, pas ouverts) : ni menu, ni action, aucune parole sur les droits.
+    stubServer({
+      me: meResponse(
+        ['patient.read', 'invoice.read', 'agenda.read', 'users.manage'],
+        'Gérante Fictive',
+        [],
+      ),
+    })
     const { root, unmount } = await mountAt('/')
 
     expect(root.querySelector('h1')?.textContent).toBe('Bonjour Gérante Fictive')
@@ -92,6 +127,45 @@ describe('amorçage de la coquille Vue', () => {
     expect(brand?.textContent).toContain('(accueil)')
     expect(root.querySelector('header')?.textContent).toContain('Gérante Fictive')
     expect(root.querySelector('header button')?.textContent?.trim()).toBe('Se déconnecter')
+
+    unmount()
+  })
+
+  it('présente les écrans patient livrés dès que l’exploitant ouvre le module « patients »', async () => {
+    stubServer({
+      me: meResponse(['patient.read', 'patient.create', 'invoice.read'], 'Réception Fictive', [
+        'patients',
+      ]),
+    })
+    const { root, unmount } = await mountAt('/')
+
+    const actions = [...root.querySelectorAll('main nav a')].map((link) => link.textContent?.trim())
+    expect(actions).toEqual(['Nouveau patient', 'Rechercher'])
+    const menu = [...root.querySelectorAll('nav[aria-label="Navigation principale"] a')].map(
+      (link) => link.textContent?.trim(),
+    )
+    expect(menu).toEqual(['Accueil', 'Patients'])
+    expect(root.textContent).not.toContain('Aucun module métier livré')
+
+    unmount()
+  })
+
+  it('présente la file du jour dès que l’exploitant ouvre le module « today »', async () => {
+    stubServer({
+      me: meResponse(['visit.register', 'patient.read', 'invoice.read'], 'Réception Fictive', [
+        'today',
+      ]),
+    })
+    const { root, unmount } = await mountAt('/')
+
+    const actions = [...root.querySelectorAll('main nav a')].map((link) => link.textContent?.trim())
+    expect(actions).toEqual(['Consultations du jour'])
+    expect(root.querySelector('main nav a')?.getAttribute('href')).toBe('/aujourdhui')
+    const menu = [...root.querySelectorAll('nav[aria-label="Navigation principale"] a')].map(
+      (link) => link.textContent?.trim(),
+    )
+    // « Patients » reste fermé : le module `patients` n'est pas ouvert, la file du jour l'est.
+    expect(menu).toEqual(['Accueil', 'Aujourd’hui'])
 
     unmount()
   })
