@@ -56,7 +56,7 @@ describe('amorçage de la coquille Vue', () => {
     unmount()
   })
 
-  it('ne déclare que les routes de la coquille, des écrans patient (P01, P02) et de la file du jour (P03)', () => {
+  it('ne déclare que les routes de la coquille, des écrans patient (P01, P02), de la file du jour (P03) et de la consultation (C01)', () => {
     const { router } = createEeoApp(createMemoryHistory())
 
     expect(router.getRoutes().map((route) => String(route.name))).toEqual(
@@ -71,13 +71,35 @@ describe('amorçage de la coquille Vue', () => {
         'patient-nouveau',
         'patient',
         'patient-modifier',
+        'consultation',
       ]),
     )
-    expect(router.getRoutes()).toHaveLength(10)
+    expect(router.getRoutes()).toHaveLength(11)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/patients'))) {
       expect(route.meta.module, String(route.name)).toBe('patients')
       expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
+    }
+    // La consultation (C01) se lit avec clinical.read, module « consultations » ; l'adresse n'accepte
+    // qu'un identifiant ULID, et la liste des consultations (G15) n'a pas d'écran.
+    const consultations = router
+      .getRoutes()
+      .filter((entry) => entry.path.startsWith('/consultations'))
+    expect(
+      consultations.map((route) => [
+        String(route.name),
+        route.meta.module,
+        route.meta.permissions,
+        route.meta.title,
+      ]),
+    ).toEqual([['consultation', 'consultations', ['clinical.read'], 'Consultation']])
+    expect(router.resolve('/consultations/01J9ZXK4M2Q8R7S6T5V4W30501').name).toBe('consultation')
+    for (const path of [
+      '/consultations',
+      '/consultations/abc',
+      '/consultations/01J9ZXK4M2Q8R7S6T5V4W30501/etape',
+    ]) {
+      expect(router.resolve(path).name, path).toBe('introuvable')
     }
     // La file se lit avec l'une OU l'autre permission ; l'arrivée s'enregistre avec visit.register.
     const today = new Map(

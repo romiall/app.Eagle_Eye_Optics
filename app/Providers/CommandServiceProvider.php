@@ -10,6 +10,9 @@ use App\Application\Contracts\ContractValidator;
 use App\Application\NullCommandBusProbe;
 use App\Application\TransactionRunner;
 use App\Domain\Access\AccessCommands;
+use App\Domain\Clinical\ClinicalCommands;
+use App\Domain\Clinical\ExamFeeControl;
+use App\Domain\Clinical\UncontrolledExamFee;
 use App\Domain\Patients\PatientCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +44,10 @@ final class CommandServiceProvider extends ServiceProvider
 
         // Pas de singleton : le bus est reconstruit avec la sonde liée à cet instant.
         $this->app->bind(CommandBus::class);
+
+        // Contrôle du paiement de l'examen : inactif dans le premier jalon clinique (B04, B06 le remplaceront).
+        // Aucun interrupteur de configuration : le contrôle réel n'existe pas encore.
+        $this->app->bind(ExamFeeControl::class, UncontrolledExamFee::class);
     }
 
     public function boot(): void
@@ -52,6 +59,9 @@ final class CommandServiceProvider extends ServiceProvider
             $registry->register($definition);
         }
         foreach (PatientCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (ClinicalCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

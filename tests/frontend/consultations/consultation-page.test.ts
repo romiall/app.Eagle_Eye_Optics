@@ -1,0 +1,469 @@
+import { flushPromises } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import {
+  apiError,
+  box,
+  buttonByName,
+  click,
+  CLINICIAN,
+  CONSULTATION_ID,
+  CONSULTATION_URL,
+  consultation,
+  consultationReads,
+  field,
+  ID_A,
+  linkTo,
+  json,
+  openConsultation,
+  patchCalls,
+  patient,
+  READ_ONLY,
+  resetEverything,
+  stubConsultationApi,
+  textOf,
+} from './support'
+
+// Écran de consultation (C01) : ouverture, en-tête patient, état du travail, états de lecture (hors
+// ligne = « Consultation indisponible », jamais une consultation vide), droits, lecture seule, module
+// fermé. Données FICTIVES.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-10-22T09:42:00.000Z'))
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  resetEverything()
+})
+
+describe('ouverture de la consultation', () => {
+  it('lit la consultation et le patient, montre l’en-tête patient, l’état du travail et les trois étapes livrées', async () => {
+    const api = stubConsultationApi()
+    const { root, router, unmount } = await openConsultation()
+
+    expect(document.title).toBe('Consultation – Eagle’s Eye Optics Medical')
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Consultation')
+    expect(consultationReads(api)[0]?.path).toBe(`/api/v1/consultations/${CONSULTATION_ID}`)
+    const banner = root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement
+    const text = textOf(banner)
+    // Identité, dossier, âge, date et heure de la consultation (heure du cabinet), professionnel.
+    expect(text).toContain('PATIENT FICTIF Élodie Marie')
+    expect(text).toContain('Dossier EE-2026-0001')
+    expect(text).toContain('36 ans')
+    expect(text).toContain('Consultation du 22/10/2026 à 10h42')
+    expect(text).toContain('Professionnel : Dr Fictif')
+    expect(text).toContain('Brouillon')
+
+    const stepper = root.querySelector('nav[aria-label="Étapes de la consultation"]') as HTMLElement
+    expect([...stepper.querySelectorAll('li')].map((item) => textOf(item).trim())).toEqual([
+      '1.Motif et lunettes',
+      '2.Antécédents',
+      '3.Conclusion et orientation',
+    ])
+    expect(stepper.querySelector('[aria-current="step"]')?.textContent).toContain(
+      'Motif et lunettes',
+    )
+    expect(
+      root.querySelector('h2#consultation-etape')?.textContent?.replace(/\s+/g, ' ').trim(),
+    ).toBe('Étape 1 sur 3 : Motif et lunettes')
+    expect(router.currentRoute.value.fullPath).toBe(CONSULTATION_URL)
+    unmount()
+  })
+
+  it('l’adresse ne porte que l’identifiant de la consultation, jamais une donnée de santé ni de stockage', async () => {
+    stubConsultationApi()
+    const { router, unmount } = await openConsultation()
+
+    expect(router.currentRoute.value.fullPath).toBe(`/consultations/${CONSULTATION_ID}`)
+    expect(router.currentRoute.value.query).toEqual({})
+    expect(window.localStorage.length).toBe(0)
+    expect(window.sessionStorage.length).toBe(0)
+    unmount()
+  })
+
+  it('dit honnêtement ce que cette version ne propose pas : acuités, réfraction, centrage ; ni « Terminer » ni faux « Terminé »', async () => {
+    stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+
+    const notice =
+      'Acuités, réfraction et centrage : prochaine version. L’examen reste en cours tant qu’il n’est pas terminé.'
+    const text = textOf(root)
+    expect(text).toContain(notice)
+    // Hors de cet encart, rien ne parle d'un examen « terminé » ni ne propose de le terminer.
+    expect(text.replace(notice, '')).not.toMatch(/termin/i)
+    expect(buttonByName(root, /termin/i)).toBeNull()
+    expect(text).not.toMatch(/rendez-vous|à revoir/i)
+    unmount()
+  })
+
+  it('« En cours » une fois qu’une étape est enregistrée, « Brouillon » avant', async () => {
+    stubConsultationApi({ consultation: consultation({ status: 'IN_PROGRESS', version: 3 }) })
+    const { root, unmount } = await openConsultation()
+
+    const banner = textOf(
+      root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement,
+    )
+    expect(banner).toContain('En cours')
+    expect(banner).not.toContain('Brouillon')
+    unmount()
+  })
+
+  it('un examen orienté montre le badge « Orienté vers ophtalmologiste » et le niveau, jamais l’axe rendez-vous', async () => {
+    stubConsultationApi({
+      consultation: consultation({
+        status: 'IN_PROGRESS',
+        steps: {
+          CONCLUSION: {
+            conclusion: 'À orienter',
+            referral: true,
+            referral_urgency: 'RAPID',
+            referral_reasons: [],
+          },
+        },
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    const banner = textOf(
+      root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement,
+    )
+    expect(banner).toContain('Orienté vers ophtalmologiste')
+    expect(banner).toContain('Consultation rapide')
+    expect(banner).not.toMatch(/rendez-vous/i)
+    unmount()
+  })
+
+  it('un examen non orienté n’affiche pas de badge d’orientation', async () => {
+    stubConsultationApi({
+      consultation: consultation({
+        steps: {
+          CONCLUSION: {
+            conclusion: null,
+            referral: false,
+            referral_urgency: null,
+            referral_reasons: [],
+          },
+        },
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).not.toContain('Orienté vers ophtalmologiste')
+    unmount()
+  })
+
+  it('le professionnel n’est nommé que si c’est le compte connecté (la consultation ne porte que son identifiant)', async () => {
+    stubConsultationApi({
+      consultation: consultation({ clinician_id: '01J9ZXK4M2Q8R7S6T5V4W39999' }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).not.toContain('Professionnel :')
+    unmount()
+  })
+
+  it('l’en-tête patient reste fixe sur écran large (sticky à partir de 1024 px) et compact sur mobile', async () => {
+    stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+
+    const banner = root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement
+    expect(banner.className).toContain('lg:sticky')
+    expect(banner.className).toContain('lg:top-0')
+    expect(root.querySelector('main')?.innerHTML).not.toContain('overflow-x-')
+    unmount()
+  })
+})
+
+describe('états de lecture : jamais une consultation vide', () => {
+  it('serveur injoignable : « Consultation indisponible », aucun formulaire ; « Réessayer » relit', async () => {
+    let up = false
+    const api = stubConsultationApi({
+      handlers: { getConsultation: () => (up ? json(200, { data: consultation() }) : 'network') },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Consultation indisponible')
+    expect(textOf(root)).toContain('Aucune ancienne copie ni consultation vide n’est présentée.')
+    expect(root.querySelector('form')).toBeNull()
+    expect(root.querySelector('fieldset')).toBeNull()
+    expect(buttonByName(root, 'Enregistrer')).toBeNull()
+
+    up = true
+    await click(buttonByName(root, 'Réessayer'))
+
+    expect(consultationReads(api)).toHaveLength(2)
+    expect(textOf(root)).not.toContain('Consultation indisponible')
+    expect(root.querySelector('form')).not.toBeNull()
+    unmount()
+  })
+
+  it.each([
+    ['une erreur 500', () => apiError(500, 'INTERNAL_ERROR', 'Erreur interne.')],
+    [
+      'une page d’erreur de l’hébergeur',
+      () =>
+        new Response('<!DOCTYPE html><html><body>503</body></html>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html' },
+        }),
+    ],
+  ])('%s : « Consultation indisponible », pas une consultation vide', async (_name, reply) => {
+    stubConsultationApi({ handlers: { getConsultation: reply } })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Consultation indisponible')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('une réponse qui n’a pas la forme d’une consultation n’est jamais affichée comme une consultation vide', async () => {
+    stubConsultationApi({
+      handlers: { getConsultation: () => json(200, { data: { id: CONSULTATION_ID } }) },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Consultation indisponible')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('consultation inconnue (404) : « Consultation introuvable », ce n’est pas un vide', async () => {
+    stubConsultationApi({
+      handlers: { getConsultation: () => apiError(404, 'RESOURCE_NOT_FOUND', 'Introuvable.') },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Consultation introuvable')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('droits refusés par le serveur (403) : « Droits insuffisants », rien n’est affiché', async () => {
+    stubConsultationApi({
+      handlers: {
+        getConsultation: () => apiError(403, 'ACTION_FORBIDDEN', 'Action non autorisée.'),
+      },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Droits insuffisants')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('session expirée à l’ouverture (401) : « Session expirée » avec « Se reconnecter », « Réessayer » relit', async () => {
+    let expired = true
+    const api = stubConsultationApi({
+      handlers: {
+        getConsultation: () =>
+          expired
+            ? apiError(401, 'AUTH_REQUIRED', 'Connexion requise.')
+            : json(200, { data: consultation() }),
+      },
+    })
+    const reconnected = api.me
+    const { root, unmount } = await openConsultation()
+    api.me = 'anonymous'
+    await click(buttonByName(root, 'Réessayer'))
+
+    expect(textOf(root)).toContain('Session expirée')
+    expect(buttonByName(root, 'Se reconnecter')).not.toBeNull()
+    expect(root.querySelector('form')).toBeNull()
+
+    expired = false
+    api.me = reconnected
+    await click(buttonByName(root, 'Réessayer'))
+    expect(root.querySelector('form')).not.toBeNull()
+    unmount()
+  })
+})
+
+describe('identité du patient', () => {
+  it('sans identité lue, la saisie ne s’ouvre pas : on ne remplit jamais un dossier sans dire de qui il s’agit', async () => {
+    let up = false
+    const api = stubConsultationApi({
+      handlers: { getPatient: () => (up ? json(200, { data: patient() }) : 'network') },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Identité du patient indisponible')
+    expect(textOf(root)).toContain(
+      'l’examen ne s’affiche pas tant que le patient n’est pas identifié',
+    )
+    expect(root.querySelector('form')).toBeNull()
+    expect(root.querySelector('nav[aria-label="Étapes de la consultation"]')).toBeNull()
+
+    up = true
+    await click(buttonByName(root, 'Réessayer'))
+
+    expect(textOf(root)).toContain('PATIENT FICTIF Élodie Marie')
+    expect(root.querySelector('form')).not.toBeNull()
+    expect(
+      api.requests.filter((request) => request.path === `/api/v1/patients/${ID_A}`),
+    ).toHaveLength(2)
+    unmount()
+  })
+
+  it('fiche patient inaccessible (404, module Patients fermé) : dit, aucune saisie', async () => {
+    stubConsultationApi({
+      handlers: { getPatient: () => apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.') },
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Fiche patient introuvable')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('une fiche d’un autre patient que celui de la consultation n’est jamais affichée à sa place', async () => {
+    stubConsultationApi({
+      patient: patient({ id: '01J9ZXK4M2Q8R7S6T5V4W39998', last_name: 'AUTRE PATIENT' }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).not.toContain('AUTRE PATIENT')
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+})
+
+describe('droits et module', () => {
+  it('sans clinical.read : accès refusé, rien n’est lu', async () => {
+    const api = stubConsultationApi({
+      permissions: ['patient.read', 'visit.register', 'agenda.read'],
+    })
+    const { root, router, unmount } = await openConsultation()
+
+    expect(router.currentRoute.value.name).toBe('acces-refuse')
+    expect(consultationReads(api)).toHaveLength(0)
+    expect(root.querySelector('form')).toBeNull()
+    unmount()
+  })
+
+  it('module « consultations » fermé : « Page introuvable », rien n’est lu', async () => {
+    const api = stubConsultationApi({ modules: ['today', 'patients'] })
+    const { root, unmount } = await openConsultation()
+
+    expect(root.querySelector('h1')?.textContent).toBe('Page introuvable')
+    expect(consultationReads(api)).toHaveLength(0)
+    unmount()
+  })
+
+  it('une adresse qui n’est pas un identifiant : « Page introuvable »', async () => {
+    const api = stubConsultationApi()
+    const { root, unmount } = await openConsultation('/consultations/abc')
+
+    expect(root.querySelector('h1')?.textContent).toBe('Page introuvable')
+    expect(consultationReads(api)).toHaveLength(0)
+    unmount()
+  })
+
+  it('l’entrée « Consultations » du menu n’a pas d’écran de liste : elle n’est pas proposée', async () => {
+    stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+
+    const menu = [...root.querySelectorAll('nav[aria-label="Navigation principale"] a')].map(
+      (link) => link.textContent?.trim(),
+    )
+    expect(menu).not.toContain('Consultations')
+    expect(linkTo(root, '/consultations')).toBeNull()
+    unmount()
+  })
+
+  it('sans clinical.write : lecture seule, champs désactivés, aucun bouton d’enregistrement', async () => {
+    const api = stubConsultationApi({
+      permissions: READ_ONLY,
+      consultation: consultation({
+        status: 'IN_PROGRESS',
+        steps: {
+          ANAMNESIS: {
+            symptoms: 'Vision floue le soir',
+            wears_glasses: null,
+            glasses_duration: null,
+            previous_correction_available: null,
+            complaints: [
+              { id: '01J9ZXK4M2Q8R7S6T5V4W30601', term_code: 'BLURRED_VISION', other_text: null },
+            ],
+          },
+        },
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Lecture seule')
+    expect(field(root, 'Plaintes et symptômes').value).toBe('Vision floue le soir')
+    expect(box(root, 'Vision floue').checked).toBe(true)
+    const controls = [
+      ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        'main form input, main form textarea',
+      ),
+    ]
+    expect(controls.length).toBeGreaterThan(10)
+    expect(controls.every((control) => control.disabled)).toBe(true)
+    expect(buttonByName(root, 'Enregistrer')).toBeNull()
+    expect(root.querySelector('button[type="submit"]')).toBeNull()
+    expect(textOf(root)).not.toContain('« Suivant » enregistre')
+
+    // La lecture seule se parcourt : Suivant ne fait que passer à l'étape suivante, sans rien envoyer.
+    await click(buttonByName(root, 'Suivant'))
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 2 sur 3')
+    expect(patchCalls(api)).toHaveLength(0)
+    unmount()
+  })
+
+  it('un examen terminé ne se modifie pas dans cette version : dit, aucun bouton d’enregistrement', async () => {
+    stubConsultationApi({
+      consultation: consultation({
+        status: 'COMPLETED',
+        current_revision: 1,
+        completed_at: '2026-10-22T09:50:00.000Z',
+      }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Examen terminé')
+    expect(textOf(root)).toContain(
+      'La modification d’un examen terminé n’est pas disponible dans cette version.',
+    )
+    expect(buttonByName(root, 'Enregistrer')).toBeNull()
+    unmount()
+  })
+
+  it('le professionnel (CLINICIAN) voit les boutons Précédent, Enregistrer et Suivant', async () => {
+    stubConsultationApi({ permissions: CLINICIAN })
+    const { root, unmount } = await openConsultation()
+
+    const labels = [...root.querySelectorAll('main form button')].map((button) =>
+      button.textContent?.replace(/\s+/g, ' ').trim(),
+    )
+    expect(labels).toEqual(['Précédent', 'Enregistrer', 'Suivant'])
+    expect((buttonByName(root, 'Précédent') as HTMLButtonElement).disabled).toBe(true)
+    expect(textOf(root)).toContain(
+      '« Suivant » enregistre l’étape sur le serveur avant de passer à la suivante.',
+    )
+    unmount()
+  })
+
+  it('tous les contrôles de la consultation font 44 px au moins et sont nommés', async () => {
+    stubConsultationApi()
+    const { root, unmount } = await openConsultation()
+    await flushPromises()
+
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('main button')]
+    expect(buttons.length).toBeGreaterThan(3)
+    for (const button of buttons) {
+      expect(button.className, button.outerHTML).toContain('min-h-11')
+      expect(button.textContent?.trim() ?? '', button.outerHTML).not.toBe('')
+    }
+    for (const label of root.querySelectorAll<HTMLLabelElement>('main fieldset label')) {
+      expect(label.className, label.outerHTML).toContain('min-h-11')
+    }
+    for (const input of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'main form input, main form textarea',
+    )) {
+      expect(input.labels?.length, input.outerHTML).toBe(1)
+    }
+    unmount()
+  })
+})

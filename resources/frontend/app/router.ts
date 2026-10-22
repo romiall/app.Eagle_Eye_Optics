@@ -1,6 +1,7 @@
 import { nextTick } from 'vue'
 import { createRouter, createWebHistory, type Router, type RouterHistory } from 'vue-router'
 
+import ConsultationPage from '@/pages/consultations/ConsultationPage.vue'
 import ForbiddenPage from '@/pages/ForbiddenPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
@@ -32,8 +33,11 @@ declare module 'vue-router' {
 
 export const APPLICATION_TITLE = 'Eagle’s Eye Optics Medical'
 
-/** Identifiant ULID d'une fiche dans l'adresse : toute autre forme est « page introuvable ». */
-const PATIENT_ID = ':id([0-9A-HJKMNP-TV-Z]{26})'
+/**
+ * Identifiant ULID d'une fiche ou d'une consultation dans l'adresse : toute autre forme est « page
+ * introuvable ». C'est un identifiant opaque : l'adresse ne porte jamais de donnée de santé.
+ */
+const ULID_ID = ':id([0-9A-HJKMNP-TV-Z]{26})'
 
 export function createEeoRouter(history: RouterHistory = createWebHistory()): Router {
   const router = createRouter({
@@ -86,16 +90,24 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Nouveau patient', permissions: ['patient.create'], module: 'patients' },
       },
       {
-        path: `/patients/${PATIENT_ID}`,
+        path: `/patients/${ULID_ID}`,
         name: 'patient',
         component: PatientViewPage,
         meta: { title: 'Dossier patient', permissions: ['patient.read'], module: 'patients' },
       },
       {
-        path: `/patients/${PATIENT_ID}/modifier`,
+        path: `/patients/${ULID_ID}/modifier`,
         name: 'patient-modifier',
         component: PatientEditPage,
         meta: { title: 'Modifier le patient', permissions: ['patient.update'], module: 'patients' },
+      },
+      {
+        // Consultation par étapes (C01) : lecture avec clinical.read ; l'écran n'offre l'enregistrement
+        // qu'avec clinical.write (le serveur revérifie). Module « consultations » à ouvrir.
+        path: `/consultations/${ULID_ID}`,
+        name: 'consultation',
+        component: ConsultationPage,
+        meta: { title: 'Consultation', permissions: ['clinical.read'], module: 'consultations' },
       },
       {
         path: '/:pathMatch(.*)*',

@@ -28,7 +28,10 @@ import {
 
 // File du jour (P03 ; AT05) : jour civil du cabinet, jours voisins, pagination, états chargement /
 // vide / hors ligne / erreur / droits, marqueur du contrôle du paiement de l'examen (inexistant à ce
-// jalon) et absence de toute parole sur le règlement. Données FICTIVES.
+// jalon) et absence de toute parole sur le règlement. Les actions « Démarrer / Reprendre l'examen »
+// (C01) ont leurs tests dans exam-actions.test.ts : elles n'apparaissent qu'avec les droits cliniques,
+// le module « consultations » ouvert et une visite démarrable (jamais pour l'accueil seul). Données
+// FICTIVES.
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-10-15T09:00:00.000Z'))
@@ -39,8 +42,12 @@ afterEach(() => {
   resetEverything()
 })
 
-/** Ce que l'écran n'a le droit de dire à aucun moment : le règlement de l'examen n'est pas contrôlé. */
-const NEVER_SAID = /pay[ée]|solde|soldé|gratuit|prêt pour|démarrer l.examen|commencer l.examen/i
+/**
+ * Ce que l'écran n'a le droit de dire à aucun moment : le règlement de l'examen n'est pas contrôlé.
+ * « Démarrer l'examen » n'en fait plus partie (C01) : il est proposé sous conditions de droits et de
+ * module, et le texte de l'écran dit qu'il n'est pas bloqué par le règlement.
+ */
+const NEVER_SAID = /pay[ée]|solde|soldé|gratuit|prêt pour/i
 
 function cards(root: HTMLElement): HTMLElement {
   return root.querySelector('#file-cartes') as HTMLElement
@@ -244,8 +251,10 @@ describe('liste des arrivées', () => {
     unmount()
   })
 
-  it('aucun bouton ni lien ne démarre un examen ou ouvre une consultation (aucun écran de consultation à ce jalon)', async () => {
+  it('sans droit clinique (accueil), aucun bouton ni lien ne démarre un examen ou ne mène à une consultation', async () => {
+    // FRONT_DESK : visit.register, agenda.read, patient.* — jamais clinical.read ni clinical.write.
     stubVisitsApi({
+      permissions: FRONT_DESK,
       handlers: {
         list: () =>
           json(200, visitPage([visit(), second, visit({ id: VISIT_C, reason: 'FOLLOW_UP' })])),
@@ -257,9 +266,14 @@ describe('liste des arrivées', () => {
       element.textContent?.replace(/\s+/g, ' ').trim(),
     )
     expect(
-      actions.filter((label) => /examen|consultation|démarrer|commencer/i.test(label ?? '')),
+      actions.filter((label) =>
+        /examen|consultation|démarrer|commencer|reprendre/i.test(label ?? ''),
+      ),
     ).toEqual([])
     expect(root.querySelector('main a[href*="consultation"]')).toBeNull()
+    expect([...root.querySelectorAll('th')].map((th) => th.textContent?.trim())).not.toContain(
+      'Examen',
+    )
     unmount()
   })
 

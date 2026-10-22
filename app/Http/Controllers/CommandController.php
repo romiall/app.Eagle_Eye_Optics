@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Application\Command;
 use App\Application\CommandBus;
 use App\Application\CommandResult;
+use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Http\Middleware\AssignCorrelationId;
 use App\Models\User;
@@ -25,6 +26,27 @@ use Illuminate\Http\Request;
  */
 abstract class CommandController extends Controller
 {
+    /**
+     * Corps de la route directe : la charge de la commande et `expected_version` (entier, null ou absent). Le
+     * type de la version est contrôlé ici ; sa présence et son sens (null à la création, entier ≥ 1 sinon) le
+     * sont par le schéma `DirectRequest` de la commande, que le bus applique.
+     *
+     * @return array{0: array<string, mixed>, 1: int|null, 2: bool} charge, version attendue, `expected_version` présent
+     */
+    protected function directBody(Request $request): array
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->json()->all();
+        $present = array_key_exists('expected_version', $payload);
+        $expected = $payload['expected_version'] ?? null;
+        unset($payload['expected_version']);
+        if ($expected !== null && ! is_int($expected)) {
+            throw BusinessError::validation(['expected_version' => ['La version attendue est un entier ou null.']]);
+        }
+
+        return [$payload, $expected, $present];
+    }
+
     protected function dispatchCommand(Request $request, Command $command): CommandResult
     {
         $user = $request->user();

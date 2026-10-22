@@ -178,7 +178,7 @@ CLINICAL_STEPS = {
         'ametropias': array(TERM, max_items=20),
     }),
     'CENTERING': obj({
-        'centering_id': ULID,
+        'centering_id': N_ULID,
         'pd_total': N_DIOPTER,
         'pd_od': N_DIOPTER,
         'pd_og': N_DIOPTER,
@@ -258,10 +258,12 @@ COMMANDS = {
         {'visit_id': ULID, 'patient_id': ULID, 'reason': enum('visits.reason'), 'occurred_at': INSTANT, 'appointment_id': N_ULID, 'administrative_note': N_TEXT},
         []),
     'StartConsultation': ('consultations', 'clinical.write', 'none', 'POST /visits/{id}/consultations',
-        'Démarrage d\'examen : frais de CETTE visite réellement confirmés (pièce de frais) ou dérogation gérante exacte.',
+        'Démarrage d\'examen. La pièce de frais de CETTE visite et la dérogation gérante exacte sont facultatives au contrat : '
+        'tant que le contrôle du paiement de l\'examen n\'existe pas (B04, B06), le serveur ne contrôle aucune preuve et le dit (NOT_CONTROLLED) ; '
+        'c\'est le serveur, non le schéma, qui exigera la preuve quand le contrôle sera actif.',
         {'consultation_id': ULID, 'visit_id': ULID, 'patient_id': ULID, 'effective_at': INSTANT, 'date_change_reason': N_TEXT,
          'exam_invoice_id': N_ULID, 'exam_waiver_approval_id': N_ULID},
-        [{'anyOf': [{'properties': {'exam_invoice_id': ULID}}, {'properties': {'exam_waiver_approval_id': ULID}}]}]),
+        []),
     'SaveClinicalStep': ('consultations', 'clinical.write', 'entity', 'PATCH /consultations/{id}/steps/{step}',
         'Saisie d\'une rubrique DP ; valeurs non mesurées conservées à null ; lignes identifiées par le poste.',
         {'consultation_id': ULID, 'step': clinical_step()},

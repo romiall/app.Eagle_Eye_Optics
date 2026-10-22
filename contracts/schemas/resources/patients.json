@@ -417,7 +417,7 @@
       }
     },
     "Visit": {
-      "description": "Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ».",
+      "description": "Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ». consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -434,7 +434,9 @@
         "administrative_note",
         "version",
         "patient",
-        "exam_fee_control"
+        "exam_fee_control",
+        "consultation_id",
+        "consultation_status"
       ],
       "properties": {
         "id": {
@@ -489,6 +491,19 @@
           "enum": [
             "NOT_CONTROLLED",
             "NOT_APPLICABLE"
+          ]
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "consultation_status": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }

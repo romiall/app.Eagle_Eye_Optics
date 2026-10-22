@@ -38,7 +38,7 @@ const overrides = {
   SESSION_SECURE_COOKIE: 'false',
   EEO_CLINIC_ID: '',
   // Modules ouverts pour les parcours e2e (mise en service progressive : fermés par défaut en production).
-  EEO_ENABLED_MODULES: 'patients,today',
+  EEO_ENABLED_MODULES: 'patients,today,consultations',
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',

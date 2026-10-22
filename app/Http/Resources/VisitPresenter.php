@@ -9,13 +9,17 @@ use stdClass;
 /**
  * Représentation d'une visite pour l'API (schemas/resources/patients.json#/$defs/Visit) : administratif seulement,
  * l'identité de base du patient et le marqueur du contrôle de paiement de l'examen. Jamais de donnée clinique.
+ *
+ * La consultation de la visite (`consultation_id`, `consultation_status`) n'est rendue qu'à un compte qui détient
+ * `clinical.read` : pour tout autre compte (accueil, caisse) les deux champs valent null, même quand la
+ * consultation existe, pour que la file ne révèle pas qu'un examen est en cours ou terminé.
  */
 final class VisitPresenter
 {
     /**
      * @return array<string, mixed>
      */
-    public static function visit(stdClass $row): array
+    public static function visit(stdClass $row, bool $withConsultation = false): array
     {
         return [
             'id' => $row->id,
@@ -40,6 +44,8 @@ final class VisitPresenter
             ],
             // Tant que B04 et B06 n'existent pas, le paiement de l'examen n'est contrôlé nulle part.
             'exam_fee_control' => VisitStatus::examFeeControl((string) $row->reason),
+            'consultation_id' => $withConsultation && $row->consultation_id !== null ? (string) $row->consultation_id : null,
+            'consultation_status' => $withConsultation && $row->consultation_status !== null ? (string) $row->consultation_status : null,
         ];
     }
 

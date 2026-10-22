@@ -353,7 +353,7 @@
       ],
       "properties": {
         "centering_id": {
-          "$ref": "common.json#/$defs/Ulid"
+          "$ref": "common.json#/$defs/NullableUlid"
         },
         "pd_total": {
           "$ref": "common.json#/$defs/NullableDiopter"

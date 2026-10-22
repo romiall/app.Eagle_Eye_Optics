@@ -1,0 +1,23 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Conclusion : orientation oui avec niveau obligatoire et motif",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "CONCLUSION",
+      "data": {
+        "conclusion": "Conclusion fictive",
+        "referral": true,
+        "referral_urgency": "RECOMMENDED",
+        "referral_reasons": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001G",
+            "term_code": "SUSPECTED_GLAUCOMA",
+            "other_text": null
+          }
+        ]
+      }
+    }
+  }
+}

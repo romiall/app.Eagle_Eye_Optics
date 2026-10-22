@@ -10,6 +10,7 @@
  *
  * Scénarios :
  *   consume  une commande de test du chemin central (compteur), avec barrière facultative à un point nommé ;
+ *   command  une commande du catalogue (charge et version attendue fournies : consultation clinique) ;
  *   pull     une page du journal des changements ;
  *   deadlock deux lignes verrouillées en sens opposé dans TransactionRunner (défaut d'ordre simulé).
  *
@@ -111,6 +112,23 @@ try {
             unset($payload['expected_version']);
             $result = $app->make(CommandBus::class)->dispatch(
                 new Command('CreatePatient', $payload, (string) $payload['patient_id'], null),
+                CommandContext::direct($actor, (string) ($arguments['correlation_id'] ?? 'corr-child-0001')),
+                isset($arguments['key']) ? (string) $arguments['key'] : null,
+            );
+
+            return ['replayed' => $result->replayed, 'result' => $result->result];
+        })(),
+        'command' => (static function () use ($app, $arguments, $barrierProbe): array {
+            // Commande du catalogue par la route directe du chemin central (consultation clinique : démarrage et
+            // enregistrement d'une rubrique) : la charge, la version attendue et la clé viennent du test.
+            $app->instance(CommandBusProbe::class, $barrierProbe);
+
+            /** @var User $actor */
+            $actor = User::query()->findOrFail((string) $arguments['actor_id']);
+            /** @var array<string, mixed> $payload */
+            $payload = $arguments['payload'];
+            $result = $app->make(CommandBus::class)->dispatch(
+                new Command((string) $arguments['name'], $payload, (string) $arguments['entity_id'], isset($arguments['expected_version']) ? (int) $arguments['expected_version'] : null),
                 CommandContext::direct($actor, (string) ($arguments['correlation_id'] ?? 'corr-child-0001')),
                 isset($arguments['key']) ? (string) $arguments['key'] : null,
             );

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\VisitController;
@@ -92,6 +93,26 @@ Route::prefix('v1')->group(function (): void {
             Route::post('visits', [VisitController::class, 'store'])
                 ->middleware('can:visit.register')
                 ->name('api.visits.store');
+        });
+
+        // Consultation clinique (C01) : module « consultations ». Données cliniques : accueil et caisse n'ont
+        // aucune de ces permissions (403 même pour une consultation existante). Le démarrage et l'écriture d'une
+        // rubrique rendent la consultation (état courant, qu'un rejeu de la même clé relit), ils exigent donc aussi
+        // clinical.read : une dérogation qui retire la lecture ne se contourne pas par l'écriture. L'identifiant
+        // de rubrique est contrôlé par le contrôleur (422), non par la route, pour que l'erreur soit lisible.
+        Route::middleware('module:consultations')->group(function (): void {
+            Route::post('visits/{id}/consultations', [ConsultationController::class, 'start'])
+                ->middleware(['can:clinical.write', 'can:clinical.read'])
+                ->whereUlid('id')
+                ->name('api.consultations.start');
+            Route::get('consultations/{id}', [ConsultationController::class, 'show'])
+                ->middleware('can:clinical.read')
+                ->whereUlid('id')
+                ->name('api.consultations.show');
+            Route::patch('consultations/{id}/steps/{step}', [ConsultationController::class, 'saveStep'])
+                ->middleware(['can:clinical.write', 'can:clinical.read'])
+                ->whereUlid('id')
+                ->name('api.consultations.steps.save');
         });
     });
 });

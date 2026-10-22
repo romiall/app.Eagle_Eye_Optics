@@ -59,6 +59,8 @@ export function visit(overrides: Partial<Visit> = {}): Visit {
     arrival_at: '2026-10-15T08:15:00.000Z',
     closed_at: null,
     administrative_note: null,
+    consultation_id: null,
+    consultation_status: null,
     version: 1,
     patient: {
       id: '01J9ZXK4M2Q8R7S6T5V4W30011',

@@ -1,0 +1,18 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Centrage sans ligne encore enregistrée : centering_id à null (une consultation sans centrage est représentable)",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "CENTERING",
+      "data": {
+        "centering_id": null,
+        "pd_total": null,
+        "pd_od": null,
+        "pd_og": null,
+        "inconsistency_reason": null
+      }
+    }
+  }
+}

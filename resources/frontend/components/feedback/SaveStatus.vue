@@ -1,18 +1,19 @@
 <script setup lang="ts">
 /**
  * État d'enregistrement d'une saisie (fichier 04) : « Enregistré sur ce poste à 10h42 »,
- * « Synchronisé », « Échec de l'enregistrement ». Annoncé poliment aux lecteurs d'écran, jamais par
- * la seule couleur. Une saisie n'est dite enregistrée qu'après un enregistrement réussi : ce
- * composant affiche l'état qu'on lui donne, il ne le déduit pas.
+ * « Synchronisé », « Enregistré sur le serveur à 10h42 », « Échec de l'enregistrement ». Annoncé
+ * poliment aux lecteurs d'écran, jamais par la seule couleur. Une saisie n'est dite enregistrée qu'après
+ * un enregistrement réussi : ce composant affiche l'état qu'on lui donne, il ne le déduit pas.
+ * `saved-server` : la réponse du serveur a confirmé l'enregistrement (écrans en ligne, sans coffre local).
  */
 import { computed } from 'vue'
 
-export type SaveState = 'idle' | 'saving' | 'saved-local' | 'synced' | 'failed'
+export type SaveState = 'idle' | 'saving' | 'saved-local' | 'saved-server' | 'synced' | 'failed'
 
 const props = withDefaults(
   defineProps<{
     state: SaveState
-    /** Instant UTC de l'enregistrement local (« 2026-10-15T09:42:00.000Z »). */
+    /** Instant UTC de l'enregistrement (« 2026-10-15T09:42:00.000Z »). */
     at?: string | null
     timeZone?: string
     message?: string | null
@@ -41,6 +42,14 @@ const view = computed<{ icon: string; text: string; tone: string } | null>(() =>
         icon: '✓',
         text: props.at ? `Enregistré sur ce poste à ${clock(props.at)}` : 'Enregistré sur ce poste',
         tone: 'text-ink',
+      }
+    case 'saved-server':
+      return {
+        icon: '✓',
+        text: props.at
+          ? `Enregistré sur le serveur à ${clock(props.at)}`
+          : 'Enregistré sur le serveur',
+        tone: 'text-accent',
       }
     case 'synced':
       return { icon: '✓', text: 'Synchronisé avec le serveur', tone: 'text-accent' }

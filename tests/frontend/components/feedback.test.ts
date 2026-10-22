@@ -267,6 +267,19 @@ describe('SaveStatus', () => {
     expect(wrapper.get('span:not([aria-hidden])').text()).toBe('Enregistré sur ce poste à 10h42')
   })
 
+  it('dit « Enregistré sur le serveur à 10h42 » pour un écran en ligne, sans jamais dire « sur ce poste »', async () => {
+    const wrapper = attached(
+      mount(SaveStatus, { props: { state: 'saved-server', at: '2026-10-15T09:42:00.000Z' } }),
+    )
+
+    expect(wrapper.get('[aria-hidden="true"]').text()).toBe('✓')
+    expect(wrapper.get('span:not([aria-hidden])').text()).toBe('Enregistré sur le serveur à 10h42')
+    expect(wrapper.text()).not.toContain('poste')
+
+    await wrapper.setProps({ at: null })
+    expect(wrapper.get('span:not([aria-hidden])').text()).toBe('Enregistré sur le serveur')
+  })
+
   it('distingue synchronisé et échec, sans rien annoncer au repos', async () => {
     const wrapper = attached(mount(SaveStatus, { props: { state: 'idle' } }))
     expect(wrapper.text()).toBe('')

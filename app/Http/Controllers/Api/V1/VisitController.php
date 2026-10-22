@@ -26,9 +26,10 @@ final class VisitController extends CommandController
         $clinic = Clinic::query()->findOrFail($actor->clinic_id);
 
         $page = $queue($actor->clinic_id, $clinic->timezone, CarbonImmutable::now('UTC'), $request->query('date'), $request->query('page'));
+        $clinical = $actor->can('clinical.read');
 
         return new JsonResponse([
-            'data' => array_map(VisitPresenter::visit(...), $page->items()),
+            'data' => array_map(static fn (\stdClass $row): array => VisitPresenter::visit($row, $clinical), $page->items()),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
         ]);
     }
@@ -51,7 +52,7 @@ final class VisitController extends CommandController
             throw BusinessError::notFound();
         }
 
-        return new JsonResponse(['data' => VisitPresenter::visit($row)], 201);
+        return new JsonResponse(['data' => VisitPresenter::visit($row, $this->actor($request)->can('clinical.read'))], 201);
     }
 
     private function actor(Request $request): User

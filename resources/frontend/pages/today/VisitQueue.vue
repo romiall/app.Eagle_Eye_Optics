@@ -9,13 +9,17 @@
  * Cartes sur téléphone, tableau à partir de 1024 px : aucun défilement horizontal. Le contrôle du
  * paiement de l'examen n'existe pas encore : le marqueur le dit avec le texte exact du serveur
  * (`exam_fee_control`), jamais un état de règlement.
+ *
+ * Examen (C01) : « Démarrer l'examen », « Reprendre l'examen » ou « Consulter l'examen » par visite,
+ * selon les droits clinical.write et clinical.read, le module « consultations » ouvert et l'état de la
+ * visite (`ExamAction`). Un refus d'état au démarrage (409) est dit au-dessus de la liste, qui est relue.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone, clinicToday, formatTimeFr } from '@/app/clinicTime'
 import { listVisits } from '@/app/services/visits'
-import { can, enabledModules } from '@/app/session'
+import { can, canOnScreen, enabledModules, moduleOpenOnScreen } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -25,6 +29,7 @@ import type { Visit, VisitPage } from '@/domain/contracts/generated'
 import { formatAge, patientAge, patientDisplayName } from '@/domain/patients/identity'
 import { reasonLabel, statusLabel, statusSymbol } from '@/domain/patients/visits'
 
+import ExamAction from './ExamAction.vue'
 import QueueStateMessage from './QueueStateMessage.vue'
 import { useServerRead } from './useServerRead'
 
@@ -59,6 +64,19 @@ const pastTheEnd = computed(() => read.state.value === 'empty' && total.value > 
 const canOpenPatient = computed(
   () => can('patient.read') && enabledModules.value.includes('patients'),
 )
+
+/**
+ * La colonne ou la ligne « examen » existe pour qui peut lire les consultations (clinical.read : sans
+ * lui, ni reprendre ni démarrer un examen), module « consultations » ouvert.
+ */
+const showExam = computed(() => moduleOpenOnScreen('consultations') && canOnScreen('clinical.read'))
+/** Refus d'état au démarrage d'un examen : dit au-dessus de la liste, qui est alors relue. */
+const staleNotice = ref<string | null>(null)
+
+function onStale(message: string): void {
+  staleNotice.value = message
+  void read.reload()
+}
 
 function announcement(): string {
   switch (read.state.value) {
@@ -120,6 +138,14 @@ const LINK_CLASS =
       {{ props.title }}
     </h2>
 
+    <StateMessage
+      v-if="staleNotice"
+      state="conflict"
+      title="La visite a changé depuis l’affichage de la file"
+    >
+      {{ staleNotice }}
+    </StateMessage>
+
     <QueueStateMessage
       v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
       :state="read.state.value"
@@ -178,6 +204,7 @@ const LINK_CLASS =
             <span class="sr-only">Motif : </span>{{ reasonLabel(visit.reason) }}
           </p>
           <p><ExamFeeMarker :control="visit.exam_fee_control" /></p>
+          <ExamAction v-if="showExam" :visit="visit" @stale="onStale" />
           <p
             v-if="visit.administrative_note"
             class="text-sm break-words whitespace-pre-line text-muted"
@@ -200,6 +227,7 @@ const LINK_CLASS =
             <th scope="col" class="px-3 py-2 font-medium">Motif</th>
             <th scope="col" class="px-3 py-2 font-medium">Statut</th>
             <th scope="col" class="px-3 py-2 font-medium">Paiement de l’examen</th>
+            <th v-if="showExam" scope="col" class="px-3 py-2 font-medium">Examen</th>
           </tr>
         </thead>
         <tbody>
@@ -228,6 +256,9 @@ const LINK_CLASS =
               >{{ statusLabel(visit.status) }}
             </td>
             <td class="px-3 py-2"><ExamFeeMarker :control="visit.exam_fee_control" /></td>
+            <td v-if="showExam" class="px-3 py-2">
+              <ExamAction :visit="visit" @stale="onStale" />
+            </td>
           </tr>
         </tbody>
       </table>

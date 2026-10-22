@@ -14,7 +14,9 @@ use stdClass;
 
 /**
  * File du jour (P03, fichier 02) : les visites d'un jour civil du cabinet, de la plus ancienne arrivée à la
- * plus récente, avec l'identité administrative du patient. Aucune donnée clinique. Toujours limitée au cabinet.
+ * plus récente, avec l'identité administrative du patient. Aucune donnée clinique (seuls l'identifiant et le
+ * statut de la consultation accompagnent la visite, pour reprendre l'examen : le présentateur les réserve à
+ * `clinical.read`). Toujours limitée au cabinet.
  * Le jour est celui du fuseau du cabinet (jamais minuit UTC) ; par défaut, aujourd'hui.
  */
 final class VisitQueue
@@ -40,12 +42,15 @@ final class VisitQueue
             ->join('patient_records', static function ($join): void {
                 $join->on('patient_records.clinic_id', '=', 'visits.clinic_id')->on('patient_records.id', '=', 'visits.patient_id');
             })
+            ->leftJoin('consultations', static function ($join): void {
+                $join->on('consultations.clinic_id', '=', 'visits.clinic_id')->on('consultations.visit_id', '=', 'visits.id');
+            })
             ->where('visits.clinic_id', $clinicId)
             ->where('visits.occurred_at', '>=', $start)
             ->where('visits.occurred_at', '<', $end)
             ->orderBy('visits.occurred_at')
             ->orderBy('visits.id')
-            ->select('visits.*', ...self::patientColumns())
+            ->select('visits.*', ...self::patientColumns(), ...self::consultationColumns())
             ->paginate(self::PER_PAGE, ['*'], 'page', $pageNumber);
     }
 
@@ -58,10 +63,24 @@ final class VisitQueue
             ->join('patient_records', static function ($join): void {
                 $join->on('patient_records.clinic_id', '=', 'visits.clinic_id')->on('patient_records.id', '=', 'visits.patient_id');
             })
+            ->leftJoin('consultations', static function ($join): void {
+                $join->on('consultations.clinic_id', '=', 'visits.clinic_id')->on('consultations.visit_id', '=', 'visits.id');
+            })
             ->where('visits.clinic_id', $clinicId)
             ->where('visits.id', $visitId)
-            ->select('visits.*', ...self::patientColumns())
+            ->select('visits.*', ...self::patientColumns(), ...self::consultationColumns())
             ->first();
+    }
+
+    /**
+     * Consultation de la visite (une au plus : clé unique cabinet / visite). Le présentateur ne la rend qu'à un
+     * compte qui détient `clinical.read`.
+     *
+     * @return list<string>
+     */
+    private static function consultationColumns(): array
+    {
+        return ['consultations.id as consultation_id', 'consultations.status as consultation_status'];
     }
 
     /**

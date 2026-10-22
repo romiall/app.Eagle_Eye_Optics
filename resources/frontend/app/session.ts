@@ -63,6 +63,26 @@ export function canAny(permissions: readonly string[]): boolean {
   return permissions.some((permission) => can(permission))
 }
 
+/**
+ * Compte dont les droits guident l'écran en cours : le compte connecté ; si la session a expiré sur
+ * cet écran (401), le dernier compte connu, pour que l'écran ne bascule pas en « lecture seule » ni ne
+ * retire ses boutons pendant la reconnexion sur place (la saisie et ses boutons de reprise restent). Le
+ * serveur revérifie chaque action ; une session perdue n'ouvre aucun droit nouveau.
+ */
+function screenAccount(): Me | null {
+  return state.account ?? (state.status === 'expired' ? state.lastAccount : null)
+}
+
+/** Droit tel que l'écran en cours l'affiche (voir `screenAccount`). */
+export function canOnScreen(permission: string): boolean {
+  return screenAccount()?.permissions.includes(permission) ?? false
+}
+
+/** Module ouvert tel que l'écran en cours l'affiche (voir `screenAccount`). */
+export function moduleOpenOnScreen(code: string): boolean {
+  return screenAccount()?.clinic.enabled_modules.includes(code) ?? false
+}
+
 /** Identité de la session : compte connecté, sinon dernier compte connu de cet écran, sinon null. */
 export function knownAccountId(): string | null {
   return state.account?.id ?? state.lastAccount?.id ?? null

@@ -1,7 +1,7 @@
 {
   "schema": "commands/StartConsultation.v1.json",
-  "valid": false,
-  "description": "Ni frais payés ni dérogation : refusé (EXAM_PAYMENT_REQUIRED)",
+  "valid": true,
+  "description": "Démarrage sans pièce de frais ni dérogation : admis au contrat tant que le contrôle du paiement de l'examen n'existe pas (le serveur répond NOT_CONTROLLED)",
   "base": "commands/start-consultation.valid.json",
   "patch": [
     {

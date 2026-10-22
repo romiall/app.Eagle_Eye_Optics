@@ -7,12 +7,14 @@
  *
  * Le contrôle du paiement de l'examen N'EXISTE PAS encore (B04, B06) : l'écran le dit en toutes
  * lettres et n'affirme jamais qu'un examen est réglé, soldé ou gratuit. Un achat ou un retrait n'impose
- * aucun examen. Il n'y a pas d'écran de consultation à ce jalon : aucun bouton « démarrer l'examen ».
+ * aucun examen. « Démarrer l'examen » (C01) n'est donc PAS bloqué par le règlement : il apparaît pour
+ * une visite d'examen ou de suivi arrivée, avec le droit clinical.write et le module « consultations »
+ * ouvert (voir `VisitQueue`).
  */
 import { computed, ref } from 'vue'
 
 import { clinicToday, formatDayFr } from '@/app/clinicTime'
-import { can } from '@/app/session'
+import { can, canOnScreen, moduleOpenOnScreen } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -36,6 +38,10 @@ const focusResults = ref(false)
 const announcement = ref('')
 
 const canRegister = computed(() => can('visit.register'))
+/** La mention de « Démarrer l'examen » n'a de sens que pour qui peut le faire, module ouvert (C01). */
+const mentionsExamStart = computed(
+  () => canOnScreen('clinical.write') && moduleOpenOnScreen('consultations'),
+)
 const queueKey = computed(() => `${day.value}\u{1F}${page.value}\u{1F}${run.value}`)
 const isToday = computed(() => day.value === clinicToday().toString())
 const title = computed(() => {
@@ -95,8 +101,11 @@ function goToPage(next: number): void {
     <p class="max-w-prose text-muted">
       <span aria-hidden="true">⚠ </span>Le contrôle du paiement de l’examen n’est pas encore actif.
       Une arrivée pour un examen de vue ou un contrôle de suivi n’est donc pas bloquée faute de
-      règlement, et cet écran ne dit rien de l’état du règlement de l’examen. Un achat direct ou un
-      retrait de commande n’impose aucun examen.
+      règlement, et cet écran ne dit rien de l’état du règlement de l’examen.
+      <template v-if="mentionsExamStart">
+        Démarrer l’examen n’est pas non plus bloqué par le règlement.
+      </template>
+      Un achat direct ou un retrait de commande n’impose aucun examen.
     </p>
 
     <div

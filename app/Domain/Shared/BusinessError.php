@@ -79,6 +79,16 @@ final class BusinessError extends RuntimeException
         return new self('VALIDATION_FAILED', $message, 422, $fields);
     }
 
+    /**
+     * Refus d'état (409 `STATE_TRANSITION_REFUSED`) : l'état actuel de la ressource ne permet pas l'opération
+     * (consultation déjà démarrée, visite non démarrable, consultation terminée). `details.current_status` porte
+     * ce statut (valeur simple, jamais une donnée clinique) pour que l'écran se rafraîchisse.
+     */
+    public static function stateRefused(string $message, string $currentStatus): self
+    {
+        return new self('STATE_TRANSITION_REFUSED', $message, 409, [], null, [], ['current_status' => $currentStatus]);
+    }
+
     public static function reauthenticationRequired(): self
     {
         return new self(

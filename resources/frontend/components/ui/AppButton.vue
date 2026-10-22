@@ -13,6 +13,13 @@ const props = withDefaults(
     pending?: boolean
     disabled?: boolean
     pendingLabel?: string
+    /** Identifiant du bouton (cible d'un rendu de focus après un envoi). */
+    id?: string | undefined
+    /**
+     * Nom accessible quand plusieurs boutons portent le même libellé visible (une liste de patients) :
+     * il COMMENCE par le libellé visible (WCAG 2.5.3) et nomme l'objet de l'action.
+     */
+    accessibleName?: string | undefined
   }>(),
   {
     variant: 'primary',
@@ -20,6 +27,8 @@ const props = withDefaults(
     pending: false,
     disabled: false,
     pendingLabel: 'Traitement en cours…',
+    id: undefined,
+    accessibleName: undefined,
   },
 )
 
@@ -35,7 +44,9 @@ const variants: Record<string, string> = {
 
 <template>
   <button
+    :id="props.id"
     :type="props.type"
+    :aria-label="props.accessibleName"
     :disabled="props.disabled || props.pending"
     :aria-busy="props.pending ? 'true' : undefined"
     :class="[

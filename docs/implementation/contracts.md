@@ -88,6 +88,8 @@ Par la route directe, le numéro de pièce est attribué par le serveur hors des
 
 « Version brouillon » = `invoices.version`, figée à l'émission. « ledger_version » = projection 1 + paiements confirmés + contre-écritures + avoirs émis + remboursements (contrat 23), jamais une colonne. « Transition d'état » : la table n'a pas de colonne `version` (`optical_prescriptions`, `cash_sessions`, `approvals`), le serveur vérifie sous verrou le statut attendu (brouillon, session ouverte, demande en attente). Le test `CommandCatalogConsistencyTest` interdit une version attendue sans colonne réelle.
 
+`StartConsultation` : `exam_invoice_id` et `exam_waiver_approval_id` sont **facultatifs au contrat** (null admis, aucune preuve exigée par le schéma) depuis C01 : tant que le contrôle du paiement de l'examen n'existe pas (B04, B06), le serveur ne contrôle rien et le dit (`NOT_CONTROLLED` dans l'audit) ; c'est le serveur, non le schéma, qui exigera la preuve quand le contrôle sera actif. `SaveClinicalStep`/`CENTERING` : `centering_id` est nullable (une consultation sans centrage est représentable). Voir [clinical.md](clinical.md).
+
 ## Protocole de synchronisation (`sync/`)
 
 - **Cœur** : `event_hash` = SHA-256 hexadécimal minuscule de JCS(core) (RFC 8785).

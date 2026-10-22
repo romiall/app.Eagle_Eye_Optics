@@ -802,9 +802,10 @@ paths:
   /v1/visits/{id}/consultations:
     post:
       operationId: "StartConsultation"
-      summary: "Démarrer l'examen (frais payés ou dérogation)"
+      summary: "Démarrer l'examen"
       tags:
         - "Clinique"
+      description: "Rend la consultation (relue, même au rejeu de la clé), donc exige aussi clinical.read. Module consultations. Premier jalon : le paiement de l'examen n'est pas contrôlé (B04, B06 absents) ; exam_invoice_id et exam_waiver_approval_id sont facultatifs et refusés (422) s'ils sont fournis, car aucune preuve ne peut encore être enregistrée. Visite EXAM ou FOLLOW_UP au statut ARRIVED ou READY_FOR_EXAM, une seule consultation par visite (409 STATE_TRANSITION_REFUSED sinon). L'identifiant de la visite du chemin doit être celui du corps (422)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -833,6 +834,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -841,10 +844,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.write"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "StartConsultation"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P03"
   /v1/consultations/{id}:
     get:
@@ -852,6 +856,7 @@ paths:
       summary: "Consultation complète"
       tags:
         - "Clinique"
+      description: "Module consultations. Relit les tables vivantes au format AllSteps ; les rubriques pas encore ouvertes (acuités, réfraction, centrage) sont rendues vides. La lecture est tracée dans l'audit (consultation.viewed), sans contenu, au plus une fois par compte et par consultation toutes les 10 minutes."
       security:
         - sessionCookie: []
       parameters:
@@ -872,13 +877,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "clinical.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C01"
   /v1/consultations/{id}/steps/{step}:
     patch:
@@ -886,6 +893,7 @@ paths:
       summary: "Saisir une rubrique du dossier"
       tags:
         - "Clinique"
+      description: "Rend la consultation, donc exige aussi clinical.read. Module consultations. Remplacement complet de la rubrique, version attendue (409 VERSION_CONFLICT). Premier jalon : seules ANAMNESIS, HISTORIES et CONCLUSION sont ouvertes ; les trois autres répondent 422 (step.step) sans rien écrire (C02). Consultation terminée : 409 STATE_TRANSITION_REFUSED. Les identifiants du chemin (consultation, rubrique) doivent être ceux du corps (422)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -920,6 +928,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -928,10 +938,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.write"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "SaveClinicalStep"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C01"
   /v1/consultations/{id}/complete:
     post:
@@ -3639,7 +3650,7 @@ components:
           schema:
             $ref: "./schemas/error.json"
     Conflict:
-      description: "VERSION_CONFLICT, PAYMENT_EXCEEDS_BALANCE, STOCK_UNAVAILABLE, IDEMPOTENCY_PAYLOAD_MISMATCH, SLOT_UNAVAILABLE ou garde-fou métier."
+      description: "VERSION_CONFLICT, STATE_TRANSITION_REFUSED, PAYMENT_EXCEEDS_BALANCE, STOCK_UNAVAILABLE, IDEMPOTENCY_PAYLOAD_MISMATCH, SLOT_UNAVAILABLE ou garde-fou métier."
       content:
         application/json:
           schema:

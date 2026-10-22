@@ -7,8 +7,13 @@
 import { RouterLink, type RouteLocationRaw } from 'vue-router'
 
 const props = withDefaults(
-  defineProps<{ to: RouteLocationRaw; variant?: 'primary' | 'secondary' | 'ghost' }>(),
-  { variant: 'secondary' },
+  defineProps<{
+    to: RouteLocationRaw
+    variant?: 'primary' | 'secondary' | 'ghost'
+    /** Nom accessible quand plusieurs liens portent le même libellé visible (il commence par ce libellé). */
+    accessibleName?: string | undefined
+  }>(),
+  { variant: 'secondary', accessibleName: undefined },
 )
 
 const variants: Record<string, string> = {
@@ -21,6 +26,7 @@ const variants: Record<string, string> = {
 <template>
   <RouterLink
     :to="props.to"
+    :aria-label="props.accessibleName"
     :class="[
       'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-base font-semibold',
       variants[props.variant],

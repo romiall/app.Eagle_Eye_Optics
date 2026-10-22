@@ -274,7 +274,9 @@ final class VisitTest extends TestCase
 
         $this->assertSame(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date'], array_keys($row['patient']));
         $this->assertArrayNotHasKey('address', $row['patient']);
-        $this->assertArrayNotHasKey('consultation_id', $row);
+        // Aucune consultation n'est démarrée : les deux champs existent et valent null (rendus seulement avec clinical.read).
+        $this->assertNull($row['consultation_id']);
+        $this->assertNull($row['consultation_status']);
     }
 
     /**

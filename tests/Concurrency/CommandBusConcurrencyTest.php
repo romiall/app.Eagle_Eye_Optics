@@ -3,7 +3,9 @@
 namespace Tests\Concurrency;
 
 use App\Domain\Shared\Ulid;
+use App\Domain\Shared\ValueObjects\Instant;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
@@ -12,6 +14,7 @@ use PDO;
 use Tests\Concurrency\Support\ScenarioProcess;
 use Tests\Support\CommandFixtures;
 use Tests\Support\Commands\TestCommands;
+use Tests\Support\PatientFixtures;
 use Tests\Support\ScratchMysqlDatabases;
 use Tests\TestCase;
 
@@ -31,6 +34,7 @@ use Tests\TestCase;
 final class CommandBusConcurrencyTest extends TestCase
 {
     use CommandFixtures;
+    use PatientFixtures;
     use ScratchMysqlDatabases;
 
     private const CONNECTION = 'concurrency_commands';
@@ -440,6 +444,137 @@ final class CommandBusConcurrencyTest extends TestCase
         $this->assertSame([false, true], $replays, 'Une exécution, un rejeu.');
         $this->assertSame(1, DB::table('patient_records')->where('clinic_id', $this->clinicId)->count());
         $this->assertSame($base + 1, $this->patientHighWater());
+    }
+
+    public function test_deux_enregistrements_simultanes_de_la_meme_version_ne_laissent_passer_que_le_premier(): void
+    {
+        // AT19 : deux postes enregistrent la même consultation avec la même version attendue (rubriques
+        // différentes) — un seul aboutit, l'autre reçoit VERSION_CONFLICT et rien n'est perdu ni mélangé.
+        [$clinician, , $consultationId] = $this->examFixture();
+        $this->holdClinicLock();
+        $children = [
+            $this->saveClinicalStep($clinician, $consultationId, 'ANAMNESIS', ['symptoms' => 'Poste A', 'wears_glasses' => null, 'glasses_duration' => null, 'previous_correction_available' => null, 'complaints' => []], 'cle-clinique-aaa1'),
+            $this->saveClinicalStep($clinician, $consultationId, 'CONCLUSION', ['conclusion' => 'Poste B', 'referral' => null, 'referral_urgency' => null, 'referral_reasons' => []], 'cle-clinique-bbb1'),
+        ];
+        $this->waitForBlockedQuery('`clinics`', 'for update', 2);
+
+        $this->releaseGate();
+        $outcomes = array_map(static fn (ScenarioProcess $child): array => $child->wait(self::WAIT), $children);
+        $codes = array_map(static fn (array $outcome): string => $outcome['ok'] ? 'OK' : (string) $outcome['code'], $outcomes);
+        sort($codes);
+
+        $this->assertSame(['OK', 'VERSION_CONFLICT'], $codes);
+        $row = DB::table('consultations')->where('id', $consultationId)->first();
+        $this->assertNotNull($row);
+        $this->assertSame(2, (int) $row->version, 'Une seule écriture a eu lieu.');
+        $this->assertSame(1, ($row->symptoms === null ? 0 : 1) + ($row->conclusion === null ? 0 : 1), 'Une seule des deux rubriques est enregistrée, l\'autre n\'est pas mélangée.');
+        $this->assertSame(1, DB::table('audit_events')->where('clinic_id', $this->clinicId)->where('action', 'consultation.step_saved')->count());
+        $this->assertSame(1, DB::table('sync_change_log')->where('clinic_id', $this->clinicId)->where('entity_type', 'consultations')->count());
+    }
+
+    public function test_un_double_clic_concurrent_sur_une_rubrique_n_applique_qu_un_seul_effet(): void
+    {
+        [$clinician, , $consultationId] = $this->examFixture();
+        $data = ['symptoms' => 'Double clic', 'wears_glasses' => null, 'glasses_duration' => null, 'previous_correction_available' => null, 'complaints' => []];
+        $this->holdClinicLock();
+        $children = [
+            $this->saveClinicalStep($clinician, $consultationId, 'ANAMNESIS', $data, 'cle-doubleclic-cl'),
+            $this->saveClinicalStep($clinician, $consultationId, 'ANAMNESIS', $data, 'cle-doubleclic-cl'),
+        ];
+        $this->waitForBlockedQuery('`clinics`', 'for update', 2);
+
+        $this->releaseGate();
+        $outcomes = array_map(static fn (ScenarioProcess $child): array => $child->wait(self::WAIT), $children);
+
+        foreach ($outcomes as $outcome) {
+            $this->assertTrue($outcome['ok'], json_encode($outcome, JSON_UNESCAPED_UNICODE));
+        }
+        $replays = array_map(static fn (array $outcome): bool => (bool) $outcome['result']['replayed'], $outcomes);
+        sort($replays);
+        $this->assertSame([false, true], $replays, 'Une exécution, un rejeu.');
+        $this->assertSame(2, (int) DB::table('consultations')->where('id', $consultationId)->value('version'));
+        $this->assertSame(1, DB::table('audit_events')->where('clinic_id', $this->clinicId)->where('action', 'consultation.step_saved')->count());
+    }
+
+    public function test_deux_demarrages_simultanes_de_la_meme_visite_ne_creent_qu_une_consultation(): void
+    {
+        [$clinician, $visitId, , $patientId] = $this->examFixture(startExam: false);
+        $this->holdClinicLock();
+        $children = [];
+        foreach (['cle-demarrage-a001', 'cle-demarrage-b001'] as $key) {
+            $consultationId = Ulid::generate();
+            $children[] = $this->child('command', [
+                'actor_id' => $clinician->id,
+                'name' => 'StartConsultation',
+                'entity_id' => $consultationId,
+                'key' => $key,
+                'payload' => [
+                    'consultation_id' => $consultationId,
+                    'visit_id' => $visitId,
+                    'patient_id' => $patientId,
+                    'effective_at' => Instant::fromEpochMilliseconds(((int) CarbonImmutable::now('UTC')->format('Uv')) - 60_000)->toString(),
+                    'date_change_reason' => null,
+                    'exam_invoice_id' => null,
+                    'exam_waiver_approval_id' => null,
+                ],
+            ]);
+        }
+        $this->waitForBlockedQuery('`clinics`', 'for update', 2);
+
+        $this->releaseGate();
+        $outcomes = array_map(static fn (ScenarioProcess $child): array => $child->wait(self::WAIT), $children);
+        $codes = array_map(static fn (array $outcome): string => $outcome['ok'] ? 'OK' : (string) $outcome['code'], $outcomes);
+        sort($codes);
+
+        $this->assertSame(['OK', 'STATE_TRANSITION_REFUSED'], $codes);
+        $this->assertSame(1, DB::table('consultations')->where('visit_id', $visitId)->count());
+        $visit = DB::table('visits')->where('id', $visitId)->first();
+        $this->assertNotNull($visit);
+        $this->assertSame('IN_CONSULTATION', $visit->status);
+        $this->assertSame(2, (int) $visit->version);
+    }
+
+    /**
+     * Professionnel, visite et (par défaut) consultation en brouillon du cabinet de ce test, insérés directement
+     * dans la base jetable : les enfants les lisent. Données fictives.
+     *
+     * @return array{0: User, 1: string, 2: string, 3: string} professionnel, visite, consultation, patient
+     */
+    private function examFixture(bool $startExam = true): array
+    {
+        $clinician = $this->makeStaff($this->clinicId, 'CLINICIAN', 'pro.concurrence');
+        $patientId = $this->seedPatient($this->clinicId);
+        $visitId = Ulid::generate();
+        $consultationId = Ulid::generate();
+        $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
+        DB::table('visits')->insert([
+            'id' => $visitId, 'clinic_id' => $this->clinicId, 'patient_id' => $patientId, 'reason' => 'EXAM', 'occurred_at' => $now,
+            'status' => $startExam ? 'IN_CONSULTATION' : 'ARRIVED', 'arrival_at' => $now, 'created_by' => $clinician->id,
+            'version' => $startExam ? 2 : 1, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        if ($startExam) {
+            DB::table('consultations')->insert([
+                'id' => $consultationId, 'clinic_id' => $this->clinicId, 'visit_id' => $visitId, 'patient_id' => $patientId, 'clinician_id' => $clinician->id,
+                'effective_at' => $now, 'status' => 'DRAFT', 'current_revision' => 0, 'version' => 1, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+        }
+
+        return [$clinician, $visitId, $consultationId, $patientId];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function saveClinicalStep(User $actor, string $consultationId, string $step, array $data, string $key): ScenarioProcess
+    {
+        return $this->child('command', [
+            'actor_id' => $actor->id,
+            'name' => 'SaveClinicalStep',
+            'entity_id' => $consultationId,
+            'expected_version' => 1,
+            'key' => $key,
+            'payload' => ['consultation_id' => $consultationId, 'step' => ['step' => $step, 'data' => $data]],
+        ]);
     }
 
     private function patientHighWater(): int

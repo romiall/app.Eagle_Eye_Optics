@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eeo.invalid/contracts/commands/StartConsultation.v1.json",
   "title": "StartConsultation (charge v1)",
-  "description": "Démarrage d'examen : frais de CETTE visite réellement confirmés (pièce de frais) ou dérogation gérante exacte. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "description": "Démarrage d'examen. La pièce de frais de CETTE visite et la dérogation gérante exacte sont facultatives au contrat : tant que le contrôle du paiement de l'examen n'existe pas (B04, B06), le serveur ne contrôle aucune preuve et le dit (NOT_CONTROLLED) ; c'est le serveur, non le schéma, qui exigera la preuve quand le contrôle sera actif. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
   "x-entity-type": "consultations",
   "x-entity-id-field": "consultation_id",
   "x-permission": "clinical.write",
@@ -50,26 +50,6 @@
       "$ref": "../schemas/common.json#/$defs/NullableUlid"
     }
   },
-  "allOf": [
-    {
-      "anyOf": [
-        {
-          "properties": {
-            "exam_invoice_id": {
-              "$ref": "../schemas/common.json#/$defs/Ulid"
-            }
-          }
-        },
-        {
-          "properties": {
-            "exam_waiver_approval_id": {
-              "$ref": "../schemas/common.json#/$defs/Ulid"
-            }
-          }
-        }
-      ]
-    }
-  ],
   "$defs": {
     "DirectRequest": {
       "description": "Corps de la route directe POST /visits/{id}/consultations : même charge + expected_version (Création : expected_version vaut null.) ; en-tête Idempotency-Key obligatoire.",
@@ -118,27 +98,7 @@
         "exam_waiver_approval_id": {
           "$ref": "../schemas/common.json#/$defs/NullableUlid"
         }
-      },
-      "allOf": [
-        {
-          "anyOf": [
-            {
-              "properties": {
-                "exam_invoice_id": {
-                  "$ref": "../schemas/common.json#/$defs/Ulid"
-                }
-              }
-            },
-            {
-              "properties": {
-                "exam_waiver_approval_id": {
-                  "$ref": "../schemas/common.json#/$defs/Ulid"
-                }
-              }
-            }
-          ]
-        }
-      ]
+      }
     }
   }
 }

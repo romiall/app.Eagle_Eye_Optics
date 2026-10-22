@@ -43,12 +43,12 @@ export type NullableDiopter = (Diopter | null)
  * Valeur optique DECIMAL(6,2) en chaîne exacte, signe explicite admis ; null = non mesuré (jamais remplacé par zéro).
  */
 export type Diopter = string
+export type NullableUlid = (Ulid | null)
 /**
  *  (catalogue : consultations.referral_urgency)
  */
 export type ConsultationsReferralUrgency = ("NOT_URGENT" | "RECOMMENDED" | "RAPID" | "EMERGENCY")
 export type StepName = ("ANAMNESIS" | "HISTORIES" | "VISUAL_ACUITY" | "REFRACTION" | "CENTERING" | "CONCLUSION")
-export type NullableUlid = (Ulid | null)
 /**
  * Code de permission du référentiel seedé (ex. invoice.issue).
  */
@@ -507,9 +507,9 @@ export type WorkshopOrderEyesEye = ("OD" | "OG")
  */
 export type WorkshopOrdersStatus = ("ORDERED" | "RECEIVED" | "MOUNTING" | "QUALITY_CHECK" | "READY" | "DELIVERED" | "CANCELLED")
 /**
- * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route.
+ * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut.
  */
-export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
+export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
 export type VectorCase = (({
 expected: unknown
 } | {
@@ -2043,7 +2043,7 @@ other_text: (string | null)
 }]
 }
 export interface Centering {
-centering_id: Ulid
+centering_id: NullableUlid
 pd_total: NullableDiopter
 pd_od: NullableDiopter
 pd_og: NullableDiopter
@@ -2968,7 +2968,7 @@ fields?: {
 [k: string]: [string, ...(string)[]] | undefined
 }
 /**
- * Valeurs actualisées d'un refus d'état, à proposer au client (fichier 08 : « solde actualisé » de PAYMENT_EXCEEDS_BALANCE, « quantité disponible actualisée » de STOCK_UNAVAILABLE). Valeurs simples seulement, jamais une donnée personnelle ni clinique.
+ * Valeurs actualisées d'un refus d'état, à proposer au client (fichier 08 : « solde actualisé » de PAYMENT_EXCEEDS_BALANCE, « quantité disponible actualisée » de STOCK_UNAVAILABLE ; current_version de VERSION_CONFLICT ; current_status de STATE_TRANSITION_REFUSED). Valeurs simples seulement, jamais une donnée personnelle ni clinique.
  */
 details?: {
 [k: string]: string | number | null | undefined
@@ -4239,7 +4239,7 @@ export interface PatientHistoryResponse {
 data: PatientHistory
 }
 /**
- * Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ».
+ * Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ». consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.
  */
 export interface Visit {
 id: Ulid
@@ -4256,6 +4256,8 @@ administrative_note: (string | null)
 version: Version
 patient: VisitPatient
 exam_fee_control: ("NOT_CONTROLLED" | "NOT_APPLICABLE")
+consultation_id: NullableUlid
+consultation_status: (ConsultationsStatus | null)
 }
 /**
  * Identité administrative de base du patient d’une visite.

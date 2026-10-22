@@ -1,0 +1,40 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Antécédents : un groupe « Aucun connu », un groupe avec termes dont « Autre » expliqué, un groupe absent (non renseigné)",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "HISTORIES",
+      "data": {
+        "histories": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001C",
+            "history_group": "OCULAR_HISTORY",
+            "known_none": true,
+            "comments": null,
+            "terms": []
+          },
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001D",
+            "history_group": "MEDICAL_HISTORY",
+            "known_none": false,
+            "comments": "Suivi régulier (fictif)",
+            "terms": [
+              {
+                "id": "01J9ZXK4M2Q8R7S6T5V4W3001E",
+                "term_code": "DIABETES",
+                "other_text": null
+              },
+              {
+                "id": "01J9ZXK4M2Q8R7S6T5V4W3001F",
+                "term_code": "OTHER",
+                "other_text": "Précision fictive"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
