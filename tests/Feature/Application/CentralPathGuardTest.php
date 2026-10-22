@@ -22,12 +22,15 @@ final class CentralPathGuardTest extends TestCase
 
     /**
      * Seuls fichiers de app/ autorisés à ouvrir une transaction : l'exécuteur commun (relance sur interblocage,
-     * attente de verrou bornée) et l'outillage de schéma, dont les instructions DDL valident implicitement.
+     * attente de verrou bornée) et l'outillage de schéma, dont les instructions DDL valident implicitement. Le
+     * diagnostic d'hébergement (`eeo:preflight`) crée puis supprime des objets temporaires pour éprouver les droits
+     * DDL de la base : il n'écrit aucune donnée de l'application et n'ouvre aucune transaction.
      */
     private const TRANSACTION_ALLOWED = [
         'app/Application/TransactionRunner.php',
         'app/Support/Schema/BaselineInstaller.php',
         'app/Console/Commands/AdoptBaseline.php',
+        'app/Support/Deployment/PreflightChecks.php',
     ];
 
     /**
