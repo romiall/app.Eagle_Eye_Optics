@@ -34,6 +34,10 @@ php -v
 php artisan eeo:preflight
 ```
 
+Attention : la version de PHP **en ligne de commande (SSH)** peut différer de celle du site web choisie dans le
+panneau. `php -v` doit afficher 8.3 ou plus ; sinon, utiliser le binaire de la bonne version indiqué par l'hébergeur
+(par exemple `php8.3`) pour **toutes** les commandes `artisan` de cette procédure, et corriger la version du site.
+
 `eeo:preflight` vérifie PHP, les extensions, les réglages, les droits d'écriture et surtout les **droits MySQL réels** :
 il crée puis supprime des objets temporaires (table avec CHECK, clé étrangère, colonne générée, vue, **trigger**) sans
 toucher aux tables de l'application. Sortie : `OK`, `ALERTE` (à lire, ne bloque pas) ou `BLOQUANT` ; code de sortie

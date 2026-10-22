@@ -36,11 +36,13 @@ final class VisitTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Horloge figée AVANT la création des comptes : l'attribution d'un profil porte l'instant courant et une
+        // permission n'est effective qu'à partir de cet instant (une horloge figée dans le passé les rendrait futures).
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'));
         config(['eeo.enabled_modules' => ['today', 'patients']]);
         $this->clinicId = $this->makeClinic();
         $this->reception = $this->makeStaff($this->clinicId, 'RECEPTION', 'accueil.test');
         $this->patientId = $this->seedPatient($this->clinicId);
-        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'));
     }
 
     protected function tearDown(): void
