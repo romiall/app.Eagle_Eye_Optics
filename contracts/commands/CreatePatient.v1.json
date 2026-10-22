@@ -136,7 +136,27 @@
     "guardian_contact": {
       "anyOf": [
         {
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 3,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            "relationship": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "phone": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "description": "Contact du responsable d’un mineur (extension facultative) : nom, lien, téléphone ; rien d’autre."
         },
         {
           "type": "null"
@@ -340,7 +360,27 @@
         "guardian_contact": {
           "anyOf": [
             {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 3,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                "relationship": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "phone": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                }
+              },
+              "description": "Contact du responsable d’un mineur (extension facultative) : nom, lien, téléphone ; rien d’autre."
             },
             {
               "type": "null"

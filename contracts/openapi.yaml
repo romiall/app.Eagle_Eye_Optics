@@ -532,10 +532,14 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
       x-permission:
         - "patient.read"
       x-reauthentication: false
@@ -547,6 +551,7 @@ paths:
       summary: "Créer un patient (numéro central)"
       tags:
         - "Patients"
+      description: "Rend la fiche créée : exige aussi patient.read. Module patients fermé : 404."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -569,6 +574,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -577,6 +584,7 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "patient.create"
+        - "patient.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePatient"
@@ -623,6 +631,7 @@ paths:
       summary: "Modifier l'identité (version attendue)"
       tags:
         - "Patients"
+      description: "Rend la fiche modifiée : exige aussi patient.read."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -661,6 +670,7 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "patient.update"
+        - "patient.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "UpdatePatient"

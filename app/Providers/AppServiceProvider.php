@@ -54,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
     private function limitAuthenticationAttempts(): void
     {
         RateLimiter::for('eeo-login-ip', static fn (Request $request): Limit => Limit::perMinute(20)->by('ip:'.$request->ip()));
+        // Recherche de patients : un compte ne parcourt pas le registre à la chaîne (valeur configurable).
+        RateLimiter::for('eeo-patient-search', static fn (Request $request): Limit => Limit::perMinute((int) config('eeo.rate_limits.patient_search', 120))->by('patient-search:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('eeo-reauthenticate', static fn (Request $request): Limit => Limit::perMinute(5)->by('reauth:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 

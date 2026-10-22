@@ -16,6 +16,11 @@ use stdClass;
  * - La date de naissance est connue et non future, ou son absence est expliquée : jamais de date inventée.
  * - Le téléphone principal est renseigné, ou son absence est expliquée. Un téléphone peut être partagé.
  * - Les colonnes `name_search` et `*_normalized` sont toujours recalculées ici, jamais reprises du client.
+ * - Aucun caractère de contrôle dans les champs d'une ligne (l'adresse admet les retours à la ligne).
+ * - Le contact du responsable d'un mineur (extension facultative) ne porte que `name`, `relationship` et `phone`.
+ * - Les champs d'import historique (création seulement) sont cohérents entre eux : une première visite connue
+ *   n'est ni future ni antérieure à la naissance, « certifiée » exige une date, un ancien numéro exige un
+ *   dossier d'import.
  *
  * Toutes les erreurs sont rendues ensemble (422 `VALIDATION_FAILED`, une entrée par champ) : l'écran
  * conserve la saisie et désigne chaque champ en cause. `$fieldPrefix` désigne le conteneur dans une
@@ -31,8 +36,15 @@ final class PatientIdentity
         'phone_primary', 'phone_secondary', 'phone_missing_reason', 'address', 'profession', 'guardian_contact',
     ];
 
+    /** Clés admises du contact du responsable et longueur maximale de leur valeur. */
+    private const GUARDIAN_KEYS = ['name' => 180, 'relationship' => 80, 'phone' => 32];
+
+    /** Longueur de la colonne `name_search` (VARCHAR(320)) : la décomposition NFD peut allonger un nom. */
+    private const NAME_SEARCH_MAX = 320;
+
     /**
-     * @param  array<string, mixed>  $input  état complet de l'identité (clés de FIELDS)
+     * @param  array<string, mixed>  $input  état complet de l'identité (clés de FIELDS) ; avec la clé
+     *                                       `legacy_record`, les champs d'import historique sont aussi validés
      * @return array<string, mixed> colonnes de `patient_records` à écrire (dérivées comprises)
      *
      * @throws BusinessError
@@ -53,6 +65,13 @@ final class PatientIdentity
                 return null;
             }
         };
+        $oneLine = static function (string $field, ?string $value) use ($fail): ?string {
+            if ($value !== null && preg_match('/\p{Cc}/u', $value) === 1) {
+                $fail($field, 'Ce champ ne peut pas contenir de caractère de contrôle.');
+            }
+
+            return $value;
+        };
 
         $lastName = Text::trim((string) ($input['last_name'] ?? ''));
         $nameKey = $attempt('last_name', static fn (): string => Text::searchKey($lastName));
@@ -61,7 +80,8 @@ final class PatientIdentity
         } elseif (mb_strlen($lastName, 'UTF-8') > 120) {
             $fail('last_name', 'Ce texte dépasse 120 caractères.');
         }
-        $firstNames = $attempt('first_names', static fn (): ?string => Text::optional(self::text($input['first_names'] ?? null), 180, 'first_names'));
+        $oneLine('last_name', $lastName);
+        $firstNames = $oneLine('first_names', $attempt('first_names', static fn (): ?string => Text::optional(self::text($input['first_names'] ?? null), 180, 'first_names')));
 
         $sex = $input['sex'] ?? 'UNKNOWN';
         if (! is_string($sex) || ! in_array($sex, self::SEXES, true)) {
@@ -77,36 +97,43 @@ final class PatientIdentity
                 $fail('birth_date', 'La date de naissance ne peut pas être dans le futur.');
             }
         }
-        $birthReason = $attempt('birth_date_missing_reason', static fn (): ?string => Text::optional(self::text($input['birth_date_missing_reason'] ?? null), 255, 'birth_date_missing_reason'));
+        $birthReason = $oneLine('birth_date_missing_reason', $attempt('birth_date_missing_reason', static fn (): ?string => Text::optional(self::text($input['birth_date_missing_reason'] ?? null), 255, 'birth_date_missing_reason')));
         if ($birth === null && $birthReason === null && ! isset($errors[$fieldPrefix.'birth_date'])) {
             $fail('birth_date_missing_reason', 'Indiquez pourquoi la date de naissance est inconnue : aucune date n\'est inventée.');
         }
 
-        $primary = $attempt('phone_primary', static fn (): ?string => Text::optional(self::text($input['phone_primary'] ?? null), 32, 'phone_primary'));
+        $primary = $oneLine('phone_primary', $attempt('phone_primary', static fn (): ?string => Text::optional(self::text($input['phone_primary'] ?? null), 32, 'phone_primary')));
         $primaryNormalized = $primary === null ? null : $attempt('phone_primary', static fn (): ?string => Text::phone($primary, 'phone_primary'));
-        $secondary = $attempt('phone_secondary', static fn (): ?string => Text::optional(self::text($input['phone_secondary'] ?? null), 32, 'phone_secondary'));
+        $secondary = $oneLine('phone_secondary', $attempt('phone_secondary', static fn (): ?string => Text::optional(self::text($input['phone_secondary'] ?? null), 32, 'phone_secondary')));
         $secondaryNormalized = $secondary === null ? null : $attempt('phone_secondary', static fn (): ?string => Text::phone($secondary, 'phone_secondary'));
-        $phoneReason = $attempt('phone_missing_reason', static fn (): ?string => Text::optional(self::text($input['phone_missing_reason'] ?? null), 255, 'phone_missing_reason'));
+        $phoneReason = $oneLine('phone_missing_reason', $attempt('phone_missing_reason', static fn (): ?string => Text::optional(self::text($input['phone_missing_reason'] ?? null), 255, 'phone_missing_reason')));
         if ($primary === null && $phoneReason === null) {
             $fail('phone_missing_reason', 'Indiquez pourquoi le téléphone est inconnu.');
         }
 
         $address = $attempt('address', static fn (): ?string => Text::optional(self::text($input['address'] ?? null), 4000, 'address'));
-        $profession = $attempt('profession', static fn (): ?string => Text::optional(self::text($input['profession'] ?? null), 180, 'profession'));
+        if ($address !== null && preg_match('/[^\P{Cc}\n\r\t]/u', $address) === 1) {
+            $fail('address', 'Ce champ ne peut pas contenir de caractère de contrôle.');
+        }
+        $profession = $oneLine('profession', $attempt('profession', static fn (): ?string => Text::optional(self::text($input['profession'] ?? null), 180, 'profession')));
 
-        $guardian = $input['guardian_contact'] ?? null;
-        if ($guardian !== null && ! is_array($guardian)) {
-            $fail('guardian_contact', 'Le contact du responsable doit être un objet.');
-            $guardian = null;
+        $guardian = self::guardian($input['guardian_contact'] ?? null, $fail);
+
+        $columns = [];
+        if (array_key_exists('legacy_record', $input)) {
+            $columns = self::legacy($input, $birth, $today, $fail, $oneLine);
+        }
+
+        $nameSearch = $errors === [] ? Text::searchKey($lastName.' '.($firstNames ?? '')) : '';
+        if (mb_strlen($nameSearch, 'UTF-8') > self::NAME_SEARCH_MAX) {
+            $fail('last_name', 'Le nom et les prénoms sont trop longs pour la recherche.');
         }
 
         if ($errors !== []) {
             throw BusinessError::validation($errors);
         }
 
-        $nameSearch = Text::searchKey($lastName.' '.($firstNames ?? ''));
-
-        return [
+        return $columns + [
             'last_name' => $lastName,
             'first_names' => $firstNames,
             'sex' => $sex,
@@ -120,7 +147,7 @@ final class PatientIdentity
             'name_search' => $nameSearch,
             'address' => $address,
             'profession' => $profession,
-            'guardian_contact' => $guardian === null || $guardian === [] ? null : json_encode((object) $guardian, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'guardian_contact' => $guardian === null ? null : json_encode((object) $guardian, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ];
     }
 
@@ -145,6 +172,85 @@ final class PatientIdentity
             'address' => $row->address,
             'profession' => $row->profession,
             'guardian_contact' => is_string($guardian) ? json_decode($guardian, true, 512, JSON_THROW_ON_ERROR) : null,
+        ];
+    }
+
+    /**
+     * Contact du responsable : `name`, `relationship`, `phone` (texte non vide borné), rien d'autre. Vide → null.
+     *
+     * @return array<string, string>|null
+     */
+    private static function guardian(mixed $value, callable $fail): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (! is_array($value) || ($value !== [] && array_is_list($value))) {
+            $fail('guardian_contact', 'Le contact du responsable est un objet (nom, lien, téléphone).');
+
+            return null;
+        }
+
+        $clean = [];
+        foreach ($value as $key => $item) {
+            $max = self::GUARDIAN_KEYS[$key] ?? null;
+            $text = is_string($item) ? Text::trim($item) : '';
+            if ($max === null) {
+                $fail('guardian_contact', 'Seuls le nom, le lien et le téléphone du responsable sont admis.');
+            } elseif ($text === '' || mb_strlen($text, 'UTF-8') > $max || preg_match('/\p{Cc}/u', $text) === 1) {
+                $fail('guardian_contact', "La valeur « {$key} » du responsable est vide, trop longue ou invalide.");
+            } else {
+                $clean[$key] = $text;
+            }
+        }
+
+        return $clean === [] ? null : $clean;
+    }
+
+    /**
+     * Champs d'import historique d'une création, cohérents entre eux.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private static function legacy(array $input, ?CivilDate $birth, CivilDate $today, callable $fail, callable $oneLine): array
+    {
+        $legacy = $input['legacy_record'] === true;
+        $certified = ($input['first_visit_certified'] ?? false) === true;
+
+        $first = null;
+        $firstRaw = $input['first_known_visit_on'] ?? null;
+        if ($firstRaw !== null) {
+            try {
+                $first = CivilDate::parse(is_string($firstRaw) ? $firstRaw : '', 'first_known_visit_on');
+            } catch (RuleViolation $violation) {
+                $fail('first_known_visit_on', $violation->getMessage());
+            }
+            if ($first !== null && $first->compare($today) > 0) {
+                $fail('first_known_visit_on', 'La première visite connue ne peut pas être dans le futur.');
+            } elseif ($first !== null && $birth !== null && $first->compare($birth) < 0) {
+                $fail('first_known_visit_on', 'La première visite connue ne peut pas précéder la naissance.');
+            }
+        }
+        if ($certified && $first === null && $firstRaw === null) {
+            $fail('first_visit_certified', 'Une première visite certifiée exige sa date.');
+        }
+
+        $number = null;
+        try {
+            $number = $oneLine('legacy_record_number', Text::optional(self::text($input['legacy_record_number'] ?? null), 64, 'legacy_record_number'));
+        } catch (RuleViolation $violation) {
+            $fail('legacy_record_number', $violation->getMessage());
+        }
+        if ($number !== null && ! $legacy) {
+            $fail('legacy_record_number', 'Un ancien numéro de dossier n\'existe que pour un dossier repris de l\'ancien registre.');
+        }
+
+        return [
+            'legacy_record' => $legacy,
+            'first_known_visit_on' => $first?->toString(),
+            'first_visit_certified' => $certified,
+            'legacy_record_number' => $number,
         ];
     }
 

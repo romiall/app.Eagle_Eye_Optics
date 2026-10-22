@@ -63,7 +63,12 @@ final class DocumentNumbers
         $key = sprintf('%s:%04d', $type, $year);
 
         $row = $locks->sequences([[$type, $year]])[$key] ?? null;
-        $next = $row === null ? 1 : ((int) $row->last_value) + 1;
+        // Jamais en retard sur ce qui est déjà consommé : une séquence désynchronisée (restauration, import)
+        // ne produit pas un numéro déjà utilisé.
+        $used = (int) DB::table('document_number_usages')
+            ->where('clinic_id', $context->clinicId)->where('document_type', $type)->where('document_year', $year)
+            ->max('number_value');
+        $next = max($row === null ? 0 : (int) $row->last_value, $used) + 1;
         $rendered = self::render($type, $year, $next);
 
         if ($row === null) {

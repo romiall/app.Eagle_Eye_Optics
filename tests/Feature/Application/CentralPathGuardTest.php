@@ -191,6 +191,13 @@ final class CentralPathGuardTest extends TestCase
             $this->assertContains(CommandSource::Direct, $definition->sources, $name.' : route directe.');
             $this->assertContains(CommandSource::Sync, $definition->sources, $name.' : journal d\'un poste.');
             $this->assertFileExists(base_path('contracts/'.$contract['schema']));
+
+            // Le corps de la route directe est validé contre le DirectRequest du schéma de la commande.
+            $schema = json_decode((string) file_get_contents(base_path('contracts/'.$contract['schema'])), true, 512, JSON_THROW_ON_ERROR);
+            if (isset($schema['$defs']['DirectRequest'])) {
+                $this->assertSame($contract['schema'].'#/$defs/DirectRequest', $definition->directSchema, $name.' : schéma du corps de la route directe.');
+                $this->assertContains('expected_version', $schema['$defs']['DirectRequest']['required'], $name.' : version attendue dans le corps direct.');
+            }
         }
 
         $this->addToAssertionCount(1);

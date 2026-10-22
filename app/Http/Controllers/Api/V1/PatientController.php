@@ -41,6 +41,9 @@ final class PatientController extends CommandController
         if ($expected !== null) {
             throw BusinessError::validation(['expected_version' => ['La version attendue vaut null à la création.']]);
         }
+        if (! array_key_exists('expected_version', $request->json()->all())) {
+            throw BusinessError::validation(['expected_version' => ['Champ obligatoire absent (null à la création).']]);
+        }
 
         $patientId = is_string($payload['patient_id'] ?? null) ? $payload['patient_id'] : null;
         $result = $this->dispatchCommand($request, new Command('CreatePatient', $payload, $patientId, null));

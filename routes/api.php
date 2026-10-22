@@ -66,16 +66,20 @@ Route::prefix('v1')->group(function (): void {
         // chaque route répond 404 comme si elle n'existait pas. Écritures par le chemin central de commandes.
         Route::middleware('module:patients')->group(function (): void {
             Route::get('patients', [PatientController::class, 'index'])
-                ->middleware('can:patient.read')
+                ->middleware(['can:patient.read', 'throttle:eeo-patient-search'])
                 ->name('api.patients.index');
+            // La réponse d'une écriture est la fiche complète : elle exige aussi patient.read (une dérogation
+            // qui retire la lecture ne se contourne pas par l'écriture).
             Route::post('patients', [PatientController::class, 'store'])
-                ->middleware('can:patient.create')
+                ->middleware(['can:patient.create', 'can:patient.read'])
                 ->name('api.patients.store');
             Route::get('patients/{id}', [PatientController::class, 'show'])
                 ->middleware('can:patient.read')
+                ->whereUlid('id')
                 ->name('api.patients.show');
             Route::patch('patients/{id}', [PatientController::class, 'update'])
-                ->middleware('can:patient.update')
+                ->middleware(['can:patient.update', 'can:patient.read'])
+                ->whereUlid('id')
                 ->name('api.patients.update');
         });
 

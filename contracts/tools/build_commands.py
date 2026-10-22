@@ -237,7 +237,9 @@ PATIENT_FIELDS = {
     'phone_missing_reason': nullable(text(255)),
     'address': N_TEXT,
     'profession': nullable(text(180)),
-    'guardian_contact': nullable({'type': 'object'}),
+    'guardian_contact': nullable({'type': 'object', 'additionalProperties': False, 'maxProperties': 3,
+                                  'properties': {'name': text(180), 'relationship': text(80), 'phone': text(32)},
+                                  'description': 'Contact du responsable d’un mineur (extension facultative) : nom, lien, téléphone ; rien d’autre.'}),
 }
 
 # nom : (entité, permission, version attendue, route directe, description, propriétés, règles supplémentaires)

@@ -4,9 +4,12 @@ namespace App\Application\Locking;
 
 /**
  * Rang de chaque verrou dans l'ordre unique de L0 (contrat 23, « Chemin transactionnel central ») :
- * cabinet → appareil si journal → idempotence → séquences/plages → propriété de facture → facture → session de
- * caisse → positions, lots et quotas par identifiant trié → approbation. Les comptes du personnel (`users`) se
- * verrouillent juste après le cabinet (décision F05 : cabinet → compte).
+ * cabinet → appareil si journal → idempotence → séquences/plages → dossier patient → visite → consultation →
+ * propriété de facture → facture → session de caisse → positions, lots et quotas par identifiant trié →
+ * approbation. Les comptes du personnel (`users`) se verrouillent juste après le cabinet (décision F05 :
+ * cabinet → compte). Le dossier patient (45), la visite (46) et la consultation (47) s'ajoutent à l'ordre du
+ * contrat 23 (écart consigné au journal) : une écriture clinique part du parent vers l'enfant, puis vers la
+ * facture qu'elle déclenche.
  *
  * Toutes les actions, ainsi que les opérations de préparation et de transfert de poste, verrouillent dans
  * cet ordre ; aucun contrôleur ne verrouille en sens inverse. Deux transactions qui prennent leurs lignes dans

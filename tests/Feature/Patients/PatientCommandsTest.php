@@ -436,13 +436,104 @@ final class PatientCommandsTest extends TestCase
 
     public function test_la_fiche_se_relit_avec_ses_champs_complets(): void
     {
-        $body = $this->body(['address' => 'Quartier fictif, Douala', 'profession' => 'Enseignante', 'guardian_contact' => ['nom' => 'Responsable fictif']]);
+        $body = $this->body(['address' => 'Quartier fictif, Douala', 'profession' => 'Enseignante', 'guardian_contact' => ['name' => 'Responsable fictif', 'relationship' => 'Mère']]);
         $this->createPatient($body)->assertCreated();
 
         $response = $this->actingAsFresh($this->makeStaff($this->clinicId, 'CASHIER'))->getJson('/api/v1/patients/'.$body['patient_id']);
 
-        $response->assertOk()->assertJsonPath('data.address', 'Quartier fictif, Douala')->assertJsonPath('data.guardian_contact.nom', 'Responsable fictif');
+        $response->assertOk()->assertJsonPath('data.address', 'Quartier fictif, Douala')->assertJsonPath('data.guardian_contact.name', 'Responsable fictif');
         $this->assertMatchesContract($response, 'schemas/resources/patients.json#/$defs/PatientResponse');
+    }
+
+    public function test_le_contact_du_responsable_est_borne_et_n_entre_pas_dans_l_audit(): void
+    {
+        foreach ([
+            ['password' => 'secret'],
+            ['name' => str_repeat('x', 181)],
+            ['name' => ''],
+            ['name' => 'Responsable', 'extra' => 'non admis'],
+            ['name' => 'a', 'relationship' => 'b', 'phone' => 'c', 'x' => 'd'],
+        ] as $contact) {
+            $this->createPatient($this->body(['guardian_contact' => $contact]))->assertStatus(422);
+        }
+        $this->assertSame(0, DB::table('patient_records')->count());
+
+        $body = $this->body(['guardian_contact' => ['name' => 'Responsable fictif']]);
+        $this->createPatient($body)->assertCreated();
+        $this->updatePatient($body['patient_id'], 1, ['guardian_contact' => ['name' => 'Autre responsable']])->assertOk();
+
+        $diff = json_decode((string) DB::table('audit_events')->where('action', 'patient.updated')->value('sanitized_diff'), true);
+        $this->assertEquals(['guardian_contact' => ['modifie' => true]], $diff);
+    }
+
+    public function test_les_champs_d_import_historique_sont_valides_et_coherents(): void
+    {
+        foreach ([
+            ['first_known_visit_on' => '2026-02-30'],
+            ['first_known_visit_on' => '2026-10-23'],
+            ['first_known_visit_on' => '1980-01-01'],
+            ['first_visit_certified' => true],
+            ['legacy_record_number' => 'ANC-001'],
+        ] as $overrides) {
+            $response = $this->createPatient($this->body($overrides));
+            $this->assertSame(422, $response->status(), json_encode($overrides, JSON_UNESCAPED_UNICODE).' => '.$response->getContent());
+        }
+        $this->assertSame(0, DB::table('patient_records')->count());
+
+        $this->createPatient($this->body(['legacy_record' => true, 'legacy_record_number' => 'ANC-001', 'first_known_visit_on' => '2015-03-04', 'first_visit_certified' => true]))
+            ->assertCreated()
+            ->assertJsonPath('data.legacy_record', true)
+            ->assertJsonPath('data.legacy_record_number', 'ANC-001')
+            ->assertJsonPath('data.first_known_visit_on', '2015-03-04');
+    }
+
+    public function test_les_caracteres_de_controle_et_les_noms_trop_longs_pour_la_recherche_sont_refuses(): void
+    {
+        $this->createPatient($this->body(['last_name' => "Nom\u{0007}piégé"]))->assertStatus(422);
+        $this->createPatient($this->body(['profession' => "Pro\u{001B}fession"]))->assertStatus(422);
+        // Une adresse peut comporter des retours à la ligne.
+        $this->createPatient($this->body(['address' => "Quartier fictif\nPorte 3"]))->assertCreated();
+        // Une décomposition NFD qui dépasse 320 caractères (syllabes hangul : trois lettres chacune) est un 422,
+        // jamais une erreur SQL « Data too long ».
+        $this->createPatient($this->body(['last_name' => str_repeat("\u{D55C}", 120), 'first_names' => str_repeat("\u{D55C}", 180)]))->assertStatus(422);
+    }
+
+    public function test_le_droit_de_lecture_retire_par_derogation_n_est_pas_contourne_par_l_ecriture(): void
+    {
+        DB::table('user_permissions')->insert([
+            'id' => Ulid::generate(),
+            'clinic_id' => $this->clinicId,
+            'user_id' => $this->reception->id,
+            'permission_code' => 'patient.read',
+            'allowed' => false,
+            'assigned_by' => $this->reception->id,
+            'reason' => 'Test',
+            'expires_at' => null,
+            'created_at' => '2026-01-01 00:00:00.000000',
+            'updated_at' => '2026-01-01 00:00:00.000000',
+        ]);
+
+        $this->createPatient($this->body())->assertStatus(403);
+        $this->assertSame(0, DB::table('patient_records')->count());
+    }
+
+    public function test_la_version_attendue_est_obligatoire_dans_le_corps_et_l_identifiant_doit_etre_un_ulid(): void
+    {
+        $body = $this->body();
+        unset($body['expected_version']);
+        $this->createPatient($body)->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['expected_version']]]);
+
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients/not-a-ulid')->assertNotFound();
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients/%C3%A9%C3%A9')->assertNotFound();
+    }
+
+    public function test_une_sequence_en_retard_sur_les_numeros_deja_consommes_ne_redonne_jamais_un_numero(): void
+    {
+        $this->createPatient($this->body())->assertCreated();
+        $this->createPatient($this->body())->assertCreated();
+        DB::table('document_sequences')->where('clinic_id', $this->clinicId)->update(['last_value' => 0]);
+
+        $this->createPatient($this->body())->assertCreated()->assertJsonPath('data.record_number', 'EE-2026-0003');
     }
 
     public function test_une_source_autre_que_la_route_directe_est_refusee_tant_que_les_plages_n_existent_pas(): void

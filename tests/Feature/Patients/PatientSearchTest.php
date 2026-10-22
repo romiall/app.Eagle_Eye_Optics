@@ -121,7 +121,8 @@ final class PatientSearchTest extends TestCase
         $this->assertSame(['Alpha'], $this->names('600000001'));
         $this->assertSame(['Alpha'], $this->names('+237 600 00 00 01'));
         $this->assertSame(['Beta'], $this->names('699 00 00'));
-        $this->assertSame(['Alpha', 'Beta'], $this->names('00'));
+        // « 00 » initial = « + » : « 0000 » cherche « 00 » (les chiffres communs aux deux numéros).
+        $this->assertSame(['Alpha', 'Beta'], $this->names('0000'));
     }
 
     public function test_la_recherche_par_numero_de_dossier_complet_prefixe_ou_fin(): void
@@ -159,6 +160,7 @@ final class PatientSearchTest extends TestCase
         $this->assertSame(['Alpha'], $this->names('a_p'));
         $this->assertSame([], $this->names('EE-%'));
         $this->assertSame([], $this->names('EE-2026-00_1'));
+        $this->assertSame([], $this->names('EE-2026-00%'));
         $this->assertSame([], $this->names("x'; DROP TABLE patient_records; --"));
         $this->assertSame(2, DB::table('patient_records')->count());
 
@@ -198,6 +200,54 @@ final class PatientSearchTest extends TestCase
 
         config(['eeo.enabled_modules' => []]);
         $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=al')->assertNotFound();
+    }
+
+    public function test_le_telephone_saisi_avec_ou_sans_indicatif_retrouve_la_fiche_dans_les_deux_sens(): void
+    {
+        $this->seedPatient('Alpha', null, '600000001');
+        $this->seedPatient('Beta', null, '+237 699 00 00 02');
+        $this->seedPatient('Gamma', null, '123');
+
+        // Enregistré sans indicatif, saisi avec : retrouvé par la fin du numéro saisi.
+        $this->assertSame(['Alpha'], $this->names('+237 600 00 00 01'));
+        $this->assertSame(['Alpha'], $this->names('00237 600 00 00 01'));
+        // Enregistré avec indicatif, saisi avec « 00 » ou sans indicatif.
+        $this->assertSame(['Beta'], $this->names('00237 699 00 00 02'));
+        $this->assertSame(['Beta'], $this->names('699 00 00 02'));
+        // Un numéro enregistré trop court n'est jamais pris pour la fin d'un numéro saisi.
+        $this->assertSame([], $this->names('+237 600 00 00 123'));
+    }
+
+    public function test_une_requete_trop_longue_mal_encodee_ou_une_page_hors_borne_est_refusee(): void
+    {
+        $this->seedPatient('Alpha', null, '600000001');
+
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query='.str_repeat('a', 101))->assertStatus(422);
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=%FFab')->assertStatus(422);
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=al&page=100001')->assertStatus(422);
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=al&page=9223372036854775807')->assertStatus(422);
+        $this->assertSame(['Alpha'], $this->names('al'));
+    }
+
+    public function test_un_nom_qui_commence_par_ee_reste_cherche_comme_un_nom(): void
+    {
+        $this->seedPatient('Eekhout', 'Paul', '600000001');
+
+        $this->assertSame(['Eekhout'], $this->names('Ee-khout'));
+        $this->assertSame([], $this->names('EE-2099'));
+    }
+
+    public function test_la_recherche_est_limitee_en_debit_par_compte(): void
+    {
+        config(['eeo.rate_limits.patient_search' => 3]);
+        $this->seedPatient('Alpha', null, '600000001');
+
+        foreach ([1, 2, 3] as $attempt) {
+            $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=alpha')->assertOk();
+        }
+        $this->actingAsFresh($this->reception)->getJson('/api/v1/patients?query=alpha')
+            ->assertStatus(429)
+            ->assertJsonPath('error.code', 'RATE_LIMITED');
     }
 
     public function test_pagination_de_25_en_ordre_stable_meme_avec_des_homonymes(): void

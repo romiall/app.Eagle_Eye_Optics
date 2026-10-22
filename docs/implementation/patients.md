@@ -10,9 +10,9 @@ explicitement tant que les plages de numéros (O03) n'existent pas.
 | Méthode et route | Permission | Rôle |
 | --- | --- | --- |
 | `GET /api/v1/patients?query=&page=` | `patient.read` | Recherche (P02) : `PatientPage`, 25 par page |
-| `POST /api/v1/patients` | `patient.create` | Création (commande `CreatePatient`, `Idempotency-Key` obligatoire) |
+| `POST /api/v1/patients` | `patient.create` et `patient.read` | Création (commande `CreatePatient`, `Idempotency-Key` obligatoire) ; la réponse est la fiche, d'où la lecture |
 | `GET /api/v1/patients/{id}` | `patient.read` | Fiche complète (`PatientResponse`) |
-| `PATCH /api/v1/patients/{id}` | `patient.update` | Modification (commande `UpdatePatient`, version attendue) |
+| `PATCH /api/v1/patients/{id}` | `patient.update` et `patient.read` | Modification (commande `UpdatePatient`, version attendue) |
 
 Module fermé : chaque route répond 404 `RESOURCE_NOT_FOUND`, avant toute vérification de droit
 (`docs/implementation/modules.md`). Rôles du référentiel : la gérante et l'accueil créent et modifient ;
@@ -34,8 +34,15 @@ n'a ni table ni commande : écart documenté ci-dessous).
   cabinet) ou absence expliquée, jamais de date inventée ; téléphone principal ou absence expliquée ;
   sexe `F`, `M` ou `UNKNOWN`. Une raison d'absence n'est conservée que si la valeur est absente. Les
   colonnes `name_search` et `*_normalized` sont toujours recalculées par le serveur. Toutes les erreurs
-  sont rendues ensemble (422, une entrée par champ). La date de naissance accepte `JJ/MM/AAAA` et
-  `AAAA-MM-JJ`.
+  sont rendues ensemble (422, une entrée par champ). L'API n'accepte que `AAAA-MM-JJ` pour les dates
+  (la saisie `JJ/MM/AAAA` relève de l'écran, qui la convertit).
+- Aucun caractère de contrôle dans les champs d'une ligne (l'adresse admet les retours à la ligne) ; une
+  clé de recherche qui dépasse 320 caractères après décomposition (syllabes hangul, par exemple) est un 422,
+  jamais une erreur SQL.
+- **Contact du responsable** d'un mineur (extension facultative) : un objet `name` (180), `relationship`
+  (80), `phone` (32), rien d'autre ; l'audit ne recopie pas son contenu (« modifié » seulement).
+- **Champs d'import historique** (création) : première visite connue ni future ni antérieure à la
+  naissance, « certifiée » exige une date, un ancien numéro exige `legacy_record`.
 - Un homonyme ou un téléphone partagé ne bloque jamais l'enregistrement. Le signalement des
   ressemblances (sans fusion) est fait par l'écran avant l'enregistrement, à partir de la recherche
   (aucune route de « contrôle de doublon » n'existe au contrat).
@@ -57,8 +64,11 @@ n'a ni table ni commande : écart documenté ci-dessous).
 
 ## Recherche (P02)
 
-Deux caractères au moins (422 sinon). Numéro de dossier (requête qui commence par `EE-`, préfixe) ;
-chiffres (téléphones normalisés, qui ne déduisent aucun indicatif, et fin du numéro de dossier) ;
+Deux caractères au moins et cent au plus (422 sinon, y compris texte mal encodé ou page hors de 1 à
+100 000) ; 120 recherches par minute et par compte (429). Numéro de dossier (`EE-AAAA` ou `EE-AAAA-NNNN`,
+préfixe ; `AAAA-NNNN`, fin du numéro) ; chiffres (téléphones normalisés, comparés dans les deux sens sans
+déduire d'indicatif : un numéro saisi avec `+237` ou `00237` retrouve un numéro enregistré sans indicatif de
+7 chiffres au moins, et inversement ; fin du numéro de dossier) ;
 sinon nom et prénoms (accents, casse et ponctuation ignorés, ordre des mots indifférent, tous les mots
 doivent se retrouver). Les jokers de `LIKE` sont échappés. Toujours limitée au cabinet ; les fiches
 fusionnées ne sont pas proposées ; tri stable (`name_search`, numéro, identifiant). La liste ne porte que
@@ -111,6 +121,10 @@ le marqueur `exam_fee_control`.
 | Détection de doublons côté serveur | Signalement par l'écran (recherche avant création) ; pas de route dédiée au contrat. Règle de ressemblance à confirmer (nom identique et même naissance ou même téléphone). |
 | Création depuis un poste hors-ligne | Refusée (403) jusqu'à O03 (plages) et O05 (synchronisation). |
 | Alignement des droits de la navigation « Aujourd'hui » avec la route de la file (`visit.register` ou `agenda.read`) | À faire dans l'écran P03. |
+| Ligatures (œ, æ, ß) et noms collés (`dupont` / `du pont`) | Non repliés par `searchKey` (vecteurs PHP/TS partagés à modifier ensemble) : à traiter avec la revue d'usage. |
+| Téléphone : plafond de 15 chiffres, séparateur `/` | Non traité (`Text::phone`, vecteurs partagés). |
+| Horloge du numéro | `context->now` est figé avant l'attente du verrou du cabinet ; l'année d'un numéro créé juste à minuit local peut être celle d'avant. À corriger avant I00. |
+| Identifiants fournis par le client | Unicité globale (clé primaire) : un identifiant pris dans un autre cabinet répond comme un identifiant pris ici ; la course entre deux cabinets reste une erreur 500 (improbable : ULID aléatoires). |
 | Recherche : fiches archivées | Proposées (indicateur `archived`) ; à confirmer. |
 | Structure du contact du responsable (`guardian_contact`) | Objet JSON libre, sans écran dans P01. |
 | Performance de la recherche | À mesurer (20 000 patients) ; un index de préfixe ou une recherche plein texte seront envisagés si la cible n'est pas tenue. |

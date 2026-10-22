@@ -151,8 +151,8 @@ final class PatientIdentityTest extends TestCase
     {
         $this->assertNull(PatientIdentity::columns($this->input(['guardian_contact' => []]), $this->today())['guardian_contact']);
 
-        $columns = PatientIdentity::columns($this->input(['guardian_contact' => ['nom' => 'Responsable fictif']]), $this->today());
-        $this->assertSame('{"nom":"Responsable fictif"}', $columns['guardian_contact']);
+        $columns = PatientIdentity::columns($this->input(['guardian_contact' => ['name' => 'Responsable fictif']]), $this->today());
+        $this->assertSame('{"name":"Responsable fictif"}', $columns['guardian_contact']);
     }
 
     /**

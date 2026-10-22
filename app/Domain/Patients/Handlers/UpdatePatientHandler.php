@@ -66,7 +66,8 @@ final class UpdatePatientHandler implements CommandHandler
                 ? CanonicalJson::hash([$old]) === CanonicalJson::hash([$new])
                 : $old === $new;
             if (! $same) {
-                $diff[$field] = ['avant' => $old, 'apres' => $new];
+                // Le contact du responsable (texte libre borné) n'est pas recopié dans le journal d'audit.
+                $diff[$field] = $field === 'guardian_contact' ? ['modifie' => true] : ['avant' => $old, 'apres' => $new];
             }
         }
 

@@ -31,6 +31,11 @@ return [
 
     'clinic_currency' => env('CLINIC_CURRENCY', 'XAF'),
 
+    // Limites de débit par compte (requêtes par minute).
+    'rate_limits' => [
+        'patient_search' => (int) env('EEO_RATE_PATIENT_SEARCH', 120),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Mise en service progressive des modules
