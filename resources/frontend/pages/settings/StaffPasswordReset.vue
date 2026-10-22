@@ -45,7 +45,8 @@ const localErrors = computed<Record<string, string>>(() => {
   if (confirmation.value !== password.value) {
     errors[IDS.confirmation] = 'La confirmation est différente du mot de passe.'
   }
-  if (reason.value.trim().length < 3) errors[IDS.reason] = 'Indiquez le motif (3 caractères au moins).'
+  if (reason.value.trim().length < 3)
+    errors[IDS.reason] = 'Indiquez le motif (3 caractères au moins).'
   return errors
 })
 
@@ -121,7 +122,9 @@ function forget(): void {
     </StateMessage>
     <div v-if="shown" class="space-y-2 rounded-lg border-2 border-accent bg-surface p-3">
       <p>Nouveau mot de passe (affiché une seule fois) :</p>
-      <p class="rounded-lg border-2 border-line bg-primary-soft px-3 py-2 font-mono text-lg break-all">
+      <p
+        class="rounded-lg border-2 border-line bg-primary-soft px-3 py-2 font-mono text-lg break-all"
+      >
         {{ shown }}
       </p>
       <AppButton variant="secondary" @click="forget">J’ai noté, masquer</AppButton>
@@ -131,7 +134,13 @@ function forget(): void {
       <ErrorSummary :errors="summary" />
       <StateMessage
         v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
-        :state="writer.state.value === 'conflict' ? 'conflict' : writer.state.value === 'uncertain' ? 'offline' : 'error'"
+        :state="
+          writer.state.value === 'conflict'
+            ? 'conflict'
+            : writer.state.value === 'uncertain'
+              ? 'offline'
+              : 'error'
+        "
         title="Mot de passe non réinitialisé"
       >
         {{ writer.message.value }}

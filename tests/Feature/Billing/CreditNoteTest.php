@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Shared\Ulid;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\ApprovalFixtures;
@@ -38,7 +39,7 @@ final class CreditNoteTest extends TestCase
      * @param  list<array<string, mixed>>  $lines
      * @param  array<string, mixed>  $overrides
      */
-    private function credit(string $invoice, int $version, array $lines, array $overrides = [], ?\App\Models\User $as = null, ?string $key = null): TestResponse
+    private function credit(string $invoice, int $version, array $lines, array $overrides = [], ?User $as = null, ?string $key = null): TestResponse
     {
         return $this->writeReauthenticated('POST', '/api/v1/invoices/'.$invoice.'/credit-notes', $this->creditNoteBody($invoice, $version, $lines, $overrides), $as ?? $this->manager, $key);
     }

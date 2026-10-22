@@ -51,7 +51,8 @@ watch(
     try {
       const result = await getPatient(id)
       if (result.data.id !== id) {
-        problem.value = 'Le serveur a répondu avec une autre fiche que celle demandée : rien n’est affiché.'
+        problem.value =
+          'Le serveur a répondu avec une autre fiche que celle demandée : rien n’est affiché.'
       } else {
         patient.value = result.data
       }
@@ -67,7 +68,9 @@ watch(
 
 const living = computed(
   () =>
-    patient.value !== null && !patient.value.archived && patient.value.merged_into_patient_id === null,
+    patient.value !== null &&
+    !patient.value.archived &&
+    patient.value.merged_into_patient_id === null,
 )
 
 async function search(query: string): Promise<ComboboxSearchResult> {
@@ -107,8 +110,8 @@ async function onCreated(invoice: Invoice): Promise<void> {
         unavailable-text="Recherche serveur indisponible : cela ne prouve pas que le patient n’existe pas."
       />
       <StateMessage v-else state="forbidden" title="Choix du patient impossible">
-        Ce compte ne peut pas rechercher les patients : ouvrez la facture depuis la fiche du patient ou
-        depuis la file du jour.
+        Ce compte ne peut pas rechercher les patients : ouvrez la facture depuis la fiche du patient
+        ou depuis la file du jour.
       </StateMessage>
     </template>
 
@@ -117,11 +120,7 @@ async function onCreated(invoice: Invoice): Promise<void> {
       {{ problem }}
     </StateMessage>
 
-    <StateMessage
-      v-if="patient && !living"
-      state="error"
-      title="Fiche archivée ou fusionnée"
-    >
+    <StateMessage v-if="patient && !living" state="error" title="Fiche archivée ou fusionnée">
       Cette fiche ne reçoit plus de nouvelle facture. Ouvrez la fiche conservée.
     </StateMessage>
 

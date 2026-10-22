@@ -20,6 +20,8 @@ const props = withDefaults(
      * il COMMENCE par le libellé visible (WCAG 2.5.3) et nomme l'objet de l'action.
      */
     accessibleName?: string | undefined
+    /** Bouton à bascule (un filtre) : état annoncé par `aria-pressed` ; absent pour un bouton d'action. */
+    pressed?: boolean | undefined
   }>(),
   {
     variant: 'primary',
@@ -29,6 +31,7 @@ const props = withDefaults(
     pendingLabel: 'Traitement en cours…',
     id: undefined,
     accessibleName: undefined,
+    pressed: undefined,
   },
 )
 
@@ -49,6 +52,7 @@ const variants: Record<string, string> = {
     :aria-label="props.accessibleName"
     :disabled="props.disabled || props.pending"
     :aria-busy="props.pending ? 'true' : undefined"
+    :aria-pressed="props.pressed === undefined ? undefined : props.pressed ? 'true' : 'false'"
     :class="[
       'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-base font-semibold',
       'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-ink',

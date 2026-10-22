@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Clinical;
 
+use App\Application\TransactionRunner;
 use App\Console\Commands\ManageAcuityScales;
 use App\Domain\Shared\Ulid;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\ClinicalFixtures;
@@ -111,6 +114,16 @@ final class VisualAcuityScalesTest extends TestCase
 
     public function test_l_echelle_reelle_du_cabinet_s_ajoute_dans_tout_environnement_sans_conversion(): void
     {
+        // La commande voit la production. Le chemin des transactions, lui, refuse hors « testing » de s'imbriquer dans la
+        // transaction qui enveloppe chaque test (et qui n'existe pas en vraie production) : il garde ici sa vue de test.
+        $testing = $this->createStub(Application::class);
+        $testing->method('environment')->willReturn(true);
+        $this->app->instance(TransactionRunner::class, new TransactionRunner(
+            $this->app->make(DatabaseManager::class),
+            $testing,
+            (int) config('eeo.transactions.max_attempts', 3),
+            (int) config('eeo.transactions.lock_wait_timeout_seconds', 10),
+        ));
         $this->app->detectEnvironment(static fn (): string => 'production');
 
         $this->artisan('eeo:clinical:scales', ['--code' => 'DIXIEMES_CABINET', '--label' => 'Dixièmes du cabinet', '--description' => 'Choisie par la cliente (fictif)', '--clinic' => $this->clinicId])->assertSuccessful();

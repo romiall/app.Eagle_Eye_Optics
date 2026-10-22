@@ -265,11 +265,18 @@ export function describeSubject(
   methodLabel: (method: string) => string,
 ): SubjectLine[] {
   if (subject === null) {
-    return [{ label: 'Contenu', value: 'Contenu exact non vérifiable : ne pas décider sur cette base.' }]
+    return [
+      { label: 'Contenu', value: 'Contenu exact non vérifiable : ne pas décider sur cette base.' },
+    ]
   }
   switch (subject.kind) {
     case 'EXAM_FEE_WAIVER':
-      return [{ label: 'Opération', value: 'Démarrer l’examen de cette visite sans facture de frais réglée' }]
+      return [
+        {
+          label: 'Opération',
+          value: 'Démarrer l’examen de cette visite sans facture de frais réglée',
+        },
+      ]
     case 'DRAFT_LINE_RIGHTS':
       return subject.lines.map((line) => ({
         label: `Ligne ${line.position}`,

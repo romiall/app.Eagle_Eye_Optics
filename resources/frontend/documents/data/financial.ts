@@ -413,7 +413,11 @@ export function invoiceFromResource(input: InvoiceResourceInput): InvoiceDocumen
     )
   }
   if (tax === undefined || tax === null) {
-    throw invalid('invoice.snapshot_missing', 'tax_snapshot', 'Le régime fiscal figé de la facture manque.')
+    throw invalid(
+      'invoice.snapshot_missing',
+      'tax_snapshot',
+      'Le régime fiscal figé de la facture manque.',
+    )
   }
   return {
     templateVersion: input.templateVersion,
@@ -456,7 +460,8 @@ export function statementRowsFromInvoices(invoices: readonly Invoice[]): {
   refunds: StatementRefundRow[]
 } {
   const issued = invoices.filter(
-    (invoice) => invoice.status === 'ISSUED' && invoice.number !== null && invoice.issued_at !== null,
+    (invoice) =>
+      invoice.status === 'ISSUED' && invoice.number !== null && invoice.issued_at !== null,
   )
   return {
     invoices: issued.map((invoice) => ({
@@ -482,7 +487,9 @@ export function statementRowsFromInvoices(invoices: readonly Invoice[]): {
     ),
     creditNotes: issued.flatMap((invoice) =>
       invoice.credit_notes
-        .filter((note) => note.status === 'ISSUED' && note.number !== null && note.issued_at !== null)
+        .filter(
+          (note) => note.status === 'ISSUED' && note.number !== null && note.issued_at !== null,
+        )
         .map((note) => ({
           number: note.number ?? '',
           issuedAt: note.issued_at ?? '',

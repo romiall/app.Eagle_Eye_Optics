@@ -29,7 +29,11 @@ import {
   type StepsData,
 } from '@/domain/clinical/compare'
 import { DELIVERED_STEPS, STEP_TITLES } from '@/domain/clinical/labels'
-import type { ClinicalRevisionDetail, Consultation, VisualAcuityScale } from '@/domain/contracts/generated'
+import type {
+  ClinicalRevisionDetail,
+  Consultation,
+  VisualAcuityScale,
+} from '@/domain/contracts/generated'
 
 import ConsultationReadMessage from './ConsultationReadMessage.vue'
 import { useClinicalRead } from './useClinicalRead'
@@ -87,10 +91,14 @@ async function ensure(revisionNo: number | null): Promise<void> {
   }
 }
 
-watch([leftNo, rightNo], ([left, right]) => {
-  void ensure(left)
-  void ensure(right)
-}, { immediate: true })
+watch(
+  [leftNo, rightNo],
+  ([left, right]) => {
+    void ensure(left)
+    void ensure(right)
+  },
+  { immediate: true },
+)
 
 function detailOf(revisionNo: number | null): ClinicalRevisionDetail | null {
   if (revisionNo === null) return null
@@ -150,12 +158,15 @@ const rows = computed<ComparisonRow[]>(() => {
 const comparing = computed(() => leftNo.value !== null)
 const differences = computed(() => rows.value.filter((row) => row.kind !== 'same').length)
 const visibleRows = computed(() =>
-  comparing.value && onlyDifferences.value ? rows.value.filter((row) => row.kind !== 'same') : rows.value,
+  comparing.value && onlyDifferences.value
+    ? rows.value.filter((row) => row.kind !== 'same')
+    : rows.value,
 )
 const stepsWithRows = computed(() =>
-  DELIVERED_STEPS.map((step) => ({ step, rows: visibleRows.value.filter((row) => row.step === step) })).filter(
-    (group) => group.rows.length > 0,
-  ),
+  DELIVERED_STEPS.map((step) => ({
+    step,
+    rows: visibleRows.value.filter((row) => row.step === step),
+  })).filter((group) => group.rows.length > 0),
 )
 
 const options = computed(() =>
@@ -196,16 +207,14 @@ function shortHash(hash: string): string {
 
     <template v-else>
       <p class="flex flex-wrap gap-3">
-        <LinkButton :to="{ name: 'consultation', params: { id: props.consultationId } }" variant="secondary"
+        <LinkButton
+          :to="{ name: 'consultation', params: { id: props.consultationId } }"
+          variant="secondary"
           >Retour à la consultation</LinkButton
         >
       </p>
 
-      <StateMessage
-        v-if="revisions.length === 0"
-        state="empty"
-        title="Aucune révision enregistrée"
-      >
+      <StateMessage v-if="revisions.length === 0" state="empty" title="Aucune révision enregistrée">
         Cet examen n’est pas terminé : la première révision est figée quand on le termine. Les
         révisions suivantes sont créées par les corrections motivées.
       </StateMessage>
@@ -225,11 +234,14 @@ function shortHash(hash: string): string {
           >
             <p class="font-semibold">
               Révision {{ revision.revision_no }}
-              <span class="font-normal text-muted">· {{ formatInstantFr(revision.recorded_at) }}</span>
+              <span class="font-normal text-muted"
+                >· {{ formatInstantFr(revision.recorded_at) }}</span
+              >
             </p>
             <p>Motif : {{ revision.reason }}</p>
             <p class="text-sm text-muted">
-              Empreinte SHA-256 : <span class="tabular-nums">{{ shortHash(revision.sha256) }}…</span>
+              Empreinte SHA-256 :
+              <span class="tabular-nums">{{ shortHash(revision.sha256) }}…</span>
             </p>
           </li>
         </ol>
@@ -273,13 +285,19 @@ function shortHash(hash: string): string {
 
         <div v-if="right !== null && (!comparing || left !== null)" class="space-y-4">
           <div class="grid gap-3 sm:grid-cols-2">
-            <p v-if="comparing && left" class="rounded-lg border-2 border-line bg-surface p-3 text-sm">
-              <strong>Référence : révision {{ left.revision_no }}</strong><br />
+            <p
+              v-if="comparing && left"
+              class="rounded-lg border-2 border-line bg-surface p-3 text-sm"
+            >
+              <strong>Référence : révision {{ left.revision_no }}</strong
+              ><br />
               Enregistrée par {{ authorName(left) }} le {{ formatInstantFr(left.recorded_at) }}.
               <br />Motif : {{ left.reason }}
             </p>
             <p class="rounded-lg border-2 border-line bg-surface p-3 text-sm">
-              <strong>{{ comparing ? 'Comparée' : 'Révision' }} : révision {{ right.revision_no }}</strong
+              <strong
+                >{{ comparing ? 'Comparée' : 'Révision' }} : révision
+                {{ right.revision_no }}</strong
               ><br />
               Enregistrée par {{ authorName(right) }} le {{ formatInstantFr(right.recorded_at) }}.
               <br />Motif : {{ right.reason }}
@@ -287,7 +305,11 @@ function shortHash(hash: string): string {
           </div>
 
           <p v-if="comparing" role="status" class="text-base font-medium text-ink">
-            {{ differences === 0 ? 'Aucune différence entre ces deux révisions.' : `${differences} différence(s) entre ces deux révisions.` }}
+            {{
+              differences === 0
+                ? 'Aucune différence entre ces deux révisions.'
+                : `${differences} différence(s) entre ces deux révisions.`
+            }}
           </p>
           <label v-if="comparing" class="flex min-h-11 items-center gap-3 text-base">
             <input v-model="onlyDifferences" type="checkbox" class="size-5" />
@@ -309,8 +331,8 @@ function shortHash(hash: string): string {
                   <div>
                     <dt class="font-semibold">{{ row.label }}</dt>
                     <dd v-if="comparing" class="text-sm font-medium">
-                      <span aria-hidden="true">{{ CHANGE_SYMBOLS[row.kind] }} </span
-                      >{{ CHANGE_LABELS[row.kind] }}
+                      <span aria-hidden="true">{{ CHANGE_SYMBOLS[row.kind] }}</span>
+                      {{ CHANGE_LABELS[row.kind] }}
                     </dd>
                   </div>
                   <div v-if="comparing">

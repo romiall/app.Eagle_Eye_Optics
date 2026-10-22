@@ -31,8 +31,7 @@ export type Align = 'left' | 'right' | 'center'
 
 /** Original, ou réimpression marquée Duplicata (jamais une nouvelle pièce, jamais renumérotée). */
 export type CopyInfo =
-  | { kind: 'ORIGINAL' }
-  | { kind: 'DUPLICATA'; reprintNumber: number; reprintedAt: string }
+  { kind: 'ORIGINAL' } | { kind: 'DUPLICATA'; reprintNumber: number; reprintedAt: string }
 
 export interface FieldRow {
   label: string
@@ -259,11 +258,7 @@ export function fields(rows: readonly FieldRow[], columns: 1 | 2 = 1): FieldsBlo
   return { kind: 'fields', rows, columns }
 }
 
-export function notice(
-  tone: NoticeTone,
-  text: string,
-  title: string | null = null,
-): NoticeBlock {
+export function notice(tone: NoticeTone, text: string, title: string | null = null): NoticeBlock {
   return { kind: 'notice', tone, title, text }
 }
 

@@ -141,7 +141,10 @@ export function validateCatalogForm(
   form: CatalogItemForm,
 ): { ok: true; payload: CatalogRequestPayload } | { ok: false; errors: CatalogErrors } {
   const errors: CatalogErrors = {}
-  const text = (field: 'reference' | 'name' | 'brand' | 'model', required: boolean): string | null => {
+  const text = (
+    field: 'reference' | 'name' | 'brand' | 'model',
+    required: boolean,
+  ): string | null => {
     const value = optional(form[field])
     if (value === null) {
       if (required) errors[field] = 'Ce champ est obligatoire.'
@@ -184,14 +187,22 @@ export function validateCatalogForm(
   if (form.requiresExpiry && form.stockMode !== null && form.stockMode !== 'STOCKED') {
     errors.requiresExpiry = 'Seul un article géré en stock peut avoir une date d’expiration.'
   }
-  if (form.categoryCode === 'SERVICE' && (form.stockMode === 'STOCKED' || form.stockMode === 'MADE_TO_ORDER')) {
+  if (
+    form.categoryCode === 'SERVICE' &&
+    (form.stockMode === 'STOCKED' || form.stockMode === 'MADE_TO_ORDER')
+  ) {
     errors.stockMode = 'Une prestation n’a aucun mouvement de stock.'
   }
-  if (form.unitCode !== null && UNIT_INTEGER_ONLY[form.unitCode] === true && !form.quantityIntegerOnly) {
+  if (
+    form.unitCode !== null &&
+    UNIT_INTEGER_ONLY[form.unitCode] === true &&
+    !form.quantityIntegerOnly
+  ) {
     errors.quantityIntegerOnly = 'Cette unité ne se divise pas : la quantité doit être entière.'
   }
   if (form.lowStockThreshold !== null && form.stockMode !== 'STOCKED') {
-    errors.lowStockThreshold = 'Un seuil de stock bas n’a de sens que pour un article géré en stock.'
+    errors.lowStockThreshold =
+      'Un seuil de stock bas n’a de sens que pour un article géré en stock.'
   }
   if (alertDays !== null && !form.requiresExpiry) {
     errors.expiryAlertDays =

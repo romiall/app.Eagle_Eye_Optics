@@ -124,7 +124,11 @@ function orderedEyes(prescription: Prescription): readonly [PrescriptionEye, Pre
   const [od] = right
   const [og] = left
   if (od === undefined || og === undefined || right.length !== 1 || left.length !== 1) {
-    throw invalid('prescription.eyes', 'eyes', 'Une prescription porte un œil droit et un œil gauche.')
+    throw invalid(
+      'prescription.eyes',
+      'eyes',
+      'Une prescription porte un œil droit et un œil gauche.',
+    )
   }
   return [eyeFromResource(od), eyeFromResource(og)]
 }
@@ -297,7 +301,8 @@ interface EntrySource {
 /** Les sept rubriques → une entrée de fiche / de dossier (même lecture pour la ressource et la révision). */
 function entryFromSteps(source: EntrySource): ConsultationEntryData {
   const { labels, steps } = source
-  const { ANAMNESIS, HISTORIES, VISUAL_ACUITY, REFRACTION, CENTERING, MEDICATIONS, CONCLUSION } = steps
+  const { ANAMNESIS, HISTORIES, VISUAL_ACUITY, REFRACTION, CENTERING, MEDICATIONS, CONCLUSION } =
+    steps
   const complaints: readonly CodedTerm[] = ANAMNESIS.complaints
   const histories: readonly HistoryRow[] = HISTORIES.histories
   const measurements: readonly Measurement[] = REFRACTION.measurements
@@ -457,7 +462,8 @@ export function referralLetterFromRevision(
     patient: input.patient,
     professional: professionalOfRevision(revision),
     addressee: null,
-    urgency: conclusion.referral_urgency === null ? null : labels.urgency(conclusion.referral_urgency),
+    urgency:
+      conclusion.referral_urgency === null ? null : labels.urgency(conclusion.referral_urgency),
     reasons: reasons.map((reason) => labels.referralReason(reason.term_code, reason.other_text)),
     summary: text(conclusion.conclusion),
     measurements: [],

@@ -64,7 +64,13 @@ describe('droits d’accès aux documents', () => {
   it('la caisse ouvre les pièces financières, pas le dossier clinique', () => {
     const cashier = rolePermissions().get('CASHIER') ?? []
 
-    for (const kind of ['INVOICE', 'RECEIPT', 'CREDIT_NOTE', 'REFUND', 'ACCOUNT_STATEMENT'] as const) {
+    for (const kind of [
+      'INVOICE',
+      'RECEIPT',
+      'CREDIT_NOTE',
+      'REFUND',
+      'ACCOUNT_STATEMENT',
+    ] as const) {
       expect(mayOpenDocument(kind, cashier), kind).toBe(true)
     }
     expect(mayOpenDocument('CLINICAL_RECORD', cashier)).toBe(false)
@@ -99,7 +105,9 @@ describe('droits d’accès aux documents', () => {
 
   it('les documents cliniques relèvent du compartiment CLINICAL, les pièces financières de FINANCIAL', () => {
     for (const kind of KINDS) {
-      expect(documentCompartment(kind), kind).toBe(isClinicalDocument(kind) ? 'CLINICAL' : 'FINANCIAL')
+      expect(documentCompartment(kind), kind).toBe(
+        isClinicalDocument(kind) ? 'CLINICAL' : 'FINANCIAL',
+      )
     }
     expect(KINDS.filter((kind) => isClinicalDocument(kind)).sort()).toEqual([
       'CLINICAL_RECORD',

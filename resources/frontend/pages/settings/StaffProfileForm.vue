@@ -82,7 +82,9 @@ const changes = computed<UpdateStaffInput>(() => {
   return input
 })
 
-const hasChanges = computed(() => Object.keys(changes.value).some((key) => key !== 'expected_version' && key !== 'reason'))
+const hasChanges = computed(() =>
+  Object.keys(changes.value).some((key) => key !== 'expected_version' && key !== 'reason'),
+)
 
 const localErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {}
@@ -141,7 +143,13 @@ async function submit(): Promise<void> {
       <ErrorSummary :errors="summary" />
       <StateMessage
         v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
-        :state="writer.state.value === 'conflict' ? 'conflict' : writer.state.value === 'uncertain' ? 'offline' : 'error'"
+        :state="
+          writer.state.value === 'conflict'
+            ? 'conflict'
+            : writer.state.value === 'uncertain'
+              ? 'offline'
+              : 'error'
+        "
         title="Modification non enregistrée"
       >
         {{ writer.message.value }}
@@ -206,7 +214,10 @@ async function submit(): Promise<void> {
         :required="needsReason"
       />
 
-      <p v-if="submitted && !hasChanges && Object.keys(localErrors).length === 0" class="text-muted">
+      <p
+        v-if="submitted && !hasChanges && Object.keys(localErrors).length === 0"
+        class="text-muted"
+      >
         Aucune modification à enregistrer.
       </p>
 

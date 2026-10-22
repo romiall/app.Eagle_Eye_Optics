@@ -60,7 +60,7 @@ final class InvoiceDrafts
     {
         $itemIds = [];
         foreach ($payloadLines as $line) {
-            if (is_array($line) && is_string($line['catalog_item_id'] ?? null)) {
+            if (is_string($line['catalog_item_id'] ?? null)) {
                 $itemIds[] = $line['catalog_item_id'];
             }
         }
@@ -148,10 +148,7 @@ final class InvoiceDrafts
     {
         $lineIds = [];
         $prescriptions = [];
-        foreach (array_values($payloadLines) as $index => $line) {
-            if (! is_array($line)) {
-                continue;
-            }
+        foreach ($payloadLines as $index => $line) {
             if (is_string($line['line_id'] ?? null)) {
                 $lineIds[$line['line_id']] = $index;
             }

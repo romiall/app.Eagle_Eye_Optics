@@ -247,7 +247,9 @@ final class InvoiceDraftTest extends TestCase
     {
         $lines = [
             $this->line($this->item['lens'], '1.5', 1),
-            [...$this->line($this->item['exam'], '1', 2), 'description' => '   '],
+            // Désignation refusée par la règle métier, pas par le contrat : un texte blanc deviendrait null par les
+            // middlewares TrimStrings / ConvertEmptyStringsToNull et serait refusé seul, avant les règles des lignes.
+            [...$this->line($this->item['exam'], '1', 2), 'description' => "Ligne\nsur deux lignes"],
             $this->line($this->item['frame'], '1', 3),
         ];
         DB::table('catalog_items')->where('id', $this->item['frame'])->update(['active' => 0]);

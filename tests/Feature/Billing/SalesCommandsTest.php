@@ -99,7 +99,8 @@ final class SalesCommandsTest extends TestCase
             $this->assertStringContainsString('FICTIVES', (string) DB::table('clinics')->value('name'));
             $this->assertSame(4, DB::table('catalog_items')->count());
             $this->assertSame(
-                [SalesDemoCommand::EXAM_REFERENCE, SalesDemoCommand::EYE_DROPS_REFERENCE, SalesDemoCommand::FRAME_REFERENCE, SalesDemoCommand::LENS_REFERENCE],
+                // Ordre alphabétique des références (requête triée) : COLLYRE, EXAMEN, MONTURE, VERRES.
+                [SalesDemoCommand::EYE_DROPS_REFERENCE, SalesDemoCommand::EXAM_REFERENCE, SalesDemoCommand::FRAME_REFERENCE, SalesDemoCommand::LENS_REFERENCE],
                 DB::table('catalog_items')->orderBy('reference')->pluck('reference')->all(),
             );
             $this->assertSame(0, DB::table('catalog_items')->where('name', 'not like', '%fictif%')->where('name', 'not like', '%fictive%')->count(), 'Chaque libellé dit « fictif ».');

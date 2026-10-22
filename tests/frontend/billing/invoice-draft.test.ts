@@ -88,16 +88,18 @@ describe('nouveau brouillon', () => {
       json(200, { data: draftInvoice({ id: match[1] ?? INVOICE_ID }) }),
     )
 
-    const { root, router, unmount } = await openApp(`/ventes/factures/nouvelle?patient=${PATIENT_ID}`)
+    const { root, router, unmount } = await openApp(
+      `/ventes/factures/nouvelle?patient=${PATIENT_ID}`,
+    )
 
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Nouvelle facture')
     expect(textOf(root)).toContain('PATIENT FICTIF Élodie Marie')
     expect(textOf(root)).toContain('TEST-P-000001')
     // L'identité n'est jamais ressaisie : aucun champ de nom, de téléphone ni de naissance.
     expect(root.querySelector('input[autocomplete="family-name"]')).toBeNull()
-    expect([...root.querySelectorAll('label')].map((label) => label.textContent ?? '')).not.toContain(
-      'Nom',
-    )
+    expect(
+      [...root.querySelectorAll('label')].map((label) => label.textContent ?? ''),
+    ).not.toContain('Nom')
 
     await addCatalogLine(root)
     expect(textOf(root)).toContain('Monture fictive (démonstration)')
@@ -140,7 +142,9 @@ describe('nouveau brouillon', () => {
   it('depuis une visite de la file du jour : la visite accompagne le brouillon', async () => {
     const api = server()
     api.on('POST', /^\/api\/v1\/invoices$/, (request) =>
-      json(201, { data: draftInvoice({ id: String(request.body?.['invoice_id']), visit_id: VISIT_ID }) }),
+      json(201, {
+        data: draftInvoice({ id: String(request.body?.['invoice_id']), visit_id: VISIT_ID }),
+      }),
     )
     api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () => json(200, { data: draftInvoice() }))
 
@@ -161,9 +165,14 @@ describe('nouveau brouillon', () => {
   it('une remise refusée par le serveur est dite sur sa ligne, la saisie reste', async () => {
     const api = server()
     api.on('POST', /^\/api\/v1\/invoices$/, () =>
-      apiError(422, 'APPROVAL_REQUIRED_OR_EXPIRED', 'Cette opération exige l’autorisation exacte de la gérante.', {
-        'lines.0.discount_gross': ['La remise dépasse le plafond autorisé pour ce compte (0 %).'],
-      }),
+      apiError(
+        422,
+        'APPROVAL_REQUIRED_OR_EXPIRED',
+        'Cette opération exige l’autorisation exacte de la gérante.',
+        {
+          'lines.0.discount_gross': ['La remise dépasse le plafond autorisé pour ce compte (0 %).'],
+        },
+      ),
     )
 
     const { root, unmount } = await openApp(`/ventes/factures/nouvelle?patient=${PATIENT_ID}`)
@@ -174,10 +183,14 @@ describe('nouveau brouillon', () => {
     expect(textOf(root)).toContain('Total TTC : 35 000 FCFA')
     await click(buttonByName(root, 'Enregistrer le brouillon'))
 
-    expect(textOf(root)).toContain('Ligne 1 : La remise dépasse le plafond autorisé pour ce compte (0 %).')
-    expect(root.querySelector<HTMLInputElement>('input[id$="-discountGross"]')?.value.replace(/\s/g, ' ')).toBe(
-      '5 000',
+    expect(textOf(root)).toContain(
+      'Ligne 1 : La remise dépasse le plafond autorisé pour ce compte (0 %).',
     )
+    expect(
+      root
+        .querySelector<HTMLInputElement>('input[id$="-discountGross"]')
+        ?.value.replace(/\s/g, ' '),
+    ).toBe('5 000')
 
     unmount()
   })
@@ -326,7 +339,9 @@ describe('émission', () => {
     const { root, unmount } = await openApp(`/ventes/factures/nouvelle?patient=${PATIENT_ID}`)
 
     await addCatalogLine(root)
-    expect(root.querySelector<HTMLInputElement>('input[id$="-unitPriceGross"]')?.disabled).toBe(false)
+    expect(root.querySelector<HTMLInputElement>('input[id$="-unitPriceGross"]')?.disabled).toBe(
+      false,
+    )
     expect(textOf(root)).toContain('au plus le montant brut de la ligne')
     await click(buttonByName(root, 'Ajouter une ligne hors catalogue'))
     expect(textOf(root)).toContain('hors catalogue')

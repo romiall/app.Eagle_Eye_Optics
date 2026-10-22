@@ -85,7 +85,9 @@ describe('aperçu d’un document PDF (accessibilité, 360 px, focus)', () => {
 
   it('le filigrane est dessiné en diagonale, le texte du plan ne le répète pas', () => {
     const { wrapper } = mountPreview('facture-brouillon')
-    const rotated = wrapper.findAll('text').filter((node) => node.attributes('transform') !== undefined)
+    const rotated = wrapper
+      .findAll('text')
+      .filter((node) => node.attributes('transform') !== undefined)
 
     expect(rotated).toHaveLength(1)
     expect(rotated[0]?.text()).toBe('BROUILLON')

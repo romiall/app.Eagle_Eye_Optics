@@ -107,7 +107,8 @@ function refractionTarget(data: StepDataByName['REFRACTION'], path: string[]): s
     case 'measurements': {
       const row = data.measurements[index(position) ?? -1]
       if (row === undefined) return CONTROL_IDS.step
-      const control = field === 'cylinder' || field === 'axis' || field === 'addition' ? field : 'sphere'
+      const control =
+        field === 'cylinder' || field === 'axis' || field === 'addition' ? field : 'sphere'
       return CONTROL_IDS.measure(row.stage, row.eye, control)
     }
     case 'ametropias':

@@ -501,9 +501,21 @@ describe('charges des commandes', () => {
   })
 
   it('reconnaît une consultation exploitable, jamais une réponse incomplète', () => {
+    // Les sept étapes livrées (C01 et C02) : une réponse sans acuité, réfraction, centrage ou
+    // médicaments est incomplète (contrat `AllSteps`).
     const steps = {
       ANAMNESIS: blankAnamnesisData(),
       HISTORIES: { histories: [] },
+      VISUAL_ACUITY: { acuities: [] },
+      REFRACTION: { measurements: [], refraction_observations: null, ametropias: [] },
+      CENTERING: {
+        centering_id: null,
+        pd_total: null,
+        pd_od: null,
+        pd_og: null,
+        inconsistency_reason: null,
+      },
+      MEDICATIONS: { orders: [] },
       CONCLUSION: {
         conclusion: null,
         referral: null,
@@ -526,6 +538,16 @@ describe('charges des commandes', () => {
       { data: null },
       { data: { ...consultation, version: '2' } },
       { data: { ...consultation, steps: { ANAMNESIS: {} } } },
+      {
+        data: {
+          ...consultation,
+          steps: {
+            ANAMNESIS: steps.ANAMNESIS,
+            HISTORIES: steps.HISTORIES,
+            CONCLUSION: steps.CONCLUSION,
+          },
+        },
+      },
       { data: { ...consultation, steps: null } },
       { data: { ...consultation, id: 7 } },
     ]) {

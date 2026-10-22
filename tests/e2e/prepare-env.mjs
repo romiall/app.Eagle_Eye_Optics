@@ -88,4 +88,6 @@ artisan('e2e', 'eeo:clinical:scales', '--demo')
 // Ventes de DÉMONSTRATION (fictives) : caisse principale, taxe de test, articles DEMO-* et stock initial, par le
 // chemin central au nom de demo.gerante ; sans eux, aucune facture ni aucun encaissement n'est possible en e2e.
 artisan('e2e', 'eeo:demo:sales')
-console.log(`Base ${overrides.DB_DATABASE} migrée ; comptes de démonstration fictifs et échelles de démonstration préparés.`)
+console.log(
+  `Base ${overrides.DB_DATABASE} migrée ; comptes de démonstration fictifs et échelles de démonstration préparés.`,
+)

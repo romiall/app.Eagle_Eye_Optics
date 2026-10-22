@@ -27,9 +27,7 @@ const props = withDefaults(defineProps<{ receiptId: string; highlight?: boolean 
 })
 
 const read = useServerRead<Receipt>(() => getReceipt(props.receiptId))
-const receipt = computed(() =>
-  read.data.value?.id === props.receiptId ? read.data.value : null,
-)
+const receipt = computed(() => (read.data.value?.id === props.receiptId ? read.data.value : null))
 
 const rendered = shallowRef<RenderedDocument | null>(null)
 const generating = ref(false)
@@ -117,7 +115,9 @@ async function preview(): Promise<void> {
         </div>
         <div>
           <dt class="text-sm text-muted">Reste à encaisser après ce reçu</dt>
-          <dd class="tabular-nums">{{ formatMoney(Math.max(0, receipt.snapshot.balance_after)) }}</dd>
+          <dd class="tabular-nums">
+            {{ formatMoney(Math.max(0, receipt.snapshot.balance_after)) }}
+          </dd>
         </div>
         <div>
           <dt class="text-sm text-muted">Facture</dt>

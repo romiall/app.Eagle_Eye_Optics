@@ -20,7 +20,11 @@ const lines = computed(() => balanceLines(props.balance))
 </script>
 
 <template>
-  <div role="group" :aria-label="props.title" class="rounded-lg border-2 border-line bg-surface p-4">
+  <div
+    role="group"
+    :aria-label="props.title"
+    class="rounded-lg border-2 border-line bg-surface p-4"
+  >
     <dl class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-10">
       <div
         v-for="line in lines"

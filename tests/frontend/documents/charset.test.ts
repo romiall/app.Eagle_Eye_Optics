@@ -5,7 +5,8 @@ import { isPdfSafe, isPdfSafeCodePoint, NBSP, toPdfText } from '@/documents/engi
 
 describe('jeu de caractères imprimable des PDF (polices standard, WinAnsi)', () => {
   it('conserve tel quel tout le français accentué, les guillemets et l’apostrophe typographique', () => {
-    const text = 'Élodie Marie-Thérèse : œil, cœur, Œdème, ça, où, naïf, noël, été « citation » l’œil – fin'
+    const text =
+      'Élodie Marie-Thérèse : œil, cœur, Œdème, ça, où, naïf, noël, été « citation » l’œil – fin'
     const result = toPdfText(text)
 
     expect(result.text).toBe(text)

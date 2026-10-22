@@ -1,7 +1,11 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { clinicToday } from '@/app/clinicTime'
-import { getConsultation, getConsultationPrescriptions, getPrescription } from '@/app/services/consultations'
+import {
+  getConsultation,
+  getConsultationPrescriptions,
+  getPrescription,
+} from '@/app/services/consultations'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, revalidateSession } from '@/app/session'
@@ -58,7 +62,9 @@ function prescriptionFromResult(result: unknown): Prescription | null {
  */
 export function usePrescriptionEditor(consultationId: string) {
   const consultationRead = useClinicalRead<Consultation>(() => getConsultation(consultationId))
-  const listRead = useClinicalRead<Prescription[]>(() => getConsultationPrescriptions(consultationId))
+  const listRead = useClinicalRead<Prescription[]>(() =>
+    getConsultationPrescriptions(consultationId),
+  )
   const mutation = useMutation()
 
   const mode = ref<PrescriptionMode>('idle')
@@ -96,7 +102,8 @@ export function usePrescriptionEditor(consultationId: string) {
 
   const dirty = computed(() => {
     if (draft.value === null) return false
-    if (mode.value === 'edit' && saved.value !== null) return isPrescriptionDirty(draft.value, saved.value)
+    if (mode.value === 'edit' && saved.value !== null)
+      return isPrescriptionDirty(draft.value, saved.value)
     return mode.value === 'new' || mode.value === 'revise'
   })
 
@@ -105,7 +112,10 @@ export function usePrescriptionEditor(consultationId: string) {
   const errorMap = computed<Record<string, string>>(() => {
     const map: Record<string, string> = {}
     for (const error of errors.value) {
-      map[error.controlId] = map[error.controlId] === undefined ? error.message : `${map[error.controlId]} ${error.message}`
+      map[error.controlId] =
+        map[error.controlId] === undefined
+          ? error.message
+          : `${map[error.controlId]} ${error.message}`
     }
     return map
   })
@@ -180,7 +190,11 @@ export function usePrescriptionEditor(consultationId: string) {
     const current = draft.value
     const exam = consultation.value
     if (current === null || exam === null) return []
-    const result = copyRefraction(current, exam.steps.REFRACTION.measurements as MeasurementData[], stage)
+    const result = copyRefraction(
+      current,
+      exam.steps.REFRACTION.measurements as MeasurementData[],
+      stage,
+    )
     draft.value = result.draft
     return result.copied
   }
@@ -188,7 +202,8 @@ export function usePrescriptionEditor(consultationId: string) {
   function copyFromCentering(): boolean {
     const current = draft.value
     const exam = consultation.value
-    if (current === null || exam === null || exam.steps.CENTERING.centering_id === null) return false
+    if (current === null || exam === null || exam.steps.CENTERING.centering_id === null)
+      return false
     draft.value = copyCentering(current, exam.steps.CENTERING)
     return true
   }
@@ -226,7 +241,10 @@ export function usePrescriptionEditor(consultationId: string) {
           try {
             const latestRead = await getPrescription(saved.value.id)
             if (draft.value !== null) {
-              conflict.value = prescriptionDifferences(draft.value, prescriptionDraft(latestRead.data))
+              conflict.value = prescriptionDifferences(
+                draft.value,
+                prescriptionDraft(latestRead.data),
+              )
             }
             saved.value = latestRead.data
           } catch {
@@ -258,7 +276,10 @@ export function usePrescriptionEditor(consultationId: string) {
 
   /** Identifiants d'effets de la création, stables jusqu'à `startNew` / `startRevision` (une reprise ne les change pas). */
   function ids() {
-    return { prescriptionId: mutation.effectId('prescription'), seriesId: mutation.effectId('series') }
+    return {
+      prescriptionId: mutation.effectId('prescription'),
+      seriesId: mutation.effectId('series'),
+    }
   }
 
   async function saveDraft(): Promise<void> {
@@ -322,7 +343,14 @@ export function usePrescriptionEditor(consultationId: string) {
   async function validate(): Promise<void> {
     const current = draft.value
     const target = saved.value
-    if (busy.value || current === null || target === null || mode.value !== 'edit' || !canValidate.value) return
+    if (
+      busy.value ||
+      current === null ||
+      target === null ||
+      mode.value !== 'edit' ||
+      !canValidate.value
+    )
+      return
     notice.value = null
     if (dirty.value) {
       notice.value = 'Enregistrez d’abord le brouillon : seule la version enregistrée est validée.'

@@ -371,7 +371,9 @@ export function demoCashSession(closed = true): CashSessionReportData {
     variance: closed ? -500 : null,
     varianceReason: closed ? 'Erreur de rendu de monnaie (motif fictif).' : null,
     otherMethods: [{ method: 'MTN_MOMO', count: 1, amount: 30000 }],
-    movements: [{ at: '2026-10-20T12:00:00.000Z', label: 'Achat de fournitures (fictif)', amount: -5000 }],
+    movements: [
+      { at: '2026-10-20T12:00:00.000Z', label: 'Achat de fournitures (fictif)', amount: -5000 },
+    ],
     receipts: [
       {
         receiptNumber: 'TEST-REC-000002',

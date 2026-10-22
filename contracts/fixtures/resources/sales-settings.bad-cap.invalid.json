@@ -6,9 +6,7 @@
     "data": {
       "price_authority": false,
       "discount_cap_percent": "150.0000",
-      "payment_methods": [
-        "CASH"
-      ],
+      "payment_methods": ["CASH"],
       "payment_reference_required": [],
       "exam_fee_item_reference": null
     }

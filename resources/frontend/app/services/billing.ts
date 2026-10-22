@@ -55,7 +55,8 @@ function assertPage(page: number): void {
 
 /** Jour civil `AAAA-MM-JJ` (fuseau du cabinet) : seul format accepté par le serveur. */
 function assertCivilDate(day: string, what: string): void {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new RangeError(`${what} invalide (AAAA-MM-JJ attendu).`)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day))
+    throw new RangeError(`${what} invalide (AAAA-MM-JJ attendu).`)
 }
 
 // --- Règles de vente du compte ----------------------------------------------------------------------
@@ -110,7 +111,9 @@ export interface InvoiceFilters {
  * Factures, les plus récentes d'abord (25 par page), avec leur reste dû projeté par le serveur et
  * l'identité de base du patient. Le jour d'émission est filtré par le serveur (fuseau du cabinet).
  */
-export async function listInvoices(filters: InvoiceFilters = {}): Promise<ReadOutcome<InvoicePage>> {
+export async function listInvoices(
+  filters: InvoiceFilters = {},
+): Promise<ReadOutcome<InvoicePage>> {
   const page = filters.page ?? 1
   assertPage(page)
   const parameters = new URLSearchParams({ page: String(page) })
@@ -203,7 +206,9 @@ export async function getCashSessionReport(id: string): Promise<ReadOutcome<Cash
  * « Caisse du jour » : encaissements nets par mode du jour civil du cabinet (aujourd'hui sans date). La
  * portée vient des droits du compte (`CLINIC` pour la gérante, `OWN` pour une caissière).
  */
-export async function getCashDayReport(date: string | null = null): Promise<ReadOutcome<CashDayReport>> {
+export async function getCashDayReport(
+  date: string | null = null,
+): Promise<ReadOutcome<CashDayReport>> {
   const parameters = new URLSearchParams()
   if (date !== null) {
     assertCivilDate(date, 'Jour')

@@ -189,7 +189,12 @@ describe('caisse : clôture', () => {
     const OTHER_SESSION = '01J9ZXK4M2Q8R7S6T5V4W3002Z'
     const OTHER_CASHIER = '01J9ZXK4M2Q8R7S6T5V4W30009'
     const other = {
-      ...openSession({ id: OTHER_SESSION, cashier_id: OTHER_CASHIER, collected_cash: 5000, theoretical_cash: 30000 }),
+      ...openSession({
+        id: OTHER_SESSION,
+        cashier_id: OTHER_CASHIER,
+        collected_cash: 5000,
+        theoretical_cash: 30000,
+      }),
       cashier_name: 'Autre caisse (démonstration)',
       closed_by_name: null,
       register_code: 'CAISSE-PRINCIPALE',
@@ -289,7 +294,11 @@ describe('caisse : droits et module', () => {
     api.on('GET', /^\/api\/v1\/cash-sessions\/current$/, () => json(200, { data: current }))
     api.on('POST', /^\/api\/v1\/cash-sessions$/, () => {
       current = openSession()
-      return apiError(409, 'STATE_TRANSITION_REFUSED', 'Une session est déjà ouverte pour cette caisse.')
+      return apiError(
+        409,
+        'STATE_TRANSITION_REFUSED',
+        'Une session est déjà ouverte pour cette caisse.',
+      )
     })
     const { root, unmount } = await openApp(PAGE)
 

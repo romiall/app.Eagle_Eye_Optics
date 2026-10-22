@@ -124,8 +124,10 @@ function drawWideHeader(flow: PageFlow, model: DocumentModel): number {
     flow.lines(labelLines, rightX, rightY, labelWidth, labelPt, 'normal', 'left', MUTED_GRAY)
     flow.lines(valueLines, rightX + labelWidth + 2, rightY, valueWidth, valuePt, 'bold', 'right')
     rightY +=
-      Math.max(labelLines.length * lineHeightMm(labelPt), valueLines.length * lineHeightMm(valuePt)) +
-      0.6
+      Math.max(
+        labelLines.length * lineHeightMm(labelPt),
+        valueLines.length * lineHeightMm(valuePt),
+      ) + 0.6
   }
 
   const bottom = Math.max(leftY, rightY)
@@ -139,15 +141,7 @@ function drawNarrowHeader(flow: PageFlow, model: DocumentModel): number {
   const width = flow.contentWidth
   if (model.watermark !== null) {
     const bannerPt = flow.pt(10)
-    y += flow.lines(
-      [`*** ${model.watermark} ***`],
-      flow.left,
-      y,
-      width,
-      bannerPt,
-      'bold',
-      'center',
-    )
+    y += flow.lines([`*** ${model.watermark} ***`], flow.left, y, width, bannerPt, 'bold', 'center')
     y += 1
   }
   const organizationPt = flow.pt(11)

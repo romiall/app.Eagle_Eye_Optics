@@ -67,7 +67,10 @@ function cards(root: HTMLElement): HTMLElement[] {
 
 describe('file du jour, contrôle du paiement de l’examen actif', () => {
   it('dit à encaisser, encaissés avec le numéro du reçu réel, ou dispense approuvée', async () => {
-    const api = stubVisitsApi({ permissions: FRONT_DESK, handlers: { list: () => json(200, day()) } })
+    const api = stubVisitsApi({
+      permissions: FRONT_DESK,
+      handlers: { list: () => json(200, day()) },
+    })
     billed(api.me)
     const { root, unmount } = await openApp('/aujourdhui')
 
@@ -86,7 +89,10 @@ describe('file du jour, contrôle du paiement de l’examen actif', () => {
   })
 
   it('sans le droit de demander une approbation, aucune dispense n’est proposée', async () => {
-    const api = stubVisitsApi({ permissions: FRONT_DESK, handlers: { list: () => json(200, day()) } })
+    const api = stubVisitsApi({
+      permissions: FRONT_DESK,
+      handlers: { list: () => json(200, day()) },
+    })
     billed(api.me)
     const { root, unmount } = await openApp('/aujourdhui')
 
@@ -106,7 +112,11 @@ describe('file du jour, contrôle du paiement de l’examen actif', () => {
             posted.length === 0
               ? day()
               : visitPage([
-                  visit({ id: VISIT_A, status: 'AWAITING_EXAM_FEE', exam_fee_control: 'WAIVER_REQUESTED' }),
+                  visit({
+                    id: VISIT_A,
+                    status: 'AWAITING_EXAM_FEE',
+                    exam_fee_control: 'WAIVER_REQUESTED',
+                  }),
                 ]),
           ),
       },
@@ -178,7 +188,9 @@ describe('file du jour, contrôle du paiement de l’examen actif', () => {
     expect(textOf(root)).toContain('Demande envoyée à la gérante')
     expect(textOf(root)).toContain('elle n’est pas encore accordée')
     expect(lists()).toBeGreaterThan(before)
-    expect(textOf(root)).toContain('Dispense des frais d’examen demandée : en attente de la gérante')
+    expect(textOf(root)).toContain(
+      'Dispense des frais d’examen demandée : en attente de la gérante',
+    )
     expect(buttonByName(root, /Demander une dispense/)).toBeNull()
     unmount()
   })

@@ -67,7 +67,12 @@ function summary(overrides: Partial<InvoiceSummary> = {}): InvoiceSummary {
   return {
     id: INVOICE_ID,
     patient_id: PATIENT_ID,
-    patient: { id: PATIENT_ID, record_number: 'EE-2026-0001', last_name: 'PATIENT FICTIF', first_names: 'Élodie Marie' },
+    patient: {
+      id: PATIENT_ID,
+      record_number: 'EE-2026-0001',
+      last_name: 'PATIENT FICTIF',
+      first_names: 'Élodie Marie',
+    },
     number: 'TEST-FAC-2026-000001',
     status: 'ISSUED',
     issued_at: '2026-10-15T09:00:00.000Z',
@@ -92,7 +97,11 @@ function sessionEntry(overrides: Record<string, unknown> = {}) {
 
 function sessionReport(overrides: Partial<CashSessionReport> = {}): CashSessionReport {
   return {
-    session: sessionEntry({ opening_amount: 10000, collected_cash: 30000, theoretical_cash: 40000 }),
+    session: sessionEntry({
+      opening_amount: 10000,
+      collected_cash: 30000,
+      theoretical_cash: 40000,
+    }),
     cash_received: 30000,
     cash_reversed: 0,
     cash_refunded: 0,
@@ -134,8 +143,22 @@ function dayReport(overrides: Partial<CashDayReport> = {}): CashDayReport {
     date: '2026-10-15',
     scope: 'CLINIC',
     collections: [
-      { method: 'CASH', payments_count: 1, payments_amount: 30000, reversals_amount: 0, refunds_amount: 0, net_amount: 30000 },
-      { method: 'MTN_MOMO', payments_count: 2, payments_amount: 25000, reversals_amount: 5000, refunds_amount: 0, net_amount: 20000 },
+      {
+        method: 'CASH',
+        payments_count: 1,
+        payments_amount: 30000,
+        reversals_amount: 0,
+        refunds_amount: 0,
+        net_amount: 30000,
+      },
+      {
+        method: 'MTN_MOMO',
+        payments_count: 2,
+        payments_amount: 25000,
+        reversals_amount: 5000,
+        refunds_amount: 0,
+        net_amount: 20000,
+      },
     ],
     net_total: 50000,
     sessions: [sessionEntry()],
@@ -176,10 +199,23 @@ describe('lectures du serveur', () => {
       }),
     )
     api.on('GET', /^\/api\/v1\/stock\/locations$/, () =>
-      json(200, { data: [{ id: '01J9ZXK4M2Q8R7S6T5V4W3004A', code: 'PRINCIPAL', name: 'Emplacement principal', active: true }] }),
+      json(200, {
+        data: [
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W3004A',
+            code: 'PRINCIPAL',
+            name: 'Emplacement principal',
+            active: true,
+          },
+        ],
+      }),
     )
-    api.on('GET', /^\/api\/v1\/cash-sessions$/, () => json(200, { data: [sessionEntry()], meta: PAGE_META }))
-    api.on('GET', /^\/api\/v1\/cash-sessions\/([^/]+)\/report$/, () => json(200, { data: sessionReport() }))
+    api.on('GET', /^\/api\/v1\/cash-sessions$/, () =>
+      json(200, { data: [sessionEntry()], meta: PAGE_META }),
+    )
+    api.on('GET', /^\/api\/v1\/cash-sessions\/([^/]+)\/report$/, () =>
+      json(200, { data: sessionReport() }),
+    )
     api.on('GET', /^\/api\/v1\/reports\/cash-day$/, () => json(200, { data: dayReport() }))
 
     expect((await getSalesSettings()).data.discount_cap_percent).toBe('100.0000')
@@ -217,14 +253,22 @@ describe('règles d’écran', () => {
   })
 
   it('le relevé de session sépare le tiroir des autres modes et garde la photographie d’une session close', () => {
-    const clinic = clinicFromSummary({ name: 'CABINET FICTIF', timezone: 'Africa/Douala', currency: 'XAF', production_documents_enabled: false })
+    const clinic = clinicFromSummary({
+      name: 'CABINET FICTIF',
+      timezone: 'Africa/Douala',
+      currency: 'XAF',
+      production_documents_enabled: false,
+    })
     const open = cashSessionReportData(sessionReport(), clinic, 'TEST-1')
     expect(open.cashReceived).toBe(30000)
     expect(open.expectedAmount).toBe(40000)
     expect(open.countedAmount).toBeNull()
     expect(open.variance).toBeNull()
     expect(open.otherMethods).toEqual([{ method: 'MTN_MOMO', count: 1, amount: 20000 }])
-    expect(open.receipts.map((receipt) => receipt.receiptNumber)).toEqual(['TEST-REC-2026-000001', 'TEST-REC-2026-000002'])
+    expect(open.receipts.map((receipt) => receipt.receiptNumber)).toEqual([
+      'TEST-REC-2026-000001',
+      'TEST-REC-2026-000002',
+    ])
 
     const reversed = cashSessionReportData(sessionReport({ cash_reversed: 5000 }), clinic, 'TEST-1')
     expect(reversed.cashReceived).toBe(25000)
@@ -252,7 +296,14 @@ describe('règles d’écran', () => {
     const report = dayReport()
     expect(dayCashNet(report)).toBe(30000)
     expect(dayOtherNet(report)).toBe(20000)
-    expect(dayMethodRows(report)[1]).toEqual({ method: 'MTN_MOMO', count: 2, collected: 25000, reversed: 5000, refunded: 0, net: 20000 })
+    expect(dayMethodRows(report)[1]).toEqual({
+      method: 'MTN_MOMO',
+      count: 2,
+      collected: 25000,
+      reversed: 5000,
+      refunded: 0,
+      net: 20000,
+    })
   })
 })
 
@@ -278,7 +329,9 @@ describe('abandon d’un brouillon', () => {
   function server() {
     const api = stubSalesApi({ permissions: CASHIER })
     api.on('GET', /^\/api\/v1\/patients\/([^/]+)$/, () => json(200, { data: salesPatient() }))
-    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () => json(200, { data: draftInvoice({ draft_version: 3 }) }))
+    api.on('GET', /^\/api\/v1\/invoices\/([^/]+)$/, () =>
+      json(200, { data: draftInvoice({ draft_version: 3 }) }),
+    )
     return api
   }
 
@@ -295,7 +348,11 @@ describe('abandon d’un brouillon', () => {
 
     const [call] = callsTo(api, 'POST', /^\/api\/v1\/invoices\/[^/]+\/abandon$/)
     expect(call?.path).toBe(`/api/v1/invoices/${INVOICE_ID}/abandon`)
-    expect(call?.body).toEqual({ invoice_id: INVOICE_ID, reason: 'Le patient renonce (fictif)', expected_version: 3 })
+    expect(call?.body).toEqual({
+      invoice_id: INVOICE_ID,
+      reason: 'Le patient renonce (fictif)',
+      expected_version: 3,
+    })
     expect(call?.headers['Idempotency-Key']).toBeTruthy()
     expect(textOf(root)).toContain('Facture abandonnée')
     expect(textOf(root)).toContain('ni numéro ni effet financier')
@@ -307,7 +364,11 @@ describe('abandon d’un brouillon', () => {
     const api = server()
     api.on('POST', /^\/api\/v1\/invoices\/([^/]+)\/abandon$/, () =>
       json(409, {
-        error: { code: 'VERSION_CONFLICT', message: 'Une version plus récente existe.', details: { current_version: 4 } },
+        error: {
+          code: 'VERSION_CONFLICT',
+          message: 'Une version plus récente existe.',
+          details: { current_version: 4 },
+        },
         correlation_id: 'corr-test-0300',
       }),
     )
@@ -331,9 +392,20 @@ describe('stock initial', () => {
     api.on('GET', /^\/api\/v1\/stock\/availability$/, () =>
       json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }),
     )
-    api.on('GET', /^\/api\/v1\/catalog$/, () => json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }))
+    api.on('GET', /^\/api\/v1\/catalog$/, () =>
+      json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }),
+    )
     api.on('GET', /^\/api\/v1\/stock\/locations$/, () =>
-      json(200, { data: [{ id: '01J9ZXK4M2Q8R7S6T5V4W3004A', code: 'PRINCIPAL', name: 'Emplacement principal', active: true }] }),
+      json(200, {
+        data: [
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W3004A',
+            code: 'PRINCIPAL',
+            name: 'Emplacement principal',
+            active: true,
+          },
+        ],
+      }),
     )
     const { root, unmount } = await openApp('/stock')
 
@@ -349,7 +421,9 @@ describe('stock initial', () => {
     api.on('GET', /^\/api\/v1\/stock\/availability$/, () =>
       json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }),
     )
-    api.on('GET', /^\/api\/v1\/catalog$/, () => json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }))
+    api.on('GET', /^\/api\/v1\/catalog$/, () =>
+      json(200, { data: [], meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 } }),
+    )
     api.on('GET', /^\/api\/v1\/stock\/locations$/, () => json(200, { data: [] }))
     const { root, unmount } = await openApp('/stock')
 

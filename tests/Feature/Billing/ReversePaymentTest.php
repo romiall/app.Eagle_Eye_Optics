@@ -4,7 +4,9 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Shared\Ulid;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\ApprovalFixtures;
 use Tests\Support\BillingFixtures;
 use Tests\Support\MigratedDatabase;
@@ -50,7 +52,7 @@ final class ReversePaymentTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
-    private function reverse(string $invoice, string $payment, int $version, int $amount, array $overrides = [], ?\App\Models\User $as = null, ?string $key = null): \Illuminate\Testing\TestResponse
+    private function reverse(string $invoice, string $payment, int $version, int $amount, array $overrides = [], ?User $as = null, ?string $key = null): TestResponse
     {
         return $this->writeReauthenticated('POST', '/api/v1/payments/'.$payment.'/reversals', $this->reversalBody($invoice, $payment, $version, $amount, $overrides), $as ?? $this->manager, $key);
     }

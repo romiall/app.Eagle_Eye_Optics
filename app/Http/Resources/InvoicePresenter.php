@@ -86,7 +86,7 @@ final class InvoicePresenter
             'patient_id' => $invoice->patient_id,
             // Identité de base du patient (dossier courant, jamais une donnée clinique) : null si la ligne n'a pas été
             // lue avec son patient (lecture sans jointure).
-            'patient' => isset($invoice->patient_record_number) && $invoice->patient_record_number !== null ? [
+            'patient' => isset($invoice->patient_record_number) ? [
                 'id' => $invoice->patient_id,
                 'record_number' => (string) $invoice->patient_record_number,
                 'last_name' => (string) $invoice->patient_last_name,

@@ -73,14 +73,26 @@ export function validateOpeningStock(input: {
     const batch = trimBlanks(line.batchNumber)
     if (item?.requires_expiry === true) {
       if (batch === '') {
-        errors.push({ index, field: 'batchNumber', message: 'Cet article périssable exige un numéro de lot.' })
+        errors.push({
+          index,
+          field: 'batchNumber',
+          message: 'Cet article périssable exige un numéro de lot.',
+        })
       }
       if (line.expiresOn === null) {
-        errors.push({ index, field: 'expiresOn', message: 'Cet article périssable exige une date d’expiration.' })
+        errors.push({
+          index,
+          field: 'expiresOn',
+          message: 'Cet article périssable exige une date d’expiration.',
+        })
       }
     }
     if (batch.length > BATCH_MAX_LENGTH) {
-      errors.push({ index, field: 'batchNumber', message: `Au plus ${BATCH_MAX_LENGTH} caractères.` })
+      errors.push({
+        index,
+        field: 'batchNumber',
+        message: `Au plus ${BATCH_MAX_LENGTH} caractères.`,
+      })
     }
     if (line.expiresOn !== null) {
       try {
@@ -96,12 +108,18 @@ export function validateOpeningStock(input: {
 
 type OpeningLinePayload = OpeningStockRequest['lines'][number]
 
+/**
+ * Alias structurels des charges générées (contenu identique) : la file des commandes
+ * (`MutationRequest.payload`) attend un objet indexable, ce qu'une interface n'est pas.
+ */
+export type OpeningStockRequestPayload = Pick<OpeningStockRequest, keyof OpeningStockRequest>
+
 /** Charge de `POST /stock/opening` (aucune version attendue : le corps n'a pas ce champ). */
 export function buildOpeningStockPayload(input: {
   countedAt: string
   reason: string
   lines: readonly OpeningLineForm[]
-}): OpeningStockRequest {
+}): OpeningStockRequestPayload {
   const lines = input.lines.map((line): OpeningLinePayload => {
     if (line.itemId === null || line.locationId === null || line.quantity === null) {
       throw new Error('Ligne de stock initial non validée.')
@@ -121,10 +139,17 @@ export function buildOpeningStockPayload(input: {
   })
   const [first, ...rest] = lines
   if (first === undefined) throw new Error('Stock initial sans ligne.')
-  return { counted_at: input.countedAt, reason: input.reason, approval_id: null, lines: [first, ...rest] }
+  return {
+    counted_at: input.countedAt,
+    reason: input.reason,
+    approval_id: null,
+    lines: [first, ...rest],
+  }
 }
 
-export function openingFieldFromServer(key: string): { index: number; field: OpeningLineField } | null {
+export function openingFieldFromServer(
+  key: string,
+): { index: number; field: OpeningLineField } | null {
   const match = /^lines\.([0-9]+)\.([a-z_.]+)$/.exec(key)
   if (match === null) return null
   const index = Number(match[1])

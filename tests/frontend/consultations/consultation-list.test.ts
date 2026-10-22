@@ -84,7 +84,9 @@ describe('liste des examens', () => {
     const { root } = await openApp('/consultations')
     await settle()
 
-    expect(root.querySelector(`a[href="/consultations/${CONSULTATION_ID}/historique"]`)).not.toBeNull()
+    expect(
+      root.querySelector(`a[href="/consultations/${CONSULTATION_ID}/historique"]`),
+    ).not.toBeNull()
     expect(textOf(root)).toContain('révision 1')
   })
 

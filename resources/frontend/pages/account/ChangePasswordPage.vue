@@ -46,8 +46,10 @@ const localErrors = computed<Record<string, string>>(() => {
   return errors
 })
 
+// Le refus du serveur prime sur le contrôle local du même champ : après un 422, le mot de passe actuel
+// est effacé, et « Saisissez votre mot de passe actuel » ne doit pas masquer « incorrect ».
 const errors = computed<Record<string, string>>(() =>
-  submitted.value ? { ...serverFields.value, ...localErrors.value } : serverFields.value,
+  submitted.value ? { ...localErrors.value, ...serverFields.value } : serverFields.value,
 )
 const summary = computed<FieldErrorItem[]>(() =>
   Object.entries(errors.value).map(([fieldId, message]) => ({ fieldId, message })),

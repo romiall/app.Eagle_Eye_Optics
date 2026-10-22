@@ -6,19 +6,8 @@
     "data": {
       "price_authority": false,
       "discount_cap_percent": "0.0000",
-      "payment_methods": [
-        "CASH",
-        "MTN_MOMO",
-        "ORANGE_MONEY",
-        "BANK_TRANSFER",
-        "CHEQUE",
-        "OTHER"
-      ],
-      "payment_reference_required": [
-        "MTN_MOMO",
-        "ORANGE_MONEY",
-        "BANK_TRANSFER"
-      ],
+      "payment_methods": ["CASH", "MTN_MOMO", "ORANGE_MONEY", "BANK_TRANSFER", "CHEQUE", "OTHER"],
+      "payment_reference_required": ["MTN_MOMO", "ORANGE_MONEY", "BANK_TRANSFER"],
       "exam_fee_item_reference": null
     }
   }

@@ -234,6 +234,16 @@ export function validateDraftLines(
 
 type PayloadLine = CreateInvoiceDraftPayload['lines'][number]
 
+/**
+ * Alias structurels des charges générées (contenu identique) : la file des commandes
+ * (`MutationRequest.payload`) attend un objet indexable, ce qu'une interface n'est pas.
+ */
+export type CreateDraftRequestPayload = Pick<
+  CreateInvoiceDraftPayload,
+  keyof CreateInvoiceDraftPayload
+>
+export type UpdateDraftRequestPayload = Pick<UpdateDraftPayload, keyof UpdateDraftPayload>
+
 /** Lignes de la charge : positions 1..n dans l'ordre affiché, remise vide = 0. */
 export function draftLinesPayload(lines: readonly DraftLineForm[]): PayloadLine[] {
   return lines.map((line, index) => {
@@ -259,7 +269,7 @@ export function buildCreateDraftPayload(input: {
   visitId: string | null
   dueDate: string | null
   lines: readonly DraftLineForm[]
-}): CreateInvoiceDraftPayload {
+}): CreateDraftRequestPayload {
   return {
     invoice_id: input.invoiceId,
     patient_id: input.patientId,
@@ -274,7 +284,7 @@ export function buildUpdateDraftPayload(input: {
   visitId: string | null
   dueDate: string | null
   lines: readonly DraftLineForm[]
-}): UpdateDraftPayload {
+}): UpdateDraftRequestPayload {
   return {
     invoice_id: input.invoiceId,
     visit_id: input.visitId,
@@ -304,10 +314,7 @@ export function sameDraftLines(
 }
 
 /** Erreur du serveur rattachée à une ligne (`lines.2.discount_gross`) ; null pour un autre champ. */
-export function serverLineError(
-  key: string,
-  message: string,
-): DraftLineError | null {
+export function serverLineError(key: string, message: string): DraftLineError | null {
   const match = /^lines\.([0-9]+)(?:\.([a-z_]+))?$/.exec(key)
   if (match === null) return null
   const index = Number(match[1])
@@ -343,7 +350,8 @@ export function priceEditable(priceAuthority: boolean): boolean {
  * compte lu sur le serveur (`GET /sales/settings`, taux exact « 10.0000 ») ; inconnu : texte générique.
  */
 export function discountRule(priceAuthority: boolean, capPercent: string | null = null): string {
-  if (priceAuthority) return 'Remise en FCFA, au plus le montant brut de la ligne (autorité de prix).'
+  if (priceAuthority)
+    return 'Remise en FCFA, au plus le montant brut de la ligne (autorité de prix).'
   if (capPercent === null) {
     return 'Remise réservée à la gérante : sans autorité de prix, le plafond fixé sur le serveur s’applique (0 % par défaut) et le serveur refuse ce qui le dépasse.'
   }

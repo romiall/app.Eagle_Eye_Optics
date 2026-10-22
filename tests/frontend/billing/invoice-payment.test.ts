@@ -44,7 +44,10 @@ afterEach(() => {
 
 const PAGE = `/ventes/factures/${INVOICE_ID}`
 
-function confirmed(invoice: Invoice, payments: { id: string; amount: number; receiptId: string; number: string }[]): Invoice {
+function confirmed(
+  invoice: Invoice,
+  payments: { id: string; amount: number; receiptId: string; number: string }[],
+): Invoice {
   return {
     ...invoice,
     ledger_version: 1 + payments.length,
@@ -66,7 +69,10 @@ function confirmed(invoice: Invoice, payments: { id: string; amount: number; rec
 }
 
 /** Serveur d'une facture émise de 80 000 et d'une caisse ouverte ; les encaissements s'y ajoutent. */
-function server(): { api: SalesApi; state: { paid: { id: string; amount: number; receiptId: string; number: string }[] } } {
+function server(): {
+  api: SalesApi
+  state: { paid: { id: string; amount: number; receiptId: string; number: string }[] }
+} {
   const api = stubSalesApi({ permissions: CASHIER })
   const state = { paid: [] as { id: string; amount: number; receiptId: string; number: string }[] }
   const current = (): Invoice => {
@@ -81,7 +87,12 @@ function server(): { api: SalesApi; state: { paid: { id: string; amount: number;
     if (payment === undefined) return apiError(404, 'RESOURCE_NOT_FOUND', 'Reçu introuvable.')
     const before = state.paid.slice(0, index).reduce((sum, item) => sum + item.amount, 0)
     return json(200, {
-      data: receipt({ id: payment.receiptId, number: payment.number, amount: payment.amount, before }),
+      data: receipt({
+        id: payment.receiptId,
+        number: payment.number,
+        amount: payment.amount,
+        before,
+      }),
     })
   })
   api.on('POST', /^\/api\/v1\/invoices\/([^/]+)\/payments$/, (request) => {
@@ -92,7 +103,10 @@ function server(): { api: SalesApi; state: { paid: { id: string; amount: number;
         error: {
           code: 'VERSION_CONFLICT',
           message: 'La facture a changé depuis votre affichage.',
-          details: { current_version: invoice.ledger_version, amount_due: invoice.balance.balance_due },
+          details: {
+            current_version: invoice.ledger_version,
+            amount_due: invoice.balance.balance_due,
+          },
         },
         correlation_id: 'corr-test-0500',
       })
@@ -103,7 +117,10 @@ function server(): { api: SalesApi; state: { paid: { id: string; amount: number;
         error: {
           code: 'PAYMENT_EXCEEDS_BALANCE',
           message: 'Le montant dépasse le reste à payer de cette facture.',
-          details: { amount_due: invoice.balance.balance_due, current_version: invoice.ledger_version },
+          details: {
+            amount_due: invoice.balance.balance_due,
+            current_version: invoice.ledger_version,
+          },
         },
         correlation_id: 'corr-test-0501',
       })
@@ -294,7 +311,12 @@ describe('refus du serveur', () => {
     const { api, state } = server()
     const { root, unmount } = await openApp(PAGE)
     // Une autre caissière encaisse 40 000 pendant l'affichage (la page montre encore 80 000)…
-    state.paid.push({ id: PAYMENT_ID, amount: 40000, receiptId: RECEIPT_ID, number: 'TEST-REC-2026-000001' })
+    state.paid.push({
+      id: PAYMENT_ID,
+      amount: 40000,
+      receiptId: RECEIPT_ID,
+      number: 'TEST-REC-2026-000001',
+    })
     // … mais la version affichée est encore la première : le serveur répondra d'abord sur la version.
     await typeInto(root, 'encaissement-montant', '40000')
     await selectInto(root, 'encaissement-mode', 'CASH')

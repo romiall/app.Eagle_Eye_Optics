@@ -4,6 +4,7 @@ namespace App\Domain\Cash;
 
 use App\Domain\Shared\BusinessError;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use stdClass;
 
@@ -81,7 +82,7 @@ final class CashSessionDirectory
         return array_values($query->orderBy('cash_sessions.opened_at')->orderBy('cash_sessions.id')->get()->all());
     }
 
-    private static function base(string $clinicId): \Illuminate\Database\Query\Builder
+    private static function base(string $clinicId): Builder
     {
         return DB::table('cash_sessions')
             ->leftJoin('users as cashiers', static function ($join): void {

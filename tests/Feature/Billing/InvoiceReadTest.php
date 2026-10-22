@@ -229,8 +229,10 @@ final class InvoiceReadTest extends TestCase
     public function test_un_module_ferme_repond_404_et_un_visiteur_non_connecte_401(): void
     {
         [$id] = $this->issuedInvoice();
-        $this->getJson('/api/v1/invoices')->assertUnauthorized();
-        $this->getJson('/api/v1/invoices/'.$id)->assertUnauthorized();
+        // La facture vient d'être émise par un compte connecté : le visiteur repart d'une session vide et sans garde.
+        $this->flushSession();
+        $this->nextRequest()->getJson('/api/v1/invoices')->assertUnauthorized();
+        $this->nextRequest()->getJson('/api/v1/invoices/'.$id)->assertUnauthorized();
 
         config(['eeo.enabled_modules' => ['stock']]);
         $this->read('/api/v1/invoices', $this->manager)->assertNotFound();

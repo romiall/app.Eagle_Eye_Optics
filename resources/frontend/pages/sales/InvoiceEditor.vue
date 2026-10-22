@@ -235,7 +235,10 @@ const latest = shallowRef<Invoice | null>(null)
 const reloading = ref(false)
 const reloadProblem = ref<string | null>(null)
 
-function applyServerRefusal(fields: Readonly<Record<string, readonly string[]>>, message: string): void {
+function applyServerRefusal(
+  fields: Readonly<Record<string, readonly string[]>>,
+  message: string,
+): void {
   const byLine: DraftLineError[] = []
   const general: string[] = []
   for (const [key, messages] of Object.entries(fields)) {
@@ -413,7 +416,9 @@ async function requestIssue(): Promise<void> {
   const base = baseline.value
   if (base === null) return
   if (dirty.value) {
-    generalErrors.value = ['Enregistrez le brouillon avant de l’émettre : la facture émise est celle enregistrée.']
+    generalErrors.value = [
+      'Enregistrez le brouillon avant de l’émettre : la facture émise est celle enregistrée.',
+    ]
     await summaryBox.value?.focus()
     return
   }
@@ -603,7 +608,10 @@ const saveStatus = computed(() => {
     <p class="text-base">
       <span aria-hidden="true">✎ </span>
       <template v-if="baseline">Brouillon enregistré, sans numéro définitif.</template>
-      <template v-else>Nouveau brouillon : rien n’est enregistré tant que vous n’avez pas cliqué sur « Enregistrer le brouillon ».</template>
+      <template v-else
+        >Nouveau brouillon : rien n’est enregistré tant que vous n’avez pas cliqué sur « Enregistrer
+        le brouillon ».</template
+      >
     </p>
 
     <StateMessage v-if="held" state="conflict" title="Facture détenue par un poste préparé">
@@ -616,14 +624,15 @@ const saveStatus = computed(() => {
 
     <StateMessage v-if="needsReload" state="conflict" title="Le brouillon a changé entre-temps">
       <p>
-        Quelqu’un a modifié ce brouillon pendant votre saisie. Votre saisie est conservée. Relisez la
-        version actuelle avant de choisir.
+        Quelqu’un a modifié ce brouillon pendant votre saisie. Votre saisie est conservée. Relisez
+        la version actuelle avant de choisir.
       </p>
       <p v-if="reloadProblem" class="mt-2 font-medium">{{ reloadProblem }}</p>
       <template v-if="latest">
         <p class="mt-2">
-          Version actuelle : {{ latest.lines.length }} ligne{{ latest.lines.length > 1 ? 's' : '' }},
-          total {{ formatMoney(latest.total_gross) }}.
+          Version actuelle : {{ latest.lines.length }} ligne{{
+            latest.lines.length > 1 ? 's' : ''
+          }}, total {{ formatMoney(latest.total_gross) }}.
         </p>
       </template>
       <template #action>
@@ -668,11 +677,7 @@ const saveStatus = computed(() => {
       {{ issueNotice }}
     </StateMessage>
 
-    <StateMessage
-      v-if="abandonFailure"
-      :state="abandonFailure.state"
-      :title="abandonFailure.title"
-    >
+    <StateMessage v-if="abandonFailure" :state="abandonFailure.state" :title="abandonFailure.title">
       {{ abandonMutation.failureMessage.value }}
       <template v-if="abandonFailure.retry" #action>
         <AppButton variant="secondary" :pending="abandoning" @click="retryAbandon"
@@ -709,7 +714,11 @@ const saveStatus = computed(() => {
         >Ajouter une ligne hors catalogue</AppButton
       >
 
-      <div class="rounded-lg border-2 border-line bg-surface p-4" role="group" aria-label="Total du brouillon">
+      <div
+        class="rounded-lg border-2 border-line bg-surface p-4"
+        role="group"
+        aria-label="Total du brouillon"
+      >
         <p class="text-base font-semibold" aria-live="polite">
           Total TTC :
           <span class="text-2xl font-bold tabular-nums" data-montant="total">{{
@@ -720,8 +729,9 @@ const saveStatus = computed(() => {
           <span aria-hidden="true">⚠ </span>{{ totals.totalError }}
         </p>
         <p class="mt-1 text-sm text-muted">
-          Montants toutes taxes comprises, calculés par les règles partagées avec le serveur, qui les
-          recalcule. La taxe comprise est ventilée par le serveur selon les règles fiscales validées.
+          Montants toutes taxes comprises, calculés par les règles partagées avec le serveur, qui
+          les recalcule. La taxe comprise est ventilée par le serveur selon les règles fiscales
+          validées.
         </p>
       </div>
 
@@ -754,7 +764,10 @@ const saveStatus = computed(() => {
       <p v-if="canIssue && baseline && dirty" class="text-sm text-muted">
         Enregistrez le brouillon avant de l’émettre.
       </p>
-      <ul v-else-if="canIssue && issueHints.length > 0" class="list-disc space-y-1 pl-5 text-sm text-muted">
+      <ul
+        v-else-if="canIssue && issueHints.length > 0"
+        class="list-disc space-y-1 pl-5 text-sm text-muted"
+      >
         <li v-for="hint in issueHints" :key="hint">{{ hint }}</li>
       </ul>
     </form>
@@ -770,8 +783,11 @@ const saveStatus = computed(() => {
       @cancel="confirmingIssue = false"
     >
       <p>
-        Total TTC : <strong>{{ totals.total === null ? '—' : formatMoney(totals.total) }}</strong>
-        ({{ lines.length }} ligne{{ lines.length > 1 ? 's' : '' }}).
+        Total TTC :
+        <strong>{{ totals.total === null ? '—' : formatMoney(totals.total) }}</strong> ({{
+          lines.length
+        }}
+        ligne{{ lines.length > 1 ? 's' : '' }}).
       </p>
       <p class="mt-2">
         <strong>La facture émise ne pourra plus être modifiée.</strong> Le serveur lui attribue un

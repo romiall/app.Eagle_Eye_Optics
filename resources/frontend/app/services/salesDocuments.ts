@@ -77,7 +77,9 @@ export async function receiptDocument(receipt: Receipt): Promise<RenderedDocumen
  */
 export async function invoiceDocument(invoice: Invoice): Promise<RenderedDocument> {
   if (invoice.status !== 'ISSUED') {
-    throw new RangeError('Seule une facture émise a un PDF : le brouillon n’a pas encore de numéro.')
+    throw new RangeError(
+      'Seule une facture émise a un PDF : le brouillon n’a pas encore de numéro.',
+    )
   }
   const data = invoiceFromResource({
     invoice,
@@ -100,9 +102,12 @@ export async function invoiceDocument(invoice: Invoice): Promise<RenderedDocumen
  * PROVISOIRE (le modèle le marque). En-tête : nom du cabinet de la session connectée (document de test tant
  * que les documents de production ne sont pas activés).
  */
-export async function cashSessionReportDocument(report: CashSessionReport): Promise<RenderedDocument> {
+export async function cashSessionReportDocument(
+  report: CashSessionReport,
+): Promise<RenderedDocument> {
   const account = session.account
-  if (account === null) throw new RangeError('Session non vérifiée : reconnectez-vous pour imprimer le relevé.')
+  if (account === null)
+    throw new RangeError('Session non vérifiée : reconnectez-vous pour imprimer le relevé.')
   const data = cashSessionReportData(report, await currentDocumentClinic(), TEMPLATE_VERSION)
   return renderDocument(buildDocument('CASH_SESSION_REPORT', data))
 }

@@ -49,7 +49,9 @@ async function typeInto(root: HTMLElement, id: string, value: string): Promise<v
 }
 
 function dialogTitled(root: HTMLElement, title: string): HTMLDialogElement {
-  const found = [...root.querySelectorAll('dialog')].find((dialog) => dialog.querySelector('h2')?.textContent?.includes(title))
+  const found = [...root.querySelectorAll('dialog')].find((dialog) =>
+    dialog.querySelector('h2')?.textContent?.includes(title),
+  )
   if (found === undefined) throw new Error(`Boîte « ${title} » introuvable.`)
   return found
 }
@@ -60,7 +62,17 @@ const inProgress = () =>
     version: 3,
     steps: {
       REFRACTION: {
-        measurements: [{ id: '01J9ZXK4M2Q8R7S6T5V4W30C01', stage: 'SUBJECTIVE', eye: 'OD', sphere: '-1.25', cylinder: '0.75', axis: 180, addition: '2.00' }],
+        measurements: [
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W30C01',
+            stage: 'SUBJECTIVE',
+            eye: 'OD',
+            sphere: '-1.25',
+            cylinder: '0.75',
+            axis: 180,
+            addition: '2.00',
+          },
+        ],
         refraction_observations: null,
         ametropias: [],
       },
@@ -72,8 +84,10 @@ describe('première prescription', () => {
     const api = stubConsultationApi({ consultation: inProgress() })
     const { root, unmount } = await openConsultation(URL)
 
-    expect(root.querySelector('h1')?.textContent).toBe('Prescription optique')
-    expect(textOf(root)).toContain('Aucune prescription optique n’est enregistrée pour cette consultation.')
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Prescription optique')
+    expect(textOf(root)).toContain(
+      'Aucune prescription optique n’est enregistrée pour cette consultation.',
+    )
     await click(buttonByName(root, 'Nouvelle prescription'))
     expect(textOf(root)).toContain('Nouvelle prescription (brouillon)')
     expect(textOf(root)).toContain('BROUILLON : ne pas remettre au patient')
@@ -85,7 +99,14 @@ describe('première prescription', () => {
     const [call] = callsTo(api, 'POST', PATHS.consultationPrescriptions)
     expect(call?.path).toBe(`/api/v1/consultations/${CONSULTATION_ID}/prescriptions`)
     expect(call?.headers['Idempotency-Key']).toMatch(ULID)
-    expect(call?.body).toMatchObject({ expected_version: null, origin: 'INTERNAL', consultation_id: CONSULTATION_ID, patient_id: ID_A, version_no: 1, supersedes_id: null })
+    expect(call?.body).toMatchObject({
+      expected_version: null,
+      origin: 'INTERNAL',
+      consultation_id: CONSULTATION_ID,
+      patient_id: ID_A,
+      version_no: 1,
+      supersedes_id: null,
+    })
     const eyes = call?.body?.['eyes'] as Record<string, unknown>[]
     expect(eyes.map((eye) => [eye['eye'], eye['sphere'], eye['no_correction']])).toEqual([
       ['OD', '-1.25', false],
@@ -149,7 +170,9 @@ describe('validation', () => {
     await click(buttonByName(root, 'Valider la prescription'))
 
     expect(callsTo(api, 'POST', PATHS.prescriptionValidate)).toHaveLength(0)
-    expect(textOf(root)).toContain('Œil OG : saisissez les valeurs, ou cochez « Aucune correction » pour cet œil.')
+    expect(textOf(root)).toContain(
+      'Œil OG : saisissez les valeurs, ou cochez « Aucune correction » pour cet œil.',
+    )
     unmount()
   })
 
@@ -175,7 +198,10 @@ describe('brouillon et nouvelle version', () => {
 
     const [call] = callsTo(api, 'PATCH', PATHS.prescription)
     expect(call?.path).toBe(`/api/v1/prescriptions/${PRESCRIPTION_ID}`)
-    expect(call?.body).toMatchObject({ expected_updated_at: '2026-10-22T09:40:00.000Z', changes: { notes: 'Port permanent (fictif)' } })
+    expect(call?.body).toMatchObject({
+      expected_updated_at: '2026-10-22T09:40:00.000Z',
+      changes: { notes: 'Port permanent (fictif)' },
+    })
     expect(Object.keys(call?.body?.['changes'] as object)).toEqual(['notes'])
     unmount()
   })
@@ -186,7 +212,10 @@ describe('brouillon et nouvelle version', () => {
       consultation: inProgress(),
       prescriptions: [prescription()],
       handlers: {
-        updatePrescription: () => errorWithDetails(409, 'VERSION_CONFLICT', 'Prescription modifiée entre-temps.', { current_updated_at: current.updated_at }),
+        updatePrescription: () =>
+          errorWithDetails(409, 'VERSION_CONFLICT', 'Prescription modifiée entre-temps.', {
+            current_updated_at: current.updated_at,
+          }),
         getPrescription: () => json(200, { data: current }),
       },
     })
@@ -197,12 +226,18 @@ describe('brouillon et nouvelle version', () => {
 
     expect(textOf(root)).toContain('Ce brouillon a été modifié entre-temps')
     expect(textOf(root)).toContain('Indice : actuellement « 1.74 », votre saisie « 1.50 »')
-    expect((root.querySelector('[id="rx-observations"]') as HTMLTextAreaElement).value).toBe('Ma saisie')
+    expect((root.querySelector('[id="rx-observations"]') as HTMLTextAreaElement).value).toBe(
+      'Ma saisie',
+    )
     unmount()
   })
 
   it('une version validée se corrige par une NOUVELLE version de la même série, avec des lignes neuves', async () => {
-    const validated = prescription({ status: 'VALIDATED', validated_at: '2026-10-22T09:41:00.000Z', document_id: '01J9ZXK4M2Q8R7S6T5V4W30D01' })
+    const validated = prescription({
+      status: 'VALIDATED',
+      validated_at: '2026-10-22T09:41:00.000Z',
+      document_id: '01J9ZXK4M2Q8R7S6T5V4W30D01',
+    })
     const api = stubConsultationApi({ consultation: inProgress(), prescriptions: [validated] })
     const { root, unmount } = await openConsultation(URL)
 
@@ -212,7 +247,11 @@ describe('brouillon et nouvelle version', () => {
 
     const [call] = callsTo(api, 'POST', PATHS.prescriptionRevision)
     expect(call?.path).toBe(`/api/v1/prescriptions/${PRESCRIPTION_ID}/revisions`)
-    expect(call?.body).toMatchObject({ supersedes_id: PRESCRIPTION_ID, series_id: validated.series_id, version_no: 2 })
+    expect(call?.body).toMatchObject({
+      supersedes_id: PRESCRIPTION_ID,
+      series_id: validated.series_id,
+      version_no: 2,
+    })
     const eyes = call?.body?.['eyes'] as { id: string }[]
     expect(eyes.map((eye) => eye.id)).not.toContain(validated.eyes[0].id)
     expect(api.prescriptions.find((item) => item.id === PRESCRIPTION_ID)?.status).toBe('VALIDATED')
@@ -222,7 +261,13 @@ describe('brouillon et nouvelle version', () => {
 
 describe('droits', () => {
   it('lecture seule : la prescription se lit, aucune création ni validation', async () => {
-    stubConsultationApi({ permissions: READ_ONLY, consultation: inProgress(), prescriptions: [prescription({ status: 'VALIDATED', validated_at: '2026-10-22T09:41:00.000Z' })] })
+    stubConsultationApi({
+      permissions: READ_ONLY,
+      consultation: inProgress(),
+      prescriptions: [
+        prescription({ status: 'VALIDATED', validated_at: '2026-10-22T09:41:00.000Z' }),
+      ],
+    })
     const { root, unmount } = await openConsultation(URL)
 
     expect(textOf(root)).toContain('Version 1')
@@ -232,7 +277,9 @@ describe('droits', () => {
   })
 
   it('sans clinical.read : accès refusé, rien n’est lu', async () => {
-    const api = stubConsultationApi({ permissions: ['patient.read', 'visit.register', 'agenda.read'] })
+    const api = stubConsultationApi({
+      permissions: ['patient.read', 'visit.register', 'agenda.read'],
+    })
     const { router, unmount } = await openConsultation(URL)
 
     expect(router.currentRoute.value.name).toBe('acces-refuse')

@@ -1,11 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import {
-  demoAccountStatement,
-  demoCreditNote,
-  demoRefund,
-} from '@/documents/demo/fixtures'
+import { demoAccountStatement, demoCreditNote, demoRefund } from '@/documents/demo/fixtures'
 import { NBSP } from '@/documents/engine/charset'
 import { DocumentDataError } from '@/documents/engine/errors'
 import { buildAccountStatement } from '@/documents/templates/credits/accountStatement'
@@ -67,9 +63,9 @@ describe('avoir (fichier 11)', () => {
     expect(failure(() => buildCreditNote({ ...note, amountGross: 9000 })).code).toBe(
       'credit_note.total_mismatch',
     )
-    expect(
-      failure(() => buildCreditNote({ ...note, amountGross: 0, lines: [] })).code,
-    ).toBe('amount.not_positive')
+    expect(failure(() => buildCreditNote({ ...note, amountGross: 0, lines: [] })).code).toBe(
+      'amount.not_positive',
+    )
     expect(failure(() => buildCreditNote({ ...note, lines: [] })).code).toBe('credit_note.no_lines')
     expect(failure(() => buildCreditNote({ ...note, reason: '  ' })).code).toBe('text.required')
   })

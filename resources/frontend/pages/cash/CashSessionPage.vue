@@ -15,10 +15,7 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
-import {
-  getCurrentCashSession,
-  listCashRegisters,
-} from '@/app/services/billing'
+import { getCurrentCashSession, listCashRegisters } from '@/app/services/billing'
 import type { MutationOutcome } from '@/app/services/mutations'
 import type { ReadOutcome } from '@/app/services/reads'
 import { useMutation } from '@/app/services/useMutation'
@@ -42,11 +39,7 @@ import {
   VARIANCE_REASON_MAX_LENGTH,
   varianceDescription,
 } from '@/domain/billing/cash'
-import type {
-  CashRegister,
-  CashSession,
-  CashSessionResponse,
-} from '@/domain/contracts/generated'
+import type { CashRegister, CashSession, CashSessionResponse } from '@/domain/contracts/generated'
 import { currentInstant } from '@/domain/patients/visits'
 import { formatMoney } from '@/domain/values/money'
 import { salesFailureView } from '@/pages/sales/failureView'
@@ -234,7 +227,9 @@ const closeFailure = computed(() =>
 const dirty = computed(
   () =>
     (session.value !== null && (counted.value !== null || reason.value.trim() !== '')) ||
-    (session.value === null && openingAmount.value !== null && openMutation.state.value !== 'synced'),
+    (session.value === null &&
+      openingAmount.value !== null &&
+      openMutation.state.value !== 'synced'),
 )
 useUnsavedChangesGuard(dirty)
 
@@ -299,7 +294,11 @@ async function afterClose(result: MutationOutcome): Promise<void> {
       confirmingClose.value = false
       closeErrors.value = serverErrors(
         result.error.fields,
-        { counted_amount: FIELD_IDS.counted, variance_reason: FIELD_IDS.reason, variance: FIELD_IDS.counted },
+        {
+          counted_amount: FIELD_IDS.counted,
+          variance_reason: FIELD_IDS.reason,
+          variance: FIELD_IDS.counted,
+        },
         FIELD_IDS.counted,
         result.error.message,
       )
@@ -460,7 +459,11 @@ async function retryClose(): Promise<void> {
             >Ouvrir la caisse</AppButton
           >
           <SaveStatus
-            :state="openMutation.saveState.value === 'synced' ? 'saved-server' : openMutation.saveState.value"
+            :state="
+              openMutation.saveState.value === 'synced'
+                ? 'saved-server'
+                : openMutation.saveState.value
+            "
             :at="openMutation.recordedAt.value"
             :time-zone="timeZone"
           />
@@ -470,8 +473,12 @@ async function retryClose(): Promise<void> {
 
     <template v-if="session">
       <section aria-labelledby="titre-session" class="space-y-3">
-        <h2 id="titre-session" class="text-lg font-semibold">Session ouverte : {{ registerName }}</h2>
-        <dl class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2">
+        <h2 id="titre-session" class="text-lg font-semibold">
+          Session ouverte : {{ registerName }}
+        </h2>
+        <dl
+          class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2"
+        >
           <div>
             <dt class="text-sm text-muted">Ouverte le</dt>
             <dd>{{ formatInstantFr(session.opened_at) }}</dd>
@@ -496,12 +503,14 @@ async function retryClose(): Promise<void> {
           </div>
         </dl>
         <p class="text-sm text-muted">
-          Projection du serveur à la lecture : fond + espèces encaissées − remboursements en espèces.
-          Mobile money, virements et chèques ne sont pas dans le tiroir.
+          Projection du serveur à la lecture : fond + espèces encaissées − remboursements en
+          espèces. Mobile money, virements et chèques ne sont pas dans le tiroir.
         </p>
         <div class="flex flex-wrap gap-3">
           <LinkButton :to="{ name: 'factures' }" variant="secondary">Aller aux factures</LinkButton>
-          <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary">Caisse du jour</LinkButton>
+          <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary"
+            >Caisse du jour</LinkButton
+          >
         </div>
         <SessionReportButton :session-id="session.id" label="Relevé provisoire (PDF)" />
       </section>
@@ -513,8 +522,8 @@ async function retryClose(): Promise<void> {
       >
         Attendu affiché : {{ formatMoney(expectedChanged.before) }} ; attendu recalculé par le
         serveur : {{ formatMoney(expectedChanged.after) }}. Un encaissement en espèces est
-        probablement survenu. Votre compté est conservé : recomptez le tiroir, corrigez si besoin, puis
-        clôturez de nouveau.
+        probablement survenu. Votre compté est conservé : recomptez le tiroir, corrigez si besoin,
+        puis clôturez de nouveau.
       </StateMessage>
 
       <form
@@ -582,7 +591,8 @@ async function retryClose(): Promise<void> {
       <p>
         Compté : <strong>{{ formatMoney(counted ?? 0) }}</strong> ; attendu :
         <strong>{{ formatMoney(expected) }}</strong> ; écart :
-        <strong>{{ signed(variance ?? 0) }}</strong>.
+        <strong>{{ signed(variance ?? 0) }}</strong
+        >.
       </p>
       <p class="mt-2">
         La session clôturée ne pourra plus être modifiée et aucun encaissement en espèces n’y sera

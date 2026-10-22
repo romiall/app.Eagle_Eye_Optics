@@ -180,9 +180,7 @@ describe('mise en page : en-tête, pied de page, numérotation', () => {
   })
 
   it('pose le filigrane sous le contenu, en diagonale, sur toutes les pages', () => {
-    const plan = layout(
-      model([table('Lignes', COLUMNS, rows(120))], { watermark: 'BROUILLON' }),
-    )
+    const plan = layout(model([table('Lignes', COLUMNS, rows(120))], { watermark: 'BROUILLON' }))
 
     for (const page of plan.pages) {
       const first = page.ops[0]
@@ -195,7 +193,10 @@ describe('mise en page : en-tête, pied de page, numérotation', () => {
 
   it('le ticket 80 mm est une page continue : une seule page, hauteur du contenu, mention en tête', () => {
     const plan = layout(
-      model([paragraph('Contenu du ticket.')], { format: 'TICKET_80', watermark: 'DONNÉES DE TEST' }),
+      model([paragraph('Contenu du ticket.')], {
+        format: 'TICKET_80',
+        watermark: 'DONNÉES DE TEST',
+      }),
     )
 
     expect(plan.pages).toHaveLength(1)
@@ -323,9 +324,7 @@ describe('blocs : titres, paragraphes, groupes, encadrés, signatures', () => {
     const pageOfBloc = plan.pages.findIndex((page) =>
       planPageLines(page).some((line) => line === 'Bloc'),
     )
-    const same = plan.pages.findIndex((page) =>
-      planPageLines(page).some((line) => line === 'C.'),
-    )
+    const same = plan.pages.findIndex((page) => planPageLines(page).some((line) => line === 'C.'))
 
     expect(pageOfBloc).toBeGreaterThanOrEqual(0)
     expect(pageOfBloc).toBe(same)
@@ -347,7 +346,13 @@ describe('blocs : titres, paragraphes, groupes, encadrés, signatures', () => {
     )
     const text = printedText(plan)
 
-    for (const expected of ['Patient', 'PATIENT FICTIF', 'TEST-P-000001', 'Féminin', '17/05/1990']) {
+    for (const expected of [
+      'Patient',
+      'PATIENT FICTIF',
+      'TEST-P-000001',
+      'Féminin',
+      '17/05/1990',
+    ]) {
       expect(text).toContain(expected)
     }
     expect(outOfBounds(plan)).toEqual([])

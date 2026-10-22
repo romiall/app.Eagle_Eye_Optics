@@ -86,7 +86,9 @@ export function buildOpticalPrescription(
       notice(
         'info',
         `Ordonnance externe transcrite. Prescripteur d’origine : ${data.externalPrescriber ?? ''}.${
-          data.professional === null ? '' : ' La transcription est validée par le professionnel indiqué.'
+          data.professional === null
+            ? ''
+            : ' La transcription est validée par le professionnel indiqué.'
         }`,
       ),
     )

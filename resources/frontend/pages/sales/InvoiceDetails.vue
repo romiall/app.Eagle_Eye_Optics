@@ -22,13 +22,7 @@ import type { CashSession, Invoice } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
 import { useServerRead } from '@/pages/today/useServerRead'
 
-import {
-  formatMoney,
-  paymentMethodLabel,
-  quantityLabel,
-  rateLabel,
-  unitLabel,
-} from './format'
+import { formatMoney, paymentMethodLabel, quantityLabel, rateLabel, unitLabel } from './format'
 import PaymentForm from './PaymentForm.vue'
 import ReceiptPanel from './ReceiptPanel.vue'
 
@@ -120,7 +114,8 @@ async function previewInvoice(): Promise<void> {
       </p>
       <p v-if="patient" class="text-base break-words">
         Patient (identité figée à l’émission) :
-        <strong>{{ patientDisplayName(patient.last_name, patient.first_names) }}</strong>, dossier
+        <strong>{{ patientDisplayName(patient.last_name, patient.first_names) }}</strong
+        >, dossier
         {{ patient.record_number }}
       </p>
     </div>
@@ -158,7 +153,9 @@ async function previewInvoice(): Promise<void> {
             <strong class="tabular-nums">{{ formatMoney(line.line_total_gross) }}</strong>
           </p>
           <p class="text-sm text-muted">
-            <template v-if="line.tax_amount === null">Aucune taxe ventilée (régime non configuré)</template>
+            <template v-if="line.tax_amount === null"
+              >Aucune taxe ventilée (régime non configuré)</template
+            >
             <template v-else
               >Dont taxe {{ line.tax_code_snapshot }} ({{ rateLabel(line.tax_rate_snapshot) }}) :
               {{ formatMoney(line.tax_amount) }}</template
@@ -196,7 +193,9 @@ async function previewInvoice(): Promise<void> {
             variant="secondary"
             :accessible-name="`${openedReceipts.includes(payment.receipt_id) ? 'Masquer le reçu' : 'Voir le reçu'} ${payment.receipt_number ?? ''}`"
             @click="toggleReceipt(payment.receipt_id)"
-            >{{ openedReceipts.includes(payment.receipt_id) ? 'Masquer le reçu' : 'Voir le reçu' }}</AppButton
+            >{{
+              openedReceipts.includes(payment.receipt_id) ? 'Masquer le reçu' : 'Voir le reçu'
+            }}</AppButton
           >
           <ReceiptPanel
             v-if="payment.receipt_id && openedReceipts.includes(payment.receipt_id)"
@@ -205,8 +204,8 @@ async function previewInvoice(): Promise<void> {
         </li>
       </ul>
       <p v-if="otherPayments.length > 0" class="text-sm text-muted">
-        {{ otherPayments.length }} encaissement(s) non confirmé(s) : ils ne comptent pas dans le total
-        encaissé.
+        {{ otherPayments.length }} encaissement(s) non confirmé(s) : ils ne comptent pas dans le
+        total encaissé.
       </p>
     </section>
 
@@ -238,8 +237,8 @@ async function previewInvoice(): Promise<void> {
     <section aria-labelledby="titre-pdf-facture" class="space-y-3">
       <h2 id="titre-pdf-facture" class="text-lg font-semibold">Document de la facture</h2>
       <p class="text-sm text-muted">
-        PDF généré sur ce poste depuis les données figées à l’émission ; une réimpression rend la même
-        pièce. Il n’est pas conservé après la fermeture du navigateur dans cette version.
+        PDF généré sur ce poste depuis les données figées à l’émission ; une réimpression rend la
+        même pièce. Il n’est pas conservé après la fermeture du navigateur dans cette version.
       </p>
       <AppButton
         variant="secondary"

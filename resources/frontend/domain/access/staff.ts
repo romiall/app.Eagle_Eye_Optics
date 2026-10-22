@@ -9,6 +9,8 @@
  * Règles pures : ni Vue, ni réseau, ni stockage.
  */
 
+import { floorMod } from '../values/integer'
+
 export const STAFF_ROLES = ['MANAGER', 'RECEPTION', 'CLINICIAN', 'CASHIER'] as const
 
 export type StaffRole = (typeof STAFF_ROLES)[number]
@@ -164,7 +166,10 @@ export const GENERATED_PASSWORD_LENGTH = 16
  * Mot de passe initial aléatoire (aléa cryptographique du navigateur), 16 caractères, lettres et chiffres.
  * Il n'est ni conservé ni journalisé par l'écran : affiché une fois à la gérante, qui le transmet en personne.
  */
-export function generatePassword(random: (values: Uint32Array) => Uint32Array = (values) => crypto.getRandomValues(values)): string {
+export function generatePassword(
+  random: (values: Uint32Array<ArrayBuffer>) => Uint32Array = (values) =>
+    crypto.getRandomValues(values),
+): string {
   const alphabet = GENERATED_LETTERS + GENERATED_DIGITS
   for (;;) {
     const values = random(new Uint32Array(GENERATED_PASSWORD_LENGTH))
@@ -196,7 +201,8 @@ function zoneOffsetMs(epochMs: number, timeZone: string): number {
     value('minute'),
     value('second'),
   )
-  return wall - Math.floor(epochMs / 1000) * 1000
+  // Instant ramené à la seconde entière (les parties formatées n'ont pas de millisecondes), en entier exact.
+  return wall - (epochMs - floorMod(epochMs, 1000))
 }
 
 /**

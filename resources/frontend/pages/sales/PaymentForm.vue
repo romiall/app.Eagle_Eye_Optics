@@ -91,7 +91,8 @@ const canOpenCash = computed(() => canOnScreen('cash.own_session'))
 const cashBlocked = computed(() => method.value === 'CASH' && props.cashSessionId === null)
 
 const dirty = computed(
-  () => mutation.state.value !== 'synced' && (amount.value !== null || reference.value.trim() !== ''),
+  () =>
+    mutation.state.value !== 'synced' && (amount.value !== null || reference.value.trim() !== ''),
 )
 useUnsavedChangesGuard(dirty)
 
@@ -184,7 +185,11 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
         await summaryBox.value?.focus()
         return
       }
-      if (['payment_id', 'receipt_id', 'receipt_number_usage_id', 'receipt_document_id'].some((key) => key in error.fields)) {
+      if (
+        ['payment_id', 'receipt_id', 'receipt_number_usage_id', 'receipt_document_id'].some(
+          (key) => key in error.fields,
+        )
+      ) {
         // Les identifiants de cette tentative sont déjà pris : l'encaissement a probablement abouti.
         general.value =
           'Cet encaissement a peut-être déjà été enregistré : la facture est relue. Ne recommencez pas l’encaissement.'
@@ -203,7 +208,11 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
       }
       errors.value = byField
       general.value =
-        others.length > 0 ? others.join(' ') : Object.keys(byField).length === 0 ? error.message : null
+        others.length > 0
+          ? others.join(' ')
+          : Object.keys(byField).length === 0
+            ? error.message
+            : null
       if (error.code === 'STATE_TRANSITION_REFUSED' || error.code === 'WRITE_OWNER_REQUIRED') {
         emit('stale')
       }
@@ -299,7 +308,9 @@ defineExpose({ reset })
     <h2 id="titre-encaisser" class="text-lg font-semibold">Encaisser</h2>
     <p class="text-base">
       Reste à encaisser :
-      <strong class="tabular-nums" data-montant="reste-formulaire">{{ formatMoney(amountDue) }}</strong>
+      <strong class="tabular-nums" data-montant="reste-formulaire">{{
+        formatMoney(amountDue)
+      }}</strong>
     </p>
 
     <ErrorSummary ref="summaryBox" :errors="summary" />
@@ -351,8 +362,16 @@ defineExpose({ reset })
 
     <TextField
       v-model="reference"
-      :label="referenceRequired(method, referenceMethods) ? 'Référence de l’opération' : 'Référence de l’opération (facultative)'"
-      :hint="referenceRequired(method, referenceMethods) ? 'Numéro de transaction ou de virement, obligatoire pour ce mode.' : undefined"
+      :label="
+        referenceRequired(method, referenceMethods)
+          ? 'Référence de l’opération'
+          : 'Référence de l’opération (facultative)'
+      "
+      :hint="
+        referenceRequired(method, referenceMethods)
+          ? 'Numéro de transaction ou de virement, obligatoire pour ce mode.'
+          : undefined
+      "
       :control-id="FIELD_IDS.reference"
       :maxlength="REFERENCE_MAX_LENGTH"
       :error="errors.reference ?? null"
@@ -360,29 +379,30 @@ defineExpose({ reset })
       :required="referenceRequired(method, referenceMethods)"
     />
 
-    <StateMessage
-      v-if="cashBlocked || errors.cashSession"
-      :id="FIELD_IDS.cashSession"
-      tabindex="-1"
-      state="offline"
-      title="Caisse non ouverte"
-    >
-      Un encaissement en espèces exige une session de caisse ouverte par ce compte.
-      <template v-if="canOpenCash" #action>
-        <RouterLink
-          :to="{ name: 'caisse' }"
-          class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-          >Ouvrir la caisse</RouterLink
-        >
-      </template>
-    </StateMessage>
+    <!-- Cible du résumé d'erreurs (focus) : le message d'état ne porte pas d'identifiant. -->
+    <div v-if="cashBlocked || errors.cashSession" :id="FIELD_IDS.cashSession" tabindex="-1">
+      <StateMessage state="offline" title="Caisse non ouverte">
+        Un encaissement en espèces exige une session de caisse ouverte par ce compte.
+        <template v-if="canOpenCash" #action>
+          <RouterLink
+            :to="{ name: 'caisse' }"
+            class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+            >Ouvrir la caisse</RouterLink
+          >
+        </template>
+      </StateMessage>
+    </div>
 
     <p class="text-sm text-muted">
       L’encaissement est un fait constaté par vous : aucun opérateur de paiement n’est interrogé. Un
       reçu numéroté est créé par le serveur pour chaque encaissement.
     </p>
 
-    <AppButton type="submit" :pending="sending" :disabled="locked" pending-label="Encaissement en cours…"
+    <AppButton
+      type="submit"
+      :pending="sending"
+      :disabled="locked"
+      pending-label="Encaissement en cours…"
       >Encaisser{{ amount === null ? '' : ` ${formatMoney(amount)}` }}</AppButton
     >
   </form>

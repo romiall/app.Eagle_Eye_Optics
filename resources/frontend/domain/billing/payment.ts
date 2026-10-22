@@ -1,8 +1,4 @@
-import type {
-  InvoiceBalance,
-  PaymentsMethod,
-  RegisterPaymentPayload,
-} from '../contracts/generated'
+import type { InvoiceBalance, PaymentsMethod, RegisterPaymentPayload } from '../contracts/generated'
 import { RuleViolation } from '../errors'
 import { positiveMoney } from '../values/money'
 import { trimBlanks } from '../values/text'
@@ -78,10 +74,12 @@ export interface PaymentContext {
 export function validatePayment(
   form: PaymentForm,
   context: PaymentContext,
-): { ok: true; amount: number; method: PaymentsMethod; reference: string | null } | {
-  ok: false
-  errors: PaymentErrors
-} {
+):
+  | { ok: true; amount: number; method: PaymentsMethod; reference: string | null }
+  | {
+      ok: false
+      errors: PaymentErrors
+    } {
   const errors: PaymentErrors = {}
   if (context.amountDue <= 0) {
     errors.amount = 'Il ne reste rien à encaisser sur cette facture.'
@@ -102,7 +100,10 @@ export function validatePayment(
   const reference = trimBlanks(form.reference)
   if (reference.length > REFERENCE_MAX_LENGTH) {
     errors.reference = `La référence compte au plus ${REFERENCE_MAX_LENGTH} caractères.`
-  } else if (reference === '' && referenceRequired(form.method, context.referenceRequiredMethods ?? null)) {
+  } else if (
+    reference === '' &&
+    referenceRequired(form.method, context.referenceRequiredMethods ?? null)
+  ) {
     errors.reference =
       'La référence est obligatoire pour ce mode de règlement (numéro de transaction ou de virement).'
   }

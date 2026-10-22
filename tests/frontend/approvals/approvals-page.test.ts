@@ -109,7 +109,11 @@ function stub(items: Approval[], permissions: string[] = MANAGER): Stub {
       if (url.pathname === `/api/v1/approvals/${APPROVAL_ID}/decision` && method === 'POST') {
         state.decisions.push(request)
         if (state.reauthentications === 0) {
-          return apiError(423, 'REAUTHENTICATION_REQUIRED', 'Confirmez votre mot de passe pour cette opération sensible.')
+          return apiError(
+            423,
+            'REAUTHENTICATION_REQUIRED',
+            'Confirmez votre mot de passe pour cette opération sensible.',
+          )
         }
         return json(200, {
           data: approval({
@@ -184,7 +188,11 @@ describe('écran Approbations de la gérante', () => {
   it('la demandeuse ne décide jamais de sa propre demande, et une demande échue ne se décide plus', async () => {
     stub([
       approval({ requested_by: ME_ID }),
-      approval({ id: '01J9ZXK4M2Q8R7S6T5V4W30039', status: 'APPROVED', effective_status: 'EXPIRED' }),
+      approval({
+        id: '01J9ZXK4M2Q8R7S6T5V4W30039',
+        status: 'APPROVED',
+        effective_status: 'EXPIRED',
+      }),
     ])
     const { root, unmount } = await openApp('/parametres/approbations')
 

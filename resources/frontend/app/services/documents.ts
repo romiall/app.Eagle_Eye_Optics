@@ -132,8 +132,4 @@ export async function keepOriginal(
 export { buildDocument } from '@/documents/templates/registry'
 export { DEMO_DOCUMENTS, demoDocumentById } from '@/documents/demo/catalog'
 export type { DemoDocument } from '@/documents/demo/catalog'
-export {
-  type PreviewPage,
-  type PreviewShape,
-  previewPages,
-} from '@/documents/engine/preview'
+export { type PreviewPage, type PreviewShape, previewPages } from '@/documents/engine/preview'

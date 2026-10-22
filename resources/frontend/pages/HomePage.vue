@@ -48,18 +48,20 @@ const menuModules = computed(() =>
 const WORK_GROUPS: readonly WorkGroup[] = ['reception', 'exams', 'cash', 'administration']
 
 /** Raccourcis de travail visibles, par activité, dans l'ordre fixe des activités. */
-const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkShortcut[] }[]>(() => {
-  const visible = visibleWorkShortcuts(
-    currentPermissions.value,
-    enabledModules.value,
-    catalog.workShortcuts ?? [],
-  )
-  return WORK_GROUPS.map((group) => ({
-    group,
-    label: WORK_GROUP_LABELS[group],
-    shortcuts: visible.filter((shortcut) => shortcut.group === group),
-  })).filter((entry) => entry.shortcuts.length > 0)
-})
+const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkShortcut[] }[]>(
+  () => {
+    const visible = visibleWorkShortcuts(
+      currentPermissions.value,
+      enabledModules.value,
+      catalog.workShortcuts ?? [],
+    )
+    return WORK_GROUPS.map((group) => ({
+      group,
+      label: WORK_GROUP_LABELS[group],
+      shortcuts: visible.filter((shortcut) => shortcut.group === group),
+    })).filter((entry) => entry.shortcuts.length > 0)
+  },
+)
 </script>
 
 <template>

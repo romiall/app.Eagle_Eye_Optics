@@ -12,8 +12,13 @@ import {
   prescriptionScreenModel,
   printablePrescription,
 } from '@/app/services/clinicalDocuments'
-import { DocumentAccessError, documentStore, resetDocumentStoreForTests } from '@/app/services/documents'
+import {
+  DocumentAccessError,
+  documentStore,
+  resetDocumentStoreForTests,
+} from '@/app/services/documents'
 import { NBSP } from '@/documents/engine/charset'
+import type { TableBlock } from '@/documents/engine/model'
 import type {
   ClinicalRevisionDetail,
   ClinicalRevisionSnapshot,
@@ -100,7 +105,10 @@ vi.mock('@/documents/engine/pdf', async () => {
 const ROOT = join(import.meta.dirname, '..', '..', '..')
 const SNAPSHOT = (
   JSON.parse(
-    readFileSync(join(ROOT, 'contracts', 'fixtures', 'snapshots', 'clinical-revision.valid.json'), 'utf8'),
+    readFileSync(
+      join(ROOT, 'contracts', 'fixtures', 'snapshots', 'clinical-revision.valid.json'),
+      'utf8',
+    ),
   ) as { data: ClinicalRevisionSnapshot }
 ).data
 
@@ -228,10 +236,30 @@ function prescription(overrides: Partial<Prescription> = {}): Prescription {
     pd_inconsistency_reason: null,
     notes: null,
     eyes: [
-      { id: '01J9ZXK4M2Q8R7S6T5V4W3002G', eye: 'OD', no_correction: false, sphere: '-1.25', cylinder: '-0.50', axis: 90, addition: null, fitting_height: null },
-      { id: '01J9ZXK4M2Q8R7S6T5V4W3002H', eye: 'OG', no_correction: true, sphere: null, cylinder: null, axis: null, addition: null, fitting_height: null },
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W3002G',
+        eye: 'OD',
+        no_correction: false,
+        sphere: '-1.25',
+        cylinder: '-0.50',
+        axis: 90,
+        addition: null,
+        fitting_height: null,
+      },
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W3002H',
+        eye: 'OG',
+        no_correction: true,
+        sphere: null,
+        cylinder: null,
+        axis: null,
+        addition: null,
+        fitting_height: null,
+      },
     ],
-    treatments: [{ id: '01J9ZXK4M2Q8R7S6T5V4W3002K', term_code: 'ANTI_REFLECTION', other_text: null }],
+    treatments: [
+      { id: '01J9ZXK4M2Q8R7S6T5V4W3002K', term_code: 'ANTI_REFLECTION', other_text: null },
+    ],
     validated_at: '2026-10-14T09:40:00.000Z',
     validated_by: ME,
     validated_by_name: null,
@@ -257,13 +285,20 @@ describe('documents proposés selon l’état et les droits', () => {
   it('rien pour un examen en cours ou un brouillon, même avec tous les droits', () => {
     signIn([...CLINICAL, 'clinical.export'])
 
-    expect(consultationPrintables(consultation({ status: 'IN_PROGRESS', current_revision: 0 }))).toEqual([])
-    expect(consultationPrintables(consultation({ status: 'DRAFT', current_revision: 0 }))).toEqual([])
+    expect(
+      consultationPrintables(consultation({ status: 'IN_PROGRESS', current_revision: 0 })),
+    ).toEqual([])
+    expect(consultationPrintables(consultation({ status: 'DRAFT', current_revision: 0 }))).toEqual(
+      [],
+    )
   })
 
   it('examen terminé : la fiche demande clinical.export ; l’ordonnance et la lettre, clinical.read', () => {
     signIn(CLINICAL)
-    expect(consultationPrintables(consultation()).map((item) => item.kind)).toEqual(['MEDICATION_ORDER', 'REFERRAL_LETTER'])
+    expect(consultationPrintables(consultation()).map((item) => item.kind)).toEqual([
+      'MEDICATION_ORDER',
+      'REFERRAL_LETTER',
+    ])
 
     signIn([...CLINICAL, 'clinical.export'])
     expect(consultationPrintables(consultation()).map((item) => [item.kind, item.label])).toEqual([
@@ -276,7 +311,11 @@ describe('documents proposés selon l’état et les droits', () => {
   it('sans médicaments ni orientation, seule la fiche est proposée', () => {
     signIn([...CLINICAL, 'clinical.export'])
     const plain = consultation()
-    plain.steps = { ...plain.steps, MEDICATIONS: { orders: [] }, CONCLUSION: { ...plain.steps.CONCLUSION, referral: false } }
+    plain.steps = {
+      ...plain.steps,
+      MEDICATIONS: { orders: [] },
+      CONCLUSION: { ...plain.steps.CONCLUSION, referral: false },
+    }
 
     expect(consultationPrintables(plain).map((item) => item.kind)).toEqual(['CLINICAL_RECORD'])
   })
@@ -288,7 +327,13 @@ describe('documents proposés selon l’état et les droits', () => {
   })
 
   it('seule la dernière version VALIDÉE d’une prescription s’imprime', () => {
-    const draft = prescription({ id: '01J9ZXK4M2Q8R7S6T5V4W3002M', version_no: 2, status: 'DRAFT', validated_at: null, validated_by: null })
+    const draft = prescription({
+      id: '01J9ZXK4M2Q8R7S6T5V4W3002M',
+      version_no: 2,
+      status: 'DRAFT',
+      validated_at: null,
+      validated_by: null,
+    })
     const validated = prescription()
 
     expect(printablePrescription([draft, validated])?.id).toBe(validated.id)
@@ -301,8 +346,12 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
   it('les droits sont vérifiés AVANT toute lecture du dossier', async () => {
     signIn(CASHIER)
 
-    await expect(consultationDocument('MEDICATION_ORDER', consultation())).rejects.toBeInstanceOf(DocumentAccessError)
-    await expect(consultationDocument('CLINICAL_RECORD', consultation())).rejects.toBeInstanceOf(DocumentAccessError)
+    await expect(consultationDocument('MEDICATION_ORDER', consultation())).rejects.toBeInstanceOf(
+      DocumentAccessError,
+    )
+    await expect(consultationDocument('CLINICAL_RECORD', consultation())).rejects.toBeInstanceOf(
+      DocumentAccessError,
+    )
     expect(state.reads).toEqual([])
   })
 
@@ -310,7 +359,10 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
     signIn(CLINICAL)
 
     await expect(
-      consultationDocument('MEDICATION_ORDER', consultation({ status: 'IN_PROGRESS', current_revision: 0 })),
+      consultationDocument(
+        'MEDICATION_ORDER',
+        consultation({ status: 'IN_PROGRESS', current_revision: 0 }),
+      ),
     ).rejects.toBeInstanceOf(ClinicalPrintRefused)
     expect(state.reads).toEqual([])
   })
@@ -325,7 +377,15 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
     expect(state.reads).toEqual(['revision:1', 'revision:1'])
     expect(first.model.kind).toBe('MEDICATION_ORDER')
     expect(first.model.templateVersion).toBe('medication_order.v1')
-    expect(text).toContain('Collyre fictif (démonstration)')
+    // Le produit vient de la révision figée ; dans la colonne « Produit » (sept colonnes en A4), son nom
+    // passe sur deux lignes : le contenu se lit sur la cellule, le texte imprimé en garde chaque partie.
+    const products = first.model.body.find(
+      (block): block is TableBlock =>
+        block.kind === 'table' && block.caption === 'Produits prescrits',
+    )
+    expect(products?.rows.map((row) => row.cells[0])).toEqual(['Collyre fictif (démonstration)'])
+    expect(text).toContain('Collyre fictif')
+    expect(text).toContain('(démonstration)')
     expect(text).not.toContain('SAISIE AFFICHEE NON FIGEE')
     expect(text).toContain('DOCUMENT DE TEST')
     expect(first.fileName).toBe('ordonnance-20261014.pdf')
@@ -346,16 +406,22 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
 
   it('une révision qui ne correspond pas à l’examen affiché est refusée', async () => {
     signIn(CLINICAL)
-    state.revisions = new Map([[1, revisionDetail(1, { consultation_id: '01J9ZXK4M2Q8R7S6T5V4W3009Y' })]])
+    state.revisions = new Map([
+      [1, revisionDetail(1, { consultation_id: '01J9ZXK4M2Q8R7S6T5V4W3009Y' })],
+    ])
 
-    await expect(consultationDocument('REFERRAL_LETTER', consultation())).rejects.toBeInstanceOf(ClinicalPrintRefused)
+    await expect(consultationDocument('REFERRAL_LETTER', consultation())).rejects.toBeInstanceOf(
+      ClinicalPrintRefused,
+    )
   })
 
   it('une lecture impossible n’imprime rien (aucune copie ancienne, aucune saisie en cours)', async () => {
     signIn(CLINICAL)
     state.failure = new Error('Serveur injoignable')
 
-    await expect(consultationDocument('MEDICATION_ORDER', consultation())).rejects.toThrow('Serveur injoignable')
+    await expect(consultationDocument('MEDICATION_ORDER', consultation())).rejects.toThrow(
+      'Serveur injoignable',
+    )
     expect(await documentStore().list()).toEqual([])
   })
 
@@ -363,7 +429,9 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
     signIn(CLINICAL)
 
     // La saisie affichée dit « orientation oui », la révision figée dit « non » : la révision l’emporte.
-    await expect(consultationDocument('REFERRAL_LETTER', consultation())).rejects.toBeInstanceOf(ClinicalPrintRefused)
+    await expect(consultationDocument('REFERRAL_LETTER', consultation())).rejects.toBeInstanceOf(
+      ClinicalPrintRefused,
+    )
     expect(await documentStore().list({ documentType: 'REFERRAL_LETTER' })).toEqual([])
   })
 
@@ -372,7 +440,10 @@ describe('documents d’un examen : révision figée relue au moment de l’impr
     vi.setSystemTime(new Date('2026-10-22T09:00:00.000Z'))
     try {
       signIn([...CLINICAL, 'clinical.export'], 'Dr Exportateur Fictif')
-      state.prescriptions = [prescription({ id: '01J9ZXK4M2Q8R7S6T5V4W3002M', version_no: 2, status: 'DRAFT' }), prescription()]
+      state.prescriptions = [
+        prescription({ id: '01J9ZXK4M2Q8R7S6T5V4W3002M', version_no: 2, status: 'DRAFT' }),
+        prescription(),
+      ]
 
       const rendered = await consultationDocument('CLINICAL_RECORD', consultation())
       const text = printedText(rendered.plan)
@@ -398,7 +469,10 @@ describe('prescription optique', () => {
     signIn(CLINICAL)
 
     await expect(
-      prescriptionDocument(prescription({ status: 'DRAFT', validated_at: null, validated_by: null }), consultation()),
+      prescriptionDocument(
+        prescription({ status: 'DRAFT', validated_at: null, validated_by: null }),
+        consultation(),
+      ),
     ).rejects.toBeInstanceOf(ClinicalPrintRefused)
     expect(await documentStore().list()).toEqual([])
   })
@@ -406,7 +480,9 @@ describe('prescription optique', () => {
   it('sans clinical.read, refus avant tout rendu', async () => {
     signIn(CASHIER)
 
-    await expect(prescriptionDocument(prescription(), consultation())).rejects.toBeInstanceOf(DocumentAccessError)
+    await expect(prescriptionDocument(prescription(), consultation())).rejects.toBeInstanceOf(
+      DocumentAccessError,
+    )
   })
 
   it('validée par le compte connecté : son nom, la version du serveur, l’original sous la clé du serveur', async () => {
@@ -434,7 +510,10 @@ describe('prescription optique', () => {
   it('validée par un autre professionnel : son nom figé dans une révision qu’il a enregistrée', async () => {
     signIn(CLINICAL, 'Gérante Fictive')
     state.revisions = new Map([
-      [1, revisionDetail(1, { author: { user_id: COLLEAGUE, display_name: 'Dr Collègue Fictif' } })],
+      [
+        1,
+        revisionDetail(1, { author: { user_id: COLLEAGUE, display_name: 'Dr Collègue Fictif' } }),
+      ],
     ])
     const exam = consultation()
     exam.revisions = exam.revisions.map((item) => ({ ...item, author_id: COLLEAGUE }))
@@ -460,9 +539,9 @@ describe('prescription optique', () => {
   it('un nom que rien ne fournit n’est jamais deviné : refus explicite', async () => {
     signIn(CLINICAL)
 
-    await expect(prescriptionDocument(prescription({ validated_by: STRANGER }), consultation())).rejects.toThrow(
-      'imprimez-la depuis son compte',
-    )
+    await expect(
+      prescriptionDocument(prescription({ validated_by: STRANGER }), consultation()),
+    ).rejects.toThrow('imprimez-la depuis son compte')
   })
 
   it('réimpression après un changement d’identité : l’original conservé est rouvert, signalé', async () => {
@@ -482,14 +561,39 @@ describe('prescription optique', () => {
       prescription({
         status: 'DRAFT',
         eyes: [
-          { id: '01J9ZXK4M2Q8R7S6T5V4W3002G', eye: 'OD', no_correction: false, sphere: '1.25', cylinder: '0.00', axis: 0, addition: null, fitting_height: '22.00' },
-          { id: '01J9ZXK4M2Q8R7S6T5V4W3002H', eye: 'OG', no_correction: true, sphere: null, cylinder: null, axis: null, addition: null, fitting_height: null },
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W3002G',
+            eye: 'OD',
+            no_correction: false,
+            sphere: '1.25',
+            cylinder: '0.00',
+            axis: 0,
+            addition: null,
+            fitting_height: '22.00',
+          },
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W3002H',
+            eye: 'OG',
+            no_correction: true,
+            sphere: null,
+            cylinder: null,
+            axis: null,
+            addition: null,
+            fitting_height: null,
+          },
         ],
       }),
     )
 
     expect(model.status).toBe('DRAFT')
-    expect(model.eyes[0]).toMatchObject({ eye: 'OD', sphere: '+1,25', cylinder: '0,00', axis: '0°', addition: '—', fittingHeight: `22,00${NBSP}mm` })
+    expect(model.eyes[0]).toMatchObject({
+      eye: 'OD',
+      sphere: '+1,25',
+      cylinder: '0,00',
+      axis: '0°',
+      addition: '—',
+      fittingHeight: `22,00${NBSP}mm`,
+    })
     expect(model.eyes[1]).toMatchObject({ eye: 'OG', noCorrection: true, sphere: '—' })
     expect(model.pd).toEqual({ total: `62,00${NBSP}mm`, od: '—', og: '—' })
     expect(model.usage).toBe('Lunettes permanentes')

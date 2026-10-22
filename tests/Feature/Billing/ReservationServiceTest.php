@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Application\Locking\TransactionLocks;
+use App\Domain\Inventory\PlannedReservation;
 use App\Domain\Inventory\ReservationRefused;
 use App\Domain\Inventory\ReservationRequest;
 use App\Domain\Inventory\ReservationService;
@@ -72,7 +73,7 @@ final class ReservationServiceTest extends TestCase
 
     /**
      * @param  list<ReservationRequest>  $requests
-     * @return list<\App\Domain\Inventory\PlannedReservation>
+     * @return list<PlannedReservation>
      */
     private function reserve(array $requests, ?TransactionLocks $locks = null): array
     {

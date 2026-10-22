@@ -105,7 +105,8 @@ final class PatientActivity
             $total += $totals[$code];
         }
 
-        $rows = $total === 0 || $selected === [] ? [] : DB::query()
+        // Aucune section retenue : le total est nul, aucune requête.
+        $rows = $total === 0 ? [] : DB::query()
             ->fromSub($this->union($clinicId, $patientId, $selected), 'activity')
             ->select(['item_type', 'item_id', 'occurred_at'])
             ->orderByDesc('occurred_at')
@@ -245,6 +246,12 @@ final class PatientActivity
     /**
      * Colonnes communes d'une partie de l'union. Section et type sont des constantes de cette classe (jamais une
      * saisie) ; identifiant et instant sont des colonnes du schéma.
+     *
+     * @param  literal-string  $section
+     * @param  literal-string  $type
+     * @param  literal-string  $id
+     * @param  literal-string  $occurredAt
+     * @return literal-string
      */
     private static function columns(string $section, string $type, string $id, string $occurredAt): string
     {
@@ -380,9 +387,7 @@ final class PatientActivity
 
         $byId = [];
         foreach ($query->get() as $row) {
-            if ($row instanceof stdClass) {
-                $byId[(string) $row->id] = $row;
-            }
+            $byId[(string) $row->id] = $row;
         }
 
         return $byId;

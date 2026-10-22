@@ -220,7 +220,9 @@ function fieldError(fieldId: string): string | null {
 
 <template>
   <section aria-labelledby="titre-sessions-cabinet" class="space-y-4">
-    <h2 id="titre-sessions-cabinet" class="text-lg font-semibold">Sessions de toutes les caisses</h2>
+    <h2 id="titre-sessions-cabinet" class="text-lg font-semibold">
+      Sessions de toutes les caisses
+    </h2>
     <p class="text-base text-muted">
       Sessions ouvertes d’abord, puis clôturées. La gérante peut clôturer la session d’une autre
       caissière et lire le relevé de toute session.
@@ -356,7 +358,6 @@ function fieldError(fieldId: string): string | null {
         :total="result.meta.total"
         label="Pagination des sessions de caisse"
         unit="sessions"
-        :busy="read.state.value === 'loading'"
         @page="goToPage"
       />
       <FreshnessNote
@@ -380,7 +381,8 @@ function fieldError(fieldId: string): string | null {
         Caissière : <strong>{{ cashier(selected) }}</strong> ; compté :
         <strong>{{ formatMoney(counted ?? 0) }}</strong> ; attendu :
         <strong>{{ formatMoney(selected.theoretical_cash) }}</strong> ; écart :
-        <strong>{{ signed(variance ?? 0) }}</strong>.
+        <strong>{{ signed(variance ?? 0) }}</strong
+        >.
       </p>
       <p class="mt-2">
         La session clôturée ne pourra plus être modifiée et aucun encaissement en espèces n’y sera

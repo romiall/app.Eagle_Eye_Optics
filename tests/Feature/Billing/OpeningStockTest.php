@@ -5,6 +5,7 @@ namespace Tests\Feature\Billing;
 use App\Application\Checkpoint;
 use App\Application\CommandBusProbe;
 use App\Domain\Shared\Ulid;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -66,7 +67,7 @@ final class OpeningStockTest extends TestCase
     /**
      * @param  array<string, mixed>  $body
      */
-    private function opening(array $body, bool $reauthenticated = true, ?string $key = null, ?\App\Models\User $as = null): TestResponse
+    private function opening(array $body, bool $reauthenticated = true, ?string $key = null, ?User $as = null): TestResponse
     {
         $user = $as ?? $this->manager;
         $client = $reauthenticated ? $this->actingAsReauthenticated($user) : $this->actingAsFresh($user);
@@ -112,7 +113,12 @@ final class OpeningStockTest extends TestCase
         $drops = DB::table('stock_positions')->where('item_id', $this->item['drops'])->first();
         $this->assertNotNull($frame);
         $this->assertNotNull($drops);
-        $this->assertSame(['5.000', '0.000', '0.000', '5.000', 2], [$frame->on_hand, $frame->reserved, $frame->offline_allocated, $frame->central_available, (int) $frame->version]);
+        // Position créée par ce comptage : son premier état visible est la version 1 (insertion et total dans la même
+        // transaction), publiée telle quelle comme une création dans le journal des changements.
+        $this->assertSame(['5.000', '0.000', '0.000', '5.000', 1], [$frame->on_hand, $frame->reserved, $frame->offline_allocated, $frame->central_available, (int) $frame->version]);
+        $published = DB::table('sync_change_log')->where('entity_type', 'stock_positions')->where('entity_id', $frame->id)->first();
+        $this->assertNotNull($published);
+        $this->assertSame([1, 'CREATED'], [(int) $published->entity_version, $published->change_kind]);
         $this->assertSame('10.000', $drops->on_hand);
         $lot = DB::table('stock_lots')->where('item_id', $this->item['drops'])->first();
         $this->assertNotNull($lot);

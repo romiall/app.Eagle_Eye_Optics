@@ -68,9 +68,7 @@ const cards = computed<Card[]>(() => {
         </RouterLink>
       </li>
     </ul>
-    <p v-else class="max-w-prose text-muted">
-      Aucun paramètre n’est ouvert à ce compte.
-    </p>
+    <p v-else class="max-w-prose text-muted">Aucun paramètre n’est ouvert à ce compte.</p>
 
     <p class="max-w-prose text-sm text-muted">
       Les modules visibles dans l’application (patients, consultations, ventes…) sont ouverts par

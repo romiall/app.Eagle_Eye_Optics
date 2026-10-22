@@ -37,7 +37,11 @@ import { rowsFromData, termErrors, type TermData, type TermRow, termsData } from
 export type RefractionStage = 'AUTOREFRACTOR' | 'OBJECTIVE' | 'SUBJECTIVE'
 export type RefractionEye = 'OD' | 'OG'
 
-export const REFRACTION_STAGES: readonly RefractionStage[] = ['AUTOREFRACTOR', 'OBJECTIVE', 'SUBJECTIVE']
+export const REFRACTION_STAGES: readonly RefractionStage[] = [
+  'AUTOREFRACTOR',
+  'OBJECTIVE',
+  'SUBJECTIVE',
+]
 export const REFRACTION_EYES: readonly RefractionEye[] = ['OD', 'OG']
 export const AMETROPIAS_MAX = 20
 
@@ -86,7 +90,13 @@ export function blankRefraction(newId: NewId): RefractionDraft {
   const cells: Record<string, MeasureCell> = {}
   for (const stage of REFRACTION_STAGES) {
     for (const eye of REFRACTION_EYES) {
-      cells[measurementKey(stage, eye)] = { id: newId(), sphere: '', cylinder: '', axis: '', addition: '' }
+      cells[measurementKey(stage, eye)] = {
+        id: newId(),
+        sphere: '',
+        cylinder: '',
+        axis: '',
+        addition: '',
+      }
     }
   }
   return { cells, observations: '', ametropias: [] }
@@ -162,11 +172,20 @@ export function refractionErrors(draft: RefractionDraft): StepError[] {
       ] as const
       for (const [field, label, text, controlId] of fields) {
         const message = measureError(text)
-        if (message !== null) errors.push({ path: `${path}.${field}`, controlId, message: `${subject} · ${label} : ${message}` })
+        if (message !== null)
+          errors.push({
+            path: `${path}.${field}`,
+            controlId,
+            message: `${subject} · ${label} : ${message}`,
+          })
       }
       const axis = axisError(cell.axis)
       if (axis !== null) {
-        errors.push({ path: `${path}.axis`, controlId: CONTROL_IDS.measure(stage, eye, 'axis'), message: `${subject} · Axe : ${axis}` })
+        errors.push({
+          path: `${path}.axis`,
+          controlId: CONTROL_IDS.measure(stage, eye, 'axis'),
+          message: `${subject} · Axe : ${axis}`,
+        })
       }
       if (stage === 'SUBJECTIVE') {
         const addition = measureError(cell.addition)
@@ -182,7 +201,11 @@ export function refractionErrors(draft: RefractionDraft): StepError[] {
   }
   const observations = textError(draft.observations, 'Les observations')
   if (observations !== null) {
-    errors.push({ path: 'refraction_observations', controlId: CONTROL_IDS.refractionObservations, message: observations })
+    errors.push({
+      path: 'refraction_observations',
+      controlId: CONTROL_IDS.refractionObservations,
+      message: observations,
+    })
   }
   errors.push(
     ...termErrors({
@@ -224,7 +247,9 @@ export function stepNotices(cell: MeasureCell, stage: RefractionStage): string[]
   for (const [label, text] of entries) {
     const units = measureUnits(text)
     if (units !== null && units % USUAL_STEP_UNITS !== 0n) {
-      notices.push(`${label} : ce n’est pas un multiple du pas usuel de 0,25. La valeur saisie est conservée.`)
+      notices.push(
+        `${label} : ce n’est pas un multiple du pas usuel de 0,25. La valeur saisie est conservée.`,
+      )
     }
   }
   const cylinder = measureUnits(cell.cylinder)

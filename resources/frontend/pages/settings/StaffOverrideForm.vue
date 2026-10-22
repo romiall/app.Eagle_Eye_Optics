@@ -56,14 +56,17 @@ const effectOptions = (Object.keys(OVERRIDE_EFFECT_LABELS) as OverrideEffect[]).
 
 /** Le compte détient-il ce droit aujourd'hui (profils et dérogations compris) ? */
 const holds = computed(() =>
-  permission.value === null ? null : (props.member.permissions as readonly string[]).includes(permission.value),
+  permission.value === null
+    ? null
+    : (props.member.permissions as readonly string[]).includes(permission.value),
 )
 
 const localErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {}
   if (permission.value === null) errors[IDS.permission] = 'Choisissez le droit concerné.'
   if (effect.value === null) errors[IDS.effect] = 'Choisissez l’effet de la dérogation.'
-  if (reason.value.trim().length < 3) errors[IDS.reason] = 'Indiquez le motif (3 caractères au moins).'
+  if (reason.value.trim().length < 3)
+    errors[IDS.reason] = 'Indiquez le motif (3 caractères au moins).'
   return errors
 })
 
@@ -121,15 +124,21 @@ async function submit(): Promise<void> {
   <section aria-labelledby="titre-derogation" class="space-y-4">
     <h2 id="titre-derogation" class="text-xl font-semibold">Dérogation de droit</h2>
     <p class="max-w-prose text-muted">
-      Une dérogation s’ajoute aux profils du compte, pour une personne nommée, avec un motif conservé
-      dans le journal. Elle s’applique dès la requête suivante.
+      Une dérogation s’ajoute aux profils du compte, pour une personne nommée, avec un motif
+      conservé dans le journal. Elle s’applique dès la requête suivante.
     </p>
 
     <form class="space-y-5" novalidate @submit.prevent="submit">
       <ErrorSummary :errors="summary" />
       <StateMessage
         v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
-        :state="writer.state.value === 'conflict' ? 'conflict' : writer.state.value === 'uncertain' ? 'offline' : 'error'"
+        :state="
+          writer.state.value === 'conflict'
+            ? 'conflict'
+            : writer.state.value === 'uncertain'
+              ? 'offline'
+              : 'error'
+        "
         title="Dérogation non enregistrée"
       >
         {{ writer.message.value }}

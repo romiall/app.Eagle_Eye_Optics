@@ -72,7 +72,9 @@ describe('génération locale des documents : aucun réseau', () => {
     for (const path of FILES) {
       const source = code(path)
 
-      expect(source, relative(FRONTEND, path)).not.toMatch(/localStorage|sessionStorage|document\.cookie/)
+      expect(source, relative(FRONTEND, path)).not.toMatch(
+        /localStorage|sessionStorage|document\.cookie/,
+      )
       expect(source, relative(FRONTEND, path)).not.toMatch(/\bconsole\.\w+/)
     }
   })
@@ -80,10 +82,14 @@ describe('génération locale des documents : aucun réseau', () => {
   it('aucune dépendance externe hors jsPDF et Vue (aucune bibliothèque ajoutée)', () => {
     const allowed = new Set(['jspdf', 'vue'])
     for (const path of FILES) {
-      const specifiers = [...code(path).matchAll(/from\s+'([^']+)'/g)].map((match) => match[1] ?? '')
+      const specifiers = [...code(path).matchAll(/from\s+'([^']+)'/g)].map(
+        (match) => match[1] ?? '',
+      )
       for (const specifier of specifiers) {
         if (specifier.startsWith('.') || specifier.startsWith('@/')) continue
-        expect(allowed.has(specifier), `${relative(FRONTEND, path)} importe ${specifier}`).toBe(true)
+        expect(allowed.has(specifier), `${relative(FRONTEND, path)} importe ${specifier}`).toBe(
+          true,
+        )
       }
     }
   })
@@ -103,7 +109,9 @@ describe('génération locale des documents : aucun réseau', () => {
 
   it('les polices sont celles du format PDF : aucun fichier de police ni @font-face', () => {
     for (const path of FILES) {
-      expect(code(path), relative(FRONTEND, path)).not.toMatch(/@font-face|\.ttf|\.woff|addFileToVFS|addFont\(/)
+      expect(code(path), relative(FRONTEND, path)).not.toMatch(
+        /@font-face|\.ttf|\.woff|addFileToVFS|addFont\(/,
+      )
     }
   })
 })

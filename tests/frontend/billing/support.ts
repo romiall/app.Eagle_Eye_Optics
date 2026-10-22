@@ -36,7 +36,8 @@ export async function settle(rounds = 6): Promise<void> {
  */
 export async function click(element: Element | null): Promise<void> {
   if (element === null) throw new Error('Élément à cliquer introuvable.')
-  const form = element instanceof HTMLButtonElement && element.type === 'submit' ? element.form : null
+  const form =
+    element instanceof HTMLButtonElement && element.type === 'submit' ? element.form : null
   if (form !== null) {
     if (!element.hasAttribute('disabled')) {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
@@ -429,7 +430,9 @@ export async function searchCombobox(
 export async function chooseFirst(input: HTMLInputElement): Promise<void> {
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
   await flushPromises()
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+  input.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  )
   await flushPromises()
 }
 
@@ -443,7 +446,11 @@ export async function typeInto(root: ParentNode, controlId: string, value: strin
   await flushPromises()
 }
 
-export async function selectInto(root: ParentNode, controlId: string, value: string): Promise<void> {
+export async function selectInto(
+  root: ParentNode,
+  controlId: string,
+  value: string,
+): Promise<void> {
   const element = root.querySelector<HTMLSelectElement>(`[id="${controlId}"]`)
   if (element === null) throw new Error(`Liste ${controlId} introuvable.`)
   element.value = value

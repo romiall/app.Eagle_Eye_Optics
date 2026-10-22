@@ -233,8 +233,10 @@ export class BlockPlacer {
       const labelLines = flow.wrap(row.label, labelWidth, labelPt, 'normal')
       const valueLines = flow.wrap(row.value, valueWidth, valuePt, 'normal')
       const height =
-        Math.max(labelLines.length * lineHeightMm(labelPt), valueLines.length * lineHeightMm(valuePt)) +
-        0.9
+        Math.max(
+          labelLines.length * lineHeightMm(labelPt),
+          valueLines.length * lineHeightMm(valuePt),
+        ) + 0.9
       return { labelLines, valueLines, height }
     })
   }
@@ -296,7 +298,11 @@ export class BlockPlacer {
     const width = flow.continuous ? flow.contentWidth : Math.min(flow.contentWidth, 100)
     let valueWidth = 0
     for (const row of block.rows) {
-      const used = flow.width(row.value, row.emphasis ? strongPt : normalPt, row.emphasis ? 'bold' : 'normal')
+      const used = flow.width(
+        row.value,
+        row.emphasis ? strongPt : normalPt,
+        row.emphasis ? 'bold' : 'normal',
+      )
       valueWidth = Math.max(valueWidth, used)
     }
     valueWidth += 0.5
@@ -368,7 +374,14 @@ export class BlockPlacer {
       })
     }
     flow.lines(titleLines, flow.left + padding, top + padding, inner, titlePt, 'bold')
-    flow.lines(textLines, flow.left + padding, top + padding + titleHeight, inner, textPt, textStyle)
+    flow.lines(
+      textLines,
+      flow.left + padding,
+      top + padding + titleHeight,
+      inner,
+      textPt,
+      textStyle,
+    )
     flow.y += height + BLOCK_GAP
   }
 

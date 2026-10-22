@@ -51,13 +51,9 @@ final class DraftLines
         $seenIds = [];
         $seenPositions = [];
 
-        foreach (array_values($lines) as $index => $line) {
+        // Chaque ligne est un objet : le schéma de la commande l'a vérifié avant le handler (route directe et synchronisation).
+        foreach ($lines as $index => $line) {
             $prefix = 'lines.'.$index;
-            if (! is_array($line)) {
-                $validation->add($prefix, 'Ligne invalide.');
-
-                continue;
-            }
 
             $lineId = is_string($line['line_id'] ?? null) ? $line['line_id'] : '';
             $position = is_int($line['position'] ?? null) ? $line['position'] : 0;

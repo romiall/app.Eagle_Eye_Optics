@@ -73,7 +73,11 @@ export function buildInvoice(data: InvoiceDocumentData, options?: BuildOptions):
   const resolved = resolveOptions(options)
   const draft = data.status === 'DRAFT'
   if (draft && data.number !== null) {
-    throw invalid('invoice.draft_with_number', 'number', 'Un brouillon n’a pas de numéro définitif.')
+    throw invalid(
+      'invoice.draft_with_number',
+      'number',
+      'Un brouillon n’a pas de numéro définitif.',
+    )
   }
   if (!draft) {
     requireText(data.number, 'number')

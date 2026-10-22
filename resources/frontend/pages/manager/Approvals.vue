@@ -28,6 +28,8 @@ import ApprovalCard from './ApprovalCard.vue'
 const timeZone = clinicTimeZone()
 const filter = ref<ApprovalFilter>('REQUESTED')
 const page = ref(1)
+/** Décision enregistrée : dite ici, la relecture remplaçant la carte décidée. */
+const notice = ref<string | null>(null)
 
 const read = useServerRead<ApprovalPage>(
   () => listApprovals(filter.value === 'REQUESTED' ? 'REQUESTED' : null, page.value),
@@ -40,13 +42,20 @@ const heading = computed(() => (manager.value ? 'Approbations' : 'Mes demandes d
 
 function choose(next: ApprovalFilter): void {
   if (filter.value === next) return
+  notice.value = null
   filter.value = next
   page.value = 1
   void read.reload()
 }
 
 function goToPage(next: number): void {
+  notice.value = null
   page.value = next
+  void read.reload()
+}
+
+function decided(message: string | null): void {
+  notice.value = message
   void read.reload()
 }
 </script>
@@ -57,25 +66,27 @@ function goToPage(next: number): void {
     <p class="max-w-prose text-base text-muted">
       Une approbation autorise une seule opération précise, une fois, avant son échéance. Si son
       contenu change (montant, lignes, mode), une nouvelle demande est nécessaire.
-      <template v-if="manager">
-        Décider exige de confirmer votre mot de passe.
-      </template>
+      <template v-if="manager"> Décider exige de confirmer votre mot de passe. </template>
     </p>
 
     <div role="group" aria-label="Filtrer les demandes" class="flex flex-wrap gap-2">
       <AppButton
         :variant="filter === 'REQUESTED' ? 'primary' : 'secondary'"
-        :aria-pressed="filter === 'REQUESTED'"
+        :pressed="filter === 'REQUESTED'"
         @click="choose('REQUESTED')"
         >En attente</AppButton
       >
       <AppButton
         :variant="filter === 'ALL' ? 'primary' : 'secondary'"
-        :aria-pressed="filter === 'ALL'"
+        :pressed="filter === 'ALL'"
         @click="choose('ALL')"
         >Toutes</AppButton
       >
     </div>
+
+    <StateMessage v-if="notice" state="success" title="Décision enregistrée">{{
+      notice
+    }}</StateMessage>
 
     <SalesReadMessage
       v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
@@ -98,7 +109,7 @@ function goToPage(next: number): void {
     <template v-else-if="result !== null">
       <ul class="space-y-3">
         <li v-for="approval in result.data" :key="approval.id">
-          <ApprovalCard :approval="approval" @decided="read.reload()" />
+          <ApprovalCard :approval="approval" @decided="decided" />
         </li>
       </ul>
 

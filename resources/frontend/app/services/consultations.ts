@@ -57,7 +57,16 @@ function live<T>(data: T): ReadOutcome<T> {
 }
 
 function unexpected(subject: string): ApiError {
-  return new ApiError(502, 'HTTP_ERROR', `Réponse inattendue du serveur (${subject}).`, {}, null, {}, null, false)
+  return new ApiError(
+    502,
+    'HTTP_ERROR',
+    `Réponse inattendue du serveur (${subject}).`,
+    {},
+    null,
+    {},
+    null,
+    false,
+  )
 }
 
 /**
@@ -83,7 +92,12 @@ export async function getRevision(
     `/api/v1/consultations/${encodeURIComponent(consultationId)}/revisions/${encodeURIComponent(String(revisionNo))}`,
   )
   const data = response?.data
-  if (typeof data !== 'object' || data === null || typeof data.snapshot !== 'object' || data.snapshot === null) {
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    typeof data.snapshot !== 'object' ||
+    data.snapshot === null
+  ) {
     throw unexpected('révision')
   }
   return live(data)

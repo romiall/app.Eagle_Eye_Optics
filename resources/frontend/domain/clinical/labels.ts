@@ -117,7 +117,11 @@ export const STEP_TITLES: Readonly<Record<DeliveredStep, string>> = {
 export const YES_NO_LABELS = { yes: 'Oui', no: 'Non', unknown: 'Non renseigné' } as const
 
 /** Yeux (DP §6) : « OD » œil droit, « OG » œil gauche, « OU » les deux yeux. */
-export const EYE_LABELS = { OD: 'Œil droit (OD)', OG: 'Œil gauche (OG)', OU: 'Les deux yeux (OU)' } as const
+export const EYE_LABELS = {
+  OD: 'Œil droit (OD)',
+  OG: 'Œil gauche (OG)',
+  OU: 'Les deux yeux (OU)',
+} as const
 export const EYE_SHORT_LABELS = { OD: 'OD', OG: 'OG', OU: 'OU' } as const
 
 /** Stades de mesure (DP §6 et §7) : trois mesures DISTINCTES, jamais fusionnées. */

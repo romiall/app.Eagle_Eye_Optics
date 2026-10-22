@@ -28,7 +28,9 @@ describe('montants FCFA : entiers, espaces insécables, aucun flottant', () => {
     expect(formatNumberFr(1000)).toBe(`1${NBSP}000`)
     expect(formatNumberFr(80000)).toBe(`80${NBSP}000`)
     expect(formatXaf(80000)).toBe(`80${NBSP}000${NBSP}FCFA`)
-    expect(formatXaf(1_000_000_000_000)).toBe(`1${NBSP}000${NBSP}000${NBSP}000${NBSP}000${NBSP}FCFA`)
+    expect(formatXaf(1_000_000_000_000)).toBe(
+      `1${NBSP}000${NBSP}000${NBSP}000${NBSP}000${NBSP}FCFA`,
+    )
   })
 
   it('n’emploie jamais l’espace fine U+202F (absente du jeu de caractères des PDF)', () => {

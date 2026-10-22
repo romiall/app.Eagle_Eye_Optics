@@ -17,6 +17,7 @@ use App\Domain\Billing\Rules\FieldErrors;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * Modification d'un article du catalogue (B01) avec la version attendue (`catalog_items.version`, optimiste) : les
@@ -99,7 +100,7 @@ final class UpdateCatalogItemHandler implements CommandHandler
      *
      * @return array<string, mixed>
      */
-    private static function normalized(object $row): array
+    private static function normalized(stdClass $row): array
     {
         return [
             'reference' => (string) $row->reference,

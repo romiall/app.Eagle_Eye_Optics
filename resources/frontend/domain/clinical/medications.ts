@@ -157,7 +157,11 @@ export function medicationsErrors(draft: MedicationsDraft): StepError[] {
     const title = orderTitle(order, index)
     const add = (field: string, controlField: string, message: string | null): void => {
       if (message !== null) {
-        errors.push({ path: `${path}.${field}`, controlId: CONTROL_IDS.order(index, controlField), message })
+        errors.push({
+          path: `${path}.${field}`,
+          controlId: CONTROL_IDS.order(index, controlField),
+          message,
+        })
       }
     }
     if (cleanText(order.name) === null) {
@@ -171,22 +175,50 @@ export function medicationsErrors(draft: MedicationsDraft): StepError[] {
       if (cleanText(order.formOther) === null) {
         add('form_other', 'forme-precision', `${title} : précisez la forme « Autre ».`)
       } else {
-        add('form_other', 'forme-precision', textError(order.formOther, `${title} · Forme`, FORM_OTHER_MAX, true))
+        add(
+          'form_other',
+          'forme-precision',
+          textError(order.formOther, `${title} · Forme`, FORM_OTHER_MAX, true),
+        )
       }
     }
-    add('strength', 'dosage', textError(order.strength, `${title} · Dosage ou concentration`, STRENGTH_MAX, true))
+    add(
+      'strength',
+      'dosage',
+      textError(order.strength, `${title} · Dosage ou concentration`, STRENGTH_MAX, true),
+    )
     add('dosage', 'posologie', textError(order.dosage, `${title} · Posologie`))
-    add('frequency', 'frequence', textError(order.frequency, `${title} · Fréquence`, FREQUENCY_MAX, true))
-    add('duration_text', 'duree', textError(order.durationText, `${title} · Durée`, DURATION_TEXT_MAX, true))
+    add(
+      'frequency',
+      'frequence',
+      textError(order.frequency, `${title} · Fréquence`, FREQUENCY_MAX, true),
+    )
+    add(
+      'duration_text',
+      'duree',
+      textError(order.durationText, `${title} · Durée`, DURATION_TEXT_MAX, true),
+    )
     add('instructions', 'instructions', textError(order.instructions, `${title} · Instructions`))
 
     const hasValue = cleanText(order.durationValue) !== null
     if (hasValue && durationNumber(order.durationValue) === null) {
-      add('duration_value', 'duree-nombre', `${title} : la durée est un nombre entier strictement positif.`)
+      add(
+        'duration_value',
+        'duree-nombre',
+        `${title} : la durée est un nombre entier strictement positif.`,
+      )
     } else if (hasValue && order.durationUnit === null) {
-      add('duration_unit', 'duree-unite', `${title} : choisissez l’unité de la durée (jour, semaine ou mois).`)
+      add(
+        'duration_unit',
+        'duree-unite',
+        `${title} : choisissez l’unité de la durée (jour, semaine ou mois).`,
+      )
     } else if (!hasValue && order.durationUnit !== null) {
-      add('duration_value', 'duree-nombre', `${title} : indiquez le nombre de la durée, ou retirez l’unité.`)
+      add(
+        'duration_value',
+        'duree-nombre',
+        `${title} : indiquez le nombre de la durée, ou retirez l’unité.`,
+      )
     }
   })
   return errors
@@ -194,7 +226,8 @@ export function medicationsErrors(draft: MedicationsDraft): StepError[] {
 
 export function medicationsUnparsable(draft: MedicationsDraft): boolean {
   return draft.orders.some(
-    (order) => cleanText(order.durationValue) !== null && durationNumber(order.durationValue) === null,
+    (order) =>
+      cleanText(order.durationValue) !== null && durationNumber(order.durationValue) === null,
   )
 }
 

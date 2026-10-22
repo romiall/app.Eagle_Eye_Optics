@@ -50,10 +50,8 @@ export function wrapText(
         line = candidate
         continue
       }
-      if (line !== '') {
-        lines.push(line)
-        line = ''
-      }
+      // La ligne commencée est close ; `line` est réaffectée juste après (mot seul ou fin du mot coupé).
+      if (line !== '') lines.push(line)
       if (measurer.width(word, sizePt, style) <= limit + EPSILON) {
         line = word
         continue

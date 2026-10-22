@@ -2,9 +2,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { currentDocumentClinic } from '@/app/services/clinicIdentity'
 import { getClinicDocumentIdentity } from '@/app/services/staff'
-import { session } from '@/app/session'
 
 vi.mock('@/app/services/staff', () => ({ getClinicDocumentIdentity: vi.fn() }))
+
+// La session réelle est en lecture seule (seuls `/auth/me` et la connexion l'écrivent) : le compte
+// connecté est simulé par un double du module, comme dans les autres tests des documents.
+const state = vi.hoisted(() => ({ account: null as unknown }))
+vi.mock('@/app/session', () => ({
+  session: {
+    get account() {
+      return state.account
+    },
+  },
+}))
 
 /**
  * Identité du cabinet d'un document produit maintenant (ordonnance, fiche, lettre, relevé de caisse) :
@@ -20,11 +30,15 @@ describe('currentDocumentClinic', () => {
   }
 
   function signIn(): void {
-    session.account = { id: '01J9ZXK4M2Q8R7S6T5V4W30001', display_name: 'Compte fictif', clinic: summary } as never
+    state.account = {
+      id: '01J9ZXK4M2Q8R7S6T5V4W30001',
+      display_name: 'Compte fictif',
+      clinic: summary,
+    }
   }
 
   afterEach(() => {
-    session.account = null
+    state.account = null
     vi.mocked(getClinicDocumentIdentity).mockReset()
   })
 

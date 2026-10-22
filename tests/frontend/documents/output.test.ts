@@ -55,8 +55,8 @@ describe('ouverture, téléchargement et impression du PDF (aucun réseau)', () 
 
   beforeEach(() => {
     vi.useFakeTimers()
-    createObjectURL = vi.fn((_blob: Blob) => 'blob:http://localhost/aleatoire')
-    revokeObjectURL = vi.fn((_url: string) => undefined)
+    createObjectURL = vi.fn<(blob: Blob) => string>(() => 'blob:http://localhost/aleatoire')
+    revokeObjectURL = vi.fn<(url: string) => void>(() => undefined)
     Object.defineProperty(URL, 'createObjectURL', {
       value: createObjectURL,
       configurable: true,

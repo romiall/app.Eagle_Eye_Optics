@@ -267,7 +267,7 @@ final class OpticalPrescriptionRules
                 $valid = false;
             }
 
-            if ($valid && is_string($eye)) {
+            if ($valid) {
                 $byEye[$eye] = [
                     'id' => (string) $id,
                     'eye' => $eye,
@@ -281,7 +281,8 @@ final class OpticalPrescriptionRules
             }
         }
 
-        if (count($byEye) !== 2) {
+        // Deux lignes valides d'yeux distincts : OD et OG chacun une fois.
+        if (! isset($byEye['OD'], $byEye['OG'])) {
             return [];
         }
 
@@ -304,18 +305,32 @@ final class OpticalPrescriptionRules
     }
 
     /**
-     * @param  mixed  $eyes
      * @return list<array{id: string, eye: string, no_correction: bool, sphere: string|null, cylinder: string|null, axis: int|null, addition: string|null, fitting_height: string|null}>
      */
     private static function eyeRows(mixed $eyes): array
     {
+        if (! is_array($eyes)) {
+            return [];
+        }
+
+        // Lignes déjà normalisées (`normalize`) ou relues de la base (`OpticalPrescriptions::view`) : un champ d'un
+        // autre type compte comme non saisi, jamais comme une valeur.
+        $text = static fn (mixed $value): ?string => is_string($value) ? $value : null;
         $rows = [];
-        if (is_array($eyes)) {
-            foreach ($eyes as $eye) {
-                if (is_array($eye)) {
-                    $rows[] = $eye;
-                }
+        foreach ($eyes as $eye) {
+            if (! is_array($eye)) {
+                continue;
             }
+            $rows[] = [
+                'id' => $text($eye['id'] ?? null) ?? '',
+                'eye' => $text($eye['eye'] ?? null) ?? '',
+                'no_correction' => ($eye['no_correction'] ?? null) === true,
+                'sphere' => $text($eye['sphere'] ?? null),
+                'cylinder' => $text($eye['cylinder'] ?? null),
+                'axis' => is_int($eye['axis'] ?? null) ? $eye['axis'] : null,
+                'addition' => $text($eye['addition'] ?? null),
+                'fitting_height' => $text($eye['fitting_height'] ?? null),
+            ];
         }
 
         return $rows;

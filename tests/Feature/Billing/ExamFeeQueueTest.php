@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Shared\Ulid;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
@@ -68,7 +69,7 @@ final class ExamFeeQueueTest extends TestCase
         return [$id, (int) $draft->json('data.total_gross')];
     }
 
-    private function queue(?\App\Models\User $as = null): TestResponse
+    private function queue(?User $as = null): TestResponse
     {
         return $this->read('/api/v1/visits?date=2026-10-22', $as ?? $this->reception)->assertOk();
     }
@@ -76,7 +77,7 @@ final class ExamFeeQueueTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function queued(string $visitId, ?\App\Models\User $as = null): array
+    private function queued(string $visitId, ?User $as = null): array
     {
         foreach ((array) $this->queue($as)->json('data') as $visit) {
             if (is_array($visit) && ($visit['id'] ?? null) === $visitId) {

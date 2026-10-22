@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Clinical;
 
+use App\Domain\Clinical\ClinicalReadAudit;
 use App\Domain\Shared\Ulid;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -183,7 +184,11 @@ final class GetConsultationTest extends TestCase
         $this->readConsultation($foreignId)->assertNotFound();
         $this->readConsultation(Ulid::generate())->assertNotFound();
         $this->actingAsFresh($this->clinician)->getJson('/api/v1/consultations/pas-un-ulid')->assertNotFound();
-        $this->assertSame(0, DB::table('audit_events')->where('action', 'consultation.viewed')->where('target_id', $foreignId)->count());
+        // Les refus ne laissent aucune trace de lecture ; la seule est celle du démarrage par son auteur légitime (la
+        // réponse d'une écriture qui rend le dossier est tracée comme une lecture, voir ClinicalReadAudit).
+        $foreignViews = DB::table('audit_events')->where('action', 'consultation.viewed')->where('target_id', $foreignId);
+        $this->assertSame(0, (clone $foreignViews)->where('actor_id', $this->clinician->id)->count());
+        $this->assertSame([$otherClinician->id], (clone $foreignViews)->pluck('actor_id')->all());
         // L'auteur légitime, lui, la lit.
         $this->readConsultation($foreignId, $otherClinician)->assertOk();
     }
@@ -205,9 +210,13 @@ final class GetConsultationTest extends TestCase
     public function test_le_droit_de_lire_retire_par_derogation_refuse_la_lecture(): void
     {
         $this->denyPermission($this->clinician, 'clinical.read');
+        // Le démarrage a déjà tracé une lecture de ce compte : au-delà de l'intervalle, une lecture réussie en
+        // ajouterait une seconde ; le refus, lui, n'en ajoute aucune.
+        $this->assertSame(1, $this->viewedCount($this->clinician->id));
+        CarbonImmutable::setTestNow(CarbonImmutable::now('UTC')->addMinutes(ClinicalReadAudit::INTERVAL_MINUTES + 1));
 
         $this->readConsultation($this->consultationId)->assertStatus(403);
-        $this->assertSame(0, $this->viewedCount($this->clinician->id));
+        $this->assertSame(1, $this->viewedCount($this->clinician->id), 'Un refus n\'est pas une lecture.');
     }
 
     public function test_la_lecture_est_tracee_sans_contenu_et_au_plus_une_fois_par_compte_et_par_intervalle(): void

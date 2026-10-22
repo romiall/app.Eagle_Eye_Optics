@@ -94,7 +94,8 @@ export function requireMoney(value: number, field: string): number {
 
 export function requirePositiveMoney(value: number, field: string): number {
   requireMoney(value, field)
-  if (value === 0) throw invalid('amount.not_positive', field, 'Montant strictement positif requis.')
+  if (value === 0)
+    throw invalid('amount.not_positive', field, 'Montant strictement positif requis.')
   return value
 }
 
@@ -136,7 +137,8 @@ export function footerLinesOf(
   number: string | null,
 ): string[] {
   const lines: string[] = []
-  if (clinic.professionalMentions !== null) lines.push(...nonEmptyLines(clinic.professionalMentions))
+  if (clinic.professionalMentions !== null)
+    lines.push(...nonEmptyLines(clinic.professionalMentions))
   else if (clinic.testDocument) lines.push(PLACEHOLDERS.mentions)
   lines.push(...clinic.settings.footerLines)
   const reference = number === null ? '' : ` \u{00B7} ${number}`
@@ -240,7 +242,11 @@ export function assembleModel(spec: ModelSpec): DocumentModel {
     letterhead: letterheadOf(spec.clinic, spec.family),
     titleBlock: { title: spec.heading, subtitle: spec.subtitle, fields: spec.headerFields },
     body: [...banners, ...spec.body],
-    footerLines: footerLinesOf(spec.clinic, spec.templateVersion, spec.number ?? spec.reference ?? null),
+    footerLines: footerLinesOf(
+      spec.clinic,
+      spec.templateVersion,
+      spec.number ?? spec.reference ?? null,
+    ),
     watermark: watermarkOf(spec),
     warnings: [...clinicWarnings(spec.clinic, spec.family), ...(spec.warnings ?? [])],
   }

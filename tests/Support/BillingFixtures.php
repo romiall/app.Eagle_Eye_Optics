@@ -381,7 +381,8 @@ trait BillingFixtures
         return array_merge([
             'expected_version' => null,
             'cash_session_id' => $sessionId,
-            'closed_at' => '2026-10-22T18:00:00.000Z',
+            // L'heure du poste n'est pas dans le futur du serveur (horloge figée à NOW) : sinon refus « horloge en avance ».
+            'closed_at' => self::NOW,
             'counted_amount' => $counted,
             'expected_amount' => $expected,
             'variance' => $counted - $expected,

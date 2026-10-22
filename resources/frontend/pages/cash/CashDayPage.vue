@@ -18,12 +18,7 @@ import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
-import {
-  accountLabel,
-  dayCashNet,
-  dayMethodRows,
-  dayOtherNet,
-} from '@/domain/billing/cashReport'
+import { accountLabel, dayCashNet, dayMethodRows, dayOtherNet } from '@/domain/billing/cashReport'
 import type { CashDayReport } from '@/domain/contracts/generated'
 import { CivilDate } from '@/domain/values/civilDate'
 import { formatMoney, paymentMethodLabel } from '@/pages/sales/format'
@@ -48,7 +43,9 @@ const title = computed(() => {
   const shown = report.value?.date ?? requested.value
   if (shown === null) return 'Caisse du jour'
   const label = formatDayFr(CivilDate.fromString(shown))
-  return shown === clinicToday().toString() ? `Caisse du jour : ${label} (aujourd’hui)` : `Caisse du ${label}`
+  return shown === clinicToday().toString()
+    ? `Caisse du jour : ${label} (aujourd’hui)`
+    : `Caisse du ${label}`
 })
 
 function show(): void {
@@ -93,14 +90,15 @@ function signedVariance(amount: number): string {
 
     <template v-if="report && read.state.value === 'ready'">
       <p v-if="!clinicScope" class="text-base text-muted">
-        Vos encaissements et vos sessions seulement : le chiffre d’affaires et les créances du cabinet
-        sont réservés à la gérante.
+        Vos encaissements et vos sessions seulement : le chiffre d’affaires et les créances du
+        cabinet sont réservés à la gérante.
       </p>
 
       <section aria-labelledby="titre-encaissements" class="space-y-3">
         <h2 id="titre-encaissements" class="text-lg font-semibold">Encaissements nets par mode</h2>
         <StateMessage v-if="rows.length === 0" state="empty" title="Aucun encaissement ce jour-là">
-          Le serveur n’a enregistré aucun encaissement, contre-écriture ni remboursement pour ce jour.
+          Le serveur n’a enregistré aucun encaissement, contre-écriture ni remboursement pour ce
+          jour.
         </StateMessage>
         <ul v-else class="space-y-3">
           <li
@@ -118,11 +116,15 @@ function signedVariance(amount: number): string {
               <template v-if="row.reversed > 0">
                 · contre-écritures −{{ formatMoney(row.reversed) }}</template
               >
-              <template v-if="row.refunded > 0"> · remboursements −{{ formatMoney(row.refunded) }}</template>
+              <template v-if="row.refunded > 0">
+                · remboursements −{{ formatMoney(row.refunded) }}</template
+              >
             </p>
           </li>
         </ul>
-        <dl class="grid gap-x-6 gap-y-2 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-3">
+        <dl
+          class="grid gap-x-6 gap-y-2 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-3"
+        >
           <div>
             <dt class="text-sm text-muted">Espèces (tiroir)</dt>
             <dd class="tabular-nums">{{ formatMoney(dayCashNet(report)) }}</dd>
@@ -145,8 +147,12 @@ function signedVariance(amount: number): string {
         aria-labelledby="titre-ventes-jour"
         class="space-y-3"
       >
-        <h2 id="titre-ventes-jour" class="text-lg font-semibold">Ventes du jour et reste à encaisser</h2>
-        <dl class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2">
+        <h2 id="titre-ventes-jour" class="text-lg font-semibold">
+          Ventes du jour et reste à encaisser
+        </h2>
+        <dl
+          class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2"
+        >
           <div>
             <dt class="text-sm text-muted">Factures émises ce jour</dt>
             <dd class="tabular-nums">
@@ -217,7 +223,10 @@ function signedVariance(amount: number): string {
                 attendu {{ formatMoney(session.theoretical_cash) }}</template
               >
               <template v-else>
-                écart <strong class="tabular-nums">{{ signedVariance(session.variance ?? 0) }}</strong></template
+                écart
+                <strong class="tabular-nums">{{
+                  signedVariance(session.variance ?? 0)
+                }}</strong></template
               >
             </p>
             <SessionReportButton

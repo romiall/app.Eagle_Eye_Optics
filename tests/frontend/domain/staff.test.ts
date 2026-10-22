@@ -105,7 +105,12 @@ describe('règles de saisie identiques au serveur', () => {
     expect(
       changeNeedsReason(before, { active: true, roles: ['RECEPTION', 'CASHIER', 'CLINICIAN'] }),
     ).toBe(false)
-    expect(changeNeedsReason({ active: false, roles: ['RECEPTION'] }, { active: true, roles: ['RECEPTION'] })).toBe(false)
+    expect(
+      changeNeedsReason(
+        { active: false, roles: ['RECEPTION'] },
+        { active: true, roles: ['RECEPTION'] },
+      ),
+    ).toBe(false)
   })
 })
 

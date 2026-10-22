@@ -17,7 +17,7 @@ import {
 import type { MeasurementData, RefractionStage } from './refraction'
 import { rowsFromData, termErrors, type TermData, type TermRow, termsData } from './termRows'
 import { newUlid } from '../values/ulid'
-import { CivilDate } from '../values/civilDate'
+import type { CivilDate } from '../values/civilDate'
 import type { Prescription } from '../contracts/generated'
 
 /**
@@ -132,10 +132,21 @@ export interface PrescriptionDraft {
 }
 
 function blankEye(newId: NewId): PrescriptionEyeDraft {
-  return { id: newId(), noCorrection: false, sphere: '', cylinder: '', axis: '', addition: '', fittingHeight: '' }
+  return {
+    id: newId(),
+    noCorrection: false,
+    sphere: '',
+    cylinder: '',
+    axis: '',
+    addition: '',
+    fittingHeight: '',
+  }
 }
 
-export function blankPrescription(origin: PrescriptionOrigin, newId: NewId = newUlid): PrescriptionDraft {
+export function blankPrescription(
+  origin: PrescriptionOrigin,
+  newId: NewId = newUlid,
+): PrescriptionDraft {
   return {
     origin,
     externalPrescriber: '',
@@ -162,7 +173,10 @@ function isListedIndex(value: string | null): boolean {
 }
 
 /** Brouillon d'édition à partir d'une prescription enregistrée (brouillon ou version validée, pour la copier en version suivante). */
-export function prescriptionDraft(prescription: Prescription, newId: NewId = newUlid): PrescriptionDraft {
+export function prescriptionDraft(
+  prescription: Prescription,
+  newId: NewId = newUlid,
+): PrescriptionDraft {
   const draft = blankPrescription(prescription.origin, newId)
   for (const eye of prescription.eyes) {
     draft.eyes[eye.eye] = {
@@ -185,7 +199,11 @@ export function prescriptionDraft(prescription: Prescription, newId: NewId = new
     usageOther: prescription.usage_other ?? '',
     lensTypeCode: prescription.lens_type_code,
     lensTypeOther: prescription.lens_type_other ?? '',
-    lensIndex: listed ? prescription.lens_index : prescription.lens_index_other !== null ? LENS_INDEX_OTHER : null,
+    lensIndex: listed
+      ? prescription.lens_index
+      : prescription.lens_index_other !== null
+        ? LENS_INDEX_OTHER
+        : null,
     lensIndexOther: prescription.lens_index_other ?? '',
     pdTotal: measureText(prescription.pd_total),
     pdOd: measureText(prescription.pd_od),
@@ -276,7 +294,9 @@ export function copyRefraction(
   const eyes = { ...draft.eyes }
   const copied: PrescriptionEye[] = []
   for (const eye of EYES) {
-    const row = measurements.find((measurement) => measurement.stage === stage && measurement.eye === eye)
+    const row = measurements.find(
+      (measurement) => measurement.stage === stage && measurement.eye === eye,
+    )
     if (row === undefined) continue
     eyes[eye] = {
       ...eyes[eye],
@@ -312,7 +332,9 @@ function positiveError(text: string, label: string): string | null {
   const message = measureError(text)
   if (message !== null) return `${label} : ${message}`
   const units = measureUnits(text)
-  return units !== null && units <= 0n ? `${label} : doit être strictement positif (en millimètres).` : null
+  return units !== null && units <= 0n
+    ? `${label} : doit être strictement positif (en millimètres).`
+    : null
 }
 
 /**
@@ -320,7 +342,11 @@ function positiveError(text: string, label: string): string | null {
  * `validate`, chaque œil porte des valeurs saisies ou « aucune correction », et un cylindre non nul exige un axe.
  * `today` (AAAA-MM-JJ, jour du cabinet) borne la date d'une ordonnance externe.
  */
-export function prescriptionErrors(draft: PrescriptionDraft, level: RuleLevel, today: string): StepError[] {
+export function prescriptionErrors(
+  draft: PrescriptionDraft,
+  level: RuleLevel,
+  today: string,
+): StepError[] {
   const errors: StepError[] = []
   const add = (path: string, controlId: string, message: string | null): void => {
     if (message !== null) errors.push({ path, controlId, message })
@@ -328,27 +354,47 @@ export function prescriptionErrors(draft: PrescriptionDraft, level: RuleLevel, t
 
   if (draft.origin === 'EXTERNAL') {
     if (cleanText(draft.externalPrescriber) === null) {
-      add('external_prescriber', RX_IDS.externalPrescriber, 'Le prescripteur de l’ordonnance externe est obligatoire.')
+      add(
+        'external_prescriber',
+        RX_IDS.externalPrescriber,
+        'Le prescripteur de l’ordonnance externe est obligatoire.',
+      )
     } else {
-      add('external_prescriber', RX_IDS.externalPrescriber, textError(draft.externalPrescriber, 'Le prescripteur', 180, true))
+      add(
+        'external_prescriber',
+        RX_IDS.externalPrescriber,
+        textError(draft.externalPrescriber, 'Le prescripteur', 180, true),
+      )
     }
     if (draft.externalPrescribedOn === null) {
-      add('external_prescribed_on', RX_IDS.externalPrescribedOn, 'La date de l’ordonnance externe est obligatoire.')
+      add(
+        'external_prescribed_on',
+        RX_IDS.externalPrescribedOn,
+        'La date de l’ordonnance externe est obligatoire.',
+      )
     } else if (draft.externalPrescribedOn > today) {
-      add('external_prescribed_on', RX_IDS.externalPrescribedOn, 'La date de l’ordonnance ne peut pas être dans le futur.')
+      add(
+        'external_prescribed_on',
+        RX_IDS.externalPrescribedOn,
+        'La date de l’ordonnance ne peut pas être dans le futur.',
+      )
     }
   }
 
   if (draft.usageCode === 'OTHER') {
-    if (cleanText(draft.usageOther) === null) add('usage_other', RX_IDS.usageOther, 'Usage : précisez la valeur « Autre ».')
+    if (cleanText(draft.usageOther) === null)
+      add('usage_other', RX_IDS.usageOther, 'Usage : précisez la valeur « Autre ».')
     else add('usage_other', RX_IDS.usageOther, textError(draft.usageOther, 'Usage'))
   }
   if (draft.lensTypeCode === 'OTHER') {
-    if (cleanText(draft.lensTypeOther) === null) add('lens_type_other', RX_IDS.lensTypeOther, 'Type de verre : précisez la valeur « Autre ».')
-    else add('lens_type_other', RX_IDS.lensTypeOther, textError(draft.lensTypeOther, 'Type de verre'))
+    if (cleanText(draft.lensTypeOther) === null)
+      add('lens_type_other', RX_IDS.lensTypeOther, 'Type de verre : précisez la valeur « Autre ».')
+    else
+      add('lens_type_other', RX_IDS.lensTypeOther, textError(draft.lensTypeOther, 'Type de verre'))
   }
   if (draft.lensIndex === LENS_INDEX_OTHER) {
-    if (cleanText(draft.lensIndexOther) === null) add('lens_index_other', RX_IDS.lensIndexOther, 'Indice : précisez l’indice « autre ».')
+    if (cleanText(draft.lensIndexOther) === null)
+      add('lens_index_other', RX_IDS.lensIndexOther, 'Indice : précisez l’indice « autre ».')
     else add('lens_index_other', RX_IDS.lensIndexOther, textError(draft.lensIndexOther, 'Indice'))
   }
 
@@ -360,13 +406,27 @@ export function prescriptionErrors(draft: PrescriptionDraft, level: RuleLevel, t
     add(field, id, positiveError(text, label))
   }
   const anyPd = [draft.pdTotal, draft.pdOd, draft.pdOg].some((text) => cleanText(text) !== null)
-  const pdValid = [draft.pdTotal, draft.pdOd, draft.pdOg].every((text) => measureError(text) === null)
+  const pdValid = [draft.pdTotal, draft.pdOd, draft.pdOg].every(
+    (text) => measureError(text) === null,
+  )
   add('pd_inconsistency_reason', RX_IDS.pdReason, textError(draft.pdReason, 'La justification'))
-  if (pdValid && pdTextsMismatch(draft.pdTotal, draft.pdOd, draft.pdOg) && cleanText(draft.pdReason) === null) {
-    add('pd_inconsistency_reason', RX_IDS.pdReason, 'La somme des écarts OD et OG diffère de l’écart total : corrigez une valeur ou justifiez l’écart.')
+  if (
+    pdValid &&
+    pdTextsMismatch(draft.pdTotal, draft.pdOd, draft.pdOg) &&
+    cleanText(draft.pdReason) === null
+  ) {
+    add(
+      'pd_inconsistency_reason',
+      RX_IDS.pdReason,
+      'La somme des écarts OD et OG diffère de l’écart total : corrigez une valeur ou justifiez l’écart.',
+    )
   }
   if (!anyPd && cleanText(draft.pdReason) !== null) {
-    add('pd_inconsistency_reason', RX_IDS.pdReason, 'Une justification n’a de sens qu’avec un écart pupillaire saisi.')
+    add(
+      'pd_inconsistency_reason',
+      RX_IDS.pdReason,
+      'Une justification n’a de sens qu’avec un écart pupillaire saisi.',
+    )
   }
 
   add('notes', RX_IDS.notes, textError(draft.notes, 'Les observations'))
@@ -375,22 +435,52 @@ export function prescriptionErrors(draft: PrescriptionDraft, level: RuleLevel, t
     const value = draft.eyes[eye]
     const where = `eyes.${index}`
     const subject = `Œil ${eye}`
-    add(`${where}.sphere`, RX_IDS.eye(eye, 'sphere'), prefixed(subject, 'Sphère', measureError(value.sphere)))
-    add(`${where}.cylinder`, RX_IDS.eye(eye, 'cylinder'), prefixed(subject, 'Cylindre', measureError(value.cylinder)))
+    add(
+      `${where}.sphere`,
+      RX_IDS.eye(eye, 'sphere'),
+      prefixed(subject, 'Sphère', measureError(value.sphere)),
+    )
+    add(
+      `${where}.cylinder`,
+      RX_IDS.eye(eye, 'cylinder'),
+      prefixed(subject, 'Cylindre', measureError(value.cylinder)),
+    )
     add(`${where}.axis`, RX_IDS.eye(eye, 'axis'), prefixed(subject, 'Axe', axisError(value.axis)))
-    add(`${where}.addition`, RX_IDS.eye(eye, 'addition'), prefixed(subject, 'Addition', measureError(value.addition)))
-    add(`${where}.fitting_height`, RX_IDS.eye(eye, 'fitting_height'), positiveError(value.fittingHeight, `${subject} · Hauteur de montage`))
-    const anyValue = [value.sphere, value.cylinder, value.axis, value.addition].some((text) => cleanText(text) !== null)
+    add(
+      `${where}.addition`,
+      RX_IDS.eye(eye, 'addition'),
+      prefixed(subject, 'Addition', measureError(value.addition)),
+    )
+    add(
+      `${where}.fitting_height`,
+      RX_IDS.eye(eye, 'fitting_height'),
+      positiveError(value.fittingHeight, `${subject} · Hauteur de montage`),
+    )
+    const anyValue = [value.sphere, value.cylinder, value.axis, value.addition].some(
+      (text) => cleanText(text) !== null,
+    )
     if (value.noCorrection && anyValue) {
-      add(`${where}.no_correction`, RX_IDS.eye(eye, 'no_correction'), `${subject} : une valeur est saisie ; décochez « Aucune correction » ou effacez les valeurs.`)
+      add(
+        `${where}.no_correction`,
+        RX_IDS.eye(eye, 'no_correction'),
+        `${subject} : une valeur est saisie ; décochez « Aucune correction » ou effacez les valeurs.`,
+      )
     }
     if (level === 'validate') {
       if (!value.noCorrection && !anyValue) {
-        add(`${where}.no_correction`, RX_IDS.eye(eye, 'no_correction'), `${subject} : saisissez les valeurs, ou cochez « Aucune correction » pour cet œil.`)
+        add(
+          `${where}.no_correction`,
+          RX_IDS.eye(eye, 'no_correction'),
+          `${subject} : saisissez les valeurs, ou cochez « Aucune correction » pour cet œil.`,
+        )
       }
       const cylinder = measureUnits(value.cylinder)
       if (cylinder !== null && cylinder !== 0n && cleanText(value.axis) === null) {
-        add(`${where}.axis`, RX_IDS.eye(eye, 'axis'), `${subject} : un cylindre non nul exige un axe (0 à 180 degrés).`)
+        add(
+          `${where}.axis`,
+          RX_IDS.eye(eye, 'axis'),
+          `${subject} : un cylindre non nul exige un axe (0 à 180 degrés).`,
+        )
       }
     }
   })
@@ -465,7 +555,10 @@ export function isPrescriptionDirty(draft: PrescriptionDraft, saved: Prescriptio
   return prescriptionUnparsable(draft) || Object.keys(buildDraftChanges(draft, saved)).length > 0
 }
 
-export function buildValidatePayload(prescriptionId: string, documentId: string): Record<string, unknown> {
+export function buildValidatePayload(
+  prescriptionId: string,
+  documentId: string,
+): Record<string, unknown> {
   return { prescription_id: prescriptionId, document_id: documentId }
 }
 
@@ -501,7 +594,8 @@ export function prescriptionErrorTarget(key: string): string {
     return which === undefined ? RX_IDS.form : RX_IDS.eye(which, eye[2] ?? 'sphere')
   }
   const treatment = /^treatments(?:\.[0-9]+\.(other_text))?/.exec(path)
-  if (treatment !== null) return treatment[1] === undefined ? RX_IDS.treatments : RX_IDS.treatmentOther
+  if (treatment !== null)
+    return treatment[1] === undefined ? RX_IDS.treatments : RX_IDS.treatmentOther
   switch (path) {
     case 'external_prescriber':
       return RX_IDS.externalPrescriber
@@ -553,14 +647,19 @@ const CONTENT_LABELS: Readonly<Record<keyof PrescriptionContent, string>> = {
   treatments: 'Traitements',
 }
 
-function summarize(key: keyof PrescriptionContent, value: PrescriptionContent[keyof PrescriptionContent]): string {
+function summarize(
+  key: keyof PrescriptionContent,
+  value: PrescriptionContent[keyof PrescriptionContent],
+): string {
   if (value === null) return 'vide'
   if (key === 'eyes') {
     return (value as PrescriptionEyeData[])
       .map((eye) => {
         const parts = eye.no_correction
           ? ['aucune correction']
-          : [eye.sphere, eye.cylinder, eye.axis === null ? null : `${eye.axis}°`, eye.addition].map((part) => part ?? '—')
+          : [eye.sphere, eye.cylinder, eye.axis === null ? null : `${eye.axis}°`, eye.addition].map(
+              (part) => part ?? '—',
+            )
         return `${eye.eye} ${parts.join(' ')}${eye.fitting_height === null ? '' : ` · hauteur ${eye.fitting_height}`}`
       })
       .join(' ; ')
@@ -592,9 +691,18 @@ export function prescriptionDifferences(
   const differences: PrescriptionDifference[] = []
   for (const key of Object.keys(CONTENT_LABELS) as (keyof PrescriptionContent)[]) {
     const strip = (content: PrescriptionContent): unknown =>
-      key === 'eyes' ? content.eyes.map((eye) => ({ ...eye, id: '' })) : key === 'treatments' ? content.treatments.map((term) => ({ ...term, id: '' })) : content[key]
+      key === 'eyes'
+        ? content.eyes.map((eye) => ({ ...eye, id: '' }))
+        : key === 'treatments'
+          ? content.treatments.map((term) => ({ ...term, id: '' }))
+          : content[key]
     if (JSON.stringify(strip(a)) !== JSON.stringify(strip(b))) {
-      differences.push({ key, label: CONTENT_LABELS[key], mine: summarize(key, a[key]), current: summarize(key, b[key]) })
+      differences.push({
+        key,
+        label: CONTENT_LABELS[key],
+        mine: summarize(key, a[key]),
+        current: summarize(key, b[key]),
+      })
     }
   }
   return differences

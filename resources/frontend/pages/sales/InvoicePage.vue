@@ -78,8 +78,8 @@ function reload(): void {
           {{ invoiceTitle(invoice.number) }}
         </h1>
         <p class="text-base text-muted">
-          <span aria-hidden="true">{{ invoiceStatusSymbol(invoice.status) }} </span
-          >{{ invoiceStatusLabel(invoice.status) }}
+          <span aria-hidden="true">{{ invoiceStatusSymbol(invoice.status) }}</span>
+          {{ invoiceStatusLabel(invoice.status) }}
         </p>
       </div>
 
@@ -103,11 +103,7 @@ function reload(): void {
         @abandoned="onAbandoned"
         @stale="reload"
       />
-      <InvoiceDetails
-        v-else-if="invoice.status === 'ISSUED'"
-        :invoice="invoice"
-        @reload="reload"
-      />
+      <InvoiceDetails v-else-if="invoice.status === 'ISSUED'" :invoice="invoice" @reload="reload" />
       <StateMessage v-else state="empty" title="Facture abandonnée">
         Ce brouillon a été abandonné : il n’a ni numéro ni effet financier.
       </StateMessage>

@@ -24,7 +24,8 @@
     "noEmit": true
   },
   "vueCompilerOptions": {
-    "strictTemplates": true
+    "strictTemplates": true,
+    "dataAttributes": ["data-*"]
   },
   "include": [
     "resources/frontend/**/*.ts",

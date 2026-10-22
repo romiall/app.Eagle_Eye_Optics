@@ -52,7 +52,9 @@ const FROZEN_STEPS = {
     wears_glasses: null,
     glasses_duration: null,
     previous_correction_available: null,
-    complaints: [{ id: '01J9ZXK4M2Q8R7S6T5V4W30E02', term_code: 'BLURRED_VISION', other_text: null }],
+    complaints: [
+      { id: '01J9ZXK4M2Q8R7S6T5V4W30E02', term_code: 'BLURRED_VISION', other_text: null },
+    ],
   },
   MEDICATIONS: {
     orders: [
@@ -76,7 +78,9 @@ const FROZEN_STEPS = {
     conclusion: 'Conclusion fictive',
     referral: true,
     referral_urgency: 'RECOMMENDED',
-    referral_reasons: [{ id: '01J9ZXK4M2Q8R7S6T5V4W30E04', term_code: 'SUSPECTED_GLAUCOMA', other_text: null }],
+    referral_reasons: [
+      { id: '01J9ZXK4M2Q8R7S6T5V4W30E04', term_code: 'SUSPECTED_GLAUCOMA', other_text: null },
+    ],
   },
 }
 
@@ -198,9 +202,18 @@ describe('documents de l’examen', () => {
     const exam = completed({
       ...FROZEN_STEPS,
       MEDICATIONS: { orders: [] },
-      CONCLUSION: { conclusion: 'Conclusion fictive', referral: false, referral_urgency: null, referral_reasons: [] },
+      CONCLUSION: {
+        conclusion: 'Conclusion fictive',
+        referral: false,
+        referral_urgency: null,
+        referral_reasons: [],
+      },
     })
-    stubConsultationApi({ permissions: [...CLINICIAN, 'clinical.export'], consultation: exam, revisionDetails: [frozen(exam)] })
+    stubConsultationApi({
+      permissions: [...CLINICIAN, 'clinical.export'],
+      consultation: exam,
+      revisionDetails: [frozen(exam)],
+    })
     const { root, unmount } = await openConsultation()
 
     expect(buttonByName(root, 'Aperçu de la fiche de consultation')).not.toBeNull()
@@ -256,7 +269,9 @@ describe('documents de l’examen', () => {
     const { root, unmount } = await openConsultation()
 
     await click(buttonByName(root, 'Aperçu de l’ordonnance de médicaments'))
-    await vi.waitFor(() => expect(textOf(root)).toContain('rien n’est préparé à partir d’une copie ancienne'))
+    await vi.waitFor(() =>
+      expect(textOf(root)).toContain('rien n’est préparé à partir d’une copie ancienne'),
+    )
 
     expect(preview(root, 'Ordonnance de médicaments')).toBeNull()
     expect(await documentStore().list()).toEqual([])
@@ -316,12 +331,20 @@ describe('impression de la prescription optique', () => {
     noForbiddenWords(root)
 
     const [kept] = await documentStore().list({ documentType: 'OPTICAL_PRESCRIPTION' })
-    expect(kept).toMatchObject({ documentId: '01J9ZXK4M2Q8R7S6T5V4W30D01', revisionNo: 1, templateVersion: 'optical_prescription.v1' })
+    expect(kept).toMatchObject({
+      documentId: '01J9ZXK4M2Q8R7S6T5V4W30D01',
+      revisionNo: 1,
+      templateVersion: 'optical_prescription.v1',
+    })
     unmount()
   })
 
   it('lecture seule (clinical.read) : l’impression reste possible, aucune modification', async () => {
-    stubConsultationApi({ permissions: READ_ONLY, consultation: completed(), prescriptions: [validated()] })
+    stubConsultationApi({
+      permissions: READ_ONLY,
+      consultation: completed(),
+      prescriptions: [validated()],
+    })
     const { root, unmount } = await openConsultation(PRESCRIPTIONS_URL)
 
     expect(buttonByName(root, 'Aperçu de la prescription (version 1)')).not.toBeNull()

@@ -1,5 +1,12 @@
 import type { InvoiceLineData, InvoiceTaxData, PatientIdentity } from '../../data/financial'
-import { formatNumberFr, formatPersonName, formatQuantity, formatRate, MISSING, sumMoney } from '../../engine/format'
+import {
+  formatNumberFr,
+  formatPersonName,
+  formatQuantity,
+  formatRate,
+  MISSING,
+  sumMoney,
+} from '../../engine/format'
 import { NBSP } from '../../engine/charset'
 import {
   type FieldRow,

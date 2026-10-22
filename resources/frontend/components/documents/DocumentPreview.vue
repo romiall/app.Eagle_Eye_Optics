@@ -67,9 +67,9 @@ function downloadPdf(): void {
     </ul>
 
     <p class="text-sm text-muted">
-      {{ pages.length }} page{{ pages.length > 1 ? 's' : '' }} · fichier {{ props.document.fileName }}
-      · empreinte SHA-256 {{ shortDigest }}… · aperçu d’après la mise en page du PDF (les polices du PDF
-      peuvent différer légèrement).
+      {{ pages.length }} page{{ pages.length > 1 ? 's' : '' }} · fichier
+      {{ props.document.fileName }} · empreinte SHA-256 {{ shortDigest }}… · aperçu d’après la mise
+      en page du PDF (les polices du PDF peuvent différer légèrement).
     </p>
 
     <figure v-for="page in pages" :key="page.number" class="space-y-2">
@@ -125,7 +125,9 @@ function downloadPdf(): void {
           </template>
         </svg>
       </div>
-      <figcaption class="text-sm text-muted">Page {{ page.number }} sur {{ pages.length }}</figcaption>
+      <figcaption class="text-sm text-muted">
+        Page {{ page.number }} sur {{ pages.length }}
+      </figcaption>
       <details class="rounded-lg border-2 border-line bg-surface p-3">
         <summary class="flex min-h-11 cursor-pointer items-center font-semibold text-primary">
           Lire le contenu de la page {{ page.number }} en texte

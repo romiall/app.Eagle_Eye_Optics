@@ -149,6 +149,7 @@ export async function updateClinicSettings(
  * document (le professionnel pour une ordonnance, la caisse pour un reçu), pas seulement la gérante.
  */
 export async function getClinicDocumentIdentity(): Promise<ClinicDocumentIdentity> {
-  return (await apiRequest<ClinicDocumentIdentityResponse>('GET', '/api/v1/clinic/document-identity'))
-    .data
+  return (
+    await apiRequest<ClinicDocumentIdentityResponse>('GET', '/api/v1/clinic/document-identity')
+  ).data
 }

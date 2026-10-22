@@ -84,14 +84,17 @@ const saveState = computed(() => {
   }
 })
 const heading = computed(() => {
-  if (mode.value === 'revise') return `Nouvelle version ${(latest.value?.version_no ?? 0) + 1} (brouillon)`
+  if (mode.value === 'revise')
+    return `Nouvelle version ${(latest.value?.version_no ?? 0) + 1} (brouillon)`
   if (mode.value === 'edit') return `Version ${saved.value?.version_no ?? 1} (brouillon)`
   return 'Nouvelle prescription (brouillon)'
 })
 const hasMeasures = computed(
   () => (consultation.value?.steps.REFRACTION.measurements.length ?? 0) > 0,
 )
-const hasCentering = computed(() => (consultation.value?.steps.CENTERING.centering_id ?? null) !== null)
+const hasCentering = computed(
+  () => (consultation.value?.steps.CENTERING.centering_id ?? null) !== null,
+)
 
 /**
  * Impression (fichier 11 : « Bouton Imprimer prescription distinct du dossier complet ») : seulement la
@@ -123,7 +126,10 @@ function bindSummary(element: unknown): void {
 const copyOpen = ref(false)
 const copyStage = ref<string | null>(null)
 const copyError = ref<string | null>(null)
-const stageOptions = REFRACTION_STAGES.map((stage) => ({ value: stage, label: STAGE_LABELS[stage] }))
+const stageOptions = REFRACTION_STAGES.map((stage) => ({
+  value: stage,
+  label: STAGE_LABELS[stage],
+}))
 
 function openCopy(): void {
   copyStage.value = null
@@ -155,7 +161,9 @@ function confirmCopyCentering(): void {
 
 <template>
   <section aria-labelledby="titre-prescriptions" class="max-w-3xl space-y-6">
-    <h1 id="titre-prescriptions" class="text-2xl font-semibold tracking-tight">Prescription optique</h1>
+    <h1 id="titre-prescriptions" class="text-2xl font-semibold tracking-tight">
+      Prescription optique
+    </h1>
 
     <ConsultationReadMessage
       v-if="consultation === null"
@@ -168,7 +176,9 @@ function confirmCopyCentering(): void {
     <template v-else>
       <PatientBanner :consultation="consultation" />
       <p class="flex flex-wrap gap-3">
-        <LinkButton :to="{ name: 'consultation', params: { id: props.consultationId } }" variant="secondary"
+        <LinkButton
+          :to="{ name: 'consultation', params: { id: props.consultationId } }"
+          variant="secondary"
           >Retour à la consultation</LinkButton
         >
       </p>
@@ -183,22 +193,27 @@ function confirmCopyCentering(): void {
         state="offline"
         title="Prescriptions indisponibles"
       >
-        Le serveur n’a pas répondu : les prescriptions n’ont pas pu être lues. Aucune ancienne copie ni
-        liste vide n’est présentée.
+        Le serveur n’a pas répondu : les prescriptions n’ont pas pu être lues. Aucune ancienne copie
+        ni liste vide n’est présentée.
         <template #action>
           <AppButton variant="secondary" @click="listRead.reload()">Réessayer</AppButton>
         </template>
       </StateMessage>
 
       <template v-else>
-        <StateMessage v-if="conflict" state="conflict" title="Ce brouillon a été modifié entre-temps">
+        <StateMessage
+          v-if="conflict"
+          state="conflict"
+          title="Ce brouillon a été modifié entre-temps"
+        >
           <p>
             Une autre personne a modifié ce brouillon. Votre saisie est conservée ; l’enregistrer
             remplacera les valeurs suivantes :
           </p>
           <ul class="mt-2 list-disc space-y-1 pl-5">
             <li v-for="difference in conflict" :key="difference.key">
-              {{ difference.label }} : actuellement « {{ difference.current }} », votre saisie « {{ difference.mine }} ».
+              {{ difference.label }} : actuellement « {{ difference.current }} », votre saisie «
+              {{ difference.mine }} ».
             </li>
           </ul>
         </StateMessage>
@@ -214,12 +229,20 @@ function confirmCopyCentering(): void {
         </StateMessage>
 
         <!-- Édition -->
-        <form v-if="editing && draft" class="space-y-6" novalidate @submit.prevent="editor.saveDraft">
+        <form
+          v-if="editing && draft"
+          class="space-y-6"
+          novalidate
+          @submit.prevent="editor.saveDraft"
+        >
           <h2 :id="RX_IDS.form" tabindex="-1" class="text-xl font-semibold focus:outline-none">
             {{ heading }}
           </h2>
-          <p class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-1 text-sm font-semibold">
-            <span aria-hidden="true">○</span>BROUILLON : ne pas remettre au patient tant qu’elle n’est pas validée.
+          <p
+            class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-1 text-sm font-semibold"
+          >
+            <span aria-hidden="true">○</span>BROUILLON : ne pas remettre au patient tant qu’elle
+            n’est pas validée.
           </p>
           <PrescriptionForm
             v-model="draft"
@@ -253,12 +276,15 @@ function confirmCopyCentering(): void {
               @click="editor.validate"
               >Valider la prescription</AppButton
             >
-            <AppButton variant="ghost" :disabled="busy" @click="editor.cancelEdit">Annuler</AppButton>
+            <AppButton variant="ghost" :disabled="busy" @click="editor.cancelEdit"
+              >Annuler</AppButton
+            >
             <SaveStatus :state="saveState" :at="recordedAt" :time-zone="timeZone" />
           </div>
           <p v-if="mode === 'edit'" class="max-w-prose text-sm text-muted">
-            Valider rend cette version immuable et prépare son document PDF ; pour la corriger ensuite,
-            vous créerez une nouvelle version. Valider ne crée ni vente ni mouvement de stock.
+            Valider rend cette version immuable et prépare son document PDF ; pour la corriger
+            ensuite, vous créerez une nouvelle version. Valider ne crée ni vente ni mouvement de
+            stock.
           </p>
         </form>
 
@@ -267,7 +293,9 @@ function confirmCopyCentering(): void {
           <StateMessage v-if="list.length === 0" state="empty" title="Aucune prescription">
             Aucune prescription optique n’est enregistrée pour cette consultation.
             <template v-if="canWrite" #action>
-              <AppButton variant="primary" @click="editor.startNew">Nouvelle prescription</AppButton>
+              <AppButton variant="primary" @click="editor.startNew"
+                >Nouvelle prescription</AppButton
+              >
             </template>
           </StateMessage>
 
@@ -287,8 +315,8 @@ function confirmCopyCentering(): void {
               :actions="printActions"
             >
               <p>
-                Version {{ printable.version_no }} validée : document distinct du dossier complet. Un
-                brouillon ne s’imprime pas ; il ne se remet pas au patient.
+                Version {{ printable.version_no }} validée : document distinct du dossier complet.
+                Un brouillon ne s’imprime pas ; il ne se remet pas au patient.
               </p>
             </ClinicalPrintActions>
             <details v-if="olderVersions.length > 0" class="space-y-3">
@@ -316,9 +344,9 @@ function confirmCopyCentering(): void {
       >
         <div class="space-y-3">
           <p>
-            Les valeurs choisies (sphère, cylindre, axe et addition pour la réfraction subjective) seront
-            recopiées dans la prescription et remplaceront celles des yeux concernés. La prescription
-            s’édite ensuite sans modifier l’examen.
+            Les valeurs choisies (sphère, cylindre, axe et addition pour la réfraction subjective)
+            seront recopiées dans la prescription et remplaceront celles des yeux concernés. La
+            prescription s’édite ensuite sans modifier l’examen.
           </p>
           <SelectField
             v-model="copyStage"

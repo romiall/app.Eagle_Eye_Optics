@@ -62,7 +62,11 @@ export function buildReceipt(data: ReceiptDocumentData, options?: BuildOptions):
     )
   }
   if (data.balanceAfter < 0) {
-    throw invalid('receipt.negative_balance', 'balance_after', 'Un versement ne dépasse jamais le solde.')
+    throw invalid(
+      'receipt.negative_balance',
+      'balance_after',
+      'Un versement ne dépasse jamais le solde.',
+    )
   }
 
   const timeZone = data.clinic.timezone

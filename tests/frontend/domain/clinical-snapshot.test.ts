@@ -55,13 +55,20 @@ describe('forme canonique', () => {
 
 describe('SHA-256', () => {
   it('rend l’empreinte hexadécimale minuscule d’un texte UTF-8', async () => {
-    expect(await sha256Hex('')).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+    expect(await sha256Hex('')).toBe(
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    )
     expect(await sha256Hex('é')).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('l’empreinte des rubriques est celle de leur forme canonique', async () => {
     const steps = {
-      CONCLUSION: { conclusion: 'Fin (fictif)', referral: false, referral_urgency: null, referral_reasons: [] },
+      CONCLUSION: {
+        conclusion: 'Fin (fictif)',
+        referral: false,
+        referral_urgency: null,
+        referral_reasons: [],
+      },
     }
 
     expect(await stepsDigest(steps)).toBe(

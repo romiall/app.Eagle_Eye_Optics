@@ -71,7 +71,8 @@ const entries = computed<Entry[]>(() =>
   <section aria-labelledby="titre-ventes" class="max-w-3xl space-y-6">
     <h1 id="titre-ventes" class="text-2xl font-semibold tracking-tight">Ventes et caisse</h1>
     <p class="text-base text-muted">
-      Écrans en ligne : chaque enregistrement est confirmé par le serveur avant d’être dit enregistré.
+      Écrans en ligne : chaque enregistrement est confirmé par le serveur avant d’être dit
+      enregistré.
     </p>
     <ul class="grid gap-3 sm:grid-cols-2">
       <li

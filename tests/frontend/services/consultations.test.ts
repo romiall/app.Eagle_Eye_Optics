@@ -12,7 +12,13 @@ import {
 } from '@/app/services/consultations'
 import { useRead } from '@/app/services/reads'
 
-import { consultation, CONSULTATION_ID, prescription, PRESCRIPTION_ID, scales } from '../consultations/support'
+import {
+  consultation,
+  CONSULTATION_ID,
+  prescription,
+  PRESCRIPTION_ID,
+  scales,
+} from '../consultations/support'
 import { apiError, json } from '../patients/support'
 
 // Lecture de la consultation en ligne (C01) : URL, fraîcheur, `live`, sens des erreurs. Une réponse qui
@@ -140,7 +146,9 @@ describe('lectures C02 à C04', () => {
 
     await getRevision(CONSULTATION_ID, 2)
 
-    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/consultations/${CONSULTATION_ID}/revisions/2`)
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe(
+      `/api/v1/consultations/${CONSULTATION_ID}/revisions/2`,
+    )
     stubOnce({ data: { id: 'R', revision_no: 2 } })
     await expect(getRevision(CONSULTATION_ID, 2)).rejects.toBeInstanceOf(ApiError)
   })
@@ -148,11 +156,15 @@ describe('lectures C02 à C04', () => {
   it('prescriptions : la liste d’une consultation et une prescription ; une forme inattendue est une erreur', async () => {
     const list = stubOnce({ data: [prescription()] })
     expect((await getConsultationPrescriptions(CONSULTATION_ID)).data).toHaveLength(1)
-    expect((list.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/consultations/${CONSULTATION_ID}/prescriptions`)
+    expect((list.mock.calls[0] as unknown as [string])[0]).toBe(
+      `/api/v1/consultations/${CONSULTATION_ID}/prescriptions`,
+    )
 
     const one = stubOnce({ data: prescription() })
     expect((await getPrescription(PRESCRIPTION_ID)).data.id).toBe(PRESCRIPTION_ID)
-    expect((one.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/prescriptions/${PRESCRIPTION_ID}`)
+    expect((one.mock.calls[0] as unknown as [string])[0]).toBe(
+      `/api/v1/prescriptions/${PRESCRIPTION_ID}`,
+    )
 
     stubOnce({ data: { id: PRESCRIPTION_ID } })
     await expect(getPrescription(PRESCRIPTION_ID)).rejects.toBeInstanceOf(ApiError)

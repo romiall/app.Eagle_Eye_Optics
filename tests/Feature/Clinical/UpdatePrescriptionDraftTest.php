@@ -55,14 +55,14 @@ final class UpdatePrescriptionDraftTest extends TestCase
      * @param  array<string, mixed>  $changes
      * @return array<string, mixed>
      */
-    private function patch(array $changes, ?string $token = null): array
+    private function draftChanges(array $changes, ?string $token = null): array
     {
         return ['expected_updated_at' => $token ?? (string) $this->draft['updated_at'], 'changes' => $changes];
     }
 
     public function test_un_champ_modifie_change_le_jeton_et_l_audit_ne_nomme_que_les_champs(): void
     {
-        $response = $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'SENTINELLE-NOTE-MODIFIEE-RT4', 'lens_index' => '1.60']))->assertOk();
+        $response = $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'SENTINELLE-NOTE-MODIFIEE-RT4', 'lens_index' => '1.60']))->assertOk();
 
         $this->assertMatchesContract($response, 'schemas/resources/clinical.json#/$defs/PrescriptionResponse');
         $response->assertJsonPath('data.notes', 'SENTINELLE-NOTE-MODIFIEE-RT4')->assertJsonPath('data.lens_index', '1.60')->assertJsonPath('data.status', 'DRAFT');
@@ -78,10 +78,10 @@ final class UpdatePrescriptionDraftTest extends TestCase
 
     public function test_un_jeton_perime_est_un_conflit_jamais_un_dernier_ecrit_gagne(): void
     {
-        $first = $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'Premier poste']))->assertOk();
+        $first = $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'Premier poste']))->assertOk();
         $this->tick();
 
-        $conflict = $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'Second poste']));
+        $conflict = $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'Second poste']));
 
         $conflict->assertStatus(409)->assertJsonPath('error.code', 'VERSION_CONFLICT')->assertJsonPath('error.details.current_updated_at', $first->json('data.updated_at'));
         $this->assertMatchesContract($conflict, 'schemas/error.json');
@@ -93,7 +93,7 @@ final class UpdatePrescriptionDraftTest extends TestCase
         $eyes = [$this->rxEye('OD', '+2.00', '+0.75', 180, '1.00'), $this->rxEye('OG', null, null, null, null, true)];
         $treatments = [$this->term('PHOTOCHROMIC'), $this->term('BLUE_LIGHT_FILTER')];
 
-        $data = $this->updatePrescription($this->draft['id'], $this->patch(['eyes' => $eyes, 'treatments' => $treatments]))->assertOk()->json('data');
+        $data = $this->updatePrescription($this->draft['id'], $this->draftChanges(['eyes' => $eyes, 'treatments' => $treatments]))->assertOk()->json('data');
 
         $this->assertSame([$eyes[0]['id'], $eyes[1]['id']], array_column($data['eyes'], 'id'));
         $this->assertSame(['2.00', '0.75', 180, '1.00'], [$data['eyes'][0]['sphere'], $data['eyes'][0]['cylinder'], $data['eyes'][0]['axis'], $data['eyes'][0]['addition']], 'Le cylindre positif n\'est pas transposé.');
@@ -106,9 +106,9 @@ final class UpdatePrescriptionDraftTest extends TestCase
     public function test_le_contenu_resultant_est_revalide_en_entier(): void
     {
         // La DP totale seule devient incohérente avec les DP monoculaires déjà enregistrées.
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->patch(['pd_total' => '70.00'])), 'changes.pd_inconsistency_reason');
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->patch(['usage_code' => 'OTHER'])), 'changes.usage_other');
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->patch(['eyes' => [$this->rxEye('OD', '1.255'), $this->rxEye('OG')]])), 'changes.eyes.0.sphere');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->draftChanges(['pd_total' => '70.00'])), 'changes.pd_inconsistency_reason');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->draftChanges(['usage_code' => 'OTHER'])), 'changes.usage_other');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->draftChanges(['eyes' => [$this->rxEye('OD', '1.255'), $this->rxEye('OG')]])), 'changes.eyes.0.sphere');
         $this->assertSame('62.00', (string) DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('pd_total'));
     }
 
@@ -127,30 +127,30 @@ final class UpdatePrescriptionDraftTest extends TestCase
     #[DataProvider('fixedFields')]
     public function test_les_champs_fixes_a_la_creation_ne_se_modifient_pas(string $field, mixed $value): void
     {
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->patch([$field => $value])), 'changes.'.$field);
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->draftChanges([$field => $value])), 'changes.'.$field);
 
         $this->assertSame('DRAFT', DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('status'));
     }
 
     public function test_un_corps_mal_forme_est_refuse(): void
     {
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->patch([])), 'changes');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], $this->draftChanges([])), 'changes');
         $this->assertFieldError($this->updatePrescription($this->draft['id'], ['expected_updated_at' => '2026-10-22 09:30:00', 'changes' => ['notes' => 'x']]), 'expected_updated_at');
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], [...$this->patch(['notes' => 'x']), 'expected_version' => 3]), 'expected_version');
-        $this->assertFieldError($this->updatePrescription($this->draft['id'], [...$this->patch(['notes' => 'x']), 'autre' => 1]), 'autre');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], [...$this->draftChanges(['notes' => 'x']), 'expected_version' => 3]), 'expected_version');
+        $this->assertFieldError($this->updatePrescription($this->draft['id'], [...$this->draftChanges(['notes' => 'x']), 'autre' => 1]), 'autre');
         $this->assertNull(DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('notes'));
     }
 
     public function test_expected_version_null_ajoute_par_le_poste_est_tolere(): void
     {
-        $this->updatePrescription($this->draft['id'], [...$this->patch(['notes' => 'Avec version nulle']), 'expected_version' => null])->assertOk()->assertJsonPath('data.notes', 'Avec version nulle');
+        $this->updatePrescription($this->draft['id'], [...$this->draftChanges(['notes' => 'Avec version nulle']), 'expected_version' => null])->assertOk()->assertJsonPath('data.notes', 'Avec version nulle');
     }
 
     public function test_une_modification_sans_effet_n_ecrit_rien(): void
     {
         $before = DB::table('optical_prescriptions')->where('id', $this->draft['id'])->first();
 
-        $response = $this->updatePrescription($this->draft['id'], $this->patch(['lens_index' => $this->draft['lens_index'], 'pd_total' => '62']))->assertOk();
+        $response = $this->updatePrescription($this->draft['id'], $this->draftChanges(['lens_index' => $this->draft['lens_index'], 'pd_total' => '62']))->assertOk();
 
         $this->assertSame($this->draft['updated_at'], $response->json('data.updated_at'));
         $this->assertEquals($before, DB::table('optical_prescriptions')->where('id', $this->draft['id'])->first());
@@ -162,7 +162,7 @@ final class UpdatePrescriptionDraftTest extends TestCase
         $validated = $this->validatePrescription($this->draft['id'])->assertOk()->json('data');
         $this->tick();
 
-        $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'Après validation'], (string) $validated['updated_at']))
+        $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'Après validation'], (string) $validated['updated_at']))
             ->assertStatus(409)->assertJsonPath('error.code', 'STATE_TRANSITION_REFUSED');
 
         $this->assertNull(DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('notes'));
@@ -170,24 +170,24 @@ final class UpdatePrescriptionDraftTest extends TestCase
 
     public function test_une_prescription_inconnue_ou_d_un_autre_cabinet_repond_introuvable(): void
     {
-        $this->updatePrescription(Ulid::generate(), $this->patch(['notes' => 'x']))->assertNotFound();
+        $this->updatePrescription(Ulid::generate(), $this->draftChanges(['notes' => 'x']))->assertNotFound();
 
         $foreign = $this->makeStaff($this->makeClinic(), 'CLINICIAN', 'autre.pro.brouillon');
-        $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'x']), $foreign)->assertNotFound();
+        $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'x']), $foreign)->assertNotFound();
         $this->assertNull(DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('notes'));
     }
 
     public function test_l_accueil_et_la_caisse_ne_modifient_pas_un_brouillon(): void
     {
-        $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'x']), $this->reception)->assertStatus(403);
-        $this->updatePrescription($this->draft['id'], $this->patch(['notes' => 'x']), $this->cashier)->assertStatus(403);
+        $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'x']), $this->reception)->assertStatus(403);
+        $this->updatePrescription($this->draft['id'], $this->draftChanges(['notes' => 'x']), $this->cashier)->assertStatus(403);
         $this->assertNull(DB::table('optical_prescriptions')->where('id', $this->draft['id'])->value('notes'));
     }
 
     public function test_un_rejeu_de_la_meme_cle_n_applique_la_modification_qu_une_fois(): void
     {
         $key = Ulid::generate();
-        $body = $this->patch(['notes' => 'Une fois']);
+        $body = $this->draftChanges(['notes' => 'Une fois']);
 
         $this->updatePrescription($this->draft['id'], $body, null, $key)->assertOk();
         $this->updatePrescription($this->draft['id'], $body, null, $key)->assertOk();

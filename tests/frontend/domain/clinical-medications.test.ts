@@ -30,13 +30,25 @@ function order(overrides: Partial<ReturnType<typeof blankOrder>> = {}) {
 
 describe('médicaments', () => {
   it('rend chaque ligne telle que saisie, dans l’ordre, sans rien compléter', () => {
-    const first = order({ name: '  Collyre A ', frequency: ' 3 fois par jour ', durationValue: '7', durationUnit: 'DAY' })
+    const first = order({
+      name: '  Collyre A ',
+      frequency: ' 3 fois par jour ',
+      durationValue: '7',
+      durationUnit: 'DAY',
+    })
     const second = order({ name: 'Complément B', form: 'OTHER', formOther: 'Sachet' })
 
     const data = medicationsData({ orders: [first, second] })
 
     expect(data.orders.map((item) => item.name)).toEqual(['Collyre A', 'Complément B'])
-    expect(data.orders[0]).toMatchObject({ frequency: '3 fois par jour', duration_value: 7, duration_unit: 'DAY', dosage: null, instructions: null, strength: null })
+    expect(data.orders[0]).toMatchObject({
+      frequency: '3 fois par jour',
+      duration_value: 7,
+      duration_unit: 'DAY',
+      dosage: null,
+      instructions: null,
+      strength: null,
+    })
     expect(data.orders[1]).toMatchObject({ form: 'OTHER', form_other: 'Sachet' })
     expect(medicationsErrors({ orders: [first, second] })).toEqual([])
   })
@@ -106,8 +118,18 @@ describe('médicaments', () => {
     const saved = {
       orders: [
         {
-          id: nextId(), catalog_item_id: null, name: 'Collyre fictif', form: 'DROPS' as const, form_other: null, strength: '0,5 %',
-          dosage: '1 goutte', frequency: '3 fois par jour', duration_text: null, duration_value: 7, duration_unit: 'DAY' as const, instructions: null,
+          id: nextId(),
+          catalog_item_id: null,
+          name: 'Collyre fictif',
+          form: 'DROPS' as const,
+          form_other: null,
+          strength: '0,5 %',
+          dosage: '1 goutte',
+          frequency: '3 fois par jour',
+          duration_text: null,
+          duration_value: 7,
+          duration_unit: 'DAY' as const,
+          instructions: null,
         },
       ],
     }
@@ -118,11 +140,23 @@ describe('médicaments', () => {
 
 function steps(overrides: Partial<StepsData> = {}): StepsData {
   return {
-    ANAMNESIS: { symptoms: null, wears_glasses: null, glasses_duration: null, previous_correction_available: null, complaints: [] },
+    ANAMNESIS: {
+      symptoms: null,
+      wears_glasses: null,
+      glasses_duration: null,
+      previous_correction_available: null,
+      complaints: [],
+    },
     HISTORIES: { histories: [] },
     VISUAL_ACUITY: { acuities: [] },
     REFRACTION: { measurements: [], refraction_observations: null, ametropias: [] },
-    CENTERING: { centering_id: null, pd_total: null, pd_od: null, pd_og: null, inconsistency_reason: null },
+    CENTERING: {
+      centering_id: null,
+      pd_total: null,
+      pd_od: null,
+      pd_og: null,
+      inconsistency_reason: null,
+    },
     MEDICATIONS: { orders: [] },
     CONCLUSION: { conclusion: null, referral: null, referral_urgency: null, referral_reasons: [] },
     ...overrides,
@@ -133,30 +167,63 @@ describe('récapitulatif de finalisation', () => {
   it('un dossier vide : toutes les rubriques sont non renseignées et la justification est exigée', () => {
     const summary = completionSummary(steps())
 
-    expect(summary.emptySteps).toEqual(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS', 'CONCLUSION'])
+    expect(summary.emptySteps).toEqual([
+      'ANAMNESIS',
+      'HISTORIES',
+      'VISUAL_ACUITY',
+      'REFRACTION',
+      'CENTERING',
+      'MEDICATIONS',
+      'CONCLUSION',
+    ])
     expect(summary.reasonRequired).toBe(true)
     expect(missingDataText(summary)).toBe('le motif ou les plaintes et la conclusion')
-    expect(completionReasonError(summary, '   ')).toContain('Il manque le motif ou les plaintes et la conclusion')
+    expect(completionReasonError(summary, '   ')).toContain(
+      'Il manque le motif ou les plaintes et la conclusion',
+    )
     expect(completionReasonError(summary, 'Patient parti (fictif)')).toBeNull()
   })
 
   it('motif et conclusion renseignés : aucune justification ; les mesures non réalisées ne sont jamais exigées', () => {
     const summary = completionSummary(
       steps({
-        ANAMNESIS: { symptoms: 'Gêne (fictif)', wears_glasses: null, glasses_duration: null, previous_correction_available: null, complaints: [] },
-        CONCLUSION: { conclusion: 'Conclusion fictive', referral: false, referral_urgency: null, referral_reasons: [] },
+        ANAMNESIS: {
+          symptoms: 'Gêne (fictif)',
+          wears_glasses: null,
+          glasses_duration: null,
+          previous_correction_available: null,
+          complaints: [],
+        },
+        CONCLUSION: {
+          conclusion: 'Conclusion fictive',
+          referral: false,
+          referral_urgency: null,
+          referral_reasons: [],
+        },
       }),
     )
 
     expect(summary.reasonRequired).toBe(false)
-    expect(summary.emptySteps).toEqual(['HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS'])
+    expect(summary.emptySteps).toEqual([
+      'HISTORIES',
+      'VISUAL_ACUITY',
+      'REFRACTION',
+      'CENTERING',
+      'MEDICATIONS',
+    ])
     expect(completionReasonError(summary, '')).toBeNull()
   })
 
   it('une plainte suffit comme motif ; seule la conclusion manquante est alors dite', () => {
     const summary = completionSummary(
       steps({
-        ANAMNESIS: { symptoms: null, wears_glasses: null, glasses_duration: null, previous_correction_available: null, complaints: [{ id: nextId(), term_code: 'PAIN', other_text: null }] },
+        ANAMNESIS: {
+          symptoms: null,
+          wears_glasses: null,
+          glasses_duration: null,
+          previous_correction_available: null,
+          complaints: [{ id: nextId(), term_code: 'PAIN', other_text: null }],
+        },
       }),
     )
 
@@ -165,7 +232,14 @@ describe('récapitulatif de finalisation', () => {
   })
 
   it('« non » est une réponse : une orientation « Non » rend la conclusion renseignée, pas vide', () => {
-    const data = steps({ CONCLUSION: { conclusion: null, referral: false, referral_urgency: null, referral_reasons: [] } })
+    const data = steps({
+      CONCLUSION: {
+        conclusion: null,
+        referral: false,
+        referral_urgency: null,
+        referral_reasons: [],
+      },
+    })
 
     expect(isStepEmpty('CONCLUSION', data)).toBe(false)
     expect(completionSummary(data).missingConclusion).toBe(true)
@@ -173,6 +247,19 @@ describe('récapitulatif de finalisation', () => {
 
   it('un centrage n’est renseigné que s’il a une ligne', () => {
     expect(isStepEmpty('CENTERING', steps())).toBe(true)
-    expect(isStepEmpty('CENTERING', steps({ CENTERING: { centering_id: nextId(), pd_total: '62.00', pd_od: null, pd_og: null, inconsistency_reason: null } }))).toBe(false)
+    expect(
+      isStepEmpty(
+        'CENTERING',
+        steps({
+          CENTERING: {
+            centering_id: nextId(),
+            pd_total: '62.00',
+            pd_od: null,
+            pd_og: null,
+            inconsistency_reason: null,
+          },
+        }),
+      ),
+    ).toBe(false)
   })
 })

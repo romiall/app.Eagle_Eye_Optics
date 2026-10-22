@@ -35,12 +35,19 @@ describe('registre des modèles versionnés', () => {
   it('accepte les noms de version déjà écrits par le serveur (invoice.v1, receipt.v1) comme alias', () => {
     expect(templateVersionsOf('INVOICE')).toEqual(['TEST-1', 'invoice.v1'])
     expect(templateVersionsOf('RECEIPT')).toEqual(['TEST-1', 'receipt.v1'])
-    const receipt = buildDocument('RECEIPT', { ...demoReceiptDeposit(), templateVersion: 'receipt.v1' })
+    const receipt = buildDocument('RECEIPT', {
+      ...demoReceiptDeposit(),
+      templateVersion: 'receipt.v1',
+    })
     const invoice = buildDocument('INVOICE', { ...demoInvoice(), templateVersion: 'invoice.v1' })
 
     expect(receipt.templateVersion).toBe('receipt.v1')
-    expect(receipt.footerLines.at(-1)).toBe('Modèle receipt.v1 · TEST-REC-000001 · DOCUMENT DE TEST')
-    expect(invoice.footerLines.at(-1)).toBe('Modèle invoice.v1 · TEST-FAC-000001 · DOCUMENT DE TEST')
+    expect(receipt.footerLines.at(-1)).toBe(
+      'Modèle receipt.v1 · TEST-REC-000001 · DOCUMENT DE TEST',
+    )
+    expect(invoice.footerLines.at(-1)).toBe(
+      'Modèle invoice.v1 · TEST-FAC-000001 · DOCUMENT DE TEST',
+    )
   })
 
   it('construit une pièce avec la version de modèle de ses données', () => {

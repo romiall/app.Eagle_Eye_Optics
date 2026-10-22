@@ -66,7 +66,9 @@ const failure = computed(() =>
     : salesFailureView(mutation.state.value),
 )
 const current = computed(() => (editing.value === 'new' ? null : editing.value))
-const dirty = computed(() => editing.value !== null && JSON.stringify(form.value) !== startedFrom.value)
+const dirty = computed(
+  () => editing.value !== null && JSON.stringify(form.value) !== startedFrom.value,
+)
 useUnsavedChangesGuard(dirty)
 
 const FIELD_PREFIX = 'regle'
@@ -146,7 +148,11 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
       }
       errors.value = byField
       general.value =
-        others.length > 0 ? others.join(' ') : Object.keys(byField).length === 0 ? result.error.message : null
+        others.length > 0
+          ? others.join(' ')
+          : Object.keys(byField).length === 0
+            ? result.error.message
+            : null
       await summaryBox.value?.focus()
       return
     }
@@ -174,7 +180,11 @@ async function submit(): Promise<void> {
   await afterOutcome(
     await mutation.submit(
       rule === null
-        ? { name: 'CreateTaxRule', route: { method: 'POST', path: '/tax-rules' }, payload: checked.payload }
+        ? {
+            name: 'CreateTaxRule',
+            route: { method: 'POST', path: '/tax-rules' },
+            payload: checked.payload,
+          }
         : {
             name: 'UpdateTaxRule',
             route: {
@@ -222,9 +232,9 @@ async function reloadRule(): Promise<void> {
       >
     </div>
     <p class="text-base text-muted">
-      Aucune taxe n’est préconfigurée par l’application : le régime réel est à fixer avec la gérante et
-      le comptable. Tant qu’aucune règle n’est active et validée, les factures portent « aucune taxe
-      configurée ».
+      Aucune taxe n’est préconfigurée par l’application : le régime réel est à fixer avec la gérante
+      et le comptable. Tant qu’aucune règle n’est active et validée, les factures portent « aucune
+      taxe configurée ».
     </p>
 
     <StateMessage v-if="notice" state="success" :title="notice" />
@@ -340,7 +350,11 @@ async function reloadRule(): Promise<void> {
       :error="read.error.value"
       @retry="read.reload()"
     />
-    <StateMessage v-else-if="read.state.value === 'empty'" state="empty" title="Aucune règle fiscale">
+    <StateMessage
+      v-else-if="read.state.value === 'empty'"
+      state="empty"
+      title="Aucune règle fiscale"
+    >
       Aucune règle n’a été saisie : les factures portent « aucune taxe configurée ».
     </StateMessage>
     <ul v-else-if="read.data.value" class="space-y-3">
@@ -355,7 +369,9 @@ async function reloadRule(): Promise<void> {
         </p>
         <p class="text-sm text-muted">
           {{ taxRuleState(rule) }}
-          <template v-if="rule.validated_at"> · validée le {{ formatInstantFr(rule.validated_at) }}</template>
+          <template v-if="rule.validated_at">
+            · validée le {{ formatInstantFr(rule.validated_at) }}</template
+          >
         </p>
         <AppButton
           v-if="editing === null"

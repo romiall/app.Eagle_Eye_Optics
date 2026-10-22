@@ -103,9 +103,11 @@ function nullable(text: string): string | null {
 const localErrors = computed<Record<string, string>>(() => {
   const errors: Record<string, string> = {}
   const clinicName = name.value.trim()
-  if (clinicName.length < 2) errors[IDS.name] = 'Saisissez le nom du cabinet (2 caractères au moins).'
+  if (clinicName.length < 2)
+    errors[IDS.name] = 'Saisissez le nom du cabinet (2 caractères au moins).'
   else if (clinicName.length > 180) errors[IDS.name] = 'Le nom ne dépasse pas 180 caractères.'
-  if (phone.value.trim().length > 32) errors[IDS.phone] = 'Le téléphone ne dépasse pas 32 caractères.'
+  if (phone.value.trim().length > 32)
+    errors[IDS.phone] = 'Le téléphone ne dépasse pas 32 caractères.'
   const mail = email.value.trim()
   if (mail !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
     errors[IDS.email] = 'L’adresse électronique n’est pas valide.'
@@ -200,7 +202,9 @@ async function submit(): Promise<void> {
     </div>
 
     <ReadNotice
-      v-if="read.data.value === null || (read.state.value !== 'ready' && read.state.value !== 'loading')"
+      v-if="
+        read.data.value === null || (read.state.value !== 'ready' && read.state.value !== 'loading')
+      "
       :state="read.state.value"
       subject="les paramètres du cabinet"
       :error="read.error.value"

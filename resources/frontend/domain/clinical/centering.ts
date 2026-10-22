@@ -115,7 +115,11 @@ export function centeringErrors(draft: CenteringDraft): StepError[] {
     }
     const units = measureUnits(text)
     if (units !== null && units <= 0n) {
-      errors.push({ path: field, controlId, message: `${label} : doit être strictement positif (en millimètres).` })
+      errors.push({
+        path: field,
+        controlId,
+        message: `${label} : doit être strictement positif (en millimètres).`,
+      })
     }
   }
   const reason = textError(draft.reason, 'La justification')
@@ -123,19 +127,23 @@ export function centeringErrors(draft: CenteringDraft): StepError[] {
     errors.push({ path: 'inconsistency_reason', controlId: CONTROL_IDS.pdReason, message: reason })
   }
   const anyValue =
-    cleanText(draft.pdTotal) !== null || cleanText(draft.pdOd) !== null || cleanText(draft.pdOg) !== null
+    cleanText(draft.pdTotal) !== null ||
+    cleanText(draft.pdOd) !== null ||
+    cleanText(draft.pdOg) !== null
   if (errors.length === 0 && pdMismatch(draft) && cleanText(draft.reason) === null) {
     errors.push({
       path: 'inconsistency_reason',
       controlId: CONTROL_IDS.pdReason,
-      message: 'La somme des écarts OD et OG diffère de l’écart total : corrigez une valeur ou justifiez l’écart.',
+      message:
+        'La somme des écarts OD et OG diffère de l’écart total : corrigez une valeur ou justifiez l’écart.',
     })
   }
   if (errors.length === 0 && !anyValue && cleanText(draft.reason) !== null) {
     errors.push({
       path: 'inconsistency_reason',
       controlId: CONTROL_IDS.pdReason,
-      message: 'Une justification n’a de sens qu’avec un écart pupillaire saisi : effacez-la ou saisissez la mesure.',
+      message:
+        'Une justification n’a de sens qu’avec un écart pupillaire saisi : effacez-la ou saisissez la mesure.',
     })
   }
   return errors
@@ -147,5 +155,7 @@ export const centeringCodec: StepCodec<CenteringDraft, CenteringData> = {
   toData: centeringData,
   errors: centeringErrors,
   unparsable: (draft) =>
-    measureUnparsable(draft.pdTotal) || measureUnparsable(draft.pdOd) || measureUnparsable(draft.pdOg),
+    measureUnparsable(draft.pdTotal) ||
+    measureUnparsable(draft.pdOd) ||
+    measureUnparsable(draft.pdOg),
 }

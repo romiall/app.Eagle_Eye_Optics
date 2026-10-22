@@ -12,9 +12,9 @@ use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Clinical\OpticalPrescriptions;
 use App\Domain\Clinical\RevisionSnapshot;
-use App\Domain\Clinical\StepRows;
 use App\Domain\Clinical\Rules\FieldErrors;
 use App\Domain\Clinical\Rules\OpticalPrescriptionRules;
+use App\Domain\Clinical\StepRows;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CanonicalJson;
 use App\Domain\Shared\CommandContext;
@@ -175,7 +175,7 @@ final class UpdatePrescriptionDraftHandler implements CommandHandler
             resultId: $prescriptionId,
             audit: [new AuditEntry('prescription.updated', 'optical_prescriptions', $prescriptionId, null, [
                 'version_no' => (int) $row->version_no,
-                'fields' => array_values(array_keys($changes)),
+                'fields' => array_keys($changes),
             ])],
             changes: [new ChangeRecord('optical_prescriptions', $prescriptionId, (int) $row->version_no, ChangeVisibility::Clinical, ChangeKind::Updated)],
         );

@@ -25,7 +25,9 @@ export function canonicalJson(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'number') {
     if (!Number.isSafeInteger(value)) {
-      throw new Error('Un nombre non entier n’a pas de forme canonique admise dans un dossier clinique.')
+      throw new Error(
+        'Un nombre non entier n’a pas de forme canonique admise dans un dossier clinique.',
+      )
     }
     return String(value)
   }
@@ -33,7 +35,9 @@ export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map((member) => canonicalJson(member)).join(',')}]`
   if (typeof value === 'object') {
     const record = value as Record<string, unknown>
-    const keys = Object.keys(record).sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+    const keys = Object.keys(record).sort((left, right) =>
+      left < right ? -1 : left > right ? 1 : 0,
+    )
     return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`
   }
   throw new Error('Type non pris en charge dans un dossier clinique.')

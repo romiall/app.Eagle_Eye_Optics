@@ -225,7 +225,10 @@ final class CatalogTest extends TestCase
         $audit = DB::table('audit_events')->where('action', 'catalog.item_updated')->where('target_id', $id)->first();
         $this->assertNotNull($audit);
         $diff = json_decode((string) $audit->sanitized_diff, true);
-        $this->assertSame(['before' => 40000, 'after' => 42000], $diff['changes']['sale_price']);
+        // Colonne JSON MySQL : l'ordre des clés n'est pas conservé (tri par longueur), seul leur contenu compte.
+        $this->assertEqualsCanonicalizing(['before', 'after'], array_keys($diff['changes']['sale_price']));
+        $this->assertSame(40000, $diff['changes']['sale_price']['before']);
+        $this->assertSame(42000, $diff['changes']['sale_price']['after']);
         $this->assertSame(['modified' => true], $diff['changes']['purchase_cost']);
         $this->assertStringNotContainsString((string) self::COST, $this->sideEffectsDump());
     }
@@ -286,7 +289,9 @@ final class CatalogTest extends TestCase
         foreach ([$absent, $this->itemBody(['expected_version' => 3]), $this->itemBody(['sale_price' => 100.5]), $this->itemBody(['stock_mode' => 'INCONNU']), [...$this->itemBody(), 'extra' => 1]] as $body) {
             $this->write('POST', '/api/v1/catalog/items', $body, $this->manager)->assertStatus(422)->assertJsonPath('error.code', 'VALIDATION_FAILED');
         }
-        $this->actingAsFresh($this->manager)->postJson('/api/v1/catalog/items', $this->itemBody())->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['Idempotency-Key']]]);
+        // Les en-têtes par défaut du client de test persistent d'un appel à l'autre : sans les vider, la clé du dernier
+        // appel serait renvoyée et la requête « sans clé » n'en serait pas une.
+        $this->flushHeaders()->actingAsFresh($this->manager)->postJson('/api/v1/catalog/items', $this->itemBody())->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['Idempotency-Key']]]);
         $this->assertSame(0, DB::table('catalog_items')->where('reference', 'FR-NEW')->count());
     }
 

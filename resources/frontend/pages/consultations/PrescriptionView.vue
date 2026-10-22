@@ -16,7 +16,9 @@ const props = defineProps<{ prescription: Prescription }>()
 
 const model = computed(() => prescriptionScreenModel(props.prescription))
 const validatedAt = computed(() =>
-  props.prescription.validated_at === null ? null : formatInstantFr(props.prescription.validated_at),
+  props.prescription.validated_at === null
+    ? null
+    : formatInstantFr(props.prescription.validated_at),
 )
 const MISSING = '—'
 </script>
@@ -33,12 +35,14 @@ const MISSING = '—'
       <span
         v-else
         class="inline-flex items-center gap-1 rounded-lg border-2 border-accent bg-accent-soft px-2 py-1 text-sm font-semibold"
-        ><span aria-hidden="true">✓</span>Validée<template v-if="validatedAt"> le {{ validatedAt }}</template></span
+        ><span aria-hidden="true">✓</span>Validée<template v-if="validatedAt">
+          le {{ validatedAt }}</template
+        ></span
       >
     </header>
     <p v-if="model.external" class="text-sm text-muted">
-      Ordonnance externe de {{ model.external.prescriber }}<template v-if="model.external.prescribedOn">
-        du {{ model.external.prescribedOn }}</template
+      Ordonnance externe de {{ model.external.prescriber
+      }}<template v-if="model.external.prescribedOn"> du {{ model.external.prescribedOn }}</template
       >.
     </p>
 

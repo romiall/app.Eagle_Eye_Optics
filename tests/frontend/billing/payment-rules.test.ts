@@ -42,7 +42,9 @@ describe('encaissement', () => {
   const context = { amountDue: 50000, cashSessionId: '01J9ZXK4M2Q8R7S6T5V4W3002Y' }
 
   it('accepte un acompte ou le solde, refuse au-delà du reste à encaisser', () => {
-    expect(validatePayment({ amount: 30000, method: 'CASH', reference: '' }, context)).toMatchObject({
+    expect(
+      validatePayment({ amount: 30000, method: 'CASH', reference: '' }, context),
+    ).toMatchObject({
       ok: true,
       amount: 30000,
       reference: null,
@@ -58,7 +60,10 @@ describe('encaissement', () => {
     expect(zero.ok).toBe(false)
     const empty = validatePayment({ amount: null, method: null, reference: '' }, context)
     expect(empty.ok ? {} : Object.keys(empty.errors).sort()).toEqual(['amount', 'method'])
-    const nothing = validatePayment({ amount: 1000, method: 'CASH', reference: '' }, { ...context, amountDue: 0 })
+    const nothing = validatePayment(
+      { amount: 1000, method: 'CASH', reference: '' },
+      { ...context, amountDue: 0 },
+    )
     expect(nothing.ok ? null : nothing.errors.amount).toContain('rien à encaisser')
   })
 
@@ -67,7 +72,10 @@ describe('encaissement', () => {
     expect(referenceRequired('ORANGE_MONEY')).toBe(true)
     expect(referenceRequired('BANK_TRANSFER')).toBe(true)
     expect(referenceRequired('CASH')).toBe(false)
-    const noReference = validatePayment({ amount: 1000, method: 'MTN_MOMO', reference: '  ' }, context)
+    const noReference = validatePayment(
+      { amount: 1000, method: 'MTN_MOMO', reference: '  ' },
+      context,
+    )
     expect(noReference.ok ? null : noReference.errors.reference).toContain('obligatoire')
     const noSession = validatePayment(
       { amount: 1000, method: 'CASH', reference: '' },
@@ -75,8 +83,10 @@ describe('encaissement', () => {
     )
     expect(noSession.ok ? null : noSession.errors.cashSession).toContain('session de caisse')
     expect(
-      validatePayment({ amount: 1000, method: 'CHEQUE', reference: '' }, { ...context, cashSessionId: null })
-        .ok,
+      validatePayment(
+        { amount: 1000, method: 'CHEQUE', reference: '' },
+        { ...context, cashSessionId: null },
+      ).ok,
     ).toBe(true)
   })
 
@@ -97,7 +107,11 @@ describe('encaissement', () => {
       effects,
     })
     expect(payload).not.toHaveProperty('receipt_number')
-    expect(payload).toMatchObject({ currency: 'XAF', cash_session_id: null, retroactive_reason: null })
+    expect(payload).toMatchObject({
+      currency: 'XAF',
+      cash_session_id: null,
+      retroactive_reason: null,
+    })
     expect(
       buildPaymentPayload({
         invoiceId: '01J9ZXK4M2Q8R7S6T5V4W30026',
@@ -128,7 +142,11 @@ describe('encaissement', () => {
       'Reste à encaisser',
     ])
     expect(lines.find((line) => line.key === 'due')?.amount).toBe(0)
-    const words = [...lines.map((line) => line.label), receiptKindLabel('DEPOSIT'), receiptKindLabel('BALANCE_SETTLEMENT')]
+    const words = [
+      ...lines.map((line) => line.label),
+      receiptKindLabel('DEPOSIT'),
+      receiptKindLabel('BALANCE_SETTLEMENT'),
+    ]
       .join(' ')
       .toLowerCase()
     for (const forbidden of FORBIDDEN_SETTLEMENT_WORDS) expect(words).not.toContain(forbidden)
@@ -204,7 +222,10 @@ describe('catalogue et règles fiscales', () => {
     expect(CATEGORY_LABELS).toStrictEqual(fromSql)
     const units = /INSERT INTO `units`[^;]*;/.exec(sql)?.[0] ?? ''
     const integerOnly = Object.fromEntries(
-      [...units.matchAll(/\('([A-Z_]+)', '[^']+', ([01])\)/g)].map((match) => [match[1], match[2] === '1']),
+      [...units.matchAll(/\('([A-Z_]+)', '[^']+', ([01])\)/g)].map((match) => [
+        match[1],
+        match[2] === '1',
+      ]),
     )
     expect(UNIT_INTEGER_ONLY).toStrictEqual(integerOnly)
   })
@@ -233,15 +254,22 @@ describe('catalogue et règles fiscales', () => {
     })
     expect(pair.ok ? null : pair.errors.quantityIntegerOnly).toContain('ne se divise pas')
     const ok = validateCatalogForm({ ...base, requiresExpiry: true, brand: '  ' })
-    expect(ok.ok ? ok.payload : null).toMatchObject({ brand: null, purchase_cost: null, sale_price: 5000 })
+    expect(ok.ok ? ok.payload : null).toMatchObject({
+      brand: null,
+      purchase_cost: null,
+      sale_price: 5000,
+    })
   })
 
   it('une règle active exige un taux validé ; changer le taux retire la validation', () => {
     const form = { ...blankTaxRuleForm(), code: 'TEST_TAXE', label: 'Taxe fictive' }
     expect(validateTaxRuleForm({ ...form, active: true }, null).ok).toBe(false)
-    expect(validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000' }, null).ok).toBe(false)
+    expect(validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000' }, null).ok).toBe(
+      false,
+    )
     expect(
-      validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000', validate: true }, null).ok,
+      validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000', validate: true }, null)
+        .ok,
     ).toBe(true)
     const validated: TaxRule = {
       id: '01J9ZXK4M2Q8R7S6T5V4W30T01',
@@ -254,8 +282,13 @@ describe('catalogue et règles fiscales', () => {
       legal_note: null,
       version: 1,
     }
-    expect(validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000' }, validated).ok).toBe(true)
-    const changed = validateTaxRuleForm({ ...form, active: true, ratePercent: '12.5000' }, validated)
+    expect(
+      validateTaxRuleForm({ ...form, active: true, ratePercent: '10.0000' }, validated).ok,
+    ).toBe(true)
+    const changed = validateTaxRuleForm(
+      { ...form, active: true, ratePercent: '12.5000' },
+      validated,
+    )
     expect(changed.ok ? null : changed.errors.active).toContain('revalidez')
     expect(validateTaxRuleForm({ ...form, validate: true }, null).ok).toBe(false)
     expect(taxRuleState({ ...validated, validated_at: null })).toContain('non appliquée')
@@ -295,14 +328,20 @@ describe('stock initial', () => {
   }
 
   it('exige un lot daté pour un périssable et un motif', () => {
-    expect(validateOpeningStock({ reason: 'Comptage fictif', lines: [line], items }).errors).toEqual([])
+    expect(
+      validateOpeningStock({ reason: 'Comptage fictif', lines: [line], items }).errors,
+    ).toEqual([])
     const missing = validateOpeningStock({
       reason: '',
       lines: [{ ...line, batchNumber: '', expiresOn: null, quantity: '1.500' }],
       items,
     })
     expect(missing.general).toContain('motif')
-    expect(missing.errors.map((error) => error.field).sort()).toEqual(['batchNumber', 'expiresOn', 'quantity'])
+    expect(missing.errors.map((error) => error.field).sort()).toEqual([
+      'batchNumber',
+      'expiresOn',
+      'quantity',
+    ])
   })
 
   it('construit la charge sans version, approbation nulle, coût inconnu nul', () => {

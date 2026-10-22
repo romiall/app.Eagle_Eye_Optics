@@ -35,7 +35,9 @@ function seededPermissions(): Set<string> {
 /** Permissions seedées par profil (`role_permissions`). */
 function rolePermissions(role: string): string[] {
   const sql = readFileSync(join(ROOT, 'database', '02_reference_data.sql'), 'utf8')
-  return [...sql.matchAll(new RegExp(`\\('${role}', '([a-z_.]+)'\\)`, 'g'))].map((match) => match[1] ?? '')
+  return [...sql.matchAll(new RegExp(`\\('${role}', '([a-z_.]+)'\\)`, 'g'))].map(
+    (match) => match[1] ?? '',
+  )
 }
 
 describe('raccourcis de travail de l’accueil', () => {

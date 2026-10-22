@@ -44,7 +44,9 @@ async function ensureCashOpen(page: Page): Promise<void> {
   await page.goto('/ventes/caisse')
   await expect(page.getByRole('heading', { level: 1, name: 'Caisse' })).toBeVisible()
   const main = page.getByRole('main')
-  await expect(main.getByText(/Session ouverte|Aucune session de caisse ouverte/).first()).toBeVisible()
+  await expect(
+    main.getByText(/Session ouverte|Aucune session de caisse ouverte/).first(),
+  ).toBeVisible()
   if (await main.getByText('Aucune session de caisse ouverte').isVisible()) {
     await page.getByLabel('Fond de caisse').fill('10 000')
     await page.getByRole('button', { name: 'Ouvrir la caisse' }).click()
@@ -94,7 +96,9 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     const dialog = page.getByRole('dialog', { name: 'Émettre la facture ?' })
     await expect(dialog).toContainText('La facture émise ne pourra plus être modifiée.')
     await dialog.getByRole('button', { name: 'Émettre la facture' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ }),
+    ).toBeVisible()
     await expect(main).toContainText('Reste à encaisser : 55 000 FCFA')
 
     // Acompte en espèces (session ouverte).
@@ -134,7 +138,9 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await context.close()
   })
 
-  test('liste filtrée par jour d’émission, caisse du jour, abandon d’un brouillon', async ({ browser }) => {
+  test('liste filtrée par jour d’émission, caisse du jour, abandon d’un brouillon', async ({
+    browser,
+  }) => {
     test.setTimeout(180_000)
     const patientPath = await createPatient(browser, 'Jour Parcours', '+237 600 00 04 44')
 
@@ -151,7 +157,10 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
     await expect(page).toHaveURL(/\/ventes\/factures\/[0-9A-HJKMNP-TV-Z]{26}$/)
     await page.getByRole('button', { name: 'Émettre la facture' }).click()
-    await page.getByRole('dialog', { name: 'Émettre la facture ?' }).getByRole('button', { name: 'Émettre la facture' }).click()
+    await page
+      .getByRole('dialog', { name: 'Émettre la facture ?' })
+      .getByRole('button', { name: 'Émettre la facture' })
+      .click()
     const heading = page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-\d{4}-\d{6}$/ })
     await expect(heading).toBeVisible()
     const number = ((await heading.innerText()).match(/TEST-FAC-\d{4}-\d{6}/) ?? [''])[0]
@@ -164,7 +173,12 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await page.goto('/ventes/factures')
     await expect(main).toContainText('Jour Parcours')
     const today = await page.evaluate(() =>
-      new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Douala', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()),
+      new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Africa/Douala',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date()),
     )
     await page.getByLabel('Jour d’émission').fill(today)
     await page.getByLabel('Jour d’émission').blur()

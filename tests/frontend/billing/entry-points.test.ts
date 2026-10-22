@@ -50,7 +50,10 @@ describe('routes et navigation des ventes', () => {
         .map((route) => [String(route.name), [route.meta.module, route.meta.permissions]]),
     )
     expect(Object.fromEntries(sales)).toEqual({
-      ventes: ['sales', ['invoice.read', 'payment.collect', 'cash.own_session', 'exam_fee.collect']],
+      ventes: [
+        'sales',
+        ['invoice.read', 'payment.collect', 'cash.own_session', 'exam_fee.collect'],
+      ],
       caisse: ['sales', ['cash.own_session']],
       'caisse-du-jour': ['sales', ['finance.global.read', 'cash.own_session']],
       factures: ['sales', ['invoice.read']],
@@ -113,10 +116,7 @@ describe('« Créer une facture » dans la file du jour', () => {
     api.on('GET', /^\/api\/v1\/visits$/, () =>
       json(
         200,
-        visitPage([
-          visit(),
-          visit({ id: '01J9ZXK4M2Q8R7S6T5V4W30022', status: 'CANCELLED' }),
-        ]),
+        visitPage([visit(), visit({ id: '01J9ZXK4M2Q8R7S6T5V4W30022', status: 'CANCELLED' })]),
       ),
     )
     const { root, unmount } = await openApp('/aujourdhui')
@@ -128,7 +128,9 @@ describe('« Créer une facture » dans la file du jour', () => {
     expect(links[0]?.getAttribute('href')).toBe(
       '/ventes/factures/nouvelle?patient=01J9ZXK4M2Q8R7S6T5V4W30011&visite=01J9ZXK4M2Q8R7S6T5V4W30021',
     )
-    expect(links[0]?.getAttribute('aria-label')).toBe('Créer une facture pour PATIENT FICTIF Élodie Marie')
+    expect(links[0]?.getAttribute('aria-label')).toBe(
+      'Créer une facture pour PATIENT FICTIF Élodie Marie',
+    )
     // Le contrôle du paiement de l'examen reste « non contrôlé » : rien ne suggère le contraire.
     expect(textOf(root)).toContain('Paiement de l’examen non contrôlé')
 
@@ -166,7 +168,10 @@ describe('services de lecture des ventes', () => {
   it('catalogue : texte de 2 caractères au moins, articles désactivés seulement sur demande', async () => {
     const api = stubSalesApi({ permissions: MANAGER })
     api.on('GET', /^\/api\/v1\/catalog$/, () =>
-      json(200, { data: [catalogItem()], meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 } }),
+      json(200, {
+        data: [catalogItem()],
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
+      }),
     )
 
     await searchCatalog('DE', 1, { includeInactive: true })
@@ -294,10 +299,18 @@ describe('catalogue (gérante)', () => {
     const api = stubSalesApi({ permissions: MANAGER })
     api.on('GET', /^\/api\/v1\/tax-rules$/, () => json(200, { data: [] }))
     api.on('GET', /^\/api\/v1\/catalog$/, () =>
-      json(200, { data: [catalogItem()], meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 } }),
+      json(200, {
+        data: [catalogItem()],
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
+      }),
     )
     api.on('POST', /^\/api\/v1\/catalog\/items$/, (request) =>
-      json(201, { data: catalogItem({ id: '01J9ZXK4M2Q8R7S6T5V4W30C09', reference: String(request.body?.['reference']) }) }),
+      json(201, {
+        data: catalogItem({
+          id: '01J9ZXK4M2Q8R7S6T5V4W30C09',
+          reference: String(request.body?.['reference']),
+        }),
+      }),
     )
 
     const { root, unmount } = await openApp('/ventes/catalogue')

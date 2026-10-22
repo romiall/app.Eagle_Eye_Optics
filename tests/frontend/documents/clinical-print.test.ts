@@ -44,7 +44,10 @@ const ROOT = join(import.meta.dirname, '..', '..', '..')
 
 const SNAPSHOT = (
   JSON.parse(
-    readFileSync(join(ROOT, 'contracts', 'fixtures', 'snapshots', 'clinical-revision.valid.json'), 'utf8'),
+    readFileSync(
+      join(ROOT, 'contracts', 'fixtures', 'snapshots', 'clinical-revision.valid.json'),
+      'utf8',
+    ),
   ) as { data: ClinicalRevisionSnapshot }
 ).data
 
@@ -107,12 +110,19 @@ describe('patient d’un document tiré d’une révision', () => {
   })
 
   it('sexe et naissance (non figés) ne viennent que du MÊME patient, sinon ils ne sont pas imprimés', () => {
-    expect(clinicalPatientFromRevision(SNAPSHOT.patient, { ...CURRENT_PATIENT, id: OTHER_PATIENT })).toMatchObject({
+    expect(
+      clinicalPatientFromRevision(SNAPSHOT.patient, { ...CURRENT_PATIENT, id: OTHER_PATIENT }),
+    ).toMatchObject({
       sex: null,
       birthDate: null,
     })
-    expect(clinicalPatientFromRevision(SNAPSHOT.patient, null)).toMatchObject({ sex: null, birthDate: null })
-    expect(clinicalPatientFromRevision(SNAPSHOT.patient, { ...CURRENT_PATIENT, sex: 'UNKNOWN' }).sex).toBeNull()
+    expect(clinicalPatientFromRevision(SNAPSHOT.patient, null)).toMatchObject({
+      sex: null,
+      birthDate: null,
+    })
+    expect(
+      clinicalPatientFromRevision(SNAPSHOT.patient, { ...CURRENT_PATIENT, sex: 'UNKNOWN' }).sex,
+    ).toBeNull()
   })
 })
 
@@ -136,7 +146,14 @@ describe('fiche de consultation (révision figée)', () => {
       amendmentReason: null,
     })
     expect(entry.refraction).toEqual([
-      { stage: 'Réfraction subjective', eye: 'OD', sphere: '-1.25', cylinder: null, axis: null, addition: null },
+      {
+        stage: 'Réfraction subjective',
+        eye: 'OD',
+        sphere: '-1.25',
+        cylinder: null,
+        axis: null,
+        addition: null,
+      },
     ])
     expect(entry.medications).toEqual([
       {
@@ -166,7 +183,10 @@ describe('fiche de consultation (révision figée)', () => {
   })
 
   it('imprime l’auteur et la version, les médicaments, les seules prescriptions VALIDÉES, sans aucun montant', () => {
-    const validated = prescription({ status: 'VALIDATED', validated_at: '2026-10-14T09:40:00.000Z' })
+    const validated = prescription({
+      status: 'VALIDATED',
+      validated_at: '2026-10-14T09:40:00.000Z',
+    })
     const draft = prescription({ id: '01J9ZXK4M2Q8R7S6T5V4W3002D', version_no: 2, status: 'DRAFT' })
     const data = consultationRecordFromRevision({
       ...base(),
@@ -180,7 +200,9 @@ describe('fiche de consultation (révision figée)', () => {
     const text = printedText(plan)
 
     expect(data.selection).toBe('SINGLE')
-    expect(data.prescriptions.map((summary) => [summary.versionNo, summary.status])).toEqual([[1, 'VALIDATED']])
+    expect(data.prescriptions.map((summary) => [summary.versionNo, summary.status])).toEqual([
+      [1, 'VALIDATED'],
+    ])
     expect(model.templateVersion).toBe('clinical_record.v1')
     expect(text).toContain('FICHE DE CONSULTATION')
     expect(text).toContain('Auteur de la révision | Professionnel (démonstration)')
@@ -263,7 +285,15 @@ describe('ordonnance de médicaments (révision figée)', () => {
       professional: { displayName: 'Professionnel (démonstration)', professionalNumber: null },
     })
     expect(firstTable(model, 'Produits prescrits').rows.map((row) => row.cells)).toEqual([
-      ['Collyre fictif', 'Collyre', '0,5 %', '1 goutte', '3 fois par jour', 'jusqu’au contrôle · 7 jour(s)', MISSING],
+      [
+        'Collyre fictif',
+        'Collyre',
+        '0,5 %',
+        '1 goutte',
+        '3 fois par jour',
+        'jusqu’au contrôle · 7 jour(s)',
+        MISSING,
+      ],
       ['Complément fictif', 'Sachet', MISSING, MISSING, MISSING, MISSING, MISSING],
     ])
     expect(model.templateVersion).toBe('medication_order.v1')
@@ -297,7 +327,11 @@ describe('lettre d’orientation (révision figée)', () => {
             referral: true,
             referral_urgency: 'RAPID',
             referral_reasons: [
-              { id: '01J9ZXK4M2Q8R7S6T5V4W3002C', term_code: 'OTHER', other_text: 'Précision fictive' },
+              {
+                id: '01J9ZXK4M2Q8R7S6T5V4W3002C',
+                term_code: 'OTHER',
+                other_text: 'Précision fictive',
+              },
             ],
           },
         },
@@ -324,7 +358,8 @@ describe('lettre d’orientation (révision figée)', () => {
 describe('une seule source de libellés (écran et document)', () => {
   it('stades, corrections, formes et termes viennent du domaine clinique', () => {
     for (const [code, label] of Object.entries(STAGE_LABELS)) expect(labels.stage(code)).toBe(label)
-    for (const [code, label] of Object.entries(CORRECTION_TITLES)) expect(labels.correction(code)).toBe(label)
+    for (const [code, label] of Object.entries(CORRECTION_TITLES))
+      expect(labels.correction(code)).toBe(label)
     expect(labels.medicationForm('TABLET', null)).toBe(MEDICATION_FORM_LABELS.TABLET)
     expect(labels.medicationForm('OTHER', ' Sachet ')).toBe('Sachet')
     expect(labels.ametropia('MYOPIA', null)).toBe('Myopie')
@@ -352,7 +387,12 @@ describe('une seule source de libellés (écran et document)', () => {
 describe('prescription : justification d’écart et lecture à l’écran', () => {
   it('la justification d’un écart de DP saisie est imprimée telle quelle', () => {
     const body = prescriptionBodyFromResource(
-      prescription({ pd_total: '62.00', pd_od: '31.00', pd_og: '32.00', pd_inconsistency_reason: 'Mesures reprises (fictif)' }),
+      prescription({
+        pd_total: '62.00',
+        pd_od: '31.00',
+        pd_og: '32.00',
+        pd_inconsistency_reason: 'Mesures reprises (fictif)',
+      }),
       labels,
     )
 
@@ -361,7 +401,10 @@ describe('prescription : justification d’écart et lecture à l’écran', () 
   })
 
   it('un indice « autre » garde sa précision', () => {
-    const body = prescriptionBodyFromResource(prescription({ lens_index: null, lens_index_other: '1.53 (fictif)' }), labels)
+    const body = prescriptionBodyFromResource(
+      prescription({ lens_index: null, lens_index_other: '1.53 (fictif)' }),
+      labels,
+    )
 
     expect(body.lensIndex).toBe('Autre : 1.53 (fictif)')
   })
@@ -376,17 +419,40 @@ describe('cabinet et nom de fichier', () => {
       production_documents_enabled: false,
     })
 
-    expect(clinic).toMatchObject({ name: 'TEST CABINET FICTIF', testDocument: true, address: null, taxIdentifier: null, logo: null })
+    expect(clinic).toMatchObject({
+      name: 'TEST CABINET FICTIF',
+      testDocument: true,
+      address: null,
+      taxIdentifier: null,
+      logo: null,
+    })
     expect(
-      clinicFromSummary({ name: 'X', timezone: 'Africa/Douala', currency: 'XAF', production_documents_enabled: true }).testDocument,
+      clinicFromSummary({
+        name: 'X',
+        timezone: 'Africa/Douala',
+        currency: 'XAF',
+        production_documents_enabled: true,
+      }).testDocument,
     ).toBe(false)
   })
 
   it('aucun nom, aucun dossier, aucune donnée clinique dans le nom de fichier des documents cliniques', () => {
-    const order = medicationOrderFromRevision({ ...base(), templateVersion: CLINICAL_TEMPLATE_VERSIONS.MEDICATION_ORDER })
+    const order = medicationOrderFromRevision({
+      ...base(),
+      templateVersion: CLINICAL_TEMPLATE_VERSIONS.MEDICATION_ORDER,
+    })
     const letter = referralLetterFromRevision({
       ...base(),
-      revision: revision({}, { CONCLUSION: { ...SNAPSHOT.steps.CONCLUSION, referral: true, referral_urgency: 'EMERGENCY' } }),
+      revision: revision(
+        {},
+        {
+          CONCLUSION: {
+            ...SNAPSHOT.steps.CONCLUSION,
+            referral: true,
+            referral_urgency: 'EMERGENCY',
+          },
+        },
+      ),
       templateVersion: CLINICAL_TEMPLATE_VERSIONS.REFERRAL_LETTER,
     })
     const record = consultationRecordFromRevision({
@@ -403,7 +469,11 @@ describe('cabinet et nom de fichier', () => {
       documentFileName(buildDocument('CLINICAL_RECORD', record)),
     ]
 
-    expect(names).toEqual(['ordonnance-20261014.pdf', 'lettre-orientation-20261014.pdf', 'dossier-clinique-20261022.pdf'])
+    expect(names).toEqual([
+      'ordonnance-20261014.pdf',
+      'lettre-orientation-20261014.pdf',
+      'dossier-clinique-20261022.pdf',
+    ])
     for (const name of names) {
       expect(name).not.toMatch(/PATIENT|FICTIF|lodie|TEST-P|Collyre|urgence|glaucome/i)
     }
@@ -435,8 +505,26 @@ function prescription(overrides: Partial<Prescription> = {}): Prescription {
     pd_inconsistency_reason: null,
     notes: null,
     eyes: [
-      { id: '01J9ZXK4M2Q8R7S6T5V4W3002G', eye: 'OD', no_correction: false, sphere: '-1.25', cylinder: '-0.50', axis: 90, addition: null, fitting_height: null },
-      { id: '01J9ZXK4M2Q8R7S6T5V4W3002H', eye: 'OG', no_correction: true, sphere: null, cylinder: null, axis: null, addition: null, fitting_height: null },
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W3002G',
+        eye: 'OD',
+        no_correction: false,
+        sphere: '-1.25',
+        cylinder: '-0.50',
+        axis: 90,
+        addition: null,
+        fitting_height: null,
+      },
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W3002H',
+        eye: 'OG',
+        no_correction: true,
+        sphere: null,
+        cylinder: null,
+        axis: null,
+        addition: null,
+        fitting_height: null,
+      },
     ],
     treatments: [],
     validated_at: '2026-10-14T09:40:00.000Z',

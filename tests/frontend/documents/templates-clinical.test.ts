@@ -95,7 +95,9 @@ describe('prescription optique (fichier 11, AT20)', () => {
     expect(text).toContain('Type de verre | Progressif')
     expect(text).toContain('Indice | 1.60')
     expect(text).toContain('Traitements | Anti-reflet, Durci / anti-rayures')
-    expect(text).toContain('Observations | Observation fictive saisie par le professionnel de démonstration.')
+    expect(text).toContain(
+      'Observations | Observation fictive saisie par le professionnel de démonstration.',
+    )
   })
 
   it('porte un cadre de signature et précise que le nom imprimé n’est pas une signature certifiée', () => {
@@ -104,7 +106,14 @@ describe('prescription optique (fichier 11, AT20)', () => {
   })
 
   it('ne génère aucun texte médical : pas de diagnostic, de conseil ni d’interprétation', () => {
-    for (const word of ['myopie', 'hypermétropie', 'presbytie', 'astigmatisme', 'diagnostic', 'conseil']) {
+    for (const word of [
+      'myopie',
+      'hypermétropie',
+      'presbytie',
+      'astigmatisme',
+      'diagnostic',
+      'conseil',
+    ]) {
       expect(text.toLowerCase(), word).not.toContain(word)
     }
   })
@@ -135,7 +144,10 @@ describe('prescription optique (fichier 11, AT20)', () => {
         validatedAt: null,
         body: {
           ...body,
-          eyes: [{ ...body.eyes[0], axis: null }, { ...body.eyes[1], sphere: null, cylinder: null, addition: null }],
+          eyes: [
+            { ...body.eyes[0], axis: null },
+            { ...body.eyes[1], sphere: null, cylinder: null, addition: null },
+          ],
         },
       }),
     )
@@ -155,7 +167,9 @@ describe('prescription optique (fichier 11, AT20)', () => {
     const [od, og] = body.eyes
     expect(
       failure(() =>
-        buildOpticalPrescription(demoPrescription({ body: { ...body, eyes: [{ ...od, axis: null }, og] } })),
+        buildOpticalPrescription(
+          demoPrescription({ body: { ...body, eyes: [{ ...od, axis: null }, og] } }),
+        ),
       ).code,
     ).toBe('prescription.axis_missing')
     expect(
@@ -207,7 +221,9 @@ describe('prescription optique (fichier 11, AT20)', () => {
     const rendered = printedText(layout(external))
 
     expect(rendered).toContain('Ordonnance du | 03/10/2026')
-    expect(rendered).toContain('Ordonnance externe transcrite. Prescripteur d’origine : Dr Externe Fictif.')
+    expect(rendered).toContain(
+      'Ordonnance externe transcrite. Prescripteur d’origine : Dr Externe Fictif.',
+    )
     expect(rendered).toContain('Transcription validée par | Professionnel (démonstration)')
     expect(rendered).not.toContain('Consultation du')
     expect(
@@ -294,7 +310,9 @@ describe('ordonnance de médicaments (fichier 11)', () => {
   })
 
   it('en A5 le tableau passe en lignes « libellé : valeur » sans rien perdre', () => {
-    const compact = printedText(layout(buildMedicationOrder(demoMedicationOrder(), { format: 'A5' })))
+    const compact = printedText(
+      layout(buildMedicationOrder(demoMedicationOrder(), { format: 'A5' })),
+    )
 
     expect(compact).toContain('Forme : Collyre')
     expect(compact).toContain('Dosage : dosage fictif')
@@ -311,7 +329,9 @@ describe('lettre d’orientation (DP §10, AT20)', () => {
     expect(text).toContain('À l’attention de | Confrère ophtalmologiste')
     expect(text).toContain('Orientation du patient PATIENT FICTIF Élodie Marie')
     expect(text).toContain('TEST-P-000001')
-    expect(text).toContain('Je vous adresse le patient désigné ci-dessus pour avis ophtalmologique.')
+    expect(text).toContain(
+      'Je vous adresse le patient désigné ci-dessus pour avis ophtalmologique.',
+    )
     expect(text).toContain('Niveau d’urgence | Consultation recommandée')
     expect(text).toContain('Motif(s) d’orientation | Autre')
     expect(text).toContain('Résumé clinique')
@@ -378,11 +398,15 @@ describe('fiche de consultation et dossier clinique (fichier 11)', () => {
     expect(text).toContain('Antécédents oculaires | Aucun connu')
     expect(text).toContain('Antécédents médicaux | Diabète')
     expect(text).toContain('Antécédents familiaux oculaires | Non renseigné')
-    expect(text).toContain('Préliminaire | De loin | Sans correction | 5/10 | 6/10 | 7/10 | échelle fictive')
+    expect(text).toContain(
+      'Préliminaire | De loin | Sans correction | 5/10 | 6/10 | 7/10 | échelle fictive',
+    )
     expect(text).toContain('Subjective | OD (œil droit) | -1,25 | -0,50 | 90° | +2,00')
     expect(text).toContain(`Subjective | OG (œil gauche) | +0,75 | 0,00 | ${MISSING} | +2,00`)
     expect(text).toContain(`DP totale | 63,00${NBSP}mm`)
-    expect(text).toContain('Conclusion | Conclusion fictive saisie par le professionnel de démonstration.')
+    expect(text).toContain(
+      'Conclusion | Conclusion fictive saisie par le professionnel de démonstration.',
+    )
     expect(text).toContain('Orientation | Non')
   })
 
@@ -429,7 +453,12 @@ describe('fiche de consultation et dossier clinique (fichier 11)', () => {
       selection: 'HISTORY',
       consultations: [
         first,
-        { ...first, consultationId: '01J9ZXK4M2Q8R7S6T5V4W30038', revisionNo: 2, status: 'IN_PROGRESS' },
+        {
+          ...first,
+          consultationId: '01J9ZXK4M2Q8R7S6T5V4W30038',
+          revisionNo: 2,
+          status: 'IN_PROGRESS',
+        },
       ],
     })
     const rendered = printedText(layout(history))

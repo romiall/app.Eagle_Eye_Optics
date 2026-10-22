@@ -73,7 +73,9 @@ describe('service des documents : accès', () => {
     as(CASHIER)
 
     await expect(renderDocument(demo('prescription'))).rejects.toBeInstanceOf(DocumentAccessError)
-    await expect(renderDocument(demo('dossier-clinique'))).rejects.toBeInstanceOf(DocumentAccessError)
+    await expect(renderDocument(demo('dossier-clinique'))).rejects.toBeInstanceOf(
+      DocumentAccessError,
+    )
   })
 
   it('une pièce financière n’est jamais générée pour un compte clinique', async () => {
@@ -132,7 +134,11 @@ describe('service des documents : conservation', () => {
     sourceKey: 'receipt:01J9ZXK4M2Q8R7S6T5V4W3002V',
     revisionNo: 1,
   }
-  const INPUT = { key: KEY, documentId: '01J9ZXK4M2Q8R7S6T5V4W30029', entityId: '01J9ZXK4M2Q8R7S6T5V4W3002V' }
+  const INPUT = {
+    key: KEY,
+    documentId: '01J9ZXK4M2Q8R7S6T5V4W30029',
+    entityId: '01J9ZXK4M2Q8R7S6T5V4W3002V',
+  }
 
   it('le magasin par défaut est volatil et ne prétend jamais conserver les pièces', () => {
     expect(isDocumentStorePersistent()).toBe(false)

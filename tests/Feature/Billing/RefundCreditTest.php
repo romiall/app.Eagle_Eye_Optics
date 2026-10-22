@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Shared\Ulid;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\ApprovalFixtures;
@@ -52,7 +53,7 @@ final class RefundCreditTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
-    private function refund(string $invoice, string $note, int $version, int $amount, string $method = 'MTN_MOMO', array $overrides = [], ?\App\Models\User $as = null, ?string $key = null): TestResponse
+    private function refund(string $invoice, string $note, int $version, int $amount, string $method = 'MTN_MOMO', array $overrides = [], ?User $as = null, ?string $key = null): TestResponse
     {
         return $this->writeReauthenticated('POST', '/api/v1/invoices/'.$invoice.'/refunds', $this->refundBody($invoice, $note, $version, $amount, $method, $overrides), $as ?? $this->manager, $key);
     }

@@ -44,7 +44,9 @@ describe('activité du patient : règles de présentation', () => {
 
   it('titre et détails : date, état, professionnel, type et version, jamais une valeur clinique', () => {
     expect(itemTitle(visitItem({ reason: 'EXAM' }))).toBe('Visite : Examen de vue')
-    expect(text(itemDetails(visitItem({ status: 'IN_CONSULTATION' })))).toBe('Statut : En consultation')
+    expect(text(itemDetails(visitItem({ status: 'IN_CONSULTATION' })))).toBe(
+      'Statut : En consultation',
+    )
     expect(itemTitle(consultationItem())).toBe('Examen de vue')
     expect(itemDetails(consultationItem({ status: 'IN_PROGRESS' }))).toEqual([
       'État : En cours',
@@ -59,7 +61,10 @@ describe('activité du patient : règles de présentation', () => {
       external_prescribed_on: '2026-09-30',
     })
     expect(itemTitle(external)).toBe('Ordonnance externe transcrite, version 1')
-    expect(itemDetails(external)).toEqual(['État : Validée', 'Prescrite à l’extérieur le 30/09/2026'])
+    expect(itemDetails(external)).toEqual([
+      'État : Validée',
+      'Prescrite à l’extérieur le 30/09/2026',
+    ])
     expect(itemTitle(medicationItem())).toBe('Ordonnance de médicaments')
     expect(itemDetails(medicationItem({ consultation_status: 'DRAFT' }))).toEqual([
       'Consultation : Brouillon',

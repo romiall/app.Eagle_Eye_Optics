@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Shared\Ulid;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\BillingFixtures;
 use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
@@ -42,7 +43,7 @@ final class TaxRulesTest extends TestCase
     /**
      * @param  array<string, mixed>  $body
      */
-    private function writeRule(string $method, string $uri, array $body, bool $reauthenticated = true, ?string $key = null): \Illuminate\Testing\TestResponse
+    private function writeRule(string $method, string $uri, array $body, bool $reauthenticated = true, ?string $key = null): TestResponse
     {
         $client = $reauthenticated ? $this->actingAsReauthenticated($this->manager) : $this->actingAsFresh($this->manager);
 

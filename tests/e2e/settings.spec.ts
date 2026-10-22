@@ -37,7 +37,10 @@ test.describe('paramètres et personnel (F09) sur la vraie application', () => {
     await signIn(page, manager.login, manager.password)
 
     await page.goto('/parametres')
-    await page.getByRole('link', { name: /Personnel/ }).first().click()
+    await page
+      .getByRole('link', { name: /Personnel/ })
+      .first()
+      .click()
     await expect(page.getByRole('heading', { level: 1, name: 'Personnel' })).toBeVisible()
     await page.getByRole('link', { name: 'Créer un compte' }).click()
 
@@ -84,7 +87,9 @@ test.describe('paramètres et personnel (F09) sur la vraie application', () => {
     await signIn(page, manager.login, manager.password)
     await page.goto('/parametres/cabinet')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Cabinet et documents' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Cabinet et documents' }),
+    ).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Africa/Douala')
     await expect(page.getByRole('main')).toContainText('Documents de test')
     await expect(page.getByLabel('Nom du cabinet')).not.toHaveValue('')

@@ -63,12 +63,13 @@ final readonly class ApprovalSubject
     }
 
     /**
-     * @param  list<array<string, mixed>>  $lines  lignes du brouillon telles que la commande les porte
+     * @param  list<mixed>  $lines  lignes du brouillon telles que la commande les porte (ou relues de l'audit d'une
+     *                              demande : un élément qui n'est pas une ligne est ignoré, l'empreinte ne correspondra pas)
      */
     public static function draftLineRights(string $invoiceId, string $patientId, array $lines): self
     {
         $normalized = [];
-        foreach (array_values($lines) as $line) {
+        foreach ($lines as $line) {
             if (! is_array($line)) {
                 continue;
             }
@@ -94,12 +95,13 @@ final readonly class ApprovalSubject
     }
 
     /**
-     * @param  list<array<string, mixed>>  $lines  lignes de l'avoir (ligne d'origine, quantité ou null, montant)
+     * @param  list<mixed>  $lines  lignes de l'avoir (ligne d'origine, quantité ou null, montant) ; même tolérance que
+     *                              `draftLineRights` pour un contenu relu de l'audit
      */
     public static function creditNote(string $invoiceId, int $amountGross, array $lines): self
     {
         $normalized = [];
-        foreach (array_values($lines) as $line) {
+        foreach ($lines as $line) {
             if (! is_array($line)) {
                 continue;
             }
@@ -153,7 +155,6 @@ final readonly class ApprovalSubject
                 throw RuleViolation::invalid('subject.'.$field, 'approval.subject_lines_required', 'Liste de lignes attendue.');
             }
 
-            /** @var list<array<string, mixed>> $value */
             return $value;
         };
 

@@ -116,7 +116,12 @@ export function examFeeMarker(
     case 'NOT_CONTROLLED':
       return { symbol: '⚠', text: 'Paiement de l’examen non contrôlé', notControlled: true }
     case 'UNPAID':
-      return { symbol: '…', text: 'Frais d’examen à encaisser', notControlled: false, pending: true }
+      return {
+        symbol: '…',
+        text: 'Frais d’examen à encaisser',
+        notControlled: false,
+        pending: true,
+      }
     case 'WAIVER_REQUESTED':
       return {
         symbol: '…',

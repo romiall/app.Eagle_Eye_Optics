@@ -124,7 +124,9 @@ const referral = computed(() => {
 const referred = computed(() => baseline.value?.steps.CONCLUSION.referral === true)
 
 const saving = computed(() => state.value === 'saving')
-const savingStep = computed(() => saving.value && operation.value === null && pending.value !== null)
+const savingStep = computed(
+  () => saving.value && operation.value === null && pending.value !== null,
+)
 const readOnlyNotCompleted = computed(() => readOnly.value && !completed.value)
 const finishDisabled = computed(() => busy.value || finishBlocked.value !== null)
 
@@ -215,9 +217,9 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
       <StateMessage v-else-if="completed && !amending" state="success" title="Examen terminé">
         <p>
           Terminé<template v-if="completedAt"> le {{ completedAt }}</template> ; révision
-          {{ baseline.current_revision }} sur {{ revisionCount }} enregistrée(s). Les rubriques sont en
-          lecture seule : une correction crée une nouvelle révision motivée, les précédentes restent
-          lisibles.
+          {{ baseline.current_revision }} sur {{ revisionCount }} enregistrée(s). Les rubriques sont
+          en lecture seule : une correction crée une nouvelle révision motivée, les précédentes
+          restent lisibles.
         </p>
         <p v-if="baseline.finalization_missing_data_reason" class="mt-2">
           Justification d’absence enregistrée : {{ baseline.finalization_missing_data_reason }}
@@ -402,7 +404,9 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
             aria-labelledby="titre-motif-correction"
             class="space-y-3 rounded-lg border-2 border-warning bg-warning-soft p-4"
           >
-            <h3 id="titre-motif-correction" class="text-lg font-semibold">Motif de la correction</h3>
+            <h3 id="titre-motif-correction" class="text-lg font-semibold">
+              Motif de la correction
+            </h3>
             <TextAreaField
               v-model="amendReason"
               label="Pourquoi corrigez-vous cet examen ?"
@@ -474,9 +478,9 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
         >
           <h2 id="titre-terminer" class="text-lg font-semibold">Terminer l’examen</h2>
           <p class="max-w-prose text-base text-ink">
-            Terminer fige la première révision de l’examen : les rubriques deviennent lisibles mais ne
-            se modifient plus que par une correction motivée. Les rubriques non renseignées restent
-            « non renseignées ».
+            Terminer fige la première révision de l’examen : les rubriques deviennent lisibles mais
+            ne se modifient plus que par une correction motivée. Les rubriques non renseignées
+            restent « non renseignées ».
           </p>
           <p v-if="finishBlocked" class="text-sm font-medium text-warning">
             <span aria-hidden="true">● </span>{{ finishBlocked }}
@@ -500,8 +504,8 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
         >
           <div v-if="completionRecap" class="space-y-3">
             <p>
-              La première révision sera figée. Une correction ultérieure demandera un motif et créera une
-              nouvelle révision.
+              La première révision sera figée. Une correction ultérieure demandera un motif et
+              créera une nouvelle révision.
             </p>
             <div>
               <p class="font-semibold">Rubriques non renseignées</p>
@@ -522,7 +526,11 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
             </p>
             <TextAreaField
               v-model="finishReason"
-              :label="completionRecap.reasonRequired ? 'Justification d’absence' : 'Justification d’absence (facultative)'"
+              :label="
+                completionRecap.reasonRequired
+                  ? 'Justification d’absence'
+                  : 'Justification d’absence (facultative)'
+              "
               :control-id="FINISH_REASON_ID"
               :rows="3"
               :maxlength="4000"

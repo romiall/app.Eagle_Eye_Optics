@@ -53,6 +53,7 @@ final class BillingRoutesGateTest extends TestCase
             'POST invoices' => ['POST', 'invoices', $invoices],
             'GET invoices/{id}' => ['GET', 'invoices/{id}', $invoices],
             'PATCH invoices/{id}' => ['PATCH', 'invoices/{id}', $invoices],
+            'POST invoices/{id}/abandon' => ['POST', 'invoices/{id}/abandon', $invoices],
             'POST invoices/{id}/issue' => ['POST', 'invoices/{id}/issue', $invoices],
             'POST invoices/{id}/payments' => ['POST', 'invoices/{id}/payments', $invoices],
             'GET receipts/{id}' => ['GET', 'receipts/{id}', $invoices],
@@ -63,11 +64,26 @@ final class BillingRoutesGateTest extends TestCase
             'POST invoices/{id}/refunds' => ['POST', 'invoices/{id}/refunds', ['manager']],
             'GET cash-registers' => ['GET', 'cash-registers', $cash],
             'GET cash-sessions/current' => ['GET', 'cash-sessions/current', $cash],
+            // Liste des sessions du cabinet : gérante seule (`cash.manage`) ; le rapport d'une session suit la porte de
+            // la caisse, le contrôle « sa propre session sinon cash.manage » est fait par le contrôleur.
+            'GET cash-sessions' => ['GET', 'cash-sessions', ['manager']],
             'POST cash-sessions' => ['POST', 'cash-sessions', $cash],
             'POST cash-sessions/{id}/close' => ['POST', 'cash-sessions/{id}/close', $cash],
+            'GET cash-sessions/{id}/report' => ['GET', 'cash-sessions/{id}/report', $cash],
             'GET stock/availability' => ['GET', 'stock/availability', ['manager', 'clinician', 'cashier']],
+            'GET stock/locations' => ['GET', 'stock/locations', ['manager', 'clinician', 'cashier']],
             'POST stock/opening' => ['POST', 'stock/opening', ['manager']],
         ];
+    }
+
+    /**
+     * Les mêmes routes sans la colonne des rôles, pour les portes qui ne dépendent pas du rôle.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function paths(): array
+    {
+        return array_map(static fn (array $route): array => [$route[0], $route[1]], self::routes());
     }
 
     /**
@@ -89,7 +105,7 @@ final class BillingRoutesGateTest extends TestCase
         }
     }
 
-    #[DataProvider('routes')]
+    #[DataProvider('paths')]
     public function test_un_visiteur_non_connecte_est_refuse(string $method, string $uri): void
     {
         $path = '/api/v1/'.str_replace('{id}', Ulid::generate(), $uri);
@@ -97,7 +113,7 @@ final class BillingRoutesGateTest extends TestCase
         $this->json($method, $path, [])->assertUnauthorized();
     }
 
-    #[DataProvider('routes')]
+    #[DataProvider('paths')]
     public function test_un_module_ferme_repond_404_meme_pour_la_gerante(string $method, string $uri): void
     {
         config(['eeo.enabled_modules' => ['today', 'patients']]);

@@ -142,7 +142,9 @@ defineExpose({ commit, fieldId })
         :model-value="props.line.unitPriceGross"
         label="Prix unitaire TTC"
         field="unit_price_gross"
-        :hint="canEditPrice ? undefined : 'Prix du catalogue (modifiable par la gérante seulement).'"
+        :hint="
+          canEditPrice ? undefined : 'Prix du catalogue (modifiable par la gérante seulement).'
+        "
         :control-id="fieldId('unitPriceGross')"
         :error="props.errors.unitPriceGross ?? null"
         :disabled="props.disabled || !canEditPrice"
@@ -167,13 +169,20 @@ defineExpose({ commit, fieldId })
       <template v-if="computed_.amounts.discount > 0">
         · remise : <span class="tabular-nums">{{ formatMoney(computed_.amounts.discount) }}</span>
       </template>
-      · <strong>montant de la ligne : <span class="tabular-nums">{{
-        formatMoney(computed_.amounts.net)
-      }}</span></strong>
+      ·
+      <strong
+        >montant de la ligne :
+        <span class="tabular-nums">{{ formatMoney(computed_.amounts.net) }}</span></strong
+      >
     </p>
-    <p v-else class="text-sm text-muted">Montant de la ligne : à compléter ({{ computed_.message }})</p>
+    <p v-else class="text-sm text-muted">
+      Montant de la ligne : à compléter ({{ computed_.message }})
+    </p>
 
-    <StockAvailabilityNote v-if="stocked && props.line.catalogItemId" :item-id="props.line.catalogItemId" />
+    <StockAvailabilityNote
+      v-if="stocked && props.line.catalogItemId"
+      :item-id="props.line.catalogItemId"
+    />
     <p v-if="props.errors.line" class="text-sm font-medium text-danger">
       <span aria-hidden="true">⚠ </span>{{ props.errors.line }}
     </p>

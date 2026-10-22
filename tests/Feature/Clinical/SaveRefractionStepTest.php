@@ -97,7 +97,10 @@ final class SaveRefractionStepTest extends TestCase
             'trois décimales' => [['sphere' => '1.255'], 'measurements.0.sphere'],
             'virgule' => [['sphere' => '1,25'], 'measurements.0.sphere'],
             'nombre flottant' => [['sphere' => -1.25], 'measurements.0.sphere'],
-            'chaîne vide' => [['sphere' => ''], 'measurements.0.sphere'],
+            // Par HTTP, ConvertEmptyStringsToNull change « » en null (non mesuré) : la ligne n'a plus aucune mesure et
+            // c'est elle qui est refusée. Le refus de la chaîne vide elle-même (chemin de synchronisation) est couvert
+            // par MeasurementRulesTest.
+            'chaîne vide' => [['sphere' => ''], 'measurements.0'],
             'plus de quatre chiffres entiers' => [['cylinder' => '12345.00'], 'measurements.0.cylinder'],
             'axe au-delà de 180' => [['cylinder' => '-1', 'axis' => 181], 'measurements.0.axis'],
             'axe négatif' => [['cylinder' => '-1', 'axis' => -1], 'measurements.0.axis'],

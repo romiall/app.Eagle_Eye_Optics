@@ -127,7 +127,12 @@ function clearPatient(): void {
       >
     </div>
 
-    <form role="search" aria-label="Filtrer les factures" class="grid gap-4 sm:grid-cols-2" @submit.prevent>
+    <form
+      role="search"
+      aria-label="Filtrer les factures"
+      class="grid gap-4 sm:grid-cols-2"
+      @submit.prevent
+    >
       <SelectField
         v-model="status"
         label="État"
@@ -180,19 +185,25 @@ function clearPatient(): void {
               >{{ invoice.number ?? 'Brouillon sans numéro' }}</RouterLink
             >
             <span class="text-base"
-              ><span aria-hidden="true">{{ invoiceStatusSymbol(invoice.status) }} </span
-              >{{ invoiceStatusLabel(invoice.status) }}</span
+              ><span aria-hidden="true">{{ invoiceStatusSymbol(invoice.status) }}</span>
+              {{ invoiceStatusLabel(invoice.status) }}</span
             >
           </p>
           <p v-if="rowPatient(invoice)" class="text-base break-words">{{ rowPatient(invoice) }}</p>
           <p class="text-sm text-muted">
-            {{ invoice.issued_at === null ? 'Non émise' : `Émise le ${formatInstantFr(invoice.issued_at)}` }}
+            {{
+              invoice.issued_at === null
+                ? 'Non émise'
+                : `Émise le ${formatInstantFr(invoice.issued_at)}`
+            }}
           </p>
           <p class="text-base">
             Total : <span class="tabular-nums">{{ formatMoney(invoice.total_gross) }}</span>
             <template v-if="invoice.status === 'ISSUED'">
               · reste à encaisser :
-              <strong class="tabular-nums">{{ formatMoney(Math.max(0, invoice.balance_due)) }}</strong>
+              <strong class="tabular-nums">{{
+                formatMoney(Math.max(0, invoice.balance_due))
+              }}</strong>
             </template>
           </p>
         </li>
@@ -204,7 +215,6 @@ function clearPatient(): void {
         :total="result.meta.total"
         label="Pagination des factures"
         unit="factures"
-        :busy="read.state.value === 'loading'"
         @page="goToPage"
       />
 

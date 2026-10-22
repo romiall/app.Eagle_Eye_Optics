@@ -149,7 +149,7 @@ final class IssueInvoiceHandler implements CommandHandler
         }
 
         // 3. Lignes : recalcul et figement (mêmes règles que le brouillon, sans règle de droit).
-        $rows = DB::table('invoice_lines')->where('clinic_id', $context->clinicId)->where('invoice_id', $invoiceId)->orderBy('position')->get()->all();
+        $rows = array_values(DB::table('invoice_lines')->where('clinic_id', $context->clinicId)->where('invoice_id', $invoiceId)->orderBy('position')->get()->all());
         if ($rows === []) {
             throw BusinessError::validation(['lines' => ['Une facture sans ligne ne s\'émet pas.']]);
         }

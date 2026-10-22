@@ -197,9 +197,7 @@ describe('onglet « Activité » du dossier patient', () => {
     expect(financial?.query.get('section')).toBe('FINANCIAL')
     expect(financial?.query.get('page')).toBe('1')
     expect(titles(root)).toEqual(['Reçu TEST-REC-000001', 'Facture TEST-FAC-000001'])
-    expect(chips(root).find((chip) => chip.pressed === 'true')?.text).toBe(
-      'Pièces financières (2)',
-    )
+    expect(chips(root).find((chip) => chip.pressed === 'true')?.text).toBe('Pièces financières (2)')
 
     await click(buttonByName(root, 'Examens (0)'))
     expect(textOf(main(root))).toContain('Aucun examen enregistré')

@@ -39,10 +39,22 @@ afterEach(() => {
 })
 
 function meta(id: string, revisionNo: number, previous: string | null, reason: string) {
-  return { id, revision_no: revisionNo, recorded_at: `2026-10-22T09:4${revisionNo}:00.000Z`, author_id: '01J9ZXK4M2Q8R7S6T5V4W30002', reason, previous_revision_id: previous, sha256: 'b'.repeat(64) }
+  return {
+    id,
+    revision_no: revisionNo,
+    recorded_at: `2026-10-22T09:4${revisionNo}:00.000Z`,
+    author_id: '01J9ZXK4M2Q8R7S6T5V4W30002',
+    reason,
+    previous_revision_id: previous,
+    sha256: 'b'.repeat(64),
+  }
 }
 
-function detail(revisionNo: number, steps: Consultation['steps'], reason: string): ClinicalRevisionDetail {
+function detail(
+  revisionNo: number,
+  steps: Consultation['steps'],
+  reason: string,
+): ClinicalRevisionDetail {
   const id = revisionNo === 1 ? R1 : R2
   return {
     ...meta(id, revisionNo, revisionNo === 1 ? null : R1, reason),
@@ -51,7 +63,12 @@ function detail(revisionNo: number, steps: Consultation['steps'], reason: string
       revision_no: revisionNo,
       recorded_at: `2026-10-22T09:4${revisionNo}:00.000Z`,
       author: { user_id: '01J9ZXK4M2Q8R7S6T5V4W30002', display_name: 'Dr Fictif' },
-      patient: { patient_id: '01J9ZXK4M2Q8R7S6T5V4W30001', record_number: 'EE-2026-0001', last_name: 'PATIENT FICTIF', first_names: 'Élodie Marie' },
+      patient: {
+        patient_id: '01J9ZXK4M2Q8R7S6T5V4W30001',
+        record_number: 'EE-2026-0001',
+        last_name: 'PATIENT FICTIF',
+        first_names: 'Élodie Marie',
+      },
       visit_id: '01J9ZXK4M2Q8R7S6T5V4W30021',
       effective_at: '2026-10-22T09:30:00.000Z',
       steps,
@@ -66,7 +83,18 @@ function withConclusion(text: string, scale: string, value: string): Consultatio
   return {
     ...emptySteps(),
     VISUAL_ACUITY: {
-      acuities: [{ id: '01J9ZXK4M2Q8R7S6T5V4W30E10', context: 'PRELIMINARY', distance: 'FAR', correction: 'WITHOUT', eye: 'OD', scale_id: scale, raw_value: value, normalized_value: null }],
+      acuities: [
+        {
+          id: '01J9ZXK4M2Q8R7S6T5V4W30E10',
+          context: 'PRELIMINARY',
+          distance: 'FAR',
+          correction: 'WITHOUT',
+          eye: 'OD',
+          scale_id: scale,
+          raw_value: value,
+          normalized_value: null,
+        },
+      ],
     },
     CONCLUSION: { conclusion: text, referral: false, referral_urgency: null, referral_reasons: [] },
   } as Consultation['steps']
@@ -79,11 +107,22 @@ function twoRevisions() {
       version: 5,
       current_revision: 2,
       completed_at: '2026-10-22T09:41:00.000Z',
-      revisions: [meta(R1, 1, null, 'Finalisation de la consultation'), meta(R2, 2, R1, 'Faute de frappe (fictif)')],
+      revisions: [
+        meta(R1, 1, null, 'Finalisation de la consultation'),
+        meta(R2, 2, R1, 'Faute de frappe (fictif)'),
+      ],
     }),
     revisionDetails: [
-      detail(1, withConclusion('Conclusion initiale', SCALE_TENTHS, '8/10'), 'Finalisation de la consultation'),
-      detail(2, withConclusion('Conclusion corrigée', SCALE_NEAR, 'P2'), 'Faute de frappe (fictif)'),
+      detail(
+        1,
+        withConclusion('Conclusion initiale', SCALE_TENTHS, '8/10'),
+        'Finalisation de la consultation',
+      ),
+      detail(
+        2,
+        withConclusion('Conclusion corrigée', SCALE_NEAR, 'P2'),
+        'Faute de frappe (fictif)',
+      ),
     ],
   })
 }
@@ -96,7 +135,11 @@ describe('révisions d’une consultation', () => {
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Révisions de la consultation')
     expect(textOf(root)).toContain('Révision 1')
     expect(textOf(root)).toContain('Motif : Faute de frappe (fictif)')
-    expect(callsTo(api, 'GET', PATHS.revision).map((call) => call.path.split('/').pop()).sort()).toEqual(['1', '2'])
+    expect(
+      callsTo(api, 'GET', PATHS.revision)
+        .map((call) => call.path.split('/').pop())
+        .sort(),
+    ).toEqual(['1', '2'])
     expect(textOf(root)).toMatch(/[0-9]+ différence\(s\) entre ces deux révisions\./)
     expect(textOf(root)).toContain('Conclusion initiale')
     expect(textOf(root)).toContain('Conclusion corrigée')
@@ -141,7 +184,8 @@ describe('révisions d’une consultation', () => {
     let up = false
     const api = twoRevisions()
     const original = api.getRevision
-    api.getRevision = (id, revisionNo, request) => (up || revisionNo === 2 ? original(id, revisionNo, request) : 'network')
+    api.getRevision = (id, revisionNo, request) =>
+      up || revisionNo === 2 ? original(id, revisionNo, request) : 'network'
     const { root, unmount } = await openConsultation(URL)
 
     expect(textOf(root)).toContain('Révision indisponible')

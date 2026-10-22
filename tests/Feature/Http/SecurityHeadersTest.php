@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Http;
 
+use Illuminate\Foundation\Vite;
+use Illuminate\Support\Facades\Vite as ViteFacade;
+use Illuminate\Support\HtmlString;
 use Tests\TestCase;
 
 /**
@@ -14,8 +17,23 @@ final class SecurityHeadersTest extends TestCase
     {
         parent::setUp();
 
-        // Les en-têtes ne dépendent pas des assets : la CI PHP ne construit pas public/build.
+        // Les en-têtes ne dépendent pas des assets : la CI PHP ne construit pas public/build. Un serveur Vite de
+        // développement lancé sur le poste (fichier public/hot) retire volontairement la CSP ; ces tests vérifient la
+        // politique servie hors rechargement à chaud, quel que soit l'état du poste qui les exécute.
         $this->withoutVite();
+        ViteFacade::clearResolvedInstance();
+        $this->swap(Vite::class, new class extends Vite
+        {
+            public function __invoke($entrypoints, $buildDirectory = null)
+            {
+                return new HtmlString('');
+            }
+
+            public function isRunningHot()
+            {
+                return false;
+            }
+        });
     }
 
     public function test_la_coquille_porte_une_csp_d_origine_unique_et_les_protections_de_contenu(): void

@@ -64,7 +64,11 @@ describe('reçu : adaptateur du snapshot du serveur (contracts/snapshots/receipt
   it('reprend chaque champ du snapshot sans le modifier', () => {
     expect(data.templateVersion).toBe(receiptSnapshot.template_version)
     expect(data.receiptNumber).toBe('TEST-REC-000001')
-    expect(data.payment).toEqual({ amount: 30000, method: 'MTN_MOMO', reference: 'REFERENCE_FICTIVE' })
+    expect(data.payment).toEqual({
+      amount: 30000,
+      method: 'MTN_MOMO',
+      reference: 'REFERENCE_FICTIVE',
+    })
     expect(data.paidNetBefore).toBe(0)
     expect(data.paidNetAfter).toBe(30000)
     expect(data.balanceAfter).toBe(50000)
@@ -146,7 +150,12 @@ describe('avoir et remboursement : adaptateurs des snapshots du serveur', () => 
     const data = creditNoteFromSnapshot(creditNote)
 
     expect(data.lines).toEqual([
-      { description: 'Examen de vue (fictif)', quantity: '1.000', amountGross: 5000, taxAmount: null },
+      {
+        description: 'Examen de vue (fictif)',
+        quantity: '1.000',
+        amountGross: 5000,
+        taxAmount: null,
+      },
     ])
     expect(data.reason).toBe('Motif fictif')
     expect(data.approvalId).toBe('01J9ZXK4M2Q8R7S6T5V4W3002Z')
@@ -280,7 +289,11 @@ describe('facture : adaptateur de la ressource Invoice (snapshots figés)', () =
     ])
 
     expect(rows.invoices).toHaveLength(1)
-    expect(rows.invoices[0]).toMatchObject({ number: 'TEST-FAC-000001', paidNet: 30000, balance: 50000 })
+    expect(rows.invoices[0]).toMatchObject({
+      number: 'TEST-FAC-000001',
+      paidNet: 30000,
+      balance: 50000,
+    })
     expect(rows.payments).toEqual([
       {
         receiptNumber: 'TEST-REC-000001',
@@ -311,7 +324,11 @@ describe('cabinet : paramètres du document', () => {
 
   it('un réglage absent ou malformé ne bloque jamais une impression', () => {
     for (const raw of [null, undefined, 'texte', 12, ['x']]) {
-      expect(readDocumentSettings(raw)).toEqual({ headerLines: [], footerLines: [], paymentTerms: null })
+      expect(readDocumentSettings(raw)).toEqual({
+        headerLines: [],
+        footerLines: [],
+        paymentTerms: null,
+      })
     }
   })
 
@@ -532,7 +549,9 @@ describe('consultation : adaptateur de la ressource Consultation', () => {
               history_group: 'MEDICAL_HISTORY',
               known_none: false,
               comments: null,
-              terms: [{ id: '01J9ZXK4M2Q8R7S6T5V4W30054', term_code: 'DIABETES', other_text: null }],
+              terms: [
+                { id: '01J9ZXK4M2Q8R7S6T5V4W30054', term_code: 'DIABETES', other_text: null },
+              ],
             },
           ],
         },

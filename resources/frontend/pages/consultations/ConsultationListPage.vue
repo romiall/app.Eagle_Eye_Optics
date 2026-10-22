@@ -45,7 +45,9 @@ function queryText(name: string): string | null {
 const presetStatus = queryText('etat')
 const day = ref<string | null>(queryText('jour') === 'tous' ? null : today)
 const status = ref<string | null>(
-  presetStatus !== null && (STATUSES as readonly string[]).includes(presetStatus) ? presetStatus : null,
+  presetStatus !== null && (STATUSES as readonly string[]).includes(presetStatus)
+    ? presetStatus
+    : null,
 )
 const mine = ref(queryText('mes') === '1')
 const page = ref(1)
@@ -86,7 +88,9 @@ function name(consultation: ConsultationSummary): string {
 }
 
 const emptyTitle = computed(() =>
-  day.value === null ? 'Aucun examen pour ces critères' : 'Aucun examen ce jour-là pour ces critères',
+  day.value === null
+    ? 'Aucun examen pour ces critères'
+    : 'Aucun examen ce jour-là pour ces critères',
 )
 </script>
 
@@ -154,8 +158,8 @@ const emptyTitle = computed(() =>
               >{{ name(consultation) }}</RouterLink
             >
             <span class="text-base"
-              ><span aria-hidden="true">{{ workStatusSymbol(consultation.status) }} </span
-              >{{ workStatusLabel(consultation.status) }}</span
+              ><span aria-hidden="true">{{ workStatusSymbol(consultation.status) }}</span>
+              {{ workStatusLabel(consultation.status) }}</span
             >
           </p>
           <p class="text-sm text-muted">
@@ -186,7 +190,6 @@ const emptyTitle = computed(() =>
         :total="result.meta.total"
         label="Pagination des examens"
         unit="examens"
-        :busy="read.state.value === 'loading'"
         @page="goToPage"
       />
 

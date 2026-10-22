@@ -66,7 +66,10 @@ function scaleOptions(group: AcuityGroup): { value: string; label: string }[] {
 }
 
 function columns(group: AcuityGroup): OpticalColumn[] {
-  return group.corrections.map((correction) => ({ key: correction, label: CORRECTION_TITLES[correction] }))
+  return group.corrections.map((correction) => ({
+    key: correction,
+    label: CORRECTION_TITLES[correction],
+  }))
 }
 
 function slotKey(group: AcuityGroup, correction: string, eye: AcuityEye): string {
@@ -129,8 +132,8 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
       role="alert"
       class="rounded-lg border-2 border-warning bg-warning-soft p-3 text-base font-medium text-ink"
     >
-      <span aria-hidden="true">⚠ </span>Aucune échelle d’acuité n’est configurée pour ce cabinet : les
-      acuités ne peuvent pas être saisies. Demandez à l’exploitant de les créer (commande
+      <span aria-hidden="true">⚠ </span>Aucune échelle d’acuité n’est configurée pour ce cabinet :
+      les acuités ne peuvent pas être saisies. Demandez à l’exploitant de les créer (commande
       <code>eeo:clinical:scales</code>).
     </p>
     <p
@@ -150,7 +153,9 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
       <SelectField
         :model-value="groupScale(model, group.key)"
         :label="`${group.title} : échelle utilisée`"
-        :placeholder="mixed.has(group.key) ? 'Plusieurs échelles : en choisir une' : 'Choisir l’échelle…'"
+        :placeholder="
+          mixed.has(group.key) ? 'Plusieurs échelles : en choisir une' : 'Choisir l’échelle…'
+        "
         :options="scaleOptions(group)"
         :control-id="CONTROL_IDS.acuityScale(group.key)"
         :error="props.errors[CONTROL_IDS.acuityScale(group.key)] ?? null"
@@ -166,7 +171,11 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
         séparées en connaissance de cause.
       </p>
       <datalist :id="listId(group)">
-        <option v-for="suggestion in acuitySuggestions(scaleCode(group))" :key="suggestion" :value="suggestion" />
+        <option
+          v-for="suggestion in acuitySuggestions(scaleCode(group))"
+          :key="suggestion"
+          :value="suggestion"
+        />
       </datalist>
       <OpticalTable
         :caption="group.title"

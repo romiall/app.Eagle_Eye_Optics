@@ -58,9 +58,12 @@ const CATALOG_PAGES = 4
 
 const timeZone = clinicTimeZone()
 const page = ref(1)
-const read = useServerRead<StockAvailabilityPage>(() => getStockAvailability({ page: page.value }), {
-  isEmpty: (result) => result.data.length === 0,
-})
+const read = useServerRead<StockAvailabilityPage>(
+  () => getStockAvailability({ page: page.value }),
+  {
+    isEmpty: (result) => result.data.length === 0,
+  },
+)
 
 async function loadStockedItems(): Promise<ReadOutcome<CatalogItem[]>> {
   const items: CatalogItem[] = []
@@ -129,7 +132,9 @@ const fieldRefs = new Map<string, { commit: () => boolean }>()
 
 const saving = computed(() => mutation.state.value === 'saving')
 const failure = computed(() =>
-  mutation.state.value === 'reauthentication-required' ? null : salesFailureView(mutation.state.value),
+  mutation.state.value === 'reauthentication-required'
+    ? null
+    : salesFailureView(mutation.state.value),
 )
 const dirty = computed(() => lines.value.length > 0 || reason.value.trim() !== '')
 useUnsavedChangesGuard(dirty)
@@ -196,7 +201,9 @@ const summary = computed<FieldErrorItem[]>(() => {
   return items
 })
 
-function showErrors(errors: readonly { index: number; field: OpeningLineField; message: string }[]): void {
+function showErrors(
+  errors: readonly { index: number; field: OpeningLineField; message: string }[],
+): void {
   const byLine: Record<string, Partial<Record<OpeningLineField, string>>> = {}
   for (const error of errors) {
     const line = lines.value[error.index]
@@ -253,11 +260,21 @@ async function submit(): Promise<void> {
   general.value = null
   lineErrors.value = {}
   const committed = [...fieldRefs.values()].map((field) => field.commit()).every(Boolean)
-  const checked = validateOpeningStock({ reason: reason.value, lines: lines.value, items: items.value })
-  if (!committed || checked.errors.length > 0 || checked.general !== null || checked.reason === null) {
+  const checked = validateOpeningStock({
+    reason: reason.value,
+    lines: lines.value,
+    items: items.value,
+  })
+  if (
+    !committed ||
+    checked.errors.length > 0 ||
+    checked.general !== null ||
+    checked.reason === null
+  ) {
     showErrors(checked.errors)
     general.value =
-      checked.general ?? (committed ? null : 'Certaines valeurs saisies sont refusées : corrigez-les.')
+      checked.general ??
+      (committed ? null : 'Certaines valeurs saisies sont refusées : corrigez-les.')
     await summaryBox.value?.focus()
     return
   }
@@ -297,7 +314,11 @@ async function onPasswordConfirmed(): Promise<void> {
         :error="read.error.value"
         @retry="read.reload()"
       />
-      <StateMessage v-else-if="read.state.value === 'empty'" state="empty" title="Aucun stock enregistré">
+      <StateMessage
+        v-else-if="read.state.value === 'empty'"
+        state="empty"
+        title="Aucun stock enregistré"
+      >
         Le serveur n’a aucune position de stock : le stock initial n’a pas encore été saisi.
       </StateMessage>
       <template v-else-if="result !== null">
@@ -324,15 +345,21 @@ async function onPasswordConfirmed(): Promise<void> {
               </div>
               <div>
                 <dt class="text-sm font-semibold">Disponible</dt>
-                <dd class="font-semibold tabular-nums">{{ quantityLabel(row.central_available) }}</dd>
+                <dd class="font-semibold tabular-nums">
+                  {{ quantityLabel(row.central_available) }}
+                </dd>
               </div>
             </dl>
             <ul v-if="row.lots.length > 0" class="space-y-0.5 text-sm text-muted">
               <li v-for="lot in row.lots" :key="lot.lot_id" class="break-words">
                 Lot {{ lot.batch_number }}
-                <template v-if="lot.expires_on"> · expire le {{ lot.expires_on.split('-').reverse().join('/') }}</template>
+                <template v-if="lot.expires_on">
+                  · expire le {{ lot.expires_on.split('-').reverse().join('/') }}</template
+                >
                 · {{ quantityLabel(lot.on_hand) }} en stock
-                <template v-if="lot.status === 'QUARANTINE'"> · en quarantaine (jamais réservé)</template>
+                <template v-if="lot.status === 'QUARANTINE'">
+                  · en quarantaine (jamais réservé)</template
+                >
               </li>
             </ul>
           </li>
@@ -343,10 +370,13 @@ async function onPasswordConfirmed(): Promise<void> {
           :total="result.meta.total"
           label="Pagination du stock"
           unit="positions"
-          :busy="read.state.value === 'loading'"
           @page="goToPage"
         />
-        <FreshnessNote v-if="read.freshness.value" :freshness="read.freshness.value" :time-zone="timeZone" />
+        <FreshnessNote
+          v-if="read.freshness.value"
+          :freshness="read.freshness.value"
+          :time-zone="timeZone"
+        />
       </template>
     </section>
 
@@ -378,7 +408,13 @@ async function onPasswordConfirmed(): Promise<void> {
         (commande « eeo:sales:bootstrap »). Aucun emplacement n’est deviné ici.
       </StateMessage>
 
-      <form v-else novalidate aria-labelledby="titre-stock-initial" class="space-y-4" @submit.prevent="submit">
+      <form
+        v-else
+        novalidate
+        aria-labelledby="titre-stock-initial"
+        class="space-y-4"
+        @submit.prevent="submit"
+      >
         <ErrorSummary ref="summaryBox" :errors="summary" />
         <StateMessage v-if="failure" :state="failure.state" :title="failure.title">
           {{ mutation.failureMessage.value }}
@@ -459,7 +495,11 @@ async function onPasswordConfirmed(): Promise<void> {
               <TextField
                 :model-value="line.batchNumber"
                 label="Numéro de lot"
-                :hint="line.itemId && items.get(line.itemId)?.requires_expiry ? 'Obligatoire pour un article périssable.' : 'Facultatif.'"
+                :hint="
+                  line.itemId && items.get(line.itemId)?.requires_expiry
+                    ? 'Obligatoire pour un article périssable.'
+                    : 'Facultatif.'
+                "
                 :maxlength="64"
                 :control-id="fieldId(line, 'batchNumber')"
                 :error="lineErrors[line.movementId]?.batchNumber ?? null"
@@ -476,7 +516,9 @@ async function onPasswordConfirmed(): Promise<void> {
             </div>
           </li>
         </ul>
-        <AppButton variant="secondary" :disabled="saving" @click="addLine">Ajouter une ligne</AppButton>
+        <AppButton variant="secondary" :disabled="saving" @click="addLine"
+          >Ajouter une ligne</AppButton
+        >
 
         <TextAreaField
           v-model="reason"

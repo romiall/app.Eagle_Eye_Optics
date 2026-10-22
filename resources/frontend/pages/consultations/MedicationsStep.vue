@@ -45,8 +45,14 @@ const props = withDefaults(
   { disabled: false },
 )
 
-const formOptions = MEDICATION_FORMS.map((form) => ({ value: form, label: MEDICATION_FORM_LABELS[form] }))
-const unitOptions = DURATION_UNITS.map((unit) => ({ value: unit, label: DURATION_UNIT_LABELS[unit] }))
+const formOptions = MEDICATION_FORMS.map((form) => ({
+  value: form,
+  label: MEDICATION_FORM_LABELS[form],
+}))
+const unitOptions = DURATION_UNITS.map((unit) => ({
+  value: unit,
+  label: DURATION_UNIT_LABELS[unit],
+}))
 const withoutPosology = computed(() => new Set(missingPosology(model.value)))
 const canAdd = computed(() => model.value.orders.length < ORDERS_MAX)
 
@@ -76,7 +82,9 @@ async function move(index: number, direction: -1 | 1): Promise<void> {
   model.value = moveOrder(model.value, index, direction)
   await nextTick()
   // Le focus suit la ligne déplacée (le bouton de la même action sur sa nouvelle position).
-  document.getElementById(`${CONTROL_IDS.order(index + direction, 'deplacer')}-${direction}`)?.focus()
+  document
+    .getElementById(`${CONTROL_IDS.order(index + direction, 'deplacer')}-${direction}`)
+    ?.focus()
 }
 
 function chooseForm(index: number, value: string | null): void {
@@ -113,7 +121,8 @@ function chooseUnit(index: number, value: string | null): void {
       <li v-for="(order, index) in model.orders" :key="order.id">
         <fieldset class="space-y-4 rounded-lg border-2 border-line bg-surface p-4">
           <legend class="px-1 text-lg font-semibold">
-            Médicament {{ index + 1 }}<template v-if="order.name.trim() !== ''"> : {{ order.name.trim() }}</template>
+            Médicament {{ index + 1
+            }}<template v-if="order.name.trim() !== ''"> : {{ order.name.trim() }}</template>
           </legend>
 
           <TextField

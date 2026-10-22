@@ -47,8 +47,19 @@ function readyToFinish(overrides: Partial<Consultation> = {}): Consultation {
     status: 'IN_PROGRESS',
     version: 3,
     steps: {
-      ANAMNESIS: { symptoms: 'Gêne en vision de près (fictif)', wears_glasses: null, glasses_duration: null, previous_correction_available: null, complaints: [] },
-      CONCLUSION: { conclusion: 'Conclusion fictive', referral: false, referral_urgency: null, referral_reasons: [] },
+      ANAMNESIS: {
+        symptoms: 'Gêne en vision de près (fictif)',
+        wears_glasses: null,
+        glasses_duration: null,
+        previous_correction_available: null,
+        complaints: [],
+      },
+      CONCLUSION: {
+        conclusion: 'Conclusion fictive',
+        referral: false,
+        referral_urgency: null,
+        referral_reasons: [],
+      },
     },
     ...overrides,
   })
@@ -95,7 +106,13 @@ describe('terminer l’examen', () => {
 
     const box = dialog(root)
     expect(textOf(box)).toContain('Rubriques non renseignées')
-    for (const title of ['Antécédents', 'Acuité visuelle', 'Réfraction', 'Centrage', 'Médicaments']) {
+    for (const title of [
+      'Antécédents',
+      'Acuité visuelle',
+      'Réfraction',
+      'Centrage',
+      'Médicaments',
+    ]) {
       expect(textOf(box)).toContain(`${title} : non renseigné`)
     }
     expect(textOf(box)).not.toContain('Il manque')
@@ -121,7 +138,9 @@ describe('terminer l’examen', () => {
   })
 
   it('sans motif ni conclusion, une justification d’absence est exigée avant tout envoi', async () => {
-    const api = stubConsultationApi({ consultation: consultation({ status: 'IN_PROGRESS', version: 2 }) })
+    const api = stubConsultationApi({
+      consultation: consultation({ status: 'IN_PROGRESS', version: 2 }),
+    })
     const { root, unmount } = await openConsultation()
     await click(buttonByName(root, 'Terminer l’examen'))
     const box = dialog(root)
@@ -135,8 +154,12 @@ describe('terminer l’examen', () => {
     await type(box, 'Justification d’absence', 'Patient parti avant la fin (fictif)')
     await click(buttonByName(box, 'Terminer l’examen'))
 
-    expect(callsTo(api, 'POST', PATHS.complete)[0]?.body?.['finalization_missing_data_reason']).toBe('Patient parti avant la fin (fictif)')
-    expect(textOf(root)).toContain('Justification d’absence enregistrée : Patient parti avant la fin (fictif)')
+    expect(
+      callsTo(api, 'POST', PATHS.complete)[0]?.body?.['finalization_missing_data_reason'],
+    ).toBe('Patient parti avant la fin (fictif)')
+    expect(textOf(root)).toContain(
+      'Justification d’absence enregistrée : Patient parti avant la fin (fictif)',
+    )
     unmount()
   })
 
@@ -157,9 +180,17 @@ describe('terminer l’examen', () => {
       consultation: readyToFinish(),
       handlers: {
         complete: () =>
-          errorWithDetails(422, 'VALIDATION_FAILED', 'Données invalides.', {}, {
-            snapshot_sha256: ['Le contenu enregistré n’est plus celui que vous avez relu : rechargez la consultation avant de la terminer.'],
-          }),
+          errorWithDetails(
+            422,
+            'VALIDATION_FAILED',
+            'Données invalides.',
+            {},
+            {
+              snapshot_sha256: [
+                'Le contenu enregistré n’est plus celui que vous avez relu : rechargez la consultation avant de la terminer.',
+              ],
+            },
+          ),
       },
     })
     const { root, unmount } = await openConsultation()
@@ -176,7 +207,10 @@ describe('terminer l’examen', () => {
     stubConsultationApi({
       consultation: readyToFinish(),
       handlers: {
-        complete: () => errorWithDetails(409, 'VERSION_CONFLICT', 'La consultation a été modifiée.', { current_version: 4 }),
+        complete: () =>
+          errorWithDetails(409, 'VERSION_CONFLICT', 'La consultation a été modifiée.', {
+            current_version: 4,
+          }),
       },
     })
     const { root, unmount } = await openConsultation()
@@ -211,7 +245,11 @@ describe('corriger un examen terminé', () => {
     expect(textOf(root)).toContain('Correction en cours')
     await goToStep(root, 7)
     await type(root, 'Conclusion', 'Conclusion corrigée (fictif)')
-    await type(root, 'Pourquoi corrigez-vous cet examen ?', 'Faute de frappe dans la conclusion (fictif)')
+    await type(
+      root,
+      'Pourquoi corrigez-vous cet examen ?',
+      'Faute de frappe dans la conclusion (fictif)',
+    )
 
     await submitForm(root)
 
@@ -256,7 +294,9 @@ describe('corriger un examen terminé', () => {
     await submitForm(root)
 
     expect(callsTo(api, 'POST', PATHS.amend)).toHaveLength(0)
-    expect(textOf(root)).toContain('Aucune modification à enregistrer : modifiez au moins une étape.')
+    expect(textOf(root)).toContain(
+      'Aucune modification à enregistrer : modifiez au moins une étape.',
+    )
     unmount()
   })
 

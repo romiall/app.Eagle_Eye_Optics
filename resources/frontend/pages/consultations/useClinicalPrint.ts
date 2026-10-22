@@ -28,7 +28,10 @@ export interface PrintFailure {
  */
 export function printFailure(error: unknown): PrintFailure {
   if (error instanceof DocumentAccessError) {
-    return { title: 'Droits insuffisants', message: 'Ce compte n’a pas le droit d’ouvrir ce document.' }
+    return {
+      title: 'Droits insuffisants',
+      message: 'Ce compte n’a pas le droit d’ouvrir ce document.',
+    }
   }
   if (error instanceof ClinicalPrintRefused) {
     return { title: 'Document non disponible', message: error.message }
@@ -62,7 +65,8 @@ export function printFailure(error: unknown): PrintFailure {
     if (error.status === 429) {
       return {
         title: 'Trop de lectures',
-        message: 'Trop de lectures du dossier en peu de temps : patientez une minute puis recommencez.',
+        message:
+          'Trop de lectures du dossier en peu de temps : patientez une minute puis recommencez.',
       }
     }
     return {
@@ -70,7 +74,10 @@ export function printFailure(error: unknown): PrintFailure {
       message: 'Le serveur n’a pas rendu la version enregistrée : rien n’est préparé.',
     }
   }
-  return { title: 'Le document n’a pas pu être préparé', message: 'Le PDF n’a pas pu être généré sur ce poste.' }
+  return {
+    title: 'Le document n’a pas pu être préparé',
+    message: 'Le PDF n’a pas pu être généré sur ce poste.',
+  }
 }
 
 /**

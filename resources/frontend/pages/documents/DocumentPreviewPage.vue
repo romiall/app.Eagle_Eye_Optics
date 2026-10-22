@@ -25,12 +25,16 @@ import { DocumentDataError } from '@/documents/engine/errors'
 type Status = 'idle' | 'loading' | 'ready' | 'error'
 
 const available = computed(() => DEMO_DOCUMENTS.filter((entry) => mayOpen(entry.kind)))
-const options = computed(() => available.value.map((entry) => ({ value: entry.id, label: entry.label })))
+const options = computed(() =>
+  available.value.map((entry) => ({ value: entry.id, label: entry.label })),
+)
 const selected = ref<string | null>(null)
 const status = ref<Status>('idle')
 const rendered = shallowRef<RenderedDocument | null>(null)
 const failure = ref('')
-const heading = computed(() => (selected.value === null ? '' : (demoDocumentById(selected.value)?.label ?? '')))
+const heading = computed(() =>
+  selected.value === null ? '' : (demoDocumentById(selected.value)?.label ?? ''),
+)
 let generation = 0
 
 async function generate(id: string | null): Promise<void> {
@@ -77,9 +81,9 @@ onMounted(() => {
     </h1>
 
     <p class="max-w-prose text-muted">
-      <span aria-hidden="true">⚠ </span>Données fictives de démonstration : aucun patient réel. Le PDF
-      est généré sur ce poste, sans réseau ; rien n’est envoyé ni imprimé automatiquement. Les pièces
-      ne sont conservées nulle part tant que le coffre chiffré du poste n’est pas livré.
+      <span aria-hidden="true">⚠ </span>Données fictives de démonstration : aucun patient réel. Le
+      PDF est généré sur ce poste, sans réseau ; rien n’est envoyé ni imprimé automatiquement. Les
+      pièces ne sont conservées nulle part tant que le coffre chiffré du poste n’est pas livré.
     </p>
 
     <StateMessage
@@ -87,7 +91,8 @@ onMounted(() => {
       state="forbidden"
       title="Aucun document de démonstration n’est accessible avec ces droits"
     >
-      Un reçu ou une facture demande un droit de caisse ; une prescription demande le droit clinique.
+      Un reçu ou une facture demande un droit de caisse ; une prescription demande le droit
+      clinique.
     </StateMessage>
 
     <template v-else>

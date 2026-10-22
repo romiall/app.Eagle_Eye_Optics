@@ -12,6 +12,16 @@ import { trimBlanks } from '../values/text'
  */
 export const VARIANCE_REASON_MAX_LENGTH = 1000
 
+/**
+ * Alias structurels des charges générées (contenu identique) : la file des commandes
+ * (`MutationRequest.payload`) attend un objet indexable, ce qu'une interface n'est pas.
+ */
+export type OpenSessionRequestPayload = Pick<OpenCashSessionPayload, keyof OpenCashSessionPayload>
+export type CloseSessionRequestPayload = Pick<
+  CloseCashSessionPayload,
+  keyof CloseCashSessionPayload
+>
+
 export function cashVariance(counted: number, expected: number): number {
   moneyAmount(counted, 'counted_amount')
   return signedMoney(counted - expected, 'variance')
@@ -30,7 +40,7 @@ export function buildOpenSessionPayload(input: {
   cashRegisterId: string
   openingAmount: number
   openedAt: string
-}): OpenCashSessionPayload {
+}): OpenSessionRequestPayload {
   return {
     cash_session_id: input.cashSessionId,
     cash_register_id: input.cashRegisterId,
@@ -45,10 +55,12 @@ export function validateClosing(input: {
   counted: number | null
   expected: number
   reason: string
-}): { ok: true; variance: number; reason: string | null } | {
-  ok: false
-  errors: Partial<Record<CloseField, string>>
-} {
+}):
+  | { ok: true; variance: number; reason: string | null }
+  | {
+      ok: false
+      errors: Partial<Record<CloseField, string>>
+    } {
   if (input.counted === null) {
     return { ok: false, errors: { counted: 'Saisissez le montant compté dans le tiroir.' } }
   }
@@ -73,7 +85,7 @@ export function buildCloseSessionPayload(input: {
   expected: number
   variance: number
   reason: string | null
-}): CloseCashSessionPayload {
+}): CloseSessionRequestPayload {
   return {
     cash_session_id: input.cashSessionId,
     closed_at: input.closedAt,

@@ -249,8 +249,8 @@ async function done(): Promise<void> {
         />
         <AppButton variant="secondary" @click="generate">Générer un mot de passe</AppButton>
         <p v-if="generated" class="text-sm text-muted">
-          Un mot de passe aléatoire a été placé dans le champ ; il vous sera montré une fois après la
-          création, pour le transmettre en personne.
+          Un mot de passe aléatoire a été placé dans le champ ; il vous sera montré une fois après
+          la création, pour le transmettre en personne.
         </p>
       </div>
 

@@ -216,8 +216,8 @@ const LINK_CLASS =
               ><span class="sr-only">Arrivée à </span>{{ formatTimeFr(visit.occurred_at) }}</span
             >
             <span class="text-base font-medium"
-              ><span aria-hidden="true">{{ statusSymbol(visit.status) }} </span
-              ><span class="sr-only">Statut : </span>{{ statusLabel(visit.status) }}</span
+              ><span aria-hidden="true">{{ statusSymbol(visit.status) }}</span
+              ><span class="sr-only">Statut :</span> {{ statusLabel(visit.status) }}</span
             >
           </p>
           <p class="space-y-0.5">
@@ -296,8 +296,8 @@ const LINK_CLASS =
             </td>
             <td class="px-3 py-2">{{ reasonLabel(visit.reason) }}</td>
             <td class="px-3 py-2">
-              <span aria-hidden="true">{{ statusSymbol(visit.status) }} </span
-              >{{ statusLabel(visit.status) }}
+              <span aria-hidden="true">{{ statusSymbol(visit.status) }}</span>
+              {{ statusLabel(visit.status) }}
             </td>
             <td class="space-y-2 px-3 py-2">
               <ExamFeeMarker

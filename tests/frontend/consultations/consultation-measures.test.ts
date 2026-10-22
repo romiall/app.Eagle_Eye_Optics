@@ -67,11 +67,25 @@ describe('étape 3 : acuité visuelle', () => {
 
     expect(patchCalls(api)[0]?.path).toContain('/steps/VISUAL_ACUITY')
     const acuities = sentData(api)['acuities'] as Record<string, unknown>[]
-    expect(acuities.map((row) => [row['eye'], row['raw_value'], row['scale_id'], row['normalized_value']])).toEqual([
+    expect(
+      acuities.map((row) => [
+        row['eye'],
+        row['raw_value'],
+        row['scale_id'],
+        row['normalized_value'],
+      ]),
+    ).toEqual([
       ['OD', '8/10', SCALE_TENTHS, null],
       ['OG', '0', SCALE_TENTHS, null],
     ])
-    expect(acuities.every((row) => row['context'] === 'PRELIMINARY' && row['distance'] === 'FAR' && row['correction'] === 'WITHOUT')).toBe(true)
+    expect(
+      acuities.every(
+        (row) =>
+          row['context'] === 'PRELIMINARY' &&
+          row['distance'] === 'FAR' &&
+          row['correction'] === 'WITHOUT',
+      ),
+    ).toBe(true)
     expect(textOf(root)).toContain('Enregistré sur le serveur à 10h42')
     unmount()
   })
@@ -95,12 +109,16 @@ describe('étape 3 : acuité visuelle', () => {
     await goToStep(root, 3)
 
     expect(textOf(root)).toContain('Aucune échelle d’acuité n’est configurée pour ce cabinet')
-    expect((field(root, 'Acuité de loin : échelle utilisée') as HTMLSelectElement).disabled).toBe(true)
+    expect((field(root, 'Acuité de loin : échelle utilisée') as HTMLSelectElement).disabled).toBe(
+      true,
+    )
     unmount()
   })
 
   it('échelles illisibles : dit, l’échelle n’est pas choisie à la place du professionnel', async () => {
-    stubConsultationApi({ handlers: { getScales: () => apiError(500, 'INTERNAL_ERROR', 'Erreur interne.') } })
+    stubConsultationApi({
+      handlers: { getScales: () => apiError(500, 'INTERNAL_ERROR', 'Erreur interne.') },
+    })
     const { root, unmount } = await openConsultation()
     await goToStep(root, 3)
 
@@ -123,7 +141,16 @@ describe('étape 4 : réfraction', () => {
     await click(buttonByName(root, 'Enregistrer'))
 
     const measurements = sentData(api)['measurements'] as Record<string, unknown>[]
-    expect(measurements.map((row) => [row['stage'], row['eye'], row['sphere'], row['cylinder'], row['axis'], row['addition']])).toEqual([
+    expect(
+      measurements.map((row) => [
+        row['stage'],
+        row['eye'],
+        row['sphere'],
+        row['cylinder'],
+        row['axis'],
+        row['addition'],
+      ]),
+    ).toEqual([
       ['AUTOREFRACTOR', 'OD', '-1.25', '0.50', 90, null],
       ['SUBJECTIVE', 'OG', '0.00', null, null, '2.25'],
     ])
@@ -140,7 +167,9 @@ describe('étape 4 : réfraction', () => {
 
     expect(patchCalls(api)).toHaveLength(0)
     expect(textOf(root)).toContain('Deux décimales au plus : la valeur n’est jamais arrondie.')
-    expect((root.querySelector('[id="mesure-OBJECTIVE-OD-sphere"]') as HTMLInputElement).value).toBe('-1,255')
+    expect(
+      (root.querySelector('[id="mesure-OBJECTIVE-OD-sphere"]') as HTMLInputElement).value,
+    ).toBe('-1,255')
     unmount()
   })
 
@@ -178,7 +207,12 @@ describe('étape 5 : centrage', () => {
     await click(buttonByName(root, 'Enregistrer'))
 
     const data = sentData(api)
-    expect(data).toMatchObject({ pd_total: '62.00', pd_od: '31.00', pd_og: '30.00', inconsistency_reason: 'Mesures reprises (fictif)' })
+    expect(data).toMatchObject({
+      pd_total: '62.00',
+      pd_od: '31.00',
+      pd_og: '30.00',
+      inconsistency_reason: 'Mesures reprises (fictif)',
+    })
     expect(String(data['centering_id'])).toMatch(/^[0-9A-Z]{26}$/)
     unmount()
   })
@@ -210,7 +244,15 @@ describe('étape 6 : médicaments', () => {
 
     const orders = sentData(api)['orders'] as Record<string, unknown>[]
     expect(orders).toHaveLength(1)
-    expect(orders[0]).toMatchObject({ name: 'Collyre fictif', form: 'DROPS', dosage: null, frequency: null, duration_value: null, duration_unit: null, instructions: null })
+    expect(orders[0]).toMatchObject({
+      name: 'Collyre fictif',
+      form: 'DROPS',
+      dosage: null,
+      frequency: null,
+      duration_value: null,
+      duration_unit: null,
+      instructions: null,
+    })
     unmount()
   })
 
@@ -237,8 +279,18 @@ describe('étape 6 : médicaments', () => {
           MEDICATIONS: {
             orders: [
               {
-                id: '01J9ZXK4M2Q8R7S6T5V4W30B01', catalog_item_id: null, name: 'Pommade fictive', form: 'OINTMENT', form_other: null, strength: null,
-                dosage: '1 application', frequency: 'Le soir', duration_text: null, duration_value: 5, duration_unit: 'DAY', instructions: null,
+                id: '01J9ZXK4M2Q8R7S6T5V4W30B01',
+                catalog_item_id: null,
+                name: 'Pommade fictive',
+                form: 'OINTMENT',
+                form_other: null,
+                strength: null,
+                dosage: '1 application',
+                frequency: 'Le soir',
+                duration_text: null,
+                duration_value: 5,
+                duration_unit: 'DAY',
+                instructions: null,
               },
             ],
           },

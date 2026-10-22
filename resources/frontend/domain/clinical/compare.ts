@@ -116,21 +116,43 @@ function slotTitle(slot: AcuitySlot): string {
         ? 'Acuité de loin'
         : 'Acuité de près'
   const correction =
-    slot.context === 'POST_REFRACTION' ? '' : `, ${CORRECTION_TITLES[slot.correction].toLowerCase()}`
+    slot.context === 'POST_REFRACTION'
+      ? ''
+      : `, ${CORRECTION_TITLES[slot.correction].toLowerCase()}`
   return `${distance}${correction}, ${EYE_SHORT_LABELS[slot.eye]}`
 }
 
 function anamnesisFacts(data: StepDataByName['ANAMNESIS']): Fact[] {
   const step = 'ANAMNESIS'
   const facts: Fact[] = [
-    { step, key: 'complaints', label: 'Motifs de la consultation', value: terms('COMPLAINT', data.complaints) },
+    {
+      step,
+      key: 'complaints',
+      label: 'Motifs de la consultation',
+      value: terms('COMPLAINT', data.complaints),
+    },
     { step, key: 'symptoms', label: 'Plaintes et symptômes', value: text(data.symptoms) },
-    { step, key: 'wears_glasses', label: 'Porte actuellement des lunettes', value: yesNo(data.wears_glasses) },
+    {
+      step,
+      key: 'wears_glasses',
+      label: 'Porte actuellement des lunettes',
+      value: yesNo(data.wears_glasses),
+    },
   ]
   if (data.wears_glasses === true) {
     facts.push(
-      { step, key: 'glasses_duration', label: 'Depuis combien de temps', value: text(data.glasses_duration) },
-      { step, key: 'previous_correction', label: 'Ancienne correction disponible', value: yesNo(data.previous_correction_available) },
+      {
+        step,
+        key: 'glasses_duration',
+        label: 'Depuis combien de temps',
+        value: text(data.glasses_duration),
+      },
+      {
+        step,
+        key: 'previous_correction',
+        label: 'Ancienne correction disponible',
+        value: yesNo(data.previous_correction_available),
+      },
     )
   }
   return facts
@@ -155,13 +177,17 @@ function historiesFacts(data: StepDataByName['HISTORIES']): Fact[] {
 function acuityFacts(data: StepDataByName['VISUAL_ACUITY'], scaleLabel: ScaleLabeller): Fact[] {
   return ACUITY_SLOTS.map((slot) => {
     const row = data.acuities.find(
-      (entry) => acuitySlotKey(entry.context, entry.distance, entry.correction, entry.eye) === slot.key,
+      (entry) =>
+        acuitySlotKey(entry.context, entry.distance, entry.correction, entry.eye) === slot.key,
     )
     const fact: Fact = {
       step: 'VISUAL_ACUITY',
       key: slot.key,
       label: slotTitle(slot),
-      value: row === undefined ? NOT_MEASURED : `${row.raw_value} (échelle : ${scaleLabel(row.scale_id)})`,
+      value:
+        row === undefined
+          ? NOT_MEASURED
+          : `${row.raw_value} (échelle : ${scaleLabel(row.scale_id)})`,
     }
     if (row !== undefined) fact.scale = row.scale_id
     return fact
@@ -172,7 +198,9 @@ function refractionFacts(data: StepDataByName['REFRACTION']): Fact[] {
   const facts: Fact[] = []
   for (const stage of REFRACTION_STAGES) {
     for (const eye of REFRACTION_EYES) {
-      const row = data.measurements.find((entry) => measurementKey(entry.stage, entry.eye) === measurementKey(stage, eye))
+      const row = data.measurements.find(
+        (entry) => measurementKey(entry.stage, entry.eye) === measurementKey(stage, eye),
+      )
       let value = NOT_MEASURED
       if (row !== undefined) {
         const parts = [
@@ -192,20 +220,36 @@ function refractionFacts(data: StepDataByName['REFRACTION']): Fact[] {
     }
   }
   facts.push(
-    { step: 'REFRACTION', key: 'ametropias', label: 'Type d’amétropie', value: terms('AMETROPIA', data.ametropias) },
-    { step: 'REFRACTION', key: 'observations', label: 'Observations de réfraction', value: text(data.refraction_observations) },
+    {
+      step: 'REFRACTION',
+      key: 'ametropias',
+      label: 'Type d’amétropie',
+      value: terms('AMETROPIA', data.ametropias),
+    },
+    {
+      step: 'REFRACTION',
+      key: 'observations',
+      label: 'Observations de réfraction',
+      value: text(data.refraction_observations),
+    },
   )
   return facts
 }
 
 function centeringFacts(data: StepDataByName['CENTERING']): Fact[] {
   const step = 'CENTERING'
-  const mm = (value: string | null): string => (value === null ? NOT_MEASURED : `${measureText(value)} mm`)
+  const mm = (value: string | null): string =>
+    value === null ? NOT_MEASURED : `${measureText(value)} mm`
   return [
     { step, key: 'pd_total', label: 'Écart pupillaire total', value: mm(data.pd_total) },
     { step, key: 'pd_od', label: 'Écart pupillaire OD', value: mm(data.pd_od) },
     { step, key: 'pd_og', label: 'Écart pupillaire OG', value: mm(data.pd_og) },
-    { step, key: 'reason', label: 'Justification de l’écart', value: text(data.inconsistency_reason) },
+    {
+      step,
+      key: 'reason',
+      label: 'Justification de l’écart',
+      value: text(data.inconsistency_reason),
+    },
   ]
 }
 
@@ -224,10 +268,17 @@ function medicationFacts(data: StepDataByName['MEDICATIONS']): Fact[] {
     if (order.frequency !== null) parts.push(`Fréquence : ${order.frequency}`)
     if (order.duration_text !== null) parts.push(`Durée : ${order.duration_text}`)
     if (order.duration_value !== null && order.duration_unit !== null) {
-      parts.push(`Durée structurée : ${order.duration_value} ${DURATION_UNIT_LABELS[order.duration_unit]}`)
+      parts.push(
+        `Durée structurée : ${order.duration_value} ${DURATION_UNIT_LABELS[order.duration_unit]}`,
+      )
     }
     if (order.instructions !== null) parts.push(`Instructions : ${order.instructions}`)
-    return { step: 'MEDICATIONS' as const, key: `order:${order.id}`, label: `Médicament : ${order.name}`, value: parts.join(' ; ') }
+    return {
+      step: 'MEDICATIONS' as const,
+      key: `order:${order.id}`,
+      label: `Médicament : ${order.name}`,
+      value: parts.join(' ; '),
+    }
   })
 }
 
@@ -235,7 +286,12 @@ function conclusionFacts(data: StepDataByName['CONCLUSION']): Fact[] {
   const step = 'CONCLUSION'
   const facts: Fact[] = [
     { step, key: 'conclusion', label: 'Conclusion', value: text(data.conclusion) },
-    { step, key: 'referral', label: 'Orientation vers un ophtalmologiste', value: yesNo(data.referral) },
+    {
+      step,
+      key: 'referral',
+      label: 'Orientation vers un ophtalmologiste',
+      value: yesNo(data.referral),
+    },
   ]
   if (data.referral === true) {
     facts.push(
@@ -245,7 +301,12 @@ function conclusionFacts(data: StepDataByName['CONCLUSION']): Fact[] {
         label: 'Niveau d’urgence',
         value: data.referral_urgency === null ? NOT_FILLED : urgencyLabel(data.referral_urgency),
       },
-      { step, key: 'reasons', label: 'Motifs de l’orientation', value: terms('REFERRAL_REASON', data.referral_reasons) },
+      {
+        step,
+        key: 'reasons',
+        label: 'Motifs de l’orientation',
+        value: terms('REFERRAL_REASON', data.referral_reasons),
+      },
     )
   }
   return facts
@@ -275,7 +336,11 @@ function absentValue(fact: Fact): string {
  * Compare deux révisions fait par fait. L'ordre est celui de la révision la plus récente (`right`), puis les
  * faits qui n'existent que dans l'ancienne (`left`).
  */
-export function compareSteps(left: StepsData, right: StepsData, scaleLabel: ScaleLabeller): Comparison {
+export function compareSteps(
+  left: StepsData,
+  right: StepsData,
+  scaleLabel: ScaleLabeller,
+): Comparison {
   const before = describeSteps(left, scaleLabel)
   const after = describeSteps(right, scaleLabel)
   const beforeByKey = new Map(before.map((fact) => [`${fact.step}|${fact.key}`, fact]))
@@ -318,7 +383,9 @@ export function compareSteps(left: StepsData, right: StepsData, scaleLabel: Scal
   const order = new Map(DELIVERED_STEPS.map((step, index) => [step, index]))
   const sorted = rows
     .map((row, index) => ({ row, index }))
-    .sort((a, b) => (order.get(a.row.step) ?? 0) - (order.get(b.row.step) ?? 0) || a.index - b.index)
+    .sort(
+      (a, b) => (order.get(a.row.step) ?? 0) - (order.get(b.row.step) ?? 0) || a.index - b.index,
+    )
     .map((entry) => entry.row)
 
   return { rows: sorted, differences: sorted.filter((row) => row.kind !== 'same').length }

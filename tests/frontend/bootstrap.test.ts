@@ -76,6 +76,7 @@ describe('amorçage de la coquille Vue', () => {
         'documents-apercu',
         'ventes',
         'caisse',
+        'caisse-du-jour',
         'factures',
         'facture-nouvelle',
         'facture',
@@ -96,8 +97,9 @@ describe('amorçage de la coquille Vue', () => {
     )
     // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
     // + activité du patient (onglet du dossier) + ventes et caisse (8 : B01 à B05, I00)
-    // + liste des examens + paramètres (5 : F09) + changement de son mot de passe + approbations (B06).
-    expect(router.getRoutes()).toHaveLength(31)
+    // + caisse du jour (R01 minimal) + liste des examens + paramètres (5 : F09)
+    // + changement de son mot de passe + approbations (B06).
+    expect(router.getRoutes()).toHaveLength(32)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/patients'))) {
       expect(route.meta.module, String(route.name)).toBe('patients')
@@ -121,15 +123,14 @@ describe('amorçage de la coquille Vue', () => {
     expect(router.resolve('/consultations').name).toBe('consultations')
     expect(router.resolve('/consultations/01J9ZXK4M2Q8R7S6T5V4W30501').name).toBe('consultation')
     // Les paramètres dépendent du module « settings » ; le mot de passe de son compte, d'aucun module.
-    for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/parametres'))) {
+    for (const route of router
+      .getRoutes()
+      .filter((entry) => entry.path.startsWith('/parametres'))) {
       expect(route.meta.module, String(route.name)).toBe('settings')
       expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
     }
     expect(router.resolve('/mon-compte/mot-de-passe').meta.module).toBeUndefined()
-    for (const path of [
-      '/consultations/abc',
-      '/consultations/01J9ZXK4M2Q8R7S6T5V4W30501/etape',
-    ]) {
+    for (const path of ['/consultations/abc', '/consultations/01J9ZXK4M2Q8R7S6T5V4W30501/etape']) {
       expect(router.resolve(path).name, path).toBe('introuvable')
     }
     // La file se lit avec l'une OU l'autre permission ; l'arrivée s'enregistre avec visit.register.

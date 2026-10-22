@@ -83,7 +83,10 @@ export class MemoryDocumentStore implements DocumentStore {
         'Cette source a déjà une pièce avec un autre identifiant.',
       )
     }
-    if (this.quotaBytes !== null && (await this.usage()).bytes + input.bytes.byteLength > this.quotaBytes) {
+    if (
+      this.quotaBytes !== null &&
+      (await this.usage()).bytes + input.bytes.byteLength > this.quotaBytes
+    ) {
       throw new DocumentStoreError(
         'DOCUMENT_QUOTA',
         'Place insuffisante pour conserver cette pièce : exportez les pièces déjà déposées avant de continuer.',

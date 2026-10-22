@@ -134,7 +134,10 @@ export function buildCreditNote(
         [
           { label: 'Facture n°', value: data.invoice.number },
           { label: 'Émise le', value: formatDateFr(data.invoice.issuedAt, timeZone) },
-          { label: 'Total de la facture', value: formatXaf(data.invoice.totalGross, 'total_gross') },
+          {
+            label: 'Total de la facture',
+            value: formatXaf(data.invoice.totalGross, 'total_gross'),
+          },
           { label: 'Motif', value: data.reason },
         ],
         1,

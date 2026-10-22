@@ -82,8 +82,13 @@ export interface ConsultationPrintable {
   heading: string
 }
 
-const PRINTABLE_TEXTS: Readonly<Record<ConsultationDocumentKind, { label: string; heading: string }>> = {
-  CLINICAL_RECORD: { label: 'Aperçu de la fiche de consultation', heading: 'Fiche de consultation' },
+const PRINTABLE_TEXTS: Readonly<
+  Record<ConsultationDocumentKind, { label: string; heading: string }>
+> = {
+  CLINICAL_RECORD: {
+    label: 'Aperçu de la fiche de consultation',
+    heading: 'Fiche de consultation',
+  },
   MEDICATION_ORDER: {
     label: 'Aperçu de l’ordonnance de médicaments',
     heading: 'Ordonnance de médicaments',
@@ -295,7 +300,9 @@ async function validatorOf(
   // Nom d'affichage du compte validateur, lu par le serveur dans le cabinet (jamais deviné à l'écran).
   const named = prescription.validated_by_name?.trim() ?? ''
   if (named !== '') return { displayName: named, professionalNumber: null }
-  const authored = [...consultation.revisions].reverse().find((revision) => revision.author_id === userId)
+  const authored = [...consultation.revisions]
+    .reverse()
+    .find((revision) => revision.author_id === userId)
   if (authored !== undefined) {
     const { data } = await getRevision(consultation.id, authored.revision_no)
     if (data.snapshot.author.user_id === userId) {
@@ -320,7 +327,9 @@ export async function prescriptionDocument(
     )
   }
   if (prescription.consultation_id !== consultation.id) {
-    throw new ClinicalPrintRefused('Cette prescription n’appartient pas à la consultation affichée.')
+    throw new ClinicalPrintRefused(
+      'Cette prescription n’appartient pas à la consultation affichée.',
+    )
   }
   const professional = await validatorOf(prescription, consultation, me)
   const data = prescriptionFromResource({

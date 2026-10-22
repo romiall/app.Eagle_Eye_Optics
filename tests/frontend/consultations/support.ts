@@ -474,8 +474,8 @@ export function stubConsultationApi(
       const conflict = versionConflict(body)
       if (conflict !== null) return conflict
       const changed = body['steps'] as { step: string; data: unknown }[]
-      const steps = { ...api.server.steps } as Record<string, unknown>
-      for (const item of changed) steps[item.step] = item.data
+      const steps: Partial<Record<keyof Steps, unknown>> = { ...api.server.steps }
+      for (const item of changed) steps[item.step as keyof Steps] = item.data
       const revisionNo = api.server.current_revision + 1
       api.server = {
         ...api.server,

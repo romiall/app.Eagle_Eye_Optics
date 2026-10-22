@@ -22,8 +22,8 @@ use App\Domain\Patients\Rules\VisitStatus;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
-use InvalidArgumentException;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Finalisation d'une consultation (EE003, EE013, EE017 ; AT19, AT21) : fige la révision 1 (snapshot complet) dans la

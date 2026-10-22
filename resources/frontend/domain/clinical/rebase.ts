@@ -1,9 +1,22 @@
 import { newUlid } from '../values/ulid'
-import { ACUITY_SLOTS, acuitySlotKey, type AcuityRowData, CORRECTION_TITLES, type VisualAcuityData } from './acuity'
+import {
+  ACUITY_SLOTS,
+  acuitySlotKey,
+  type AcuityRowData,
+  CORRECTION_TITLES,
+  type VisualAcuityData,
+} from './acuity'
 import type { CenteringData } from './centering'
 import { axisData, axisText } from './fields'
 import type { MedicationsData, OrderData } from './medications'
-import { REFRACTION_EYES, REFRACTION_STAGES, type MeasurementData, type RefractionData, type RefractionEye, type RefractionStage } from './refraction'
+import {
+  REFRACTION_EYES,
+  REFRACTION_STAGES,
+  type MeasurementData,
+  type RefractionData,
+  type RefractionEye,
+  type RefractionStage,
+} from './refraction'
 import {
   type DeliveredStep,
   DELIVERED_STEPS,
@@ -399,7 +412,12 @@ function atomLabel(step: DeliveredStep, key: string): string {
     if (key === 'observations') return 'Observations de réfraction'
     const [slot = '', field = ''] = key.split('::')
     const [stage = '', eye = ''] = slot.split('|')
-    const names: Record<string, string> = { sphere: 'sphère', cylinder: 'cylindre', axis: 'axe', addition: 'addition' }
+    const names: Record<string, string> = {
+      sphere: 'sphère',
+      cylinder: 'cylindre',
+      axis: 'axe',
+      addition: 'addition',
+    }
     return `${STAGE_LABELS[stage as RefractionStage] ?? stage}, ${EYE_SHORT_LABELS[eye as RefractionEye] ?? eye} : ${names[field] ?? field}`
   }
   if (step === 'CENTERING') {
@@ -412,7 +430,9 @@ function atomLabel(step: DeliveredStep, key: string): string {
     return names[key] ?? key
   }
   if (step === 'MEDICATIONS') {
-    return key === 'sequence' ? 'Ordre des médicaments' : `Médicament (${key.slice('order:'.length)})`
+    return key === 'sequence'
+      ? 'Ordre des médicaments'
+      : `Médicament (${key.slice('order:'.length)})`
   }
   if (key.startsWith('reason:')) {
     return `Motif d’orientation « ${termLabel('REFERRAL_REASON', key.slice('reason:'.length))} »`
@@ -451,8 +471,10 @@ function orderName(value: string): string {
 }
 
 function describeAtom(key: string, value: string | undefined): string {
-  if (key.startsWith('order:')) return value === undefined ? 'absent' : `« ${shorten(orderName(value))} »`
-  if (key === 'sequence') return value === undefined ? 'vide' : `${value.split(',').length} ligne(s) dans cet ordre`
+  if (key.startsWith('order:'))
+    return value === undefined ? 'absent' : `« ${shorten(orderName(value))} »`
+  if (key === 'sequence')
+    return value === undefined ? 'vide' : `${value.split(',').length} ligne(s) dans cet ordre`
   if (isTermAtom(key)) {
     if (value === undefined) return 'non coché'
     return value === '' ? 'coché' : `coché (${shorten(value)})`

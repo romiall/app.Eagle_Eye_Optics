@@ -277,7 +277,13 @@ function measuredEmpty() {
   return {
     VISUAL_ACUITY: { acuities: [] },
     REFRACTION: { measurements: [], refraction_observations: null, ametropias: [] },
-    CENTERING: { centering_id: null, pd_total: null, pd_od: null, pd_og: null, inconsistency_reason: null },
+    CENTERING: {
+      centering_id: null,
+      pd_total: null,
+      pd_od: null,
+      pd_og: null,
+      inconsistency_reason: null,
+    },
     MEDICATIONS: { orders: [] },
   }
 }

@@ -58,12 +58,12 @@ final class StepRows
      */
     public static function ownIds(string $table, stdClass $consultation): array
     {
-        return DB::table($table)
+        return array_values(DB::table($table)
             ->where('clinic_id', $consultation->clinic_id)
             ->where('consultation_id', $consultation->id)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
+            ->all());
     }
 
     /**

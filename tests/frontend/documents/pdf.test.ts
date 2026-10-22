@@ -91,7 +91,9 @@ describe('rendu PDF local (jsPDF, polices standard, aucun réseau)', () => {
 
   it('une facture longue compte autant de pages que son plan de mise en page', () => {
     const rendered = renderDocument(buildInvoice(demoLongInvoice(48)))
-    const declared = /\/Type \/Pages[^>]*\/Count (\d+)/.exec(raw(rendered.bytes)) ?? /\/Count (\d+)/.exec(raw(rendered.bytes))
+    const declared =
+      /\/Type \/Pages[^>]*\/Count (\d+)/.exec(raw(rendered.bytes)) ??
+      /\/Count (\d+)/.exec(raw(rendered.bytes))
 
     expect(rendered.pageCount).toBeGreaterThan(1)
     expect(Number(declared?.[1])).toBe(rendered.pageCount)
@@ -115,7 +117,10 @@ describe('mesure du texte par les métriques de Helvetica', () => {
   })
 
   it('l’italique garde les largeurs de la police droite, le gras italique celles du gras', () => {
-    expect(measurer.width('Hello', 10, 'italic')).toBeCloseTo(measurer.width('Hello', 10, 'normal'), 5)
+    expect(measurer.width('Hello', 10, 'italic')).toBeCloseTo(
+      measurer.width('Hello', 10, 'normal'),
+      5,
+    )
     expect(measurer.width('Hello', 10, 'bolditalic')).toBeCloseTo(
       measurer.width('Hello', 10, 'bold'),
       5,

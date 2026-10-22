@@ -84,7 +84,10 @@ describe('contenu exact des opérations à approuver', () => {
 
 describe('motif et décision', () => {
   it('le motif de la demande est obligatoire et borné', () => {
-    expect(validateRequestReason('  ')).toEqual({ ok: false, error: 'Indiquez le motif de la demande.' })
+    expect(validateRequestReason('  ')).toEqual({
+      ok: false,
+      error: 'Indiquez le motif de la demande.',
+    })
     expect(validateRequestReason('ab').ok).toBe(false)
     expect(validateRequestReason('x'.repeat(1001)).ok).toBe(false)
     expect(validateRequestReason('  Motif fictif  ')).toEqual({ ok: true, reason: 'Motif fictif' })
@@ -131,7 +134,10 @@ describe('motif et décision', () => {
 
 describe('marqueur du paiement de l’examen, contrôle actif', () => {
   it('à encaisser, dispense demandée, encaissés avec le reçu réel, dispense approuvée', () => {
-    expect(examFeeMarker('UNPAID')).toMatchObject({ text: 'Frais d’examen à encaisser', pending: true })
+    expect(examFeeMarker('UNPAID')).toMatchObject({
+      text: 'Frais d’examen à encaisser',
+      pending: true,
+    })
     expect(examFeeMarker('WAIVER_REQUESTED').text).toContain('en attente de la gérante')
     expect(examFeeMarker('PAID', 'TEST-REC-2026-000004').text).toBe(
       'Frais d’examen encaissés : reçu n° TEST-REC-2026-000004',

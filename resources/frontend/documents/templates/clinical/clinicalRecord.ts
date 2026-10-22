@@ -194,7 +194,10 @@ function consultationBlocks(
       },
     )
   } else {
-    conclusion.push({ label: 'Orientation', value: entry.referral === false ? 'Non' : NOT_PROVIDED })
+    conclusion.push({
+      label: 'Orientation',
+      value: entry.referral === false ? 'Non' : NOT_PROVIDED,
+    })
   }
   if (entry.missingDataReason !== null) {
     conclusion.push({ label: 'Données non renseignées', value: entry.missingDataReason })
@@ -215,7 +218,8 @@ function prescriptionSection(
   // Dans le dossier, une prescription incomplète est signalée, jamais bloquante pour tout l'export.
   const built = prescriptionBlocks(summary.body, false)
   warnings.push(...built.warnings)
-  const date = summary.at === null ? '' : `, ${formatDateFr(summary.at, timeZone, 'prescription_at')}`
+  const date =
+    summary.at === null ? '' : `, ${formatDateFr(summary.at, timeZone, 'prescription_at')}`
   return [
     heading(
       `Prescription optique, version ${summary.versionNo} (${strict ? 'validée' : 'brouillon'}${date})`,
@@ -239,7 +243,11 @@ export function buildClinicalRecord(
   const resolved = resolveOptions(options)
   requireInstant(data.exportedAt, 'exported_at')
   if (data.consultations.length === 0 && data.prescriptions.length === 0) {
-    throw invalid('record.empty', 'consultations', 'Le dossier exporté ne contient aucune consultation.')
+    throw invalid(
+      'record.empty',
+      'consultations',
+      'Le dossier exporté ne contient aucune consultation.',
+    )
   }
   if (data.selection === 'SINGLE' && data.consultations.length > 1) {
     throw invalid(
@@ -255,7 +263,10 @@ export function buildClinicalRecord(
   const body: Block[] = [fields(patientRowsClinical(data.patient), 1)]
   if (provisional) {
     body.push(
-      notice('warning', 'Contenu provisoire : au moins une consultation sélectionnée n’est pas terminée.'),
+      notice(
+        'warning',
+        'Contenu provisoire : au moins une consultation sélectionnée n’est pas terminée.',
+      ),
     )
   }
   const wide = resolved.format === 'A4'

@@ -18,7 +18,12 @@ import {
   serverLineError,
   validateDraftLines,
 } from '@/domain/billing/draft'
-import { buildIssuePayload, displayedLinesFingerprint, heldByDevice, issueBlockers } from '@/domain/billing/issueInvoice'
+import {
+  buildIssuePayload,
+  displayedLinesFingerprint,
+  heldByDevice,
+  issueBlockers,
+} from '@/domain/billing/issueInvoice'
 import type { CatalogItem, Invoice } from '@/domain/contracts/generated'
 
 /**
@@ -168,10 +173,13 @@ describe('lignes du brouillon', () => {
   it('valide désignation, quantité et nombre de lignes ; une facture vide ne s’émet pas', () => {
     const free = freeLine('01J9ZXK4M2Q8R7S6T5V4W30L02')
     const check = validateDraftLines([free])
-    expect(check.errors.map((error) => error.field).sort()).toEqual(['description', 'unitPriceGross'])
-    expect(validateDraftLines([{ ...free, description: 'a\nb', unitPriceGross: 1000 }]).errors).toEqual([
-      expect.objectContaining({ field: 'description' }),
+    expect(check.errors.map((error) => error.field).sort()).toEqual([
+      'description',
+      'unitPriceGross',
     ])
+    expect(
+      validateDraftLines([{ ...free, description: 'a\nb', unitPriceGross: 1000 }]).errors,
+    ).toEqual([expect.objectContaining({ field: 'description' })])
     expect(validateDraftLines([]).general).toBeNull()
     expect(validateDraftLines([], { forIssue: true }).general).toContain('sans ligne')
   })
@@ -197,7 +205,11 @@ describe('lignes du brouillon', () => {
       dueDate: null,
       lines: [second],
     })
-    expect(update.lines[0]).toMatchObject({ position: 1, quantity: '1.000', unit_price_gross: 40000 })
+    expect(update.lines[0]).toMatchObject({
+      position: 1,
+      quantity: '1.000',
+      unit_price_gross: 40000,
+    })
   })
 
   it('rattache une erreur du serveur à sa ligne et à son champ', () => {
@@ -214,7 +226,9 @@ describe('lignes du brouillon', () => {
 
   it('compare les lignes saisies aux lignes enregistrées (rien à enregistrer)', () => {
     const line = lineFromCatalogItem(ITEM, '01J9ZXK4M2Q8R7S6T5V4W30L01')
-    expect(sameDraftLines([line], [{ ...line, description: ' Monture fictive (démonstration) ' }])).toBe(true)
+    expect(
+      sameDraftLines([line], [{ ...line, description: ' Monture fictive (démonstration) ' }]),
+    ).toBe(true)
     expect(sameDraftLines([line], [{ ...line, discountGross: 1 }])).toBe(false)
     expect(sameDraftLines([line], [{ ...line, discountGross: 0 }])).toBe(true)
   })
@@ -304,7 +318,10 @@ describe('brouillon relu et émission', () => {
     expect(issueBlockers({ ...DRAFT, lines: [] }, 0)).toEqual([
       expect.stringContaining('sans ligne'),
     ])
-    const held = { ...DRAFT, write_owner: { device_id: DRAFT.id, epoch: 1, status: 'ACTIVE' as const } }
+    const held = {
+      ...DRAFT,
+      write_owner: { device_id: DRAFT.id, epoch: 1, status: 'ACTIVE' as const },
+    }
     expect(heldByDevice(held)).toBe(true)
     expect(issueBlockers(held, 80000)).toEqual([expect.stringContaining('poste préparé')])
     expect(issueBlockers(DRAFT, null)).toEqual([expect.stringContaining('total')])

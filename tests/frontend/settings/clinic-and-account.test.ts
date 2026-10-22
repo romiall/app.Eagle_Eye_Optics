@@ -29,7 +29,9 @@ afterEach(() => {
 
 describe('cabinet et documents', () => {
   it('affiche les paramètres, dit « documents de test » et ne propose ni fuseau ni monnaie modifiables', async () => {
-    stubSettingsApi({ handlers: { 'GET /api/v1/clinic/settings': () => json(200, { data: clinicSettings() }) } })
+    stubSettingsApi({
+      handlers: { 'GET /api/v1/clinic/settings': () => json(200, { data: clinicSettings() }) },
+    })
     const { root } = await openApp('/parametres/cabinet')
     await settle()
 
@@ -37,7 +39,9 @@ describe('cabinet et documents', () => {
     expect(text).toContain('Documents de test')
     expect(text).toContain('Africa/Douala')
     expect(text).toContain('XAF')
-    expect((root.querySelector('#cabinet-nom') as HTMLInputElement).value).toBe('TEST CABINET FICTIF')
+    expect((root.querySelector('#cabinet-nom') as HTMLInputElement).value).toBe(
+      'TEST CABINET FICTIF',
+    )
     expect((root.querySelector('#cabinet-pied') as HTMLTextAreaElement).value).toBe('Pied fictif')
     expect(root.querySelector('#cabinet-fuseau, input[name="timezone"]')).toBeNull()
   })
@@ -97,7 +101,9 @@ describe('cabinet et documents', () => {
   })
 
   it('refuse plus de six lignes de pied de page avant tout envoi', async () => {
-    const api = stubSettingsApi({ handlers: { 'GET /api/v1/clinic/settings': () => json(200, { data: clinicSettings() }) } })
+    const api = stubSettingsApi({
+      handlers: { 'GET /api/v1/clinic/settings': () => json(200, { data: clinicSettings() }) },
+    })
     const { root } = await openApp('/parametres/cabinet')
     await settle()
     const footer = root.querySelector<HTMLTextAreaElement>('#cabinet-pied')

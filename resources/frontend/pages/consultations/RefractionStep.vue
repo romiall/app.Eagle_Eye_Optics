@@ -190,8 +190,8 @@ function error(id: string): string | null {
       </OpticalTable>
       <ul v-if="notices(stage).length > 0" class="space-y-1 text-sm text-ink">
         <li v-for="notice in notices(stage)" :key="`${notice.eye}-${notice.text}`">
-          <span aria-hidden="true">○ </span>{{ STAGE_LABELS[stage] }}, {{ EYE_SHORT_LABELS[notice.eye] }}
-          · {{ notice.text }}
+          <span aria-hidden="true">○ </span>{{ STAGE_LABELS[stage] }},
+          {{ EYE_SHORT_LABELS[notice.eye] }} · {{ notice.text }}
         </li>
       </ul>
     </section>

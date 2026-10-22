@@ -14,9 +14,12 @@ import { quantityLabel } from './format'
 
 const props = defineProps<{ itemId: string }>()
 
-type View = { kind: 'loading' } | { kind: 'ready'; available: string; positions: number } | {
-  kind: 'unknown'
-}
+type View =
+  | { kind: 'loading' }
+  | { kind: 'ready'; available: string; positions: number }
+  | {
+      kind: 'unknown'
+    }
 
 const view = ref<View>({ kind: 'loading' })
 
@@ -24,7 +27,8 @@ onMounted(async () => {
   try {
     const result = await getStockAvailability({ itemId: props.itemId })
     let total = Quantity.of('0')
-    for (const position of result.data.data) total = total.plus(Quantity.of(position.central_available))
+    for (const position of result.data.data)
+      total = total.plus(Quantity.of(position.central_available))
     view.value = {
       kind: 'ready',
       available: total.canonical(),
@@ -40,7 +44,8 @@ onMounted(async () => {
   <p class="text-sm text-muted" role="status" aria-live="polite">
     <template v-if="view.kind === 'loading'">Lecture de la disponibilité…</template>
     <template v-else-if="view.kind === 'ready' && view.positions === 0"
-      >Aucun stock enregistré pour cet article : l’émission sera refusée sans stock initial.</template
+      >Aucun stock enregistré pour cet article : l’émission sera refusée sans stock
+      initial.</template
     >
     <template v-else-if="view.kind === 'ready'"
       >Disponible en stock (lecture du serveur) : {{ quantityLabel(view.available) }} — la réserve

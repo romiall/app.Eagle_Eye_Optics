@@ -9,6 +9,7 @@ use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\DirectApproval;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use stdClass;
 
@@ -198,7 +199,7 @@ final class ExactApprovals
     }
 
     /**
-     * @return \Illuminate\Database\Query\Builder
+     * @return Builder
      */
     private static function sameContent(string $clinicId, ApprovalSubject $subject, ?string $requestedBy)
     {

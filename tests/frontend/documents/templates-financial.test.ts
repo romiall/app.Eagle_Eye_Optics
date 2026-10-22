@@ -41,18 +41,25 @@ describe('facture (fichier 11)', () => {
   const text = printedText(plan)
 
   it('imprime l’en-tête du cabinet, le numéro, la date d’émission et l’identité facturée minimale', () => {
-    expect(text).toContain('CABINET DE DÉMONSTRATION — DONNÉES FICTIVES')
+    // Le nom du cabinet fictif est plus large que la colonne de l'en-tête (13 pt gras) : il passe sur
+    // deux lignes consécutives, sans rien perdre. Il se lit lignes jointes.
+    expect(model.letterhead.organization).toBe('CABINET DE DÉMONSTRATION — DONNÉES FICTIVES')
+    expect(text.replace(/\n/g, ' ')).toContain('CABINET DE DÉMONSTRATION — DONNÉES FICTIVES')
     expect(text).toContain('FACTURE')
     expect(text).toContain('Numéro | TEST-FAC-000001')
-    expect(text).toContain("Date d’émission | 14/10/2026")
+    expect(text).toContain('Date d’émission | 14/10/2026')
     expect(text).toContain('Facturé à | PATIENT FICTIF Élodie Marie')
     expect(text).toContain('Dossier n° | TEST-P-000001')
     expect(text).toContain('Établie par | Caisse (démonstration)')
   })
 
   it('imprime chaque ligne : référence, désignation, quantité, unité, prix, remise, total', () => {
-    expect(text).toContain(`EX-001 | Examen de vue (fictif) | 1${NBSP}Prestation | 15${NBSP}000 | 0 | 15${NBSP}000`)
-    expect(text).toContain(`MT-001 | Monture fictive modèle Alpha | 1${NBSP}Unité | 25${NBSP}000 | 0 | 25${NBSP}000`)
+    expect(text).toContain(
+      `EX-001 | Examen de vue (fictif) | 1${NBSP}Prestation | 15${NBSP}000 | 0 | 15${NBSP}000`,
+    )
+    expect(text).toContain(
+      `MT-001 | Monture fictive modèle Alpha | 1${NBSP}Unité | 25${NBSP}000 | 0 | 25${NBSP}000`,
+    )
     expect(text).toContain(
       `VR-001 | Verres progressifs 1.60 (fictifs) | 1${NBSP}Paire | 45${NBSP}000 | 5${NBSP}000 | 40${NBSP}000`,
     )
@@ -60,7 +67,9 @@ describe('facture (fichier 11)', () => {
 
   it('imprime le total exact en FCFA et la mention du régime de taxe non configuré', () => {
     expect(text).toContain(`Total | ${FCFA('80 000')}`)
-    expect(text).toContain('Régime de taxe non configuré : aucune taxe n’est détaillée sur ce document.')
+    expect(text).toContain(
+      'Régime de taxe non configuré : aucune taxe n’est détaillée sur ce document.',
+    )
     expect(text).not.toContain('Dont taxe')
   })
 
@@ -122,7 +131,12 @@ describe('facture (fichier 11)', () => {
 
     const none = buildInvoice(
       demoInvoice({
-        paymentAtIssue: { paidNet: 0, balance: 80000, asOf: '2026-10-14T09:30:00.000Z', receiptNumbers: [] },
+        paymentAtIssue: {
+          paidNet: 0,
+          balance: 80000,
+          asOf: '2026-10-14T09:30:00.000Z',
+          receiptNumbers: [],
+        },
       }),
     )
     expect(printedText(layout(none))).toContain('Aucun versement enregistré')
@@ -132,9 +146,14 @@ describe('facture (fichier 11)', () => {
     expect(text).not.toContain('Échéance')
     expect(text).not.toContain('Conditions')
     const clinic = demoClinic({
-      settings: { ...EMPTY_DOCUMENT_SETTINGS, paymentTerms: 'Conditions de règlement de démonstration.' },
+      settings: {
+        ...EMPTY_DOCUMENT_SETTINGS,
+        paymentTerms: 'Conditions de règlement de démonstration.',
+      },
     })
-    const rendered = printedText(layout(buildInvoice(demoInvoice({ dueDate: '2026-11-14', clinic }))))
+    const rendered = printedText(
+      layout(buildInvoice(demoInvoice({ dueDate: '2026-11-14', clinic }))),
+    )
 
     expect(rendered).toContain('Échéance | 14/11/2026')
     expect(rendered).toContain('Conditions | Conditions de règlement de démonstration.')
@@ -197,15 +216,21 @@ describe('facture (fichier 11)', () => {
 
   it('refuse une facture émise sans numéro, sans date ou sans ligne', () => {
     expect(failure(() => buildInvoice(demoInvoice({ number: null }))).code).toBe('text.required')
-    expect(failure(() => buildInvoice(demoInvoice({ issuedAt: null }))).code).toBe('instant.required')
-    expect(
-      failure(() => buildInvoice(demoInvoice({ lines: [], totalGross: 0 }))).code,
-    ).toBe('invoice.no_lines')
+    expect(failure(() => buildInvoice(demoInvoice({ issuedAt: null }))).code).toBe(
+      'instant.required',
+    )
+    expect(failure(() => buildInvoice(demoInvoice({ lines: [], totalGross: 0 }))).code).toBe(
+      'invoice.no_lines',
+    )
   })
 
   it('refuse un montant décimal ou négatif plutôt que de l’arrondir', () => {
-    expect(failure(() => buildInvoice(demoInvoice({ totalGross: 80000.5 }))).code).toBe('amount.invalid')
-    expect(failure(() => buildInvoice(demoInvoice({ totalGross: -1 }))).code).toBe('amount.negative')
+    expect(failure(() => buildInvoice(demoInvoice({ totalGross: 80000.5 }))).code).toBe(
+      'amount.invalid',
+    )
+    expect(failure(() => buildInvoice(demoInvoice({ totalGross: -1 }))).code).toBe(
+      'amount.negative',
+    )
   })
 
   it('imprime les cabinets en production sans bandeau de test, avec leurs mentions', () => {
@@ -217,7 +242,11 @@ describe('facture (fichier 11)', () => {
       email: 'contact@exemple.invalid',
       taxIdentifier: 'IDENTIFIANT-FICTIF-1',
       professionalMentions: 'Mention professionnelle fictive',
-      settings: { ...EMPTY_DOCUMENT_SETTINGS, headerLines: ['Ligne d’en-tête fictive'], footerLines: ['Pied fictif'] },
+      settings: {
+        ...EMPTY_DOCUMENT_SETTINGS,
+        headerLines: ['Ligne d’en-tête fictive'],
+        footerLines: ['Pied fictif'],
+      },
     })
     const model = buildInvoice(demoInvoice({ clinic }))
     const rendered = printedText(layout(model))
@@ -306,9 +335,9 @@ describe('facture brouillon', () => {
   })
 
   it('refuse un brouillon qui porte déjà un numéro définitif', () => {
-    expect(
-      failure(() => buildInvoice(demoInvoice({ status: 'DRAFT' }), { now: NOW })).code,
-    ).toBe('invoice.draft_with_number')
+    expect(failure(() => buildInvoice(demoInvoice({ status: 'DRAFT' }), { now: NOW })).code).toBe(
+      'invoice.draft_with_number',
+    )
   })
 
   it('refuse un duplicata de brouillon', () => {
@@ -506,7 +535,8 @@ describe('relevé de caisse et clôture', () => {
 
   it('refuse des espèces attendues qui ne suivent pas les mouvements', () => {
     expect(
-      failure(() => buildCashSessionReport({ ...demoCashSession(true), expectedAmount: 86000 })).code,
+      failure(() => buildCashSessionReport({ ...demoCashSession(true), expectedAmount: 86000 }))
+        .code,
     ).toBe('cash.expected_mismatch')
     expect(
       failure(() => buildCashSessionReport({ ...demoCashSession(true), variance: 0 })).code,

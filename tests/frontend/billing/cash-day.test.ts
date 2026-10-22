@@ -36,8 +36,22 @@ function report(overrides: Partial<CashDayReport> = {}): CashDayReport {
     date: '2026-10-15',
     scope: 'CLINIC',
     collections: [
-      { method: 'CASH', payments_count: 1, payments_amount: 30000, reversals_amount: 0, refunds_amount: 0, net_amount: 30000 },
-      { method: 'MTN_MOMO', payments_count: 1, payments_amount: 20000, reversals_amount: 0, refunds_amount: 0, net_amount: 20000 },
+      {
+        method: 'CASH',
+        payments_count: 1,
+        payments_amount: 30000,
+        reversals_amount: 0,
+        refunds_amount: 0,
+        net_amount: 30000,
+      },
+      {
+        method: 'MTN_MOMO',
+        payments_count: 1,
+        payments_amount: 20000,
+        reversals_amount: 0,
+        refunds_amount: 0,
+        net_amount: 20000,
+      },
     ],
     net_total: 50000,
     sessions: [
@@ -70,7 +84,9 @@ describe('caisse du jour', () => {
     expect(text).toContain('Factures émises ce jour')
     expect(text).toContain('Reste à encaisser (factures ouvertes)')
     expect(text).toContain('Caisse (démonstration)')
-    expect(root.querySelector('[data-montant="total-jour"]')?.textContent?.replace(/\s/g, ' ')).toContain('50 000')
+    expect(
+      root.querySelector('[data-montant="total-jour"]')?.textContent?.replace(/\s/g, ' '),
+    ).toContain('50 000')
     expect(forbiddenWordsIn(root)).toEqual([])
 
     unmount()
@@ -79,7 +95,9 @@ describe('caisse du jour', () => {
   it('une caissière ne voit que ses encaissements : ni ventes du cabinet ni créances', async () => {
     const api = stubSalesApi({ permissions: CASHIER })
     api.on('GET', /^\/api\/v1\/reports\/cash-day$/, () =>
-      json(200, { data: report({ scope: 'OWN', issued: null, credited: null, outstanding: null }) }),
+      json(200, {
+        data: report({ scope: 'OWN', issued: null, credited: null, outstanding: null }),
+      }),
     )
     const { root, unmount } = await openApp(PAGE)
 
@@ -97,14 +115,25 @@ describe('caisse du jour', () => {
       json(200, {
         data:
           request.query.get('date') === '2026-10-14'
-            ? report({ date: '2026-10-14', scope: 'OWN', collections: [], net_total: 0, sessions: [], issued: null, credited: null, outstanding: null })
+            ? report({
+                date: '2026-10-14',
+                scope: 'OWN',
+                collections: [],
+                net_total: 0,
+                sessions: [],
+                issued: null,
+                credited: null,
+                outstanding: null,
+              })
             : report({ scope: 'OWN', issued: null, credited: null, outstanding: null }),
       }),
     )
     const { root, unmount } = await openApp(PAGE)
 
     await typeInto(root, 'caisse-jour-date', '14/10/2026')
-    root.querySelector('form[role="search"]')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    root
+      .querySelector('form[role="search"]')
+      ?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     await vi.waitFor(() => expect(textOf(root)).toContain('Aucun encaissement ce jour-là'))
     const calls = callsTo(api, 'GET', /^\/api\/v1\/reports\/cash-day$/)
     expect(calls.at(-1)?.query.get('date')).toBe('2026-10-14')

@@ -16,7 +16,11 @@ import TextField from '@/components/form/TextField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import { categoryLabel, stockModeLabel } from '@/domain/billing/catalog'
-import type { CatalogItem, CatalogPage as CatalogPageResponse, TaxRule } from '@/domain/contracts/generated'
+import type {
+  CatalogItem,
+  CatalogPage as CatalogPageResponse,
+  TaxRule,
+} from '@/domain/contracts/generated'
 import { useServerRead } from '@/pages/today/useServerRead'
 
 import CatalogItemForm from './CatalogItemForm.vue'
@@ -84,7 +88,9 @@ async function onReload(): Promise<void> {
   await read.reload()
   const id = editing.value
   latest.value =
-    id === null || id === 'new' ? null : (read.data.value?.data.find((item) => item.id === id) ?? null)
+    id === null || id === 'new'
+      ? null
+      : (read.data.value?.data.find((item) => item.id === id) ?? null)
 }
 </script>
 
@@ -107,7 +113,12 @@ async function onReload(): Promise<void> {
       @cancel="editing = null"
     />
 
-    <form role="search" aria-label="Rechercher dans le catalogue" class="flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="applySearch">
+    <form
+      role="search"
+      aria-label="Rechercher dans le catalogue"
+      class="flex flex-col gap-3 sm:flex-row sm:items-end"
+      @submit.prevent="applySearch"
+    >
       <div class="grow">
         <TextField
           v-model="query"
@@ -157,12 +168,14 @@ async function onReload(): Promise<void> {
             {{ ruleLabel(item.tax_rule_id) }}
             <template v-if="withCost && item.purchase_cost !== undefined">
               · coût d’achat :
-              {{ item.purchase_cost === null ? 'inconnu' : formatMoney(item.purchase_cost) }}</template
+              {{
+                item.purchase_cost === null ? 'inconnu' : formatMoney(item.purchase_cost)
+              }}</template
             >
           </p>
           <p class="text-sm font-medium">
-            <span aria-hidden="true">{{ item.active ? '✓' : '–' }} </span
-            >{{ item.active ? 'Actif' : 'Désactivé' }}
+            <span aria-hidden="true">{{ item.active ? '✓' : '–' }}</span>
+            {{ item.active ? 'Actif' : 'Désactivé' }}
           </p>
           <AppButton
             v-if="editing !== item.id"

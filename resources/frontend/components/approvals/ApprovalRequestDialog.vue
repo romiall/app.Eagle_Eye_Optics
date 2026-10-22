@@ -47,7 +47,9 @@ const error = ref<string | null>(null)
 
 const saving = computed(() => mutation.state.value === 'saving')
 const title = computed(() =>
-  props.subject === null ? 'Demander une approbation' : `Demander : ${KIND_LABELS[props.subject.kind]}`,
+  props.subject === null
+    ? 'Demander une approbation'
+    : `Demander : ${KIND_LABELS[props.subject.kind]}`,
 )
 
 watch(
@@ -112,8 +114,8 @@ async function confirm(): Promise<void> {
     <div class="space-y-3">
       <p v-if="props.summary">{{ props.summary }}</p>
       <p class="text-sm text-muted">
-        La demande porte sur ce contenu exact : s’il change, une nouvelle demande sera nécessaire. Rien
-        n’est accordé tant que la gérante n’a pas décidé.
+        La demande porte sur ce contenu exact : s’il change, une nouvelle demande sera nécessaire.
+        Rien n’est accordé tant que la gérante n’a pas décidé.
       </p>
       <form novalidate @submit.prevent="confirm">
         <TextAreaField

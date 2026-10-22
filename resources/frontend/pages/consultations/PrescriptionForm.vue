@@ -65,8 +65,14 @@ const COLUMNS: OpticalColumn[] = [
   { key: 'fitting_height', label: 'Hauteur de montage', unit: 'mm' },
 ]
 
-const usageOptions = CLINICAL_TERMS.OPTICAL_USAGE.map((term) => ({ value: term.code, label: term.label }))
-const typeOptions = CLINICAL_TERMS.LENS_TYPE.map((term) => ({ value: term.code, label: term.label }))
+const usageOptions = CLINICAL_TERMS.OPTICAL_USAGE.map((term) => ({
+  value: term.code,
+  label: term.label,
+}))
+const typeOptions = CLINICAL_TERMS.LENS_TYPE.map((term) => ({
+  value: term.code,
+  label: term.label,
+}))
 const indexOptions = [
   ...LENS_INDEXES.map((value) => ({ value, label: value })),
   { value: LENS_INDEX_OTHER, label: 'Autre' },
@@ -84,7 +90,10 @@ function patch(changes: Partial<PrescriptionDraft>): void {
 }
 
 function patchEye(eye: PrescriptionEye, changes: Partial<PrescriptionEyeDraft>): void {
-  model.value = { ...model.value, eyes: { ...model.value.eyes, [eye]: { ...model.value.eyes[eye], ...changes } } }
+  model.value = {
+    ...model.value,
+    eyes: { ...model.value.eyes, [eye]: { ...model.value.eyes[eye], ...changes } },
+  }
 }
 
 function valueOf(eye: PrescriptionEye, column: string): string {
@@ -131,7 +140,10 @@ function chooseType(value: string | null): void {
 }
 
 function chooseIndex(value: string | null): void {
-  patch({ lensIndex: value, lensIndexOther: value === LENS_INDEX_OTHER ? model.value.lensIndexOther : '' })
+  patch({
+    lensIndex: value,
+    lensIndexOther: value === LENS_INDEX_OTHER ? model.value.lensIndexOther : '',
+  })
 }
 </script>
 

@@ -48,14 +48,18 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
     })
 
     await page.goto('/documents/apercu')
-    await expect(page.getByRole('heading', { level: 1, name: 'Aperçu des documents' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Aperçu des documents' }),
+    ).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Données fictives de démonstration')
     await expect(page.getByRole('main')).toContainText('ne sont conservées nulle part')
 
     // Premier document : la facture courte, générée par jsPDF dans la page.
     const preview = page.getByRole('region', { name: /^Aperçu : Facture courte/ })
     await expect(preview).toBeVisible({ timeout: 60_000 })
-    await expect(preview.getByRole('img', { name: 'Page 1 sur 1 : Facture courte (80 000 FCFA)' })).toBeVisible()
+    await expect(
+      preview.getByRole('img', { name: 'Page 1 sur 1 : Facture courte (80 000 FCFA)' }),
+    ).toBeVisible()
     await preview.getByText('Lire le contenu de la page 1 en texte').click()
     await expect(preview).toContainText('Numéro | TEST-FAC-000001')
     await expect(preview).toContainText('DOCUMENT DE TEST')
@@ -88,7 +92,9 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
     await expect(preview).toBeVisible({ timeout: 60_000 })
 
     await context.setOffline(true)
-    await page.getByLabel('Document à afficher').selectOption({ label: 'Reçu d’acompte (30 000 FCFA)' })
+    await page
+      .getByLabel('Document à afficher')
+      .selectOption({ label: 'Reçu d’acompte (30 000 FCFA)' })
     const receipt = page.getByRole('region', { name: /^Aperçu : Reçu d’acompte/ })
     await expect(receipt).toBeVisible({ timeout: 30_000 })
     await receipt.getByText('Lire le contenu de la page 1 en texte').click()
@@ -99,7 +105,11 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
     await receipt.getByRole('button', { name: 'Télécharger le PDF' }).click()
     const download = await downloading
     expect(download.suggestedFilename()).toBe('recu-TEST-REC-000001.pdf')
-    expect(readFileSync(await download.path()).subarray(0, 5).toString('latin1')).toBe('%PDF-')
+    expect(
+      readFileSync(await download.path())
+        .subarray(0, 5)
+        .toString('latin1'),
+    ).toBe('%PDF-')
     await context.setOffline(false)
   })
 
@@ -112,8 +122,16 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
     const options = await select.locator('option').allTextContents()
 
     expect(options.some((label) => label.startsWith('Reçu d’acompte'))).toBe(true)
-    for (const clinical of ['Prescription', 'Ordonnance', 'Lettre d’orientation', 'Fiche de consultation']) {
-      expect(options.some((label) => label.includes(clinical)), clinical).toBe(false)
+    for (const clinical of [
+      'Prescription',
+      'Ordonnance',
+      'Lettre d’orientation',
+      'Fiche de consultation',
+    ]) {
+      expect(
+        options.some((label) => label.includes(clinical)),
+        clinical,
+      ).toBe(false)
     }
 
     await context.clearCookies()

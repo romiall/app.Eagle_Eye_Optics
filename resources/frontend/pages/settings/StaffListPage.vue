@@ -81,9 +81,7 @@ function goToPage(next: number): void {
               >{{ member.display_name }}</RouterLink
             >
             <span class="text-base">
-              <template v-if="member.active"
-                ><span aria-hidden="true">● </span>Actif</template
-              >
+              <template v-if="member.active"><span aria-hidden="true">● </span>Actif</template>
               <template v-else><span aria-hidden="true">○ </span>Désactivé</template>
             </span>
           </p>
@@ -100,7 +98,6 @@ function goToPage(next: number): void {
         :total="result.meta.total"
         label="Pagination du personnel"
         unit="comptes"
-        :busy="read.state.value === 'loading'"
         @page="goToPage"
       />
 

@@ -5,6 +5,7 @@ namespace Tests\Feature\Clinical;
 use App\Domain\Shared\Ulid;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\ClinicalFixtures;
 use Tests\Support\MigratedDatabase;
 use Tests\TestCase;
@@ -61,7 +62,7 @@ final class ListConsultationsTest extends TestCase
     /**
      * @param  array<string, string>  $query
      */
-    private function list(array $query = [], ?User $as = null): \Illuminate\Testing\TestResponse
+    private function list(array $query = [], ?User $as = null): TestResponse
     {
         $suffix = $query === [] ? '' : '?'.http_build_query($query);
 

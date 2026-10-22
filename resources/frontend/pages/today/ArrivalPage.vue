@@ -481,7 +481,9 @@ async function retry(): Promise<void> {
           :error="errors.reason ?? null"
           :disabled="busy"
         />
-        <p v-if="reason" class="text-sm text-muted">{{ reasonHint(reason, examFeeControlledOnScreen()) }}</p>
+        <p v-if="reason" class="text-sm text-muted">
+          {{ reasonHint(reason, examFeeControlledOnScreen()) }}
+        </p>
       </div>
 
       <TextAreaField

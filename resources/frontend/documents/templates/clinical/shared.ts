@@ -76,9 +76,7 @@ function column(
 }
 
 function hasValue(eye: PrescriptionEye): boolean {
-  return (
-    eye.sphere !== null || eye.cylinder !== null || eye.axis !== null || eye.addition !== null
-  )
+  return eye.sphere !== null || eye.cylinder !== null || eye.axis !== null || eye.addition !== null
 }
 
 /** Un nombre décimal canonique est non nul s'il contient un chiffre autre que zéro. */
@@ -103,7 +101,11 @@ export function prescriptionBlocks(body: PrescriptionBody, strict: boolean): Pre
   }
   const [first, second] = body.eyes
   if (first.eye !== 'OD' || second.eye !== 'OG') {
-    throw invalid('prescription.eye_order', 'eyes', 'Les yeux se présentent dans l’ordre OD puis OG.')
+    throw invalid(
+      'prescription.eye_order',
+      'eyes',
+      'Les yeux se présentent dans l’ordre OD puis OG.',
+    )
   }
   for (const eye of body.eyes) {
     const name = eye.eye
@@ -194,7 +196,10 @@ export function medicationTable(
         column('duration', 'Durée', { mm: 18 }, 'left'),
         column('instructions', 'Instructions', { fr: 1 }, 'left'),
       ]
-    : [column('name', 'Produit', { fr: 1 }, 'left'), column('detail', 'Prescription', { fr: 2 }, 'left')]
+    : [
+        column('name', 'Produit', { fr: 1 }, 'left'),
+        column('detail', 'Prescription', { fr: 2 }, 'left'),
+      ]
   const rows = items.map((item) =>
     wide
       ? row([
@@ -231,7 +236,10 @@ export function prescriptionDetailRows(body: PrescriptionBody): FieldRow[] {
     { label: 'Usage', value: body.usage ?? MISSING },
     { label: 'Type de verre', value: body.lensType ?? MISSING },
     { label: 'Indice', value: body.lensIndex ?? MISSING },
-    { label: 'Traitements', value: body.treatments.length > 0 ? body.treatments.join(', ') : MISSING },
+    {
+      label: 'Traitements',
+      value: body.treatments.length > 0 ? body.treatments.join(', ') : MISSING,
+    },
   )
   if (body.notes !== null && body.notes.trim() !== '') {
     rows.push({ label: 'Observations', value: body.notes })

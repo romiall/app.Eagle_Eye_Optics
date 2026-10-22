@@ -17,7 +17,11 @@ describe('clinicFromIdentity', () => {
     email: null,
     tax_identifier: 'NIU-FICTIF-0001',
     professional_mentions: 'Mentions fictives',
-    document_settings: { header_lines: ['Ligne fictive'], payment_terms: 'Conditions fictives', autre: 1 },
+    document_settings: {
+      header_lines: ['Ligne fictive'],
+      payment_terms: 'Conditions fictives',
+      autre: 1,
+    },
     production_documents_enabled: false,
   }
 
@@ -36,7 +40,9 @@ describe('clinicFromIdentity', () => {
   })
 
   it('documents officiels activés : plus de marque de test', () => {
-    expect(clinicFromIdentity({ ...identity, production_documents_enabled: true }).testDocument).toBe(false)
+    expect(
+      clinicFromIdentity({ ...identity, production_documents_enabled: true }).testDocument,
+    ).toBe(false)
   })
 
   it('apporte plus que le résumé du compte, qui n’a que le nom', () => {

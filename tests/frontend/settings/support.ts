@@ -43,8 +43,18 @@ export const MANAGER_PERMISSIONS = [
   'approval.decide',
   'audit.read',
 ]
-export const RECEPTION_PERMISSIONS = ['patient.read', 'patient.create', 'visit.register', 'agenda.read']
-export const CLINICIAN_PERMISSIONS = ['patient.read', 'visit.register', 'clinical.read', 'clinical.write']
+export const RECEPTION_PERMISSIONS = [
+  'patient.read',
+  'patient.create',
+  'visit.register',
+  'agenda.read',
+]
+export const CLINICIAN_PERMISSIONS = [
+  'patient.read',
+  'visit.register',
+  'clinical.read',
+  'clinical.write',
+]
 
 export async function settle(rounds = 6): Promise<void> {
   for (let round = 0; round < rounds; round += 1) await flushPromises()
@@ -53,7 +63,8 @@ export async function settle(rounds = 6): Promise<void> {
 /** Clic comme l'utilisateur ; un bouton d'envoi soumet son formulaire (jsdom). */
 export async function click(element: Element | null): Promise<void> {
   if (element === null) throw new Error('Élément à cliquer introuvable.')
-  const form = element instanceof HTMLButtonElement && element.type === 'submit' ? element.form : null
+  const form =
+    element instanceof HTMLButtonElement && element.type === 'submit' ? element.form : null
   if (form !== null) {
     if (!element.hasAttribute('disabled')) {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))

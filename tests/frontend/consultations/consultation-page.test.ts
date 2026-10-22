@@ -304,7 +304,9 @@ describe('identité du patient', () => {
 
     expect(textOf(root)).toContain('PATIENT FICTIF Élodie Marie')
     expect(root.querySelector('form')).not.toBeNull()
-    expect(api.requests.filter((request) => request.path === `/api/v1/patients/${ID_A}`)).toHaveLength(0)
+    expect(
+      api.requests.filter((request) => request.path === `/api/v1/patients/${ID_A}`),
+    ).toHaveLength(0)
     unmount()
   })
 
@@ -315,7 +317,9 @@ describe('identité du patient', () => {
     })
     const { root, unmount } = await openConsultation()
 
-    const banner = textOf(root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement)
+    const banner = textOf(
+      root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement,
+    )
     expect(banner).toContain('PATIENT FICTIF Élodie Marie')
     expect(banner).toContain('Dossier EE-2026-0001')
     unmount()
@@ -324,7 +328,9 @@ describe('identité du patient', () => {
   it('l’en-tête montre le patient de la consultation, jamais une autre fiche', async () => {
     stubConsultationApi({
       patient: patient({ id: '01J9ZXK4M2Q8R7S6T5V4W39998', last_name: 'AUTRE PATIENT' }),
-      consultation: consultation({ patient: patientSummary(patient({ last_name: 'PATIENT DE LA CONSULTATION' })) }),
+      consultation: consultation({
+        patient: patientSummary(patient({ last_name: 'PATIENT DE LA CONSULTATION' })),
+      }),
     })
     const { root, unmount } = await openConsultation()
 
@@ -365,15 +371,18 @@ describe('droits et module', () => {
     unmount()
   })
 
-  it('l’entrée « Consultations » du menu n’a pas d’écran de liste : elle n’est pas proposée', async () => {
+  // L'entrée « Consultations » a désormais son écran de liste (liste des examens, phase 1) : elle est
+  // proposée avec clinical.read et mène à cette liste. Sans ce droit, elle reste cachée
+  // (tests/frontend/shell/navigation.test.ts, profil caisse).
+  it('l’entrée « Consultations » du menu mène à la liste des examens', async () => {
     stubConsultationApi()
     const { root, unmount } = await openConsultation()
 
     const menu = [...root.querySelectorAll('nav[aria-label="Navigation principale"] a')].map(
       (link) => link.textContent?.trim(),
     )
-    expect(menu).not.toContain('Consultations')
-    expect(linkTo(root, '/consultations')).toBeNull()
+    expect(menu).toContain('Consultations')
+    expect(linkTo(root, '/consultations')).not.toBeNull()
     unmount()
   })
 
@@ -446,7 +455,9 @@ describe('droits et module', () => {
     expect(buttonByName(root, 'Corriger l’examen')).not.toBeNull()
     expect(linkTo(root, `/consultations/${CONSULTATION_ID}/historique`)).not.toBeNull()
     const controls = [
-      ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('main form input, main form textarea'),
+      ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        'main form input, main form textarea',
+      ),
     ]
     expect(controls.every((control) => control.disabled)).toBe(true)
     unmount()
@@ -455,7 +466,11 @@ describe('droits et module', () => {
   it('sans clinical.amend, un examen terminé ne propose pas de correction', async () => {
     stubConsultationApi({
       permissions: READ_ONLY,
-      consultation: consultation({ status: 'COMPLETED', current_revision: 1, completed_at: '2026-10-22T09:50:00.000Z' }),
+      consultation: consultation({
+        status: 'COMPLETED',
+        current_revision: 1,
+        completed_at: '2026-10-22T09:50:00.000Z',
+      }),
     })
     const { root, unmount } = await openConsultation()
 

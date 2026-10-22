@@ -64,7 +64,11 @@ const persistent = clinicalDocumentsPersistent()
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
 
-    <StateMessage v-if="status === 'loading'" state="loading" title="Préparation du PDF sur ce poste…" />
+    <StateMessage
+      v-if="status === 'loading'"
+      state="loading"
+      title="Préparation du PDF sur ce poste…"
+    />
     <StateMessage v-else-if="status === 'error' && failure" state="error" :title="failure.title">
       {{ failure.message }}
     </StateMessage>

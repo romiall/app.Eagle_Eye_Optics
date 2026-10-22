@@ -120,7 +120,10 @@ describe('écran d’aperçu des documents (données fictives)', () => {
 
     expect(labels.length).toBe(DEMO_DOCUMENTS.filter((entry) => !entry.clinical).length + 1)
     for (const forbidden of ['Prescription', 'Ordonnance', 'Lettre', 'Fiche de consultation']) {
-      expect(labels.some((label) => label.includes(forbidden)), forbidden).toBe(false)
+      expect(
+        labels.some((label) => label.includes(forbidden)),
+        forbidden,
+      ).toBe(false)
     }
     const kinds = vi.mocked(renderDocument).mock.calls.map((call) => call[0].kind)
     for (const kind of kinds) expect(CLINICAL).not.toContain(kind)
@@ -133,7 +136,10 @@ describe('écran d’aperçu des documents (données fictives)', () => {
 
     expect(labels.length).toBe(DEMO_DOCUMENTS.filter((entry) => entry.clinical).length + 1)
     for (const forbidden of ['Facture', 'Reçu', 'Avoir', 'État de compte', 'caisse']) {
-      expect(labels.some((label) => label.includes(forbidden)), forbidden).toBe(false)
+      expect(
+        labels.some((label) => label.includes(forbidden)),
+        forbidden,
+      ).toBe(false)
     }
   })
 
@@ -142,7 +148,9 @@ describe('écran d’aperçu des documents (données fictives)', () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find('select').exists()).toBe(false)
-    expect(wrapper.text()).toContain('Aucun document de démonstration n’est accessible avec ces droits')
+    expect(wrapper.text()).toContain(
+      'Aucun document de démonstration n’est accessible avec ces droits',
+    )
     expect(vi.mocked(renderDocument)).not.toHaveBeenCalled()
   })
 
@@ -157,7 +165,11 @@ describe('écran d’aperçu des documents (données fictives)', () => {
 
   it('une erreur de données est dite avec son message sûr', async () => {
     state.render = async () => {
-      throw new DocumentDataError('invoice.total_mismatch', 'total_gross', 'Le total diffère des lignes.')
+      throw new DocumentDataError(
+        'invoice.total_mismatch',
+        'total_gross',
+        'Le total diffère des lignes.',
+      )
     }
     const wrapper = await mountPage()
     const alert = wrapper.get('[role="alert"]')
@@ -189,7 +201,8 @@ describe('écran d’aperçu des documents (données fictives)', () => {
 
     const invoice = DEMO_DOCUMENTS.find((entry) => entry.id === 'facture-courte')?.build()
     const order = DEMO_DOCUMENTS.find((entry) => entry.id === 'ordonnance')?.build()
-    if (invoice === undefined || order === undefined) throw new Error('Documents de démonstration absents.')
+    if (invoice === undefined || order === undefined)
+      throw new Error('Documents de démonstration absents.')
     pending.get('MEDICATION_ORDER')?.(fakeRendered(order))
     await flushPromises()
     pending.get('INVOICE')?.(fakeRendered(invoice))

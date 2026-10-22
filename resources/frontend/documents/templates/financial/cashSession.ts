@@ -93,7 +93,10 @@ export function buildCashSessionReport(
   const drawer = [
     totalRow('Fond de caisse à l’ouverture', formatXaf(data.openingAmount, 'opening_amount')),
     totalRow('Encaissements en espèces', formatXaf(data.cashReceived, 'cash_received')),
-    totalRow('Remboursements en espèces (à déduire)', formatXaf(data.cashRefunded, 'cash_refunded')),
+    totalRow(
+      'Remboursements en espèces (à déduire)',
+      formatXaf(data.cashRefunded, 'cash_refunded'),
+    ),
     totalRow('Entrées autorisées', formatXaf(data.cashIn, 'cash_in')),
     totalRow('Sorties autorisées (à déduire)', formatXaf(data.cashOut, 'cash_out')),
     totalRow('Espèces attendues', formatXaf(data.expectedAmount, 'expected_amount'), true),

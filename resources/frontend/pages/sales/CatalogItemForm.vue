@@ -61,7 +61,9 @@ const emit = defineEmits<{ saved: [item: CatalogItem]; cancel: []; reload: [] }>
 
 const mutation = useMutation()
 const baseline = shallowRef<CatalogItem | null>(props.item)
-const form = ref<CatalogItemForm>(props.item === null ? blankCatalogForm() : catalogFormFromItem(props.item))
+const form = ref<CatalogItemForm>(
+  props.item === null ? blankCatalogForm() : catalogFormFromItem(props.item),
+)
 const initial = JSON.stringify(form.value)
 const errors = ref<CatalogErrors>({})
 const general = ref<string | null>(null)
@@ -80,13 +82,18 @@ const failure = computed(() =>
 const dirty = computed(() => !saved.value && JSON.stringify(form.value) !== initial)
 useUnsavedChangesGuard(dirty)
 
-const prefix = computed(() => (props.item === null ? 'article-nouveau' : `article-${props.item.id}`))
+const prefix = computed(() =>
+  props.item === null ? 'article-nouveau' : `article-${props.item.id}`,
+)
 function fieldId(field: CatalogField): string {
   return `${prefix.value}-${field}`
 }
 
 const categoryOptions = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }))
-const unitOptions = Object.keys(UNIT_INTEGER_ONLY).map((value) => ({ value, label: unitLabel(value) }))
+const unitOptions = Object.keys(UNIT_INTEGER_ONLY).map((value) => ({
+  value,
+  label: unitLabel(value),
+}))
 const stockOptions = (Object.keys(STOCK_MODE_LABELS) as CatalogItemsStockMode[]).map((value) => ({
   value,
   label: STOCK_MODE_LABELS[value],
@@ -163,7 +170,11 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
       }
       errors.value = byField
       general.value =
-        others.length > 0 ? others.join(' ') : Object.keys(byField).length === 0 ? result.error.message : null
+        others.length > 0
+          ? others.join(' ')
+          : Object.keys(byField).length === 0
+            ? result.error.message
+            : null
       await summaryBox.value?.focus()
       return
     }
@@ -195,7 +206,8 @@ async function submit(): Promise<void> {
   const checked = validateCatalogForm(form.value)
   if (!committed || !checked.ok) {
     errors.value = checked.ok ? {} : checked.errors
-    if (!committed && checked.ok) general.value = 'Certaines valeurs saisies sont refusées : corrigez-les.'
+    if (!committed && checked.ok)
+      general.value = 'Certaines valeurs saisies sont refusées : corrigez-les.'
     await summaryBox.value?.focus()
     return
   }

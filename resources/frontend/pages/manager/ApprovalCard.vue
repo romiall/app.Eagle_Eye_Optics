@@ -13,7 +13,6 @@ import { formatInstantFr } from '@/app/clinicTime'
 import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, knownAccountId, revalidateSession } from '@/app/session'
-import StateMessage from '@/components/feedback/StateMessage.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -32,12 +31,15 @@ import { formatMoney, paymentMethodLabel } from '@/pages/sales/format'
 
 const props = defineProps<{ approval: Approval }>()
 
-const emit = defineEmits<{ decided: [] }>()
+/**
+ * `decided` : la liste est à relire. Le message de réussite est rendu par la page : la relecture
+ * remplace la liste (et cette carte) ; une demande décidée sort d'ailleurs de « En attente ».
+ */
+const emit = defineEmits<{ decided: [notice: string | null] }>()
 
 const mutation = useMutation()
 const reason = ref('')
 const error = ref<string | null>(null)
-const notice = ref<string | null>(null)
 const askingPassword = ref(false)
 const choice = ref<'APPROVED' | 'REFUSED' | null>(null)
 
@@ -62,13 +64,14 @@ const patient = computed(() => {
 async function afterOutcome(outcome: MutationOutcome): Promise<void> {
   switch (outcome.kind) {
     case 'synced':
-      notice.value =
-        choice.value === 'APPROVED'
-          ? 'Approbation accordée et enregistrée sur le serveur.'
-          : 'Refus enregistré sur le serveur.'
       reason.value = ''
       mutation.reset()
-      emit('decided')
+      emit(
+        'decided',
+        choice.value === 'APPROVED'
+          ? 'Approbation accordée et enregistrée sur le serveur.'
+          : 'Refus enregistré sur le serveur.',
+      )
       return
     case 'reauthentication-required':
       askingPassword.value = true
@@ -76,7 +79,7 @@ async function afterOutcome(outcome: MutationOutcome): Promise<void> {
     case 'refused':
     case 'conflict':
       error.value = outcome.error.fields['reason']?.[0] ?? outcome.error.message
-      if (outcome.error.status === 409) emit('decided')
+      if (outcome.error.status === 409) emit('decided', null)
       return
     case 'session-expired':
       void revalidateSession().catch(() => undefined)
@@ -89,7 +92,6 @@ async function afterOutcome(outcome: MutationOutcome): Promise<void> {
 
 async function decide(decision: 'APPROVED' | 'REFUSED'): Promise<void> {
   if (saving.value) return
-  notice.value = null
   const checked = buildDecision(props.approval.id, decision, reason.value)
   if (!checked.ok) {
     error.value = checked.error
@@ -118,8 +120,9 @@ async function passwordConfirmed(): Promise<void> {
     <header class="flex flex-wrap items-baseline justify-between gap-2">
       <h3 class="text-lg font-semibold">{{ kindLabel(props.approval.kind) }}</h3>
       <p class="font-medium">
-        <span aria-hidden="true">{{ statusSymbol(props.approval.effective_status) }} </span
-        ><span class="sr-only">Statut : </span>{{ statusLabel(props.approval.effective_status) }}
+        <span aria-hidden="true">{{ statusSymbol(props.approval.effective_status) }}</span
+        ><span class="sr-only">Statut :</span>
+        {{ statusLabel(props.approval.effective_status) }}
       </p>
     </header>
 
@@ -171,10 +174,6 @@ async function passwordConfirmed(): Promise<void> {
         <dd class="break-words whitespace-pre-line">{{ props.approval.decision_reason }}</dd>
       </template>
     </dl>
-
-    <StateMessage v-if="notice" state="success" title="Décision enregistrée">{{
-      notice
-    }}</StateMessage>
 
     <p v-if="own && isDecidable(props.approval)" class="text-sm text-muted">
       Vous avez fait cette demande : une autre personne habilitée la décide. Pour agir vous-même,

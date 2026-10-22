@@ -84,8 +84,8 @@ async function confirm(): Promise<void> {
     <div class="space-y-3">
       <p>
         {{ props.action }} est une opération sensible : confirmez le mot de passe du compte
-        <strong>{{ session.account?.display_name ?? 'connecté' }}</strong>. Vos saisies sont
-        conservées et l’enregistrement reprendra ensuite, sans doublon.
+        <strong>{{ session.account?.display_name ?? 'connecté' }}</strong
+        >. Vos saisies sont conservées et l’enregistrement reprendra ensuite, sans doublon.
       </p>
       <form novalidate @submit.prevent="confirm">
         <TextField

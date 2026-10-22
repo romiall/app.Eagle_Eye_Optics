@@ -80,7 +80,7 @@ function setTerms(group: HistoryGroup, rows: TermRow[]): void {
       />
       <p class="text-sm font-medium text-ink">
         <span class="sr-only">{{ HISTORY_GROUP_LABELS[group] }}, </span
-        ><span aria-hidden="true">{{ status(group).symbol }} </span>État : {{ status(group).text }}
+        ><span aria-hidden="true">{{ status(group).symbol }}</span> État : {{ status(group).text }}
       </p>
     </section>
   </div>

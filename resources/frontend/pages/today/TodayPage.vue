@@ -102,9 +102,9 @@ function goToPage(next: number): void {
     <StateMessage v-if="flash" state="success" :title="flash" />
 
     <p v-if="examFeeControlled" class="max-w-prose text-muted">
-      Les frais d’examen sont contrôlés : un examen de vue ou un contrôle de suivi ne démarre qu’avec
-      la facture de frais de la visite encaissée, ou une dispense accordée par la gérante. Un achat
-      direct ou un retrait de commande n’impose aucun examen.
+      Les frais d’examen sont contrôlés : un examen de vue ou un contrôle de suivi ne démarre
+      qu’avec la facture de frais de la visite encaissée, ou une dispense accordée par la gérante.
+      Un achat direct ou un retrait de commande n’impose aucun examen.
     </p>
     <p v-else class="max-w-prose text-muted">
       <span aria-hidden="true">⚠ </span>Le contrôle du paiement de l’examen n’est pas encore actif.

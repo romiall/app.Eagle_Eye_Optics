@@ -85,7 +85,10 @@ final class CompleteConsultationTest extends TestCase
         $this->assertSame($revision->sha256, RevisionHash::hash($snapshot), 'L\'empreinte de la révision est le SHA-256 de la forme canonique du snapshot.');
         $this->assertSame($body['snapshot_sha256'], RevisionHash::hash($snapshot['steps']), 'L\'empreinte des rubriques est celle que le poste a calculée sur ce qu\'il a lu.');
         $this->assertSame([$this->consultationId, 1, $this->visitId, $this->patientId, $this->clinician->id], [$snapshot['consultation_id'], $snapshot['revision_no'], $snapshot['visit_id'], $snapshot['patient']['patient_id'], $snapshot['author']['user_id']]);
-        $this->assertSame(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS', 'CONCLUSION'], array_keys($snapshot['steps']));
+        // Toutes les rubriques, ni plus ni moins. La colonne JSON MySQL ne conserve pas l'ordre des clés (tri par
+        // longueur) : l'ordre clinique n'est pas porté par le snapshot, l'empreinte se calcule sur la forme canonique.
+        $this->assertEqualsCanonicalizing(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS', 'CONCLUSION'], array_keys($snapshot['steps']));
+        $this->assertCount(7, $snapshot['steps']);
         $this->assertNull($snapshot['previous_revision_id']);
         $this->assertNull($snapshot['amendment_reason']);
         $this->assertSame('Conclusion fictive', $snapshot['steps']['CONCLUSION']['conclusion']);

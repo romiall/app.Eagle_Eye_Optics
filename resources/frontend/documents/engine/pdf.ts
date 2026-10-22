@@ -112,7 +112,8 @@ function drawOp(doc: jsPDF, op: DrawOp): void {
         doc.setLineWidth(op.lineWidthMm)
         setDash(doc, op.dashMm)
       }
-      const style = op.fillGray !== null && op.strokeGray !== null ? 'FD' : op.fillGray !== null ? 'F' : 'S'
+      const style =
+        op.fillGray !== null && op.strokeGray !== null ? 'FD' : op.fillGray !== null ? 'F' : 'S'
       doc.rect(op.x, op.y, op.w, op.h, style)
       return
     }

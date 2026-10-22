@@ -199,7 +199,11 @@ export function acuityErrors(draft: VisualAcuityDraft): StepError[] {
     index += 1
     const message = textError(cell.value, `Valeur lue (${slotLabel(slot)})`, ACUITY_RAW_MAX, true)
     if (message !== null) {
-      errors.push({ path: `${path}.raw_value`, controlId: CONTROL_IDS.acuityValue(slot.key), message })
+      errors.push({
+        path: `${path}.raw_value`,
+        controlId: CONTROL_IDS.acuityValue(slot.key),
+        message,
+      })
     }
     if (cell.scaleId === null) {
       errors.push({

@@ -215,7 +215,9 @@ test.describe('consultation (C01) sur la vraie application', () => {
     await expect(page.getByText('Examen terminé')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Enregistrer', exact: true })).toHaveCount(0)
     await page.getByRole('link', { name: 'Révisions et comparaison' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Révisions de la consultation' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Révisions de la consultation' }),
+    ).toBeVisible()
     await expect(page.getByRole('main')).toContainText('Révision 1')
     await expect(page.getByRole('main')).toContainText('Examen de contrôle à poursuivre')
 
@@ -257,7 +259,9 @@ test.describe('consultation (C01) sur la vraie application', () => {
     await page.getByLabel('Vision floue').check()
     await page.getByRole('button', { name: 'Suivant' }).click()
     for (const step of [2, 3, 4, 5]) {
-      await expect(page.getByRole('heading', { level: 2, name: new RegExp(`Étape ${step} sur 7`) })).toBeVisible()
+      await expect(
+        page.getByRole('heading', { level: 2, name: new RegExp(`Étape ${step} sur 7`) }),
+      ).toBeVisible()
       await page.getByRole('button', { name: 'Suivant' }).click()
     }
     await expect(page.getByRole('heading', { level: 2, name: /Étape 6 sur 7/ })).toBeVisible()
@@ -271,7 +275,9 @@ test.describe('consultation (C01) sur la vraie application', () => {
     await expect(page.getByText(/Enregistré sur le serveur à/)).toBeVisible()
 
     // Examen en cours : aucun document imprimable n'est proposé.
-    await expect(page.getByRole('button', { name: 'Aperçu de l’ordonnance de médicaments' })).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: 'Aperçu de l’ordonnance de médicaments' }),
+    ).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Terminer l’examen' }).click()
     const dialog = page.getByRole('dialog', { name: 'Terminer l’examen ?' })
@@ -281,8 +287,12 @@ test.describe('consultation (C01) sur la vraie application', () => {
     // Ordonnance depuis la révision figée : aperçu, texte, téléchargement d'un vrai PDF au nom sans donnée.
     const documents = page.getByRole('region', { name: 'Documents de l’examen' })
     await expect(documents).toBeVisible()
-    await expect(documents.getByRole('button', { name: 'Aperçu de la fiche de consultation' })).toBeVisible()
-    await expect(documents.getByRole('button', { name: 'Aperçu de la lettre d’orientation' })).toHaveCount(0)
+    await expect(
+      documents.getByRole('button', { name: 'Aperçu de la fiche de consultation' }),
+    ).toBeVisible()
+    await expect(
+      documents.getByRole('button', { name: 'Aperçu de la lettre d’orientation' }),
+    ).toHaveCount(0)
     await documents.getByRole('button', { name: 'Aperçu de l’ordonnance de médicaments' }).click()
     const order = page.getByRole('region', { name: 'Aperçu : Ordonnance de médicaments' })
     await expect(order).toBeVisible({ timeout: 60_000 })
@@ -294,12 +304,18 @@ test.describe('consultation (C01) sur la vraie application', () => {
     await order.getByRole('button', { name: 'Télécharger le PDF' }).click()
     const orderFile = await downloadingOrder
     expect(orderFile.suggestedFilename()).toMatch(/^ordonnance-[0-9]{8}\.pdf$/)
-    expect(readFileSync(await orderFile.path()).subarray(0, 5).toString('latin1')).toBe('%PDF-')
+    expect(
+      readFileSync(await orderFile.path())
+        .subarray(0, 5)
+        .toString('latin1'),
+    ).toBe('%PDF-')
     expect(page.url()).toBe(consultationUrl)
 
     // Prescription optique : rien à imprimer tant qu'elle est un brouillon ; validée, elle s'imprime à part.
     await page.getByRole('link', { name: 'Prescription optique' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Prescription optique' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Prescription optique' }),
+    ).toBeVisible()
     const prescriptionsUrl = page.url()
     await page.getByRole('button', { name: 'Nouvelle prescription' }).click()
     await page.locator('[id="rx-OD-sphere"]').fill('-1,25')

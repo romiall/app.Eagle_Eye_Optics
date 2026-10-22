@@ -56,7 +56,11 @@ type Operation = 'complete' | 'amend'
 
 const MIN_REASON = 3
 
-function setDraft<S extends DeliveredStep>(target: StepDrafts, step: S, value: StepDrafts[S]): void {
+function setDraft<S extends DeliveredStep>(
+  target: StepDrafts,
+  step: S,
+  value: StepDrafts[S],
+): void {
   target[step] = value
 }
 
@@ -163,7 +167,9 @@ export function useConsultationEditor(consultationId: string) {
   const summary_ = computed<CompletionSummary | null>(() =>
     baseline.value === null
       ? null
-      : completionSummary(baseline.value.steps as unknown as Parameters<typeof completionSummary>[0]),
+      : completionSummary(
+          baseline.value.steps as unknown as Parameters<typeof completionSummary>[0],
+        ),
   )
   /** Pourquoi « Terminer l'examen » n'est pas proposé tout de suite (null : il l'est). */
   const finishBlocked = computed<string | null>(() => {
@@ -247,7 +253,10 @@ export function useConsultationEditor(consultationId: string) {
     const fresh = draftsFrom(next)
     const merged = blankDrafts()
     const assign = <S extends DeliveredStep>(step: S): void => {
-      const beforeData = before === null ? null : (before.steps as unknown as { [T in DeliveredStep]: StepDataByName[T] })[step]
+      const beforeData =
+        before === null
+          ? null
+          : (before.steps as unknown as { [T in DeliveredStep]: StepDataByName[T] })[step]
       const take =
         step === savedStep ||
         before === null ||
@@ -275,7 +284,10 @@ export function useConsultationEditor(consultationId: string) {
   let lastAmended: { step: DeliveredStep; data: StepDataByName[DeliveredStep] }[] = []
 
   /** Erreurs 422 d'une finalisation ou d'une correction : le message est rendu près du bouton concerné. */
-  async function showOperationErrors(kind: Operation, fields: Readonly<Record<string, readonly string[]>>): Promise<void> {
+  async function showOperationErrors(
+    kind: Operation,
+    fields: Readonly<Record<string, readonly string[]>>,
+  ): Promise<void> {
     const items: StepError[] = []
     const messages: string[] = []
     for (const [key, list] of Object.entries(fields)) {
@@ -287,14 +299,20 @@ export function useConsultationEditor(consultationId: string) {
           if (sent !== undefined) {
             items.push({
               path: key,
-              controlId: serverErrorTarget(sent.step, sent.data as never, `step.data.${stepMatch[2] ?? ''}`),
+              controlId: serverErrorTarget(
+                sent.step,
+                sent.data as never,
+                `step.data.${stepMatch[2] ?? ''}`,
+              ),
               message: `${STEP_TITLES[sent.step]} : ${message}`,
             })
             continue
           }
         }
         if (kind === 'complete' && complete !== null) {
-          messages.push(`${STEP_TITLES[(complete[1] ?? 'ANAMNESIS') as DeliveredStep] ?? 'Rubrique'} : ${message}`)
+          messages.push(
+            `${STEP_TITLES[(complete[1] ?? 'ANAMNESIS') as DeliveredStep] ?? 'Rubrique'} : ${message}`,
+          )
           continue
         }
         messages.push(message)
@@ -361,7 +379,11 @@ export function useConsultationEditor(consultationId: string) {
           return
         }
         if (outcome.error.status === 422 && lastSent !== null) {
-          const items = serverFieldErrors(lastSent.step, lastSent.data as never, outcome.error.fields)
+          const items = serverFieldErrors(
+            lastSent.step,
+            lastSent.data as never,
+            outcome.error.fields,
+          )
           if (items.length > 0) {
             await showErrors(
               items.map((item) => ({ path: '', controlId: item.controlId, message: item.message })),
@@ -486,7 +508,8 @@ export function useConsultationEditor(consultationId: string) {
     try {
       digest = await stepsDigest(saved.steps)
     } catch (error) {
-      finishError.value = error instanceof Error ? error.message : 'L’empreinte du dossier n’a pas pu être calculée.'
+      finishError.value =
+        error instanceof Error ? error.message : 'L’empreinte du dossier n’a pas pu être calculée.'
       return
     }
     pending.value = null
@@ -496,7 +519,12 @@ export function useConsultationEditor(consultationId: string) {
       await mutation.submit({
         name: 'CompleteConsultation',
         path: { id: consultationId },
-        payload: buildCompletePayload(consultationId, newUlid(), digest, cleanText(finishReason.value)),
+        payload: buildCompletePayload(
+          consultationId,
+          newUlid(),
+          digest,
+          cleanText(finishReason.value),
+        ),
         expectedVersion: saved.version,
       }),
     )
@@ -558,7 +586,10 @@ export function useConsultationEditor(consultationId: string) {
     try {
       digest = await canonicalHash(steps)
     } catch (error) {
-      notice.value = error instanceof Error ? error.message : 'L’empreinte de la correction n’a pas pu être calculée.'
+      notice.value =
+        error instanceof Error
+          ? error.message
+          : 'L’empreinte de la correction n’a pas pu être calculée.'
       return
     }
     const payload = buildAmendPayload(saved, newUlid(), reason, steps, digest)

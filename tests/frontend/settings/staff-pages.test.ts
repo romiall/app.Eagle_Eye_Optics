@@ -36,7 +36,18 @@ describe('liste du personnel', () => {
     stubSettingsApi({
       handlers: {
         'GET /api/v1/staff': () =>
-          json(200, staffPage([member(), member({ id: MANAGER_ID, display_name: 'Gérante Fictive', roles: ['MANAGER'], active: false })])),
+          json(
+            200,
+            staffPage([
+              member(),
+              member({
+                id: MANAGER_ID,
+                display_name: 'Gérante Fictive',
+                roles: ['MANAGER'],
+                active: false,
+              }),
+            ]),
+          ),
       },
     })
     const { root } = await openApp('/parametres/personnel')
@@ -109,12 +120,19 @@ describe('création d’un compte', () => {
             return apiError(423, 'REAUTHENTICATION_REQUIRED', 'Confirmez votre mot de passe.')
           }
           return json(201, {
-            data: member({ id: STAFF_ID, login: String(request.body?.['login']), display_name: 'Caisse Fictive', roles: ['CASHIER'], permissions: ['invoice.read'] }),
+            data: member({
+              id: STAFF_ID,
+              login: String(request.body?.['login']),
+              display_name: 'Caisse Fictive',
+              roles: ['CASHIER'],
+              permissions: ['invoice.read'],
+            }),
           })
         },
         'POST /api/v1/auth/reauthenticate': () =>
           json(200, { data: { reauthenticated_until: '2026-10-22T10:00:00.000Z' } }),
-        'GET /api/v1/staff/:id': () => json(200, { data: member({ display_name: 'Caisse Fictive' }) }),
+        'GET /api/v1/staff/:id': () =>
+          json(200, { data: member({ display_name: 'Caisse Fictive' }) }),
       },
     })
     const { root } = await openApp('/parametres/personnel/nouveau')
@@ -124,7 +142,9 @@ describe('création d’un compte', () => {
 
     // 423 : la boîte de confirmation du mot de passe de la gérante s'ouvre, la saisie reste derrière.
     expect(textOf(root)).toContain('Confirmer votre mot de passe')
-    const confirmation = root.ownerDocument.querySelector<HTMLInputElement>('#confirmation-mot-de-passe')
+    const confirmation = root.ownerDocument.querySelector<HTMLInputElement>(
+      '#confirmation-mot-de-passe',
+    )
     if (confirmation === null) throw new Error('Champ de confirmation introuvable.')
     confirmation.value = 'MotDePasseGerante1'
     confirmation.dispatchEvent(new Event('input', { bubbles: true }))
@@ -164,7 +184,9 @@ describe('création d’un compte', () => {
     await type(root, 'Mot de passe initial', 'MotDePasse2026')
     await click(buttonByName(root, 'Créer le compte'))
 
-    expect(textOf(root)).toContain('Cet identifiant ou cette adresse électronique est déjà utilisé.')
+    expect(textOf(root)).toContain(
+      'Cet identifiant ou cette adresse électronique est déjà utilisé.',
+    )
     expect(textOf(root)).not.toContain('Compte créé')
   })
 })
@@ -206,8 +228,7 @@ describe('fiche d’un compte', () => {
     stubSettingsApi({
       handlers: {
         'GET /api/v1/staff/:id': () => json(200, { data: member() }),
-        'PATCH /api/v1/staff/:id': () =>
-          apiError(409, 'VERSION_CONFLICT', 'Version obsolète.'),
+        'PATCH /api/v1/staff/:id': () => apiError(409, 'VERSION_CONFLICT', 'Version obsolète.'),
       },
     })
     const { root } = await openApp(`/parametres/personnel/${STAFF_ID}`)
@@ -224,7 +245,9 @@ describe('fiche d’un compte', () => {
       handlers: {
         'GET /api/v1/staff/:id': () => json(200, { data: member() }),
         'POST /api/v1/staff/:id/permissions': () =>
-          json(200, { data: member({ version: 4, permissions: ['patient.read', 'invoice.read'] }) }),
+          json(200, {
+            data: member({ version: 4, permissions: ['patient.read', 'invoice.read'] }),
+          }),
       },
     })
     const { root } = await openApp(`/parametres/personnel/${STAFF_ID}`)
@@ -269,13 +292,17 @@ describe('fiche d’un compte', () => {
       accountId: SELF_ID,
       handlers: {
         'GET /api/v1/staff/:id': () =>
-          json(200, { data: member({ id: SELF_ID, roles: ['MANAGER'], display_name: 'Gérante Fictive' }) }),
+          json(200, {
+            data: member({ id: SELF_ID, roles: ['MANAGER'], display_name: 'Gérante Fictive' }),
+          }),
       },
     })
     const { root } = await openApp(`/parametres/personnel/${SELF_ID}`)
     await settle()
 
-    const boxes = [...root.querySelectorAll<HTMLInputElement>('#profil-profils input, #profil-actif')]
+    const boxes = [
+      ...root.querySelectorAll<HTMLInputElement>('#profil-profils input, #profil-actif'),
+    ]
     expect(boxes.length).toBeGreaterThan(0)
     expect(boxes.every((box) => box.disabled)).toBe(true)
     expect(buttonByName(root, 'Enregistrer la dérogation')).toBeNull()
