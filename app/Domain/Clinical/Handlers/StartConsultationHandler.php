@@ -10,6 +10,7 @@ use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
+use App\Domain\Billing\BilledExamFeeControl;
 use App\Domain\Clinical\ExamFeeControl;
 use App\Domain\Clinical\Rules\ClinicalInput;
 use App\Domain\Clinical\Rules\ClinicalSteps;
@@ -27,12 +28,14 @@ use Illuminate\Support\Facades\DB;
  * Démarrage de l'examen d'une visite (EE003, AT18) : crée la consultation en brouillon, rattachée à la visite
  * et au patient, avec le compte connecté pour professionnel, et passe la visite à « en consultation ».
  *
- * Premier jalon, SANS contrôle du paiement de l'examen (B04, B06 absents) : le contrôle passe par
- * `ExamFeeControl`, lié à `UncontrolledExamFee`, qui répond « non contrôlé » et le dit dans l'audit
- * (`exam_fee_control`). Aucune pièce de frais ni dérogation n'est enregistrée.
+ * Le contrôle du paiement de l'examen passe par `ExamFeeControl` : par défaut `UncontrolledExamFee`, qui répond
+ * « non contrôlé » et le dit dans l'audit (`exam_fee_control`) sans rien enregistrer ; avec
+ * `EEO_EXAM_FEE_CONTROL=billed`, `BilledExamFeeControl` exige la facture de frais de CETTE visite réglée ou la dispense
+ * exacte de la gérante, consommée dans cette transaction (P03, B04, B06).
  *
  * Règles : visite du cabinet, du patient indiqué, de motif examen ou suivi (un achat ou un retrait ne crée
- * JAMAIS de consultation), au statut « arrivé » ou « prêt pour examen » ; une seule consultation par visite
+ * JAMAIS de consultation), au statut « arrivé » ou « prêt pour examen » (et, contrôle actif seulement, « en attente du
+ * paiement de l'examen » : le contrôle dit alors ce qui manque) ; une seule consultation par visite
  * (une seconde tentative, même sous une autre clé, est un refus d'état 409 : l'écran reprend la consultation
  * existante). La consultation naît au brouillon, révision 0, version 1. Verrous : cabinet, idempotence, visite
  * (rang 46), consultation (rang 47).
@@ -66,12 +69,16 @@ final class StartConsultationHandler implements CommandHandler
         if ($visit === null) {
             throw BusinessError::notFound('Visite introuvable dans ce cabinet.');
         }
-        $taken = $locks->consultation($consultationId);
+        // Verrou (rang 47) pris avant tout contrôle : la consultation à créer n'existe pas encore, il ne protège que l'ordre.
+        $locks->consultation($consultationId);
 
         // Refus d'état : la consultation de la visite existe déjà (même sous une autre clé d'idempotence), ou la
         // visite n'est pas dans un statut qui permet de démarrer l'examen.
         $existing = DB::table('consultations')->where('clinic_id', $context->clinicId)->where('visit_id', $visitId)->exists();
-        if ($existing || ! in_array($visit->status, self::STARTABLE, true)) {
+        // Contrôle du paiement de l'examen ACTIF : une visite « en attente du paiement » va jusqu'au contrôle, qui
+        // dit précisément ce qui manque (422 EXAM_PAYMENT_REQUIRED) ; contrôle inactif : statut non démarrable (409).
+        $startable = BilledExamFeeControl::isActive() ? [...self::STARTABLE, VisitStatus::AWAITING_EXAM_FEE] : self::STARTABLE;
+        if ($existing || ! in_array($visit->status, $startable, true)) {
             throw BusinessError::stateRefused(
                 $existing ? 'L\'examen de cette visite est déjà démarré : reprenez la consultation existante.' : 'L\'examen ne peut pas démarrer pour une visite à ce statut.',
                 (string) $visit->status,
@@ -85,7 +92,9 @@ final class StartConsultationHandler implements CommandHandler
         if (! in_array($visit->reason, VisitStatus::EXAM_REASONS, true)) {
             $errors->add('visit_id', 'Une visite d\'achat direct ou de retrait ne comporte pas d\'examen : enregistrez une nouvelle visite pour un examen.');
         }
-        if ($taken !== null) {
+        // Clé primaire GLOBALE : un identifiant déjà pris dans un AUTRE cabinet est refusé comme dans celui-ci (422), sans
+        // distinguer les deux cas (aucun oracle d'existence entre cabinets) et sans erreur SQL.
+        if (DB::table('consultations')->where('id', $consultationId)->exists()) {
             $errors->add('consultation_id', 'Cet identifiant de consultation est déjà utilisé.');
         }
 
@@ -101,7 +110,7 @@ final class StartConsultationHandler implements CommandHandler
         }
         $reason = ClinicalInput::text($payload['date_change_reason'] ?? null, 'date_change_reason', $errors);
 
-        $decision = $this->examFee->decide($visit, $payload);
+        $decision = $this->examFee->decide($visit, $payload, $locks);
         foreach ($decision->errors as $field => $messages) {
             foreach ($messages as $message) {
                 $errors->add($field, $message);

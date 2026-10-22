@@ -16,9 +16,10 @@ final class AnamnesisStep
     /**
      * @param  array<array-key, mixed>  $data
      * @param  list<string>  $complaintCodes  codes actifs du groupe COMPLAINT
+     * @param  array<string, string>  $existingComplaints  motifs déjà enregistrés (identifiant → code), ré-enregistrables même désactivés depuis
      * @return array{symptoms: string|null, wears_glasses: bool|null, glasses_duration: string|null, previous_correction_available: bool|null, complaints: list<array{id: string, term_code: string, other_text: string|null}>}
      */
-    public static function normalize(array $data, array $complaintCodes, FieldErrors $errors, string $path = 'step.data'): array
+    public static function normalize(array $data, array $complaintCodes, FieldErrors $errors, string $path = 'step.data', array $existingComplaints = []): array
     {
         $symptoms = ClinicalInput::text($data['symptoms'] ?? null, $path.'.symptoms', $errors);
         $wears = ClinicalInput::triState($data['wears_glasses'] ?? null, $path.'.wears_glasses', $errors);
@@ -35,7 +36,7 @@ final class AnamnesisStep
         }
 
         $usedIds = [];
-        $complaints = TermList::normalize($data['complaints'] ?? [], $complaintCodes, $path.'.complaints', $errors, $usedIds);
+        $complaints = TermList::normalize($data['complaints'] ?? [], $complaintCodes, $path.'.complaints', $errors, $usedIds, $existingComplaints);
 
         return [
             'symptoms' => $symptoms,

@@ -1,3 +1,4 @@
+import { acuitySlotKey, groupKeyOf } from './acuity'
 import { CONTROL_IDS } from './controls'
 import type { DeliveredStep } from './labels'
 import type { StepDataByName } from './steps'
@@ -88,6 +89,71 @@ function conclusionTarget(data: StepDataByName['CONCLUSION'], path: string[]): s
   }
 }
 
+function acuityTarget(data: StepDataByName['VISUAL_ACUITY'], path: string[]): string | null {
+  if (path[0] !== 'acuities') return null
+  const row = data.acuities[index(path[1]) ?? -1]
+  if (row === undefined) return CONTROL_IDS.step
+  const slot = { context: row.context, distance: row.distance }
+  return path[2] === 'scale_id'
+    ? CONTROL_IDS.acuityScale(groupKeyOf(slot))
+    : CONTROL_IDS.acuityValue(acuitySlotKey(row.context, row.distance, row.correction, row.eye))
+}
+
+function refractionTarget(data: StepDataByName['REFRACTION'], path: string[]): string | null {
+  const [head, position, field] = path
+  switch (head) {
+    case 'refraction_observations':
+      return CONTROL_IDS.refractionObservations
+    case 'measurements': {
+      const row = data.measurements[index(position) ?? -1]
+      if (row === undefined) return CONTROL_IDS.step
+      const control = field === 'cylinder' || field === 'axis' || field === 'addition' ? field : 'sphere'
+      return CONTROL_IDS.measure(row.stage, row.eye, control)
+    }
+    case 'ametropias':
+      return field === 'other_text' ? CONTROL_IDS.ametropiaOther : CONTROL_IDS.ametropias
+    default:
+      return null
+  }
+}
+
+function centeringTarget(path: string[]): string | null {
+  switch (path[0]) {
+    case 'pd_total':
+    case 'centering_id':
+      return CONTROL_IDS.pdTotal
+    case 'pd_od':
+      return CONTROL_IDS.pdOd
+    case 'pd_og':
+      return CONTROL_IDS.pdOg
+    case 'inconsistency_reason':
+      return CONTROL_IDS.pdReason
+    default:
+      return null
+  }
+}
+
+/** Nom du champ d'une ligne de médicament dans la donnée → fragment de l'identifiant de son contrôle. */
+const ORDER_CONTROLS: Readonly<Record<string, string>> = {
+  name: 'nom',
+  form: 'forme',
+  form_other: 'forme-precision',
+  strength: 'dosage',
+  dosage: 'posologie',
+  frequency: 'frequence',
+  duration_text: 'duree',
+  duration_value: 'duree-nombre',
+  duration_unit: 'duree-unite',
+  instructions: 'instructions',
+}
+
+function medicationsTarget(data: StepDataByName['MEDICATIONS'], path: string[]): string | null {
+  if (path[0] !== 'orders') return null
+  const position = index(path[1])
+  if (position === null || data.orders[position] === undefined) return CONTROL_IDS.orders
+  return CONTROL_IDS.order(position, ORDER_CONTROLS[path[2] ?? ''] ?? 'nom')
+}
+
 /**
  * Contrôle d'une clé d'erreur du serveur pour la donnée `data` qui vient d'être envoyée ; le titre de
  * l'étape si la clé n'est pas reconnue.
@@ -105,6 +171,18 @@ export function serverErrorTarget<S extends DeliveredStep>(
       break
     case 'HISTORIES':
       target = historiesTarget(data as StepDataByName['HISTORIES'], path)
+      break
+    case 'VISUAL_ACUITY':
+      target = acuityTarget(data as StepDataByName['VISUAL_ACUITY'], path)
+      break
+    case 'REFRACTION':
+      target = refractionTarget(data as StepDataByName['REFRACTION'], path)
+      break
+    case 'CENTERING':
+      target = centeringTarget(path)
+      break
+    case 'MEDICATIONS':
+      target = medicationsTarget(data as StepDataByName['MEDICATIONS'], path)
       break
     default:
       target = conclusionTarget(data as StepDataByName['CONCLUSION'], path)

@@ -1,0 +1,15 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": true,
+  "description": "Dispense des frais d'examen d'une visite (accueil), sans échéance proposée",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W30037",
+    "subject": {
+      "kind": "EXAM_FEE_WAIVER",
+      "visit_id": "01J9ZXK4M2Q8R7S6T5V4W30021",
+      "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001"
+    },
+    "reason": "Contrôle de suivi pris en charge par la gérante (fictif)",
+    "expires_at": null
+  }
+}

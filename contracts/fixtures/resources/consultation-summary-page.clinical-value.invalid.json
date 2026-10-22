@@ -1,0 +1,29 @@
+{
+  "schema": "schemas/resources/clinical.json#/$defs/ConsultationSummaryPage",
+  "valid": false,
+  "description": "Une valeur clinique (conclusion) n'a pas sa place dans la liste des examens : propriété refusée (données fictives)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3C011",
+        "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3V011",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3P011",
+        "status": "IN_PROGRESS",
+        "effective_at": "2026-10-22T09:20:00.000Z",
+        "completed_at": null,
+        "current_revision": 0,
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3P011",
+          "record_number": "EE-2026-0042",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie",
+          "sex": "F",
+          "birth_date": "1990-05-17"
+        },
+        "clinician": { "id": "01J9ZXK4M2Q8R7S6T5V4W3S011", "display_name": "Professionnel Fictif" },
+        "conclusion": "Conclusion fictive qui ne doit jamais apparaître dans une liste"
+      }
+    ],
+    "meta": { "current_page": 1, "last_page": 1, "per_page": 50, "total": 1 }
+  }
+}

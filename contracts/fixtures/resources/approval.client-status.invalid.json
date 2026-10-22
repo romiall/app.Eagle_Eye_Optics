@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/ApprovalResponse",
+  "valid": false,
+  "description": "Statut inventé « PAID » : seuls les statuts du catalogue approvals.status existent",
+  "base": "resources/approval.requested.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/effective_status",
+      "value": "PAID"
+    }
+  ]
+}

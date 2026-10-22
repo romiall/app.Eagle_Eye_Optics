@@ -1,0 +1,33 @@
+{
+  "schema": "schemas/resources/patients.json#/$defs/PatientActivity",
+  "valid": true,
+  "description": "Activité vue par l'accueil (patient.read seul) : visites seulement, une seule section listée, aucun compte des autres (données fictives)",
+  "data": {
+    "data": [
+      {
+        "type": "VISIT",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A001",
+        "occurred_at": "2026-10-15T10:00:00.000Z",
+        "screen_path": null,
+        "reason": "PICKUP",
+        "status": "ARRIVED"
+      },
+      {
+        "type": "VISIT",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A009",
+        "occurred_at": "2026-10-01T08:00:00.000Z",
+        "screen_path": null,
+        "reason": "EXAM",
+        "status": "IN_CONSULTATION"
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 2,
+      "section": null,
+      "sections": [{ "section": "VISITS", "total": 2 }]
+    }
+  }
+}

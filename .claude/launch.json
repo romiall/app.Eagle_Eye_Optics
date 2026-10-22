@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "apercu",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\SMART\\AppData\\Local\\Temp\\claude\\C--xampp-htdocs-Socle-Eagle-Eye-Optics-2026-10-14\\6830ea19-facd-4855-8621-f34202c28a01\\scratchpad\\preview-server.mjs"
+      ],
+      "port": 8130,
+      "url": "http://127.0.0.1:8130"
+    }
+  ]
+}

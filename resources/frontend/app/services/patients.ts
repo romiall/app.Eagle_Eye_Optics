@@ -1,5 +1,11 @@
 import { apiRequest } from '@/app/api'
-import type { Patient, PatientPage, PatientResponse } from '@/domain/contracts/generated'
+import type {
+  Patient,
+  PatientActivity,
+  PatientActivityMeta,
+  PatientPage,
+  PatientResponse,
+} from '@/domain/contracts/generated'
 import { searchTerm } from '@/domain/patients/duplicates'
 
 import type { ReadOutcome } from './reads'
@@ -38,4 +44,27 @@ export async function getPatient(id: string): Promise<ReadOutcome<Patient>> {
     `/api/v1/patients/${encodeURIComponent(id)}`,
   )
   return answered(response.data)
+}
+
+/** Section de l'activité d'un patient (filtre facultatif). */
+export type ActivitySectionCode = NonNullable<PatientActivityMeta['section']>
+
+/**
+ * Une page (25 éléments) de l'activité d'un patient, du plus récent au plus ancien : visites, et selon
+ * les droits du compte, examens, ordonnances et pièces financières (le serveur n'envoie que les sections
+ * autorisées, sans aucune mention des autres). `section` null : toutes les sections visibles.
+ */
+export async function listPatientActivity(
+  id: string,
+  section: ActivitySectionCode | null = null,
+  page = 1,
+): Promise<ReadOutcome<PatientActivity>> {
+  if (!Number.isSafeInteger(page) || page < 1) throw new RangeError('Page d’activité invalide.')
+  const parameters = new URLSearchParams({ page: String(page) })
+  if (section !== null) parameters.set('section', section)
+  const response = await apiRequest<PatientActivity>(
+    'GET',
+    `/api/v1/patients/${encodeURIComponent(id)}/activity?${parameters}`,
+  )
+  return answered(response)
 }

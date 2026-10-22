@@ -72,7 +72,7 @@ final class SaveClinicalStepTest extends TestCase
         $this->assertSame('UPDATED', $change->change_kind);
     }
 
-    public function test_l_audit_ne_porte_que_la_rubrique_la_version_et_le_nombre_de_lignes(): void
+    public function test_l_audit_ne_porte_que_la_rubrique_et_la_version(): void
     {
         $data = $this->anamnesis([
             'symptoms' => 'SENTINELLE-SYMPTOME-ZX9',
@@ -86,7 +86,8 @@ final class SaveClinicalStepTest extends TestCase
         $this->assertNotNull($audit);
         $this->assertSame($this->clinician->id, $audit->actor_id);
         $this->assertNull($audit->reason);
-        $this->assertEquals(['rows' => 2, 'step' => 'ANAMNESIS', 'version' => 2], json_decode((string) $audit->sanitized_diff, true));
+        // Ni valeur clinique, ni compteur dérivé de la saisie (le nombre de lignes dit, par exemple, qu'une orientation existe).
+        $this->assertEquals(['step' => 'ANAMNESIS', 'version' => 2], json_decode((string) $audit->sanitized_diff, true));
 
         $dump = $this->sideEffectsDump();
         $this->assertStringNotContainsString('SENTINELLE-SYMPTOME-ZX9', $dump);
@@ -158,34 +159,60 @@ final class SaveClinicalStepTest extends TestCase
     /**
      * @return array<string, array{0: string, 1: array<string, mixed>}>
      */
-    public static function unopenedSteps(): array
+    public static function emptyOpenSteps(): array
     {
         return [
+            'motifs et lunettes' => ['ANAMNESIS', ['symptoms' => null, 'wears_glasses' => null, 'glasses_duration' => null, 'previous_correction_available' => null, 'complaints' => []]],
+            'antécédents' => ['HISTORIES', ['histories' => []]],
             'acuités' => ['VISUAL_ACUITY', ['acuities' => []]],
             'réfraction' => ['REFRACTION', ['measurements' => [], 'refraction_observations' => null, 'ametropias' => []]],
             'centrage' => ['CENTERING', ['centering_id' => null, 'pd_total' => null, 'pd_od' => null, 'pd_og' => null, 'inconsistency_reason' => null]],
+            'médicaments' => ['MEDICATIONS', ['orders' => []]],
+            'conclusion' => ['CONCLUSION', ['conclusion' => null, 'referral' => null, 'referral_urgency' => null, 'referral_reasons' => []]],
         ];
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    #[DataProvider('unopenedSteps')]
-    public function test_les_rubriques_pas_encore_ouvertes_repondent_422_et_n_ecrivent_rien(string $step, array $data): void
+    #[DataProvider('emptyOpenSteps')]
+    public function test_les_sept_rubriques_sont_ouvertes_et_une_rubrique_vide_passe_la_consultation_en_cours(string $step, array $data): void
     {
-        $before = $this->clinicalEffectCounts();
-
         $response = $this->saveStep($this->consultationId, $step, $data, 1);
 
-        $response->assertStatus(422)->assertJsonPath('error.code', 'VALIDATION_FAILED');
-        $this->assertSame(['Cette rubrique n\'est pas encore ouverte.'], $response->json('error.fields')['step.step']);
-        $this->assertSame($before['audit'], $this->clinicalEffectCounts()['audit']);
+        $response->assertOk()->assertJsonPath('data.status', 'IN_PROGRESS')->assertJsonPath('data.version', 2);
+        $this->assertMatchesContract($response, 'schemas/resources/clinical.json#/$defs/ConsultationResponse');
+        $this->assertSame(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS', 'CONCLUSION'], array_keys($response->json('data.steps')));
+    }
+
+    public function test_une_ecriture_sans_effet_laisse_quand_meme_la_trace_de_lecture_du_dossier_qu_elle_rend(): void
+    {
+        $data = $this->anamnesis(['symptoms' => 'SENTINELLE-SANS-EFFET-LM3']);
+        $this->saveStep($this->consultationId, 'ANAMNESIS', $data, 1)->assertOk();
+        $this->assertSame(0, DB::table('audit_events')->where('action', 'consultation.viewed')->where('actor_id', $this->manager->id)->count());
+        $before = $this->clinicalEffectCounts();
+
+        // Un autre compte envoie un enregistrement identique (aucun effet) : le dossier complet est rendu.
+        $this->saveStep($this->consultationId, 'ANAMNESIS', $data, 2, $this->manager)->assertOk()->assertJsonPath('data.version', 2);
+
         $this->assertSame($before['changes'], $this->clinicalEffectCounts()['changes']);
-        $row = DB::table('consultations')->where('id', $this->consultationId)->first();
-        $this->assertNotNull($row);
-        $this->assertSame('DRAFT', $row->status, 'Rien n\'a été écrit : la consultation reste au brouillon.');
-        $this->assertSame(1, (int) $row->version);
-        $this->assertSame(0, DB::table('visual_acuities')->count() + DB::table('refraction_measurements')->count() + DB::table('autorefractor_centering')->count());
+        $this->assertSame(1, DB::table('audit_events')->where('action', 'consultation.viewed')->where('actor_id', $this->manager->id)->count(), 'La réponse rend le dossier : c\'est une lecture tracée.');
+        $this->assertStringNotContainsString('SENTINELLE-SANS-EFFET-LM3', $this->sideEffectsDump());
+    }
+
+    public function test_le_rejeu_d_une_cle_laisse_la_trace_de_lecture_du_compte_qui_rejoue(): void
+    {
+        $key = Ulid::generate();
+        $this->saveStep($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Rejeu tracé']), 1, null, $key)->assertOk();
+        $before = DB::table('audit_events')->where('action', 'consultation.viewed')->where('actor_id', $this->clinician->id)->count();
+        $this->assertSame(1, $before, 'La première réponse rend le dossier : une lecture tracée.');
+
+        // Plus de dix minutes après : le rejeu de la même clé rend encore le dossier, donc laisse une nouvelle trace.
+        CarbonImmutable::setTestNow(CarbonImmutable::now('UTC')->addMinutes(11));
+        $this->saveStep($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Rejeu tracé']), 1, null, $key)->assertOk();
+
+        $this->assertSame($before + 1, DB::table('audit_events')->where('action', 'consultation.viewed')->where('actor_id', $this->clinician->id)->count());
+        $this->assertSame(1, DB::table('audit_events')->where('action', 'consultation.step_saved')->count(), 'Le rejeu n\'applique rien de plus.');
     }
 
     public function test_une_consultation_terminee_ne_se_modifie_plus_par_une_saisie(): void
@@ -398,6 +425,19 @@ final class SaveClinicalStepTest extends TestCase
         try {
             $this->app->make(SaveClinicalStepHandler::class)->handle(new Command('SaveClinicalStep', $payload, $this->consultationId, 1), $context, new TransactionLocks($this->clinicId), null);
             $this->fail('Une source autre que la route directe devait être refusée.');
+        } catch (BusinessError $error) {
+            $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
+        }
+        $this->assertNull(DB::table('consultations')->where('id', $this->consultationId)->value('symptoms'));
+    }
+
+    public function test_un_poste_de_la_source_sync_est_aussi_refuse_par_l_action(): void
+    {
+        $payload = ['consultation_id' => $this->consultationId, 'step' => ['step' => 'ANAMNESIS', 'data' => $this->anamnesis(['symptoms' => 'Synchronisée'])]];
+
+        try {
+            $this->app->make(SaveClinicalStepHandler::class)->handle(new Command('SaveClinicalStep', $payload, $this->consultationId, 1), $this->syncContextFor($this->clinician), new TransactionLocks($this->clinicId), null);
+            $this->fail('La source SYNC devait être refusée tant que la synchronisation clinique n\'existe pas.');
         } catch (BusinessError $error) {
             $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
         }

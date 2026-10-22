@@ -1,0 +1,35 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashSessionPage",
+  "valid": true,
+  "description": "Sessions de caisse pour la gérante : une session ouverte avec le nom actuel de la caissière et la caisse (données fictives)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+        "cash_register_id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+        "cashier_id": "01J9ZXK4M2Q8R7S6T5V4W30005",
+        "opened_at": "2026-10-14T08:00:00.000Z",
+        "opening_amount": 25000,
+        "closed_at": null,
+        "counted_amount": null,
+        "expected_amount": null,
+        "variance": null,
+        "variance_reason": null,
+        "closed_by": null,
+        "collected_cash": 80000,
+        "refunded_cash": 0,
+        "theoretical_cash": 105000,
+        "cashier_name": "Caisse (démonstration)",
+        "closed_by_name": null,
+        "register_code": "CAISSE-PRINCIPALE",
+        "register_name": "Caisse principale"
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 1
+    }
+  }
+}

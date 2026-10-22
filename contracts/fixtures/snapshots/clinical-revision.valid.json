@@ -54,6 +54,24 @@
         "pd_og": null,
         "inconsistency_reason": null
       },
+      "MEDICATIONS": {
+        "orders": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W3001D",
+            "catalog_item_id": null,
+            "name": "Collyre fictif (démonstration)",
+            "form": "DROPS",
+            "form_other": null,
+            "strength": null,
+            "dosage": null,
+            "frequency": null,
+            "duration_text": null,
+            "duration_value": null,
+            "duration_unit": null,
+            "instructions": null
+          }
+        ]
+      },
       "CONCLUSION": {
         "conclusion": "Conclusion fictive",
         "referral": false,

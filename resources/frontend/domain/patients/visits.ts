@@ -12,9 +12,10 @@ import { optionalText } from '../values/text'
 /**
  * Visites et file du jour (P03 ; fichier 02, « Patients et accueil » ; AT05). Règles pures : ni Vue,
  * ni réseau, ni stockage. Une visite est ADMINISTRATIVE (motif, heure d'arrivée, statut décidé par le
- * serveur) : aucune donnée clinique. Le contrôle du paiement de l'examen n'existe pas encore (B04,
- * B06) : le serveur répond `NOT_CONTROLLED` pour un examen ou un contrôle de suivi, et l'écran ne
- * dit jamais ce que cette valeur ne prouve pas.
+ * serveur) : aucune donnée clinique. Contrôle du paiement de l'examen inactif (défaut) : le serveur
+ * répond `NOT_CONTROLLED` pour un examen ou un contrôle de suivi, et l'écran ne dit jamais ce que
+ * cette valeur ne prouve pas. Contrôle actif (`EEO_EXAM_FEE_CONTROL=billed`, B04 et B06) : frais à
+ * encaisser, dispense demandée, frais encaissés (avec le numéro du reçu réel) ou dispense accordée.
  */
 export const NOTE_MAX_LENGTH = 4000
 
@@ -47,13 +48,15 @@ export function isExamReason(reason: VisitsReason): boolean {
 }
 
 /**
- * Explication d'un motif à la saisie. Elle dit ce que l'application fait, pas davantage : pas de
- * contrôle du règlement de l'examen pour l'instant, aucun examen pour un achat ou un retrait.
+ * Explication d'un motif à la saisie. Elle dit ce que l'application fait, pas davantage : aucun examen
+ * pour un achat ou un retrait ; pour un examen, le règlement est exigé seulement si le serveur contrôle
+ * réellement le paiement de l'examen (`examFeeControlled`, lu dans la session : `/auth/me`).
  */
-export function reasonHint(reason: VisitsReason): string {
-  return isExamReason(reason)
-    ? 'Le contrôle du paiement de l’examen n’est pas encore actif : l’examen n’est pas bloqué faute de règlement.'
-    : 'Aucun examen ni consultation n’est créé pour cette visite.'
+export function reasonHint(reason: VisitsReason, examFeeControlled = false): string {
+  if (!isExamReason(reason)) return 'Aucun examen ni consultation n’est créé pour cette visite.'
+  return examFeeControlled
+    ? 'Les frais d’examen de cette visite seront à encaisser avant le démarrage de l’examen, sauf dispense accordée par la gérante.'
+    : 'Le contrôle du paiement de l’examen n’est pas encore actif : l’examen n’est pas bloqué faute de règlement.'
 }
 
 /** Statuts décidés par le serveur ; seuls certains sont produits à ce jalon, tous ont un libellé exact. */
@@ -94,16 +97,47 @@ export interface ExamFeeMarker {
   text: string
   /** Vrai quand le paiement de l'examen concerne la visite mais n'est contrôlé nulle part. */
   notControlled: boolean
+  /** Vrai quand une action est attendue avant l'examen (frais à encaisser, dispense en attente). */
+  pending?: boolean
 }
 
 /**
  * Marqueur du contrôle du paiement de l'examen. `NOT_CONTROLLED` n'est ni « payé » ni « impayé » :
- * rien n'est vérifié. `NOT_APPLICABLE` (achat, retrait) n'a pas d'examen à régler.
+ * rien n'est vérifié. `NOT_APPLICABLE` (achat, retrait) n'a pas d'examen à régler. Contrôle actif :
+ * `UNPAID` (à encaisser), `WAIVER_REQUESTED` (dispense demandée), `PAID` (encaissés : le numéro du
+ * reçu réel est cité, jamais « payé » sans pièce), `WAIVED` (dispense accordée par la gérante, qui
+ * n'est pas une gratuité).
  */
-export function examFeeMarker(control: Visit['exam_fee_control']): ExamFeeMarker {
-  return control === 'NOT_CONTROLLED'
-    ? { symbol: '⚠', text: 'Paiement de l’examen non contrôlé', notControlled: true }
-    : { symbol: '–', text: 'Pas d’examen', notControlled: false }
+export function examFeeMarker(
+  control: Visit['exam_fee_control'],
+  receiptNumber: string | null = null,
+): ExamFeeMarker {
+  switch (control) {
+    case 'NOT_CONTROLLED':
+      return { symbol: '⚠', text: 'Paiement de l’examen non contrôlé', notControlled: true }
+    case 'UNPAID':
+      return { symbol: '…', text: 'Frais d’examen à encaisser', notControlled: false, pending: true }
+    case 'WAIVER_REQUESTED':
+      return {
+        symbol: '…',
+        text: 'Dispense des frais d’examen demandée : en attente de la gérante',
+        notControlled: false,
+        pending: true,
+      }
+    case 'PAID':
+      return {
+        symbol: '✓',
+        text:
+          receiptNumber === null
+            ? 'Frais d’examen encaissés'
+            : `Frais d’examen encaissés : reçu n° ${receiptNumber}`,
+        notControlled: false,
+      }
+    case 'WAIVED':
+      return { symbol: '✓', text: 'Dispense approuvée par la gérante', notControlled: false }
+    default:
+      return { symbol: '–', text: 'Pas d’examen', notControlled: false }
+  }
 }
 
 /** Instant courant au format du contrat (`2026-10-15T09:42:00.000Z`, UTC), calculé à l'envoi. */

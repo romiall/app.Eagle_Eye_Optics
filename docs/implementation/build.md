@@ -76,6 +76,7 @@ En développement (`npm run dev`), le service worker n'est pas enregistré : tes
 | `node_modules/`, `package*.json`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `vitest.config.ts`, `playwright.config.ts`, `phpstan.neon` | Non | Outils de construction et de contrôle |
 | `resources/frontend/` (sources Vue/TypeScript) | Non nécessaire | Remplacé par `public/build/`. S'il est présent, il ne doit pas être servi (racine web = `public/`) |
 | `tests/`, `tools/`, `specifications/`, `docs/`, `.github/`, `.spec-work/` | Non | Développement et documentation |
+| `tools/deploy/backup.sh`, `tools/deploy/restore-check.sh` | Oui | Sauvegarde quotidienne (cron) et exercice de restauration sur le serveur (voir `deploiement.md`, étape 7) |
 | `.env.e2e`, `test-results/`, `playwright-report/`, `.phpunit.cache/` | Non | Fichiers locaux ignorés par git |
 
 ## Service worker, manifeste et HTTPS

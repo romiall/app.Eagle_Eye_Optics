@@ -45,10 +45,18 @@ export type NullableDiopter = (Diopter | null)
 export type Diopter = string
 export type NullableUlid = (Ulid | null)
 /**
+ *  (catalogue : medication_orders.form)
+ */
+export type MedicationOrdersForm = ("DROPS" | "OINTMENT" | "TABLET" | "OTHER")
+/**
+ *  (catalogue : medication_orders.duration_unit)
+ */
+export type MedicationOrdersDurationUnit = ("DAY" | "WEEK" | "MONTH")
+/**
  *  (catalogue : consultations.referral_urgency)
  */
 export type ConsultationsReferralUrgency = ("NOT_URGENT" | "RECOMMENDED" | "RAPID" | "EMERGENCY")
-export type StepName = ("ANAMNESIS" | "HISTORIES" | "VISUAL_ACUITY" | "REFRACTION" | "CENTERING" | "CONCLUSION")
+export type StepName = ("ANAMNESIS" | "HISTORIES" | "VISUAL_ACUITY" | "REFRACTION" | "CENTERING" | "MEDICATIONS" | "CONCLUSION")
 /**
  * Code de permission du référentiel seedé (ex. invoice.issue).
  */
@@ -335,14 +343,6 @@ export type InvoicesStatus = ("DRAFT" | "ISSUED" | "ABANDONED")
  */
 export type KnowledgeEntriesCategory = ("HOURS" | "LOCATION" | "PRICING" | "INSURANCE" | "SERVICES" | "LENSES" | "PRODUCTS" | "OTHER")
 /**
- *  (catalogue : medication_orders.duration_unit)
- */
-export type MedicationOrdersDurationUnit = ("DAY" | "WEEK" | "MONTH")
-/**
- *  (catalogue : medication_orders.form)
- */
-export type MedicationOrdersForm = ("DROPS" | "OINTMENT" | "TABLET" | "OTHER")
-/**
  *  (catalogue : message_attempts.status)
  */
 export type MessageAttemptsStatus = ("PLANNED" | "SUBMITTED" | "DELIVERED" | "READ" | "FAILED" | "UNKNOWN" | "CANCELLED")
@@ -510,6 +510,14 @@ export type WorkshopOrdersStatus = ("ORDERED" | "RECEIVED" | "MOUNTING" | "QUALI
  * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut.
  */
 export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
+/**
+ * Contenu exact de l'opération à approuver ; la nature (kind) fixe l'action, la cible et les champs.
+ */
+export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject)
+/**
+ * Élément de l'activité, distingué par type.
+ */
+export type PatientActivityItem = (PatientActivityVisit | PatientActivityConsultation | PatientActivityPrescription | PatientActivityMedicationOrder | PatientActivityInvoice | PatientActivityReceipt | PatientActivityCreditNote | PatientActivityRefund)
 export type VectorCase = (({
 expected: unknown
 } | {
@@ -545,6 +553,7 @@ SchemasClinicalStepsJsonHistories?: Histories
 SchemasClinicalStepsJsonVisualAcuity?: VisualAcuity
 SchemasClinicalStepsJsonRefraction?: Refraction
 SchemasClinicalStepsJsonCentering?: Centering
+SchemasClinicalStepsJsonMedications?: Medications
 SchemasClinicalStepsJsonConclusion?: Conclusion
 SchemasClinicalStepsJsonStepName?: StepName
 SchemasClinicalStepsJsonAllSteps?: AllSteps
@@ -696,6 +705,7 @@ SchemasRequestsHttpJsonRescheduleAppointmentRequest?: RescheduleAppointmentReque
 SchemasRequestsHttpJsonCancelAppointmentRequest?: CancelAppointmentRequest
 SchemasRequestsHttpJsonCatalogItemRequest?: CatalogItemRequest
 SchemasRequestsHttpJsonTaxRuleRequest?: TaxRuleRequest
+SchemasRequestsHttpJsonAbandonInvoiceDraftRequest?: AbandonInvoiceDraftRequest
 SchemasRequestsHttpJsonOpeningStockRequest?: OpeningStockRequest
 SchemasRequestsHttpJsonEnrollDeviceRequest?: EnrollDeviceRequest
 SchemasRequestsHttpJsonPrepareDeviceRequest?: PrepareDeviceRequest
@@ -708,6 +718,8 @@ SchemasResourcesAccessJsonStaffMember?: StaffMember
 SchemasResourcesAccessJsonClinicSummary?: ClinicSummary
 SchemasResourcesAccessJsonMe?: Me
 SchemasResourcesAccessJsonClinicSettings?: ClinicSettings
+SchemasResourcesAccessJsonClinicDocumentIdentity?: ClinicDocumentIdentity
+SchemasResourcesAccessJsonClinicDocumentIdentityResponse?: ClinicDocumentIdentityResponse
 SchemasResourcesAccessJsonReauthentication?: Reauthentication
 SchemasResourcesAccessJsonStaffMemberResponse?: StaffMemberResponse
 SchemasResourcesAccessJsonStaffMemberPage?: StaffMemberPage
@@ -739,17 +751,39 @@ SchemasResourcesBillingJsonReversalResultResponse?: ReversalResultResponse
 SchemasResourcesBillingJsonCreditNoteResultResponse?: CreditNoteResultResponse
 SchemasResourcesBillingJsonRefundResultResponse?: RefundResultResponse
 SchemasResourcesBillingJsonApproval?: Approval
+SchemasResourcesBillingJsonApprovalTarget?: ApprovalTarget
 SchemasResourcesBillingJsonApprovalResponse?: ApprovalResponse
+SchemasResourcesBillingJsonApprovalPage?: ApprovalPage
+SchemasResourcesBillingJsonCashRegister?: CashRegister
+SchemasResourcesBillingJsonCashRegisterList?: CashRegisterList
+SchemasResourcesBillingJsonReceipt?: Receipt
+SchemasResourcesBillingJsonReceiptResponse?: ReceiptResponse
 SchemasResourcesBillingJsonCashSession?: CashSession
 SchemasResourcesBillingJsonCashSessionResponse?: CashSessionResponse
 SchemasResourcesBillingJsonCurrentCashSessionResponse?: CurrentCashSessionResponse
 SchemasResourcesBillingJsonDelivery?: Delivery
 SchemasResourcesBillingJsonDeliveryResponse?: DeliveryResponse
+SchemasResourcesBillingJsonCashSessionEntry?: CashSessionEntry
+SchemasResourcesBillingJsonCashSessionPage?: CashSessionPage
+SchemasResourcesBillingJsonCashSessionReport?: CashSessionReport
+SchemasResourcesBillingJsonCashSessionReportResponse?: CashSessionReportResponse
+SchemasResourcesBillingJsonCashDayReport?: CashDayReport
+SchemasResourcesBillingJsonCashDayReportResponse?: CashDayReportResponse
+SchemasResourcesBillingJsonSalesSettings?: SalesSettings
+SchemasResourcesBillingJsonSalesSettingsResponse?: SalesSettingsResponse
 SchemasResourcesClinicalJsonClinicalRevision?: ClinicalRevision
+SchemasResourcesClinicalJsonClinicalRevisionDetail?: ClinicalRevisionDetail
+SchemasResourcesClinicalJsonClinicalRevisionResponse?: ClinicalRevisionResponse
+SchemasResourcesClinicalJsonConsultationPatient?: ConsultationPatient
 SchemasResourcesClinicalJsonConsultation?: Consultation
+SchemasResourcesClinicalJsonConsultationSummary?: ConsultationSummary
+SchemasResourcesClinicalJsonConsultationSummaryPage?: ConsultationSummaryPage
+SchemasResourcesClinicalJsonVisualAcuityScale?: VisualAcuityScale
+SchemasResourcesClinicalJsonVisualAcuityScaleList?: VisualAcuityScaleList
 SchemasResourcesClinicalJsonPrescription?: Prescription
 SchemasResourcesClinicalJsonConsultationResponse?: ConsultationResponse
 SchemasResourcesClinicalJsonPrescriptionResponse?: PrescriptionResponse
+SchemasResourcesClinicalJsonPrescriptionList?: PrescriptionList
 SchemasResourcesOperationsJsonPublicJwk?: PublicJwk
 SchemasResourcesOperationsJsonEnrolledDevice?: EnrolledDevice
 SchemasResourcesOperationsJsonEnrolledDeviceResponse?: EnrolledDeviceResponse
@@ -783,6 +817,18 @@ SchemasResourcesPatientsJsonVisit?: Visit
 SchemasResourcesPatientsJsonVisitPatient?: VisitPatient
 SchemasResourcesPatientsJsonVisitResponse?: VisitResponse
 SchemasResourcesPatientsJsonVisitPage?: VisitPage
+SchemasResourcesPatientsJsonPatientActivityVisit?: PatientActivityVisit
+SchemasResourcesPatientsJsonPatientActivityConsultation?: PatientActivityConsultation
+SchemasResourcesPatientsJsonPatientActivityPrescription?: PatientActivityPrescription
+SchemasResourcesPatientsJsonPatientActivityMedicationOrder?: PatientActivityMedicationOrder
+SchemasResourcesPatientsJsonPatientActivityInvoice?: PatientActivityInvoice
+SchemasResourcesPatientsJsonPatientActivityReceipt?: PatientActivityReceipt
+SchemasResourcesPatientsJsonPatientActivityCreditNote?: PatientActivityCreditNote
+SchemasResourcesPatientsJsonPatientActivityRefund?: PatientActivityRefund
+SchemasResourcesPatientsJsonPatientActivityItem?: PatientActivityItem
+SchemasResourcesPatientsJsonPatientActivitySection?: PatientActivitySection
+SchemasResourcesPatientsJsonPatientActivityMeta?: PatientActivityMeta
+SchemasResourcesPatientsJsonPatientActivity?: PatientActivity
 SchemasResourcesPublicJsonPublicService?: PublicService
 SchemasResourcesPublicJsonPublicServiceList?: PublicServiceList
 SchemasResourcesPublicJsonPublicSlot?: PublicSlot
@@ -804,6 +850,8 @@ SchemasResourcesSchedulingJsonClinicalReport?: ClinicalReport
 SchemasResourcesSchedulingJsonClinicalReportResponse?: ClinicalReportResponse
 SchemasResourcesStockJsonStockAvailability?: StockAvailability
 SchemasResourcesStockJsonStockAvailabilityPage?: StockAvailabilityPage
+SchemasResourcesStockJsonStockLocation?: StockLocation
+SchemasResourcesStockJsonStockLocationList?: StockLocationList
 SchemasResourcesStockJsonStockMovement?: StockMovement
 SchemasResourcesStockJsonStockMovementResponse?: StockMovementResponse
 SchemasResourcesStockJsonOpeningStockResult?: OpeningStockResult
@@ -862,6 +910,12 @@ RegisterVisitPayload?: RegisterVisitPayload
 CommandsRegisterVisitV1JsonDirectRequest?: RegisterVisitDirectRequest
 RequestApprovalPayload?: RequestApprovalPayload
 CommandsRequestApprovalV1JsonDirectRequest?: RequestApprovalDirectRequest
+CommandsRequestApprovalV1JsonApprovalSubject?: ApprovalSubject
+CommandsRequestApprovalV1JsonExamFeeWaiverSubject?: ExamFeeWaiverSubject
+CommandsRequestApprovalV1JsonDraftLineRightsSubject?: DraftLineRightsSubject
+CommandsRequestApprovalV1JsonPaymentReversalSubject?: PaymentReversalSubject
+CommandsRequestApprovalV1JsonCreditNoteSubject?: CreditNoteSubject
+CommandsRequestApprovalV1JsonRefundSubject?: RefundSubject
 ReversePaymentPayload?: ReversePaymentPayload
 CommandsReversePaymentV1JsonDirectRequest?: ReversePaymentDirectRequest
 SaveClinicalStepPayload?: SaveClinicalStepPayload
@@ -2049,6 +2103,2743 @@ pd_od: NullableDiopter
 pd_og: NullableDiopter
 inconsistency_reason: (string | null)
 }
+export interface Medications {
+/**
+ * @minItems 0
+ * @maxItems 20
+ */
+orders: []|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]|[{
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}, {
+id: Ulid
+catalog_item_id: NullableUlid
+name: string
+form: MedicationOrdersForm
+form_other: (string | null)
+strength: (string | null)
+dosage: (string | null)
+frequency: (string | null)
+duration_text: (string | null)
+duration_value: (number | null)
+duration_unit: (MedicationOrdersDurationUnit | null)
+instructions: (string | null)
+}]
+}
 export interface Conclusion {
 conclusion: (string | null)
 referral: (boolean | null)
@@ -2905,6 +5696,7 @@ HISTORIES: Histories
 VISUAL_ACUITY: VisualAcuity
 REFRACTION: Refraction
 CENTERING: Centering
+MEDICATIONS: Medications
 CONCLUSION: Conclusion
 }
 export interface Pagination {
@@ -3092,6 +5884,14 @@ validate: boolean
 legal_note: (string | null)
 }
 /**
+ * Abandon d'un brouillon de facture (fichier 03) : version de brouillon attendue, motif facultatif (conservé dans l'audit). Aucun numéro, aucune réserve, aucun document à annuler.
+ */
+export interface AbandonInvoiceDraftRequest {
+expected_version: Version
+invoice_id: Ulid
+reason: (string | null)
+}
+/**
  * Stock initial validé (I00) : un mouvement OPENING par ligne, lots créés au besoin ; gérante.
  */
 export interface OpeningStockRequest {
@@ -3240,7 +6040,7 @@ roles: []|[("CASHIER" | "CLINICIAN" | "MANAGER" | "RECEPTION")]|[("CASHIER" | "C
 permissions: PermissionCode[]
 }
 /**
- * enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé.
+ * enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé. exam_fee_control : OFF (défaut, le paiement de l'examen n'est contrôlé nulle part) ou BILLED (EEO_EXAM_FEE_CONTROL=billed : facture de frais réglée ou dispense de la gérante exigée au démarrage de l'examen) ; absent pour un serveur plus ancien, lu comme OFF.
  */
 export interface ClinicSummary {
 id: Ulid
@@ -3252,6 +6052,7 @@ production_documents_enabled: boolean
  * @minItems 0
  */
 enabled_modules: string[]
+exam_fee_control?: ("OFF" | "BILLED")
 }
 /**
  * Compte connecté : profils, permissions effectives, cabinet (nom, fuseau, monnaie).
@@ -3292,6 +6093,26 @@ document_settings: ({
 } | null)
 production_documents_enabled: boolean
 }
+/**
+ * Identité du cabinet imprimée sur les documents (en-tête, pied) : lisible par tout profil qui produit un document. production_documents_enabled faux : documents de TEST marqués comme tels.
+ */
+export interface ClinicDocumentIdentity {
+name: string
+timezone: string
+currency: Currency
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+production_documents_enabled: boolean
+}
+export interface ClinicDocumentIdentityResponse {
+data: ClinicDocumentIdentity
+}
 export interface Reauthentication {
 reauthenticated_until: Instant
 }
@@ -3315,7 +6136,7 @@ export interface ReauthenticationResponse {
 data: Reauthentication
 }
 /**
- * Article : prix de vente pour les profils autorisés ; purchase_cost présent seulement pour la gérante (fichier 08).
+ * Article : prix de vente pour les profils autorisés ; purchase_cost présent seulement pour la gérante (fichier 08). Mêmes champs que la requête CatalogItemRequest, pour pré-remplir la modification.
  */
 export interface CatalogItem {
 id: Ulid
@@ -3331,7 +6152,10 @@ purchase_cost?: (MoneyXaf | null)
 tax_rule_id: NullableUlid
 stock_mode: CatalogItemsStockMode
 requires_expiry: boolean
+low_stock_threshold: (Quantity | null)
+expiry_alert_days: (number | null)
 active: boolean
+public_visibility: boolean
 version: Version
 }
 export interface CatalogPage {
@@ -3419,6 +6243,9 @@ balance_due: SignedMoneyXaf
 credit_available: MoneyXaf
 settlement: ("NOT_ISSUED" | "UNPAID" | "PARTIALLY_PAID" | "SETTLED" | "IN_CREDIT")
 }
+/**
+ * Encaissement d'une facture ; received_by_name est le nom ACTUEL du compte qui a encaissé (le reçu garde le nom figé dans son snapshot).
+ */
 export interface InvoicePayment {
 id: Ulid
 amount: PositiveMoneyXaf
@@ -3430,6 +6257,8 @@ status: PaymentsStatus
 receipt_id: NullableUlid
 receipt_number: (string | null)
 reversed_amount: MoneyXaf
+received_by: Ulid
+received_by_name: (string | null)
 }
 /**
  * État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).
@@ -3439,7 +6268,7 @@ document_id: Ulid
 document_status: GeneratedDocumentsStatus
 }
 /**
- * Facture : draft_version (version du brouillon, figée à l'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08).
+ * Facture : draft_version (version du brouillon, figée à l'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08). patient_snapshot, clinic_snapshot et tax_snapshot sont les contenus FIGÉS à l'émission (null pour un brouillon) : le document d'une facture émise est produit d'eux, jamais de l'identité ni des prix actuels (fichier 11). Un document dont clinic_snapshot.test_document vaut true est un document TEST.
  */
 export interface Invoice {
 id: Ulid
@@ -3449,6 +6278,7 @@ number: (string | null)
 status: InvoicesStatus
 issued_at: NullableInstant
 issued_by: NullableUlid
+issued_by_name: (string | null)
 due_date: NullableCivilDate
 currency: Currency
 total_gross: MoneyXaf
@@ -3490,6 +6320,8 @@ prescription_id: NullableUlid
 }[]
 /**
  * @minItems 0
+ * 
+ * Items: Encaissement d'une facture ; received_by_name est le nom ACTUEL du compte qui a encaissé (le reçu garde le nom figé dans son snapshot).
  */
 payments: {
 id: Ulid
@@ -3502,6 +6334,8 @@ status: PaymentsStatus
 receipt_id: NullableUlid
 receipt_number: (string | null)
 reversed_amount: MoneyXaf
+received_by: Ulid
+received_by_name: (string | null)
 }[]
 /**
  * @minItems 0
@@ -3532,10 +6366,57 @@ document: ({
 document_id: Ulid
 document_status: GeneratedDocumentsStatus
 } | null)
+patient_snapshot: (InvoicePatientSnapshot | null)
+clinic_snapshot: (InvoiceClinicSnapshot | null)
+tax_snapshot: (InvoiceTaxSnapshot | null)
 }
+export interface InvoicePatientSnapshot {
+patient_id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+export interface InvoiceClinicSnapshot {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+export interface InvoiceTaxSnapshot {
+regime: ("NO_TAX_CONFIGURED" | "VALIDATED_RULES")
+/**
+ * @minItems 0
+ */
+rules: {
+tax_rule_id: Ulid
+code: string
+label: string
+rate_percent: (Rate | null)
+validated_at: NullableInstant
+legal_note: (string | null)
+}[]
+}
+/**
+ * Ligne de la liste des factures : identité de BASE du patient (dossier courant, jamais clinique), reste dû projeté.
+ */
 export interface InvoiceSummary {
 id: Ulid
 patient_id: Ulid
+patient: ({
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+} | null)
 number: (string | null)
 status: InvoicesStatus
 issued_at: NullableInstant
@@ -3676,25 +6557,227 @@ data: CreditNoteResult
 export interface RefundResultResponse {
 data: RefundResult
 }
+/**
+ * Approbation exacte (B06) : nature, cible et empreinte du contenu ; subject = contenu exact relu dans l'audit de la demande et REVÉRIFIÉ contre payload_hash (null s'il ne la reproduit pas, ou pour une exécution directe de la gérante) ; effective_status = statut à l'instant (une demande ou un accord échus sont EXPIRED, jamais écrit) ; noms à la date de la demande et de la décision ; motif de la décision. Aucune donnée clinique.
+ */
 export interface Approval {
 id: Ulid
+kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND") | null)
 action_code: PermissionCode
 target_type: string
 target_id: Ulid
 payload_hash: Sha256Hex
-requested_by: Ulid
+subject: (ApprovalSubject | null)
 reason: string
 status: ApprovalsStatus
+effective_status: ApprovalsStatus
+requested_by: Ulid
+requested_by_name: string
+requested_at: Instant
 decided_by: NullableUlid
+decided_by_name: (string | null)
 decided_at: NullableInstant
+decision_reason: (string | null)
 expires_at: NullableInstant
 consumed_at: NullableInstant
+target: ApprovalTarget
+}
+/**
+ * Dispense des frais d'examen d'UNE visite de CE patient (action exam_fee.collect, cible visits).
+ */
+export interface ExamFeeWaiverSubject {
+kind: "EXAM_FEE_WAIVER"
+visit_id: Ulid
+patient_id: Ulid
+}
+/**
+ * Prix hors catalogue, ligne libre ou remise au-delà du plafond : TOUTES les lignes du brouillon telles qu'elles seront enregistrées, sans leurs identifiants (action catalog.manage, cible invoices ; le brouillon peut ne pas encore exister).
+ */
+export interface DraftLineRightsSubject {
+kind: "DRAFT_LINE_RIGHTS"
+invoice_id: Ulid
+patient_id: Ulid
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+prescription_id: NullableUlid
+}, ...({
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+prescription_id: NullableUlid
+})[]]
+}
+/**
+ * Contre-écriture d'un paiement (action payment.reverse, cible payments).
+ */
+export interface PaymentReversalSubject {
+kind: "PAYMENT_REVERSAL"
+invoice_id: Ulid
+payment_id: Ulid
+amount: PositiveMoneyXaf
+}
+/**
+ * Avoir lié aux lignes d'origine (action credit_note.issue, cible invoices).
+ */
+export interface CreditNoteSubject {
+kind: "CREDIT_NOTE"
+invoice_id: Ulid
+amount_gross: PositiveMoneyXaf
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+invoice_line_id: Ulid
+quantity: (Quantity | null)
+amount_gross: PositiveMoneyXaf
+}, ...({
+invoice_line_id: Ulid
+quantity: (Quantity | null)
+amount_gross: PositiveMoneyXaf
+})[]]
+}
+/**
+ * Remboursement d'un crédit (action refund.execute, cible invoices).
+ */
+export interface RefundSubject {
+kind: "REFUND"
+invoice_id: Ulid
+credit_note_id: Ulid
+amount: PositiveMoneyXaf
+method: RefundsMethod
+}
+/**
+ * Résumé de la cible pour décider : identité administrative du patient, numéro de facture (null pour un brouillon), heure de la visite, paiement visé.
+ */
+export interface ApprovalTarget {
+patient: ({
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+} | null)
+invoice_number: (string | null)
+visit_occurred_at: NullableInstant
+payment: ({
+amount: PositiveMoneyXaf
+method: PaymentsMethod
+effective_at: Instant
+} | null)
 }
 export interface ApprovalResponse {
 data: Approval
 }
+export interface ApprovalPage {
 /**
- * Session de caisse ; collected_cash/refunded_cash sont des projections de la session.
+ * @minItems 0
+ */
+data: Approval[]
+meta: Pagination
+}
+/**
+ * Caisse physique (cash_registers). Une seule caisse principale au premier jalon.
+ */
+export interface CashRegister {
+id: Ulid
+code: string
+name: string
+active: boolean
+}
+export interface CashRegisterList {
+/**
+ * @minItems 0
+ */
+data: CashRegister[]
+}
+/**
+ * Reçu d'un encaissement : pièce immuable, numéro définitif jamais renuméroté, snapshot figé (source de son document ; fichier 11). Un reçu ne se modifie ni ne se supprime.
+ */
+export interface Receipt {
+id: Ulid
+payment_id: Ulid
+invoice_id: Ulid
+number: string
+issued_at: Instant
+issued_by: Ulid
+snapshot: ReceiptSnapshot
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+}
+export interface ReceiptSnapshot {
+receipt_id: Ulid
+receipt_number: string
+issued_at: Instant
+effective_at: Instant
+invoice: {
+invoice_id: Ulid
+number: string
+issued_at: Instant
+total_gross: MoneyXaf
+}
+patient: {
+patient_id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+payment: {
+payment_id: Ulid
+amount: PositiveMoneyXaf
+currency: Currency
+method: PaymentsMethod
+reference: (string | null)
+}
+paid_net_before: MoneyXaf
+paid_net_after: MoneyXaf
+balance_after: SignedMoneyXaf
+/**
+ * Calculée : BALANCE_SETTLEMENT si le reste après ce paiement est nul, sinon DEPOSIT (un encaissement ne dépasse jamais le solde).
+ */
+kind: ("DEPOSIT" | "BALANCE_SETTLEMENT")
+cashier: {
+user_id: Ulid
+display_name: string
+}
+/**
+ * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
+ */
+clinic: {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+template_version: string
+}
+export interface ReceiptResponse {
+data: Receipt
+}
+/**
+ * Session de caisse ; collected_cash, refunded_cash et theoretical_cash (ouverture + espèces encaissées − contre-écritures − remboursements espèces + mouvements autorisés) sont des projections recalculées à chaque lecture. expected_amount, counted_amount et variance ne sont renseignés qu'à la clôture : photographie figée.
  */
 export interface CashSession {
 id: Ulid
@@ -3710,6 +6793,7 @@ variance_reason: (string | null)
 closed_by: NullableUlid
 collected_cash: MoneyXaf
 refunded_cash: MoneyXaf
+theoretical_cash: SignedMoneyXaf
 }
 export interface CashSessionResponse {
 data: CashSession
@@ -3748,6 +6832,142 @@ reservation_id: NullableUlid
 export interface DeliveryResponse {
 data: Delivery
 }
+/**
+ * Session de caisse et ses libellés : noms ACTUELS de la caissière et de qui a clôturé, caisse.
+ */
+export interface CashSessionEntry {
+id: Ulid
+cash_register_id: Ulid
+cashier_id: Ulid
+opened_at: Instant
+opening_amount: MoneyXaf
+closed_at: NullableInstant
+counted_amount: (MoneyXaf | null)
+expected_amount: (MoneyXaf | null)
+variance: (SignedMoneyXaf | null)
+variance_reason: (string | null)
+closed_by: NullableUlid
+collected_cash: MoneyXaf
+refunded_cash: MoneyXaf
+theoretical_cash: SignedMoneyXaf
+cashier_name: (string | null)
+closed_by_name: (string | null)
+register_code: (string | null)
+register_name: (string | null)
+}
+export interface CashSessionPage {
+/**
+ * @minItems 0
+ */
+data: CashSessionEntry[]
+meta: Pagination
+}
+/**
+ * Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.
+ */
+export interface CashSessionReport {
+session: CashSessionEntry
+cash_received: MoneyXaf
+cash_reversed: MoneyXaf
+cash_refunded: MoneyXaf
+movements_in: MoneyXaf
+movements_out: MoneyXaf
+/**
+ * @minItems 0
+ */
+movements: {
+id: Ulid
+kind: CashMovementsKind
+signed_amount: SignedMoneyXaf
+reason: string
+occurred_at: Instant
+}[]
+/**
+ * @minItems 0
+ */
+payments: {
+payment_id: Ulid
+invoice_id: Ulid
+invoice_number: (string | null)
+receipt_id: NullableUlid
+receipt_number: (string | null)
+method: PaymentsMethod
+amount: PositiveMoneyXaf
+reversed_amount: MoneyXaf
+effective_at: Instant
+}[]
+/**
+ * @minItems 0
+ */
+other_methods: {
+method: PaymentsMethod
+count: number
+amount: SignedMoneyXaf
+}[]
+generated_at: Instant
+}
+export interface CashSessionReportResponse {
+data: CashSessionReport
+}
+/**
+ * Caisse du jour (jour civil du cabinet) : encaissements nets par mode (encaissés − contre-écritures − remboursements), sessions du jour. Portée CLINIC (finance.global.read) : tout le cabinet, factures et avoirs émis du jour, reste à encaisser des factures ouvertes à l'instant de la lecture. Portée OWN (caissière) : ses encaissements et ses sessions seulement ; issued, credited et outstanding à null.
+ */
+export interface CashDayReport {
+date: CivilDate
+scope: ("CLINIC" | "OWN")
+/**
+ * @minItems 0
+ */
+collections: {
+method: PaymentsMethod
+payments_count: number
+payments_amount: MoneyXaf
+reversals_amount: MoneyXaf
+refunds_amount: MoneyXaf
+net_amount: SignedMoneyXaf
+}[]
+net_total: SignedMoneyXaf
+/**
+ * @minItems 0
+ */
+sessions: CashSessionEntry[]
+issued: ({
+count: number
+total_gross: MoneyXaf
+} | null)
+credited: ({
+count: number
+amount_gross: MoneyXaf
+} | null)
+outstanding: ({
+invoices_count: number
+amount_due: MoneyXaf
+refundable_credit: MoneyXaf
+} | null)
+generated_at: Instant
+}
+export interface CashDayReportResponse {
+data: CashDayReport
+}
+/**
+ * Règles de vente du compte connecté, pour l'affichage : le serveur reste seul juge à chaque commande.
+ */
+export interface SalesSettings {
+price_authority: boolean
+discount_cap_percent: Rate
+/**
+ * @minItems 1
+ */
+payment_methods: [PaymentsMethod, ...(PaymentsMethod)[]]
+/**
+ * @minItems 0
+ */
+payment_reference_required: PaymentsMethod[]
+exam_fee_item_reference: (string | null)
+}
+export interface SalesSettingsResponse {
+data: SalesSettings
+}
 export interface ClinicalRevision {
 id: Ulid
 revision_no: number
@@ -3758,7 +6978,55 @@ previous_revision_id: NullableUlid
 sha256: Sha256Hex
 }
 /**
- * Consultation complète : professionnel et gérante seulement (clinical.read).
+ * Révision figée avec son snapshot complet (clinical.read) : immuable, lue telle qu’enregistrée ; sha256 = SHA-256 de JCS(snapshot).
+ */
+export interface ClinicalRevisionDetail {
+id: Ulid
+revision_no: number
+recorded_at: Instant
+author_id: Ulid
+reason: string
+previous_revision_id: NullableUlid
+sha256: Sha256Hex
+snapshot: ClinicalRevisionSnapshot
+}
+export interface ClinicalRevisionSnapshot {
+consultation_id: Ulid
+revision_no: number
+recorded_at: Instant
+author: {
+user_id: Ulid
+display_name: string
+}
+patient: {
+patient_id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+visit_id: Ulid
+effective_at: Instant
+steps: AllSteps
+finalization_missing_data_reason: (string | null)
+previous_revision_id: NullableUlid
+amendment_reason: (string | null)
+}
+export interface ClinicalRevisionResponse {
+data: ClinicalRevisionDetail
+}
+/**
+ * Identité administrative de base du patient de la consultation, pour l’en-tête de l’écran (comme Visit.patient).
+ */
+export interface ConsultationPatient {
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+sex: PatientRecordsSex
+birth_date: NullableCivilDate
+}
+/**
+ * Consultation complète : professionnel et gérante seulement (clinical.read). patient : identité administrative de base, pour l’en-tête (sans dépendre du module Patients).
  */
 export interface Consultation {
 id: Ulid
@@ -3772,6 +7040,7 @@ current_revision: number
 completed_at: NullableInstant
 finalization_missing_data_reason: (string | null)
 version: Version
+patient: ConsultationPatient
 steps: AllSteps
 /**
  * @minItems 0
@@ -3785,6 +7054,46 @@ reason: string
 previous_revision_id: NullableUlid
 sha256: Sha256Hex
 }[]
+}
+/**
+ * Examen dans la liste du cabinet : patient (identité administrative de base), état, dates, révision et professionnel. Aucune valeur clinique.
+ */
+export interface ConsultationSummary {
+id: Ulid
+visit_id: Ulid
+patient_id: Ulid
+status: ConsultationsStatus
+effective_at: Instant
+completed_at: NullableInstant
+current_revision: number
+patient: ConsultationPatient
+clinician: {
+id: Ulid
+display_name: string
+}
+}
+export interface ConsultationSummaryPage {
+/**
+ * @minItems 0
+ */
+data: ConsultationSummary[]
+meta: Pagination
+}
+/**
+ * Échelle d’acuité configurée par le cabinet (visual_acuity_scales). Aucune conversion entre échelles n’est fournie ni présumée.
+ */
+export interface VisualAcuityScale {
+id: Ulid
+code: string
+label: string
+description: (string | null)
+active: boolean
+}
+export interface VisualAcuityScaleList {
+/**
+ * @minItems 0
+ */
+data: VisualAcuityScale[]
 }
 /**
  * Prescription versionnée ; updated_at sert de jeton de concurrence pour PATCH d'un brouillon (optical_prescriptions n'a pas de colonne version).
@@ -3845,6 +7154,7 @@ other_text: (string | null)
 }[]
 validated_at: NullableInstant
 validated_by: NullableUlid
+validated_by_name: (string | null)
 document_id: NullableUlid
 updated_at: Instant
 }
@@ -3853,6 +7163,15 @@ data: Consultation
 }
 export interface PrescriptionResponse {
 data: Prescription
+}
+/**
+ * Toutes les versions des prescriptions de la consultation, de la plus récente à la plus ancienne.
+ */
+export interface PrescriptionList {
+/**
+ * @minItems 0
+ */
+data: Prescription[]
 }
 export interface EnrolledDevice {
 device_id: Ulid
@@ -4239,7 +7558,7 @@ export interface PatientHistoryResponse {
 data: PatientHistory
 }
 /**
- * Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ». consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.
+ * Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control, contrôle inactif (EEO_EXAM_FEE_CONTROL=off, défaut) : NOT_CONTROLLED pour un motif d’examen ou de suivi, NOT_APPLICABLE pour un achat ou un retrait ; contrôle actif (billed) : UNPAID (frais d’examen à encaisser), WAIVER_REQUESTED (dispense demandée, en attente de la gérante), PAID (facture de frais de CETTE visite réglée ; exam_fee_receipt_number = numéro de son dernier reçu), WAIVED (dispense accordée ou consommée), NOT_APPLICABLE. Jamais « payé » ni « gratuit » sans pièce : PAID s’appuie sur des reçus réels. Contrôle actif, le statut AWAITING_EXAM_FEE / READY_FOR_EXAM est celui du contrôle à l’instant (une dispense échue ramène « en attente »). consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.
  */
 export interface Visit {
 id: Ulid
@@ -4255,7 +7574,8 @@ closed_at: NullableInstant
 administrative_note: (string | null)
 version: Version
 patient: VisitPatient
-exam_fee_control: ("NOT_CONTROLLED" | "NOT_APPLICABLE")
+exam_fee_control: ("NOT_CONTROLLED" | "NOT_APPLICABLE" | "UNPAID" | "WAIVER_REQUESTED" | "PAID" | "WAIVED")
+exam_fee_receipt_number?: (string | null)
 consultation_id: NullableUlid
 consultation_status: (ConsultationsStatus | null)
 }
@@ -4279,6 +7599,140 @@ export interface VisitPage {
  */
 data: Visit[]
 meta: Pagination
+}
+/**
+ * Visite (section VISITS, patient.read) : motif et statut administratifs ; occurred_at = heure de la visite.
+ */
+export interface PatientActivityVisit {
+type: "VISIT"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+reason: VisitsReason
+status: VisitsStatus
+}
+/**
+ * Examen (section EXAMS, clinical.read) : date effective, état et professionnel ; aucun contenu clinique.
+ */
+export interface PatientActivityConsultation {
+type: "CONSULTATION"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+status: ConsultationsStatus
+clinician_name: string
+}
+/**
+ * Prescription optique, une entrée par version (section PRESCRIPTIONS, clinical.read) : origine, état et numéro de version ; occurred_at = validation, sinon création. Aucune valeur de correction.
+ */
+export interface PatientActivityPrescription {
+type: "PRESCRIPTION"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+origin: OpticalPrescriptionsOrigin
+status: OpticalPrescriptionsStatus
+version_no: number
+consultation_id: NullableUlid
+external_prescribed_on: NullableCivilDate
+}
+/**
+ * Ordonnance de médicaments d'une consultation (section PRESCRIPTIONS, clinical.read) : id = consultation_id (ni table ni numéro propres) ; aucun nom de médicament.
+ */
+export interface PatientActivityMedicationOrder {
+type: "MEDICATION_ORDER"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+consultation_id: Ulid
+consultation_status: ConsultationsStatus
+}
+/**
+ * Facture émise (section FINANCIAL, invoice.read) : solde projeté par vw_invoice_balances, jamais un statut payé stocké ; SETTLED = solde nul (encaissements ou avoirs).
+ */
+export interface PatientActivityInvoice {
+type: "INVOICE"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+number: string
+origin: InvoicesOrigin
+total_gross: MoneyXaf
+paid_net: MoneyXaf
+balance_due: SignedMoneyXaf
+credit_available: MoneyXaf
+settlement: ("UNPAID" | "PARTIALLY_PAID" | "SETTLED" | "IN_CREDIT")
+}
+/**
+ * Reçu d'un encaissement confirmé (section FINANCIAL, invoice.read) : reversed_amount = contre-écritures du paiement ; le reçu reste, immuable.
+ */
+export interface PatientActivityReceipt {
+type: "RECEIPT"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+number: string
+amount: PositiveMoneyXaf
+method: PaymentsMethod
+reversed_amount: MoneyXaf
+invoice_id: Ulid
+invoice_number: (string | null)
+}
+/**
+ * Avoir émis (section FINANCIAL, invoice.read).
+ */
+export interface PatientActivityCreditNote {
+type: "CREDIT_NOTE"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+number: string
+amount_gross: PositiveMoneyXaf
+invoice_id: Ulid
+invoice_number: (string | null)
+}
+/**
+ * Remboursement exécuté (section FINANCIAL, invoice.read).
+ */
+export interface PatientActivityRefund {
+type: "REFUND"
+id: Ulid
+occurred_at: Instant
+screen_path: (string | null)
+number: string
+amount: PositiveMoneyXaf
+method: RefundsMethod
+invoice_id: Ulid
+invoice_number: (string | null)
+}
+export interface PatientActivitySection {
+section: ("VISITS" | "EXAMS" | "PRESCRIPTIONS" | "FINANCIAL")
+total: number
+}
+/**
+ * Pagination (25 par page) ; section = filtre appliqué (null : toutes les sections visibles) ; sections = sections VISIBLES du compte et leur nombre d'éléments, aucune autre.
+ */
+export interface PatientActivityMeta {
+current_page: number
+last_page: number
+per_page: 25
+total: number
+section: (("VISITS" | "EXAMS" | "PRESCRIPTIONS" | "FINANCIAL") | null)
+/**
+ * @minItems 0
+ */
+sections: PatientActivitySection[]
+}
+/**
+ * Activité du patient, du plus récent au plus ancien. Visites pour patient.read ; examens et ordonnances seulement avec clinical.read (module consultations) ; pièces financières seulement avec invoice.read (module sales). Brouillons et pièces abandonnées exclus.
+ */
+export interface PatientActivity {
+/**
+ * @minItems 0
+ * @maxItems 25
+ */
+data: PatientActivityItem[]
+meta: PatientActivityMeta
 }
 export interface PublicService {
 id: Ulid
@@ -4472,6 +7926,21 @@ export interface StockAvailabilityPage {
  */
 data: StockAvailability[]
 meta: Pagination
+}
+/**
+ * Emplacement de stock (rayon, atelier, réserve) ; PRINCIPAL créé par eeo:sales:bootstrap.
+ */
+export interface StockLocation {
+id: Ulid
+code: string
+name: string
+active: boolean
+}
+export interface StockLocationList {
+/**
+ * @minItems 0
+ */
+data: StockLocation[]
 }
 export interface StockMovement {
 id: Ulid
@@ -4678,7 +8147,7 @@ previous_revision_id: Ulid
 reason: Reason
 /**
  * @minItems 1
- * @maxItems 6
+ * @maxItems 7
  */
 steps: [{
 step: StepName
@@ -4756,6 +8225,41 @@ data: {
 
 }
 }]|[{
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}]|[{
+step: StepName
+data: {
+
+}
+}, {
 step: StepName
 data: {
 
@@ -4800,7 +8304,7 @@ previous_revision_id: Ulid
 reason: Reason
 /**
  * @minItems 1
- * @maxItems 6
+ * @maxItems 7
  */
 steps: [{
 step: StepName
@@ -4878,6 +8382,41 @@ data: {
 
 }
 }]|[{
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}, {
+step: StepName
+data: {
+
+}
+}]|[{
+step: StepName
+data: {
+
+}
+}, {
 step: StepName
 data: {
 
@@ -7289,10 +10828,7 @@ administrative_note: (string | null)
 }
 export interface RequestApprovalPayload {
 approval_id: Ulid
-action_code: PermissionCode
-target_type: string
-target_id: Ulid
-payload_hash: Sha256Hex
+subject: ApprovalSubject
 reason: Reason
 expires_at: NullableInstant
 }
@@ -7302,10 +10838,7 @@ expires_at: NullableInstant
 export interface RequestApprovalDirectRequest {
 expected_version: null
 approval_id: Ulid
-action_code: PermissionCode
-target_type: string
-target_id: Ulid
-payload_hash: Sha256Hex
+subject: ApprovalSubject
 reason: Reason
 expires_at: NullableInstant
 }
@@ -7595,27 +11128,6 @@ payload: {
 
 }
 }
-export interface ClinicalRevisionSnapshot {
-consultation_id: Ulid
-revision_no: number
-recorded_at: Instant
-author: {
-user_id: Ulid
-display_name: string
-}
-patient: {
-patient_id: Ulid
-record_number: string
-last_name: string
-first_names: (string | null)
-}
-visit_id: Ulid
-effective_at: Instant
-steps: AllSteps
-finalization_missing_data_reason: (string | null)
-previous_revision_id: NullableUlid
-amendment_reason: (string | null)
-}
 export interface CreditNoteSnapshot {
 credit_note_id: Ulid
 number: string
@@ -7697,96 +11209,6 @@ patient_id: Ulid
 record_number: string
 last_name: string
 first_names: (string | null)
-}
-export interface InvoiceClinicSnapshot {
-clinic_id: Ulid
-name: string
-address: (string | null)
-phone: (string | null)
-email: (string | null)
-tax_identifier: (string | null)
-professional_mentions: (string | null)
-document_settings: ({
-
-} | null)
-currency: Currency
-timezone: string
-test_document: boolean
-}
-export interface InvoicePatientSnapshot {
-patient_id: Ulid
-record_number: string
-last_name: string
-first_names: (string | null)
-}
-export interface InvoiceTaxSnapshot {
-regime: ("NO_TAX_CONFIGURED" | "VALIDATED_RULES")
-/**
- * @minItems 0
- */
-rules: {
-tax_rule_id: Ulid
-code: string
-label: string
-rate_percent: (Rate | null)
-validated_at: NullableInstant
-legal_note: (string | null)
-}[]
-}
-export interface ReceiptSnapshot {
-receipt_id: Ulid
-receipt_number: string
-issued_at: Instant
-effective_at: Instant
-invoice: {
-invoice_id: Ulid
-number: string
-issued_at: Instant
-total_gross: MoneyXaf
-}
-patient: {
-patient_id: Ulid
-record_number: string
-last_name: string
-first_names: (string | null)
-}
-payment: {
-payment_id: Ulid
-amount: PositiveMoneyXaf
-currency: Currency
-method: PaymentsMethod
-reference: (string | null)
-}
-paid_net_before: MoneyXaf
-paid_net_after: MoneyXaf
-balance_after: SignedMoneyXaf
-/**
- * Calculée : BALANCE_SETTLEMENT si le reste après ce paiement est nul, sinon DEPOSIT (un encaissement ne dépasse jamais le solde).
- */
-kind: ("DEPOSIT" | "BALANCE_SETTLEMENT")
-cashier: {
-user_id: Ulid
-display_name: string
-}
-/**
- * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
- */
-clinic: {
-clinic_id: Ulid
-name: string
-address: (string | null)
-phone: (string | null)
-email: (string | null)
-tax_identifier: (string | null)
-professional_mentions: (string | null)
-document_settings: ({
-
-} | null)
-currency: Currency
-timezone: string
-test_document: boolean
-}
-template_version: string
 }
 export interface RefundSnapshot {
 refund_id: Ulid

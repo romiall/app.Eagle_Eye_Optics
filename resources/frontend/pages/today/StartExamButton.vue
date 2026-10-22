@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
  * « Démarrer l'examen » d'une visite arrivée (C01 ; commande StartConsultation, droit clinical.write).
- * Le démarrage n'est PAS bloqué par le règlement de l'examen : ce contrôle n'existe pas encore (B04,
- * B06) et rien ici n'en parle. La consultation et la clé d'idempotence sont liées à ce bouton : un
+ * Contrôle du paiement de l'examen inactif (défaut) : le démarrage n'est pas bloqué par le règlement.
+ * Contrôle actif (P03) : c'est le SERVEUR qui exige la facture de frais réglée ou la dispense accordée
+ * (retrouvée par son contenu exact) ; un refus `EXAM_PAYMENT_REQUIRED` est dit tel quel sous le bouton,
+ * sans rien supposer réglé. La consultation et la clé d'idempotence sont liées à ce bouton : un
  * double clic ou une reprise après coupure ne crée jamais deux consultations. Sur succès (réponse du
  * serveur), la consultation s'ouvre. Un refus d'état (409 : visite déjà démarrée ailleurs, plus
  * « Arrivé ») est dit et la file est relue (événement `stale`). Aucun succès n'est supposé sans

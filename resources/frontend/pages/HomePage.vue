@@ -5,6 +5,12 @@
  * livrées pour ce compte. Tant qu'aucune n'est livrée, la page le dit au lieu d'afficher des
  * boutons vers des écrans vides. « Livrée » veut dire terminée dans le code et ouverte par
  * l'exploitant (`enabled_modules`, mise en service progressive).
+ *
+ * Sous ces actions, l'accueil par profil : des raccourcis de travail regroupés par activité (accueil des
+ * patients, examens, caisse et ventes, administration), chacun visible seulement avec son droit et son module
+ * ouvert. Aucun profil n'est nommé : un compte qui cumule plusieurs profils voit chaque activité qui le
+ * concerne. Le lien « Changer mon mot de passe » sert à tout compte (mot de passe initial transmis par la
+ * gérante).
  */
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -14,6 +20,10 @@ import {
   useNavigationCatalog,
   visibleHomeActions,
   visibleModules,
+  visibleWorkShortcuts,
+  WORK_GROUP_LABELS,
+  type WorkGroup,
+  type WorkShortcut,
 } from '@/app/navigation'
 import { useNetworkStatus } from '@/app/network'
 import { currentPermissions, enabledModules, session } from '@/app/session'
@@ -34,6 +44,22 @@ const anyOpen = computed(() =>
 const menuModules = computed(() =>
   visibleModules(currentPermissions.value, enabledModules.value, catalog.modules),
 )
+
+const WORK_GROUPS: readonly WorkGroup[] = ['reception', 'exams', 'cash', 'administration']
+
+/** Raccourcis de travail visibles, par activité, dans l'ordre fixe des activités. */
+const workGroups = computed<{ group: WorkGroup; label: string; shortcuts: WorkShortcut[] }[]>(() => {
+  const visible = visibleWorkShortcuts(
+    currentPermissions.value,
+    enabledModules.value,
+    catalog.workShortcuts ?? [],
+  )
+  return WORK_GROUPS.map((group) => ({
+    group,
+    label: WORK_GROUP_LABELS[group],
+    shortcuts: visible.filter((shortcut) => shortcut.group === group),
+  })).filter((entry) => entry.shortcuts.length > 0)
+})
 </script>
 
 <template>
@@ -94,5 +120,35 @@ const menuModules = computed(() =>
       factures et caisse en premier) apparaîtront ici à leur livraison, selon les droits de chaque
       compte.
     </StateMessage>
+
+    <template v-if="session.status === 'authenticated'">
+      <section
+        v-for="entry in workGroups"
+        :key="entry.group"
+        :aria-labelledby="`titre-travail-${entry.group}`"
+        class="space-y-2"
+      >
+        <h2 :id="`titre-travail-${entry.group}`" class="text-lg font-semibold">
+          {{ entry.label }}
+        </h2>
+        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <li v-for="shortcut in entry.shortcuts" :key="shortcut.id">
+            <RouterLink
+              :to="shortcut.path"
+              class="flex min-h-12 items-center rounded-lg border-2 border-line bg-surface px-4 py-2 text-base font-medium text-primary hover:border-primary"
+              >{{ shortcut.label }}</RouterLink
+            >
+          </li>
+        </ul>
+      </section>
+
+      <p>
+        <RouterLink
+          :to="{ name: 'mot-de-passe' }"
+          class="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+          >Changer mon mot de passe</RouterLink
+        >
+      </p>
+    </template>
   </section>
 </template>

@@ -1,0 +1,8 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CurrentCashSessionResponse",
+  "valid": true,
+  "description": "Aucune session ouverte pour ce compte : data vaut null",
+  "data": {
+    "data": null
+  }
+}

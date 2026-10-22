@@ -417,7 +417,7 @@
       }
     },
     "Visit": {
-      "description": "Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control : NOT_CONTROLLED tant que le contrôle du paiement de l’examen n’existe pas (B04, B06) pour un motif d’examen ou de suivi ; NOT_APPLICABLE pour un achat ou un retrait. Jamais « payé » ni « gratuit ». consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.",
+      "description": "Visite : l’identité de base du patient accompagne la visite (file du jour). exam_fee_control, contrôle inactif (EEO_EXAM_FEE_CONTROL=off, défaut) : NOT_CONTROLLED pour un motif d’examen ou de suivi, NOT_APPLICABLE pour un achat ou un retrait ; contrôle actif (billed) : UNPAID (frais d’examen à encaisser), WAIVER_REQUESTED (dispense demandée, en attente de la gérante), PAID (facture de frais de CETTE visite réglée ; exam_fee_receipt_number = numéro de son dernier reçu), WAIVED (dispense accordée ou consommée), NOT_APPLICABLE. Jamais « payé » ni « gratuit » sans pièce : PAID s’appuie sur des reçus réels. Contrôle actif, le statut AWAITING_EXAM_FEE / READY_FOR_EXAM est celui du contrôle à l’instant (une dispense échue ramène « en attente »). consultation_id et consultation_status : la consultation de la visite, rendus SEULEMENT à un compte qui détient clinical.read (null sinon, y compris quand la consultation existe) ; null aussi quand l’examen n’est pas démarré.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -490,7 +490,23 @@
           "type": "string",
           "enum": [
             "NOT_CONTROLLED",
-            "NOT_APPLICABLE"
+            "NOT_APPLICABLE",
+            "UNPAID",
+            "WAIVER_REQUESTED",
+            "PAID",
+            "WAIVED"
+          ]
+        },
+        "exam_fee_receipt_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "consultation_id": {
@@ -583,6 +599,576 @@
         },
         "meta": {
           "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PatientActivityVisit": {
+      "description": "Visite (section VISITS, patient.read) : motif et statut administratifs ; occurred_at = heure de la visite.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "reason",
+        "status"
+      ],
+      "properties": {
+        "type": {
+          "const": "VISIT"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "$ref": "../../schemas/enums.json#/$defs/visits.reason"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/visits.status"
+        }
+      }
+    },
+    "PatientActivityConsultation": {
+      "description": "Examen (section EXAMS, clinical.read) : date effective, état et professionnel ; aucun contenu clinique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "status",
+        "clinician_name"
+      ],
+      "properties": {
+        "type": {
+          "const": "CONSULTATION"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+        },
+        "clinician_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "PatientActivityPrescription": {
+      "description": "Prescription optique, une entrée par version (section PRESCRIPTIONS, clinical.read) : origine, état et numéro de version ; occurred_at = validation, sinon création. Aucune valeur de correction.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "origin",
+        "status",
+        "version_no",
+        "consultation_id",
+        "external_prescribed_on"
+      ],
+      "properties": {
+        "type": {
+          "const": "PRESCRIPTION"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.origin"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/optical_prescriptions.status"
+        },
+        "version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "external_prescribed_on": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        }
+      }
+    },
+    "PatientActivityMedicationOrder": {
+      "description": "Ordonnance de médicaments d'une consultation (section PRESCRIPTIONS, clinical.read) : id = consultation_id (ni table ni numéro propres) ; aucun nom de médicament.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "consultation_id",
+        "consultation_status"
+      ],
+      "properties": {
+        "type": {
+          "const": "MEDICATION_ORDER"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "consultation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "consultation_status": {
+          "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+        }
+      }
+    },
+    "PatientActivityInvoice": {
+      "description": "Facture émise (section FINANCIAL, invoice.read) : solde projeté par vw_invoice_balances, jamais un statut payé stocké ; SETTLED = solde nul (encaissements ou avoirs).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "number",
+        "origin",
+        "total_gross",
+        "paid_net",
+        "balance_due",
+        "credit_available",
+        "settlement"
+      ],
+      "properties": {
+        "type": {
+          "const": "INVOICE"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "origin": {
+          "$ref": "../../schemas/enums.json#/$defs/invoices.origin"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "paid_net": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "balance_due": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "credit_available": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "settlement": {
+          "type": "string",
+          "enum": [
+            "UNPAID",
+            "PARTIALLY_PAID",
+            "SETTLED",
+            "IN_CREDIT"
+          ]
+        }
+      }
+    },
+    "PatientActivityReceipt": {
+      "description": "Reçu d'un encaissement confirmé (section FINANCIAL, invoice.read) : reversed_amount = contre-écritures du paiement ; le reçu reste, immuable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "number",
+        "amount",
+        "method",
+        "reversed_amount",
+        "invoice_id",
+        "invoice_number"
+      ],
+      "properties": {
+        "type": {
+          "const": "RECEIPT"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/payments.method"
+        },
+        "reversed_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PatientActivityCreditNote": {
+      "description": "Avoir émis (section FINANCIAL, invoice.read).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "number",
+        "amount_gross",
+        "invoice_id",
+        "invoice_number"
+      ],
+      "properties": {
+        "type": {
+          "const": "CREDIT_NOTE"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "amount_gross": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PatientActivityRefund": {
+      "description": "Remboursement exécuté (section FINANCIAL, invoice.read).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "occurred_at",
+        "screen_path",
+        "number",
+        "amount",
+        "method",
+        "invoice_id",
+        "invoice_number"
+      ],
+      "properties": {
+        "type": {
+          "const": "REFUND"
+        },
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "screen_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9/_-]{1,199}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/refunds.method"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PatientActivityItem": {
+      "description": "Élément de l'activité, distingué par type.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PatientActivityVisit"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityConsultation"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityPrescription"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityMedicationOrder"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityInvoice"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityReceipt"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityCreditNote"
+        },
+        {
+          "$ref": "#/$defs/PatientActivityRefund"
+        }
+      ]
+    },
+    "PatientActivitySection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "section",
+        "total"
+      ],
+      "properties": {
+        "section": {
+          "type": "string",
+          "enum": [
+            "VISITS",
+            "EXAMS",
+            "PRESCRIPTIONS",
+            "FINANCIAL"
+          ]
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "PatientActivityMeta": {
+      "description": "Pagination (25 par page) ; section = filtre appliqué (null : toutes les sections visibles) ; sections = sections VISIBLES du compte et leur nombre d'éléments, aucune autre.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_page",
+        "last_page",
+        "per_page",
+        "total",
+        "section",
+        "sections"
+      ],
+      "properties": {
+        "current_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "last_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_page": {
+          "type": "integer",
+          "enum": [
+            25
+          ]
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "VISITS",
+                "EXAMS",
+                "PRESCRIPTIONS",
+                "FINANCIAL"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sections": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PatientActivitySection"
+          }
+        }
+      }
+    },
+    "PatientActivity": {
+      "description": "Activité du patient, du plus récent au plus ancien. Visites pour patient.read ; examens et ordonnances seulement avec clinical.read (module consultations) ; pièces financières seulement avec invoice.read (module sales). Brouillons et pièces abandonnées exclus.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/PatientActivityItem"
+          },
+          "maxItems": 25
+        },
+        "meta": {
+          "$ref": "#/$defs/PatientActivityMeta"
         }
       }
     }

@@ -38,7 +38,10 @@ const overrides = {
   SESSION_SECURE_COOKIE: 'false',
   EEO_CLINIC_ID: '',
   // Modules ouverts pour les parcours e2e (mise en service progressive : fermés par défaut en production).
-  EEO_ENABLED_MODULES: 'patients,today,consultations',
+  // « sales » ouvre l'aperçu des documents (D02, /documents/apercu) et les écrans de vente et de caisse
+  // (B01 à B05) ; « stock » ouvre les disponibilités et le stock initial (I00) ; « settings » ouvre les
+  // paramètres de la gérante (personnel, cabinet et documents).
+  EEO_ENABLED_MODULES: 'patients,today,consultations,sales,stock,settings',
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',
@@ -79,4 +82,10 @@ artisan(
   'eeo:demo:accounts',
   `--output=${join(root, 'storage', 'framework', 'testing', 'e2e-accounts.json')}`,
 )
-console.log(`Base ${overrides.DB_DATABASE} migrée ; comptes de démonstration fictifs préparés.`)
+// Échelles d'acuité de DÉMONSTRATION (fictives, non validées cliniquement) : sans elles, la saisie des acuités d'une
+// consultation n'a aucune échelle à choisir.
+artisan('e2e', 'eeo:clinical:scales', '--demo')
+// Ventes de DÉMONSTRATION (fictives) : caisse principale, taxe de test, articles DEMO-* et stock initial, par le
+// chemin central au nom de demo.gerante ; sans eux, aucune facture ni aucun encaissement n'est possible en e2e.
+artisan('e2e', 'eeo:demo:sales')
+console.log(`Base ${overrides.DB_DATABASE} migrée ; comptes de démonstration fictifs et échelles de démonstration préparés.`)

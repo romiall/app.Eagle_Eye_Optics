@@ -59,3 +59,22 @@ Vide (valeur par défaut) : aucun module métier n'est exposé. Les routes d'acc
 `tests/Unit/Support/ModulesTest.php`, `tests/Feature/Http/ModuleGateTest.php`,
 `tests/frontend/shell/navigation.test.ts` (filtrage et cohérence avec `Modules.php`),
 `tests/frontend/shell/module-gate.test.ts` (menu, actions d'accueil, route introuvable).
+
+## État de la phase 1 (codé, vérification de fin de phase à faire)
+
+| Code | Écrans livrés (`delivered: true`) | Serveur |
+| --- | --- | --- |
+| `today` | File du jour, arrivée | `module:today` |
+| `patients` | Patients, fiche, activité | `module:patients` |
+| `consultations` | Liste des examens (`/consultations`), consultation, révisions, prescriptions | `module:consultations` (dont `GET /consultations`) |
+| `sales` | Ventes et caisse, factures, catalogue, taxes, aperçu des documents | `module:sales` |
+| `stock` | Stock (disponibilités, stock initial) — entrée de menu non livrée (I01) | `module:stock` |
+| `settings` | Paramètres (personnel, cabinet et documents) | aucune route de module : les routes de comptes et du cabinet (F05) restent ouvertes à la gérante même module fermé ; seul l'écran dépend de `settings` |
+
+L'accueil affiche, sous les actions du dossier patient (fichier 04), des **raccourcis de travail** par activité
+(`WORK_SHORTCUTS` de `navigation.ts` : accueil des patients, examens, caisse et ventes, administration), soumis aux
+mêmes règles (livré, ouvert, autorisé). `eeo:preflight` signale un code inconnu dans `EEO_ENABLED_MODULES`, le module
+`settings` fermé alors que d'autres sont ouverts, une caisse ou une échelle d'acuité manquante pour un module ouvert,
+et un contrôle du paiement de l'examen incohérent (bloquant).
+
+Ordre d'ouverture conseillé et prérequis : `deploiement.md`, étape 6.

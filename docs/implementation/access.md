@@ -31,6 +31,10 @@ Deux revues indépendantes du commit 343a448 (attaque et conformité, sur MySQL 
 - **Statut relu à chaque requête** (`EnsureUserIsActive`) : un compte désactivé perd sa session même si son cookie existe encore. La désactivation et la réinitialisation suppriment aussi toutes les lignes `fw_sessions` du compte.
 - **Changement de son mot de passe** : la session courante reste ouverte (son empreinte de mot de passe est mise à jour), les autres sessions du compte sont fermées. La route partage la limite de la réauthentification (5 par minute, même compte) et chaque échec est journalisé.
 - **Réauthentification** (`POST /api/v1/auth/reauthenticate`) : elle est valable 15 minutes (`EEO_REAUTHENTICATION_TTL`) pour la gestion des comptes, les paramètres du cabinet et, plus tard, les approbations et exports globaux. Sans elle, 423 `REAUTHENTICATION_REQUIRED`. Une nouvelle connexion l'annule.
+  - **Une seule garde pour toutes les écritures sensibles** (B06) : le middleware `reauthenticated` (`RequireRecentReauthentication`), qui lit l'instant de confirmation rangé dans la session du compte connecté (clé `eeo.reauthenticated_at`). Il protège les comptes et le cabinet (F05), les règles fiscales et le stock initial (B01, I00), la décision d'une approbation (`POST approvals/{id}/decision`) et les corrections des pièces (`POST payments/{id}/reversals`, `POST invoices/{id}/credit-notes`, `POST invoices/{id}/refunds`, B07, B08). Aucune route ne réimplémente sa propre vérification ; `x-reauthentication` du contrat OpenAPI est vérifié contre ce middleware (`OpenApiRoutesTest`).
+  - Liée à la session : la connexion régénère la session et oublie la confirmation, la déconnexion détruit la session ; la limite de 5 essais par minute et par compte et l'audit (`auth.reauthenticated`, `auth.reauthentication_failed`, sans secret) sont ceux de F05.
+  - Côté écran : sur 423, `PasswordConfirmDialog` confirme le mot de passe du compte connecté puis l'écran reprend la MÊME commande avec la même clé d'idempotence (`useMutation().retry()`) ; `ReauthDialog` reste la reconnexion d'une session EXPIRÉE (401/419). Le 423 du middleware précède l'idempotence : rien n'est enregistré avant la confirmation.
+- **Approbations exactes** (B06) : demande par tout compte qui a `approval.request`, décision par la gérante (`approval.decide` ET la permission que l'approbation remplace), jamais par la demandeuse, après réauthentification ; consommation unique et liée au contenu exact dans la transaction de l'opération. Détail : [billing.md](billing.md), « Approbations exactes (B06) ».
 
 ## Routes de F05 (`/api/v1`)
 
@@ -42,6 +46,7 @@ Deux revues indépendantes du commit 343a448 (attaque et conformité, sur MySQL 
 | `POST auth/password` | Connecté | `{current_password, password, password_confirmation}` ; version incrémentée ; limite partagée |
 | `GET clinic/settings` | `users.manage` | Paramètres administratifs complets (contrat 23 : Policy gérante). Les autres profils reçoivent le nom, le fuseau et la monnaie dans `auth/me`. |
 | `PATCH clinic/settings` | `users.manage` + réauthentification | Le fuseau, la monnaie et `production_documents_enabled` sont interdits par l'API (422) ; `document_settings` est un objet JSON |
+| `GET clinic/document-identity` | l'un des droits d'un document (`invoice.read`, `invoice.create`, `invoice.issue`, `payment.collect`, `cash.own_session`, `cash.manage`, `credit_note.issue`, `refund.execute`, `finance.global.read`, `clinical.read`, `clinical.export`) | Identité imprimable du cabinet (nom, coordonnées, identifiant fiscal, mentions, réglages des documents, documents de test ou non) ; sans `id` ni autre paramètre administratif. Ajoutée en phase 1 : sans elle, une ordonnance imprimée par le professionnel n'aurait aucune coordonnée. Ne dépend d'aucun module ; l'accueil (aucun document) reçoit 403 |
 | `GET staff`, `GET staff/{id}` | `users.manage` | Paginé (50) ; filtré par cabinet |
 | `POST staff` | `users.manage` + réauthentification | `{login, display_name, email?, password, roles[]}` |
 | `PATCH staff/{id}` | `users.manage` + réauthentification | `{expected_version, display_name?, email?, active?, roles?, reason?}` ; motif obligatoire pour désactiver ou retirer un profil |
@@ -176,7 +181,7 @@ La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision
 
 | Sujet | État |
 | --- | --- |
-| Matrice 09 et référentiel seedé (qui fait autorité, contrat 23) | Écarts constatés : la caisse n'a ni `credit_note.issue` ni `refund.execute`, alors que 09 prévoit l'exécution d'un avoir ou remboursement « après approbation explicite » ; elle n'a pas `exam_fee.collect`, couvert seulement si `payment.collect` en est un sur-ensemble ; le professionnel a `visit.register` et `agenda.write` général, là où 09 prévoit « RDV de suivi et lecture agenda ». Cohérent avec Q07 (matrice par défaut restrictive) ; à trancher avant B06–B08, sans modifier le seed hors du générateur canonique. |
+| Matrice 09 et référentiel seedé (qui fait autorité, contrat 23) | Écarts constatés : la caisse n'a ni `credit_note.issue` ni `refund.execute`, alors que 09 prévoit l'exécution d'un avoir ou remboursement « après approbation explicite » ; elle n'a pas `exam_fee.collect`, couvert seulement si `payment.collect` en est un sur-ensemble ; le professionnel a `visit.register` et `agenda.write` général, là où 09 prévoit « RDV de suivi et lecture agenda ». Cohérent avec Q07 (matrice par défaut restrictive) ; à trancher, sans modifier le seed hors du générateur canonique. B06–B08 sont codés avec le seed actuel : la caisse DEMANDE l'approbation, la gérante exécute (directement ou en reprenant l'approbation) ; une dérogation nominative (`credit_note.issue`, `refund.execute`, `payment.reverse`) ouvre l'exécution par la caisse, toujours avec l'approbation exacte. |
 | `app/Policies/` (fichier attendu par la fiche F05) | Aucune Policy de ressource n'est nécessaire à F05 : les routes du personnel sont protégées par les codes de permission (Gate) et une recherche filtrée par cabinet. Les Policies de ressource arrivent avec leurs ressources (patients, pièces, documents : F07, B-, D01/D02). |
 | MFA de la gérante | Colonnes `mfa_*` présentes ; recommandé par le fichier 09 « dès L0 », obligatoire avant un accès d'administration distant. Aucune tâche du backlog ne le porte : décision à inscrire (registre 15 et section 6 du fichier 25). |
 | Réinitialisation par e-mail | Prévue par le fichier 09 (« par email ou gérante ») ; aucun fournisseur actif avant L2/L3. La gérante réinitialise les comptes, et la procédure de secours couvre la gérante. |
@@ -190,3 +195,26 @@ La chaîne `previous_hash` (facultative, fichier 09) n'est pas tenue : décision
 | Refus des PDF au mauvais rôle | D01 et D02 (Policies de documents) |
 | Écrans, garde de navigation et avertissement d'inactivité | F09 et F10 |
 | `trustProxies` (adresse IP réelle pour la limitation et l'audit derrière un proxy) | Avec l'audit de l'hébergeur (Q01) |
+
+## Écrans (F09, phase 1 : module « settings »)
+
+Codés en phase 1, **non exécutés** à la date d'écriture (vérification de fin de phase) :
+
+| Écran | Adresse | Droit | Ce qu'il fait |
+| --- | --- | --- | --- |
+| Paramètres | `/parametres` | `users.manage` ou `approval.decide` | Cartes « Personnel » et « Cabinet et documents » (gérante) ; « Autorisations » apparaît si l'écran B06 existe (route `approbations`). Rappelle que les modules ouverts appartiennent au déploiement |
+| Personnel | `/parametres/personnel` | `users.manage` | Liste (50 par page), profils, état ; « Créer un compte » |
+| Créer un compte | `/parametres/personnel/nouveau` | `users.manage` | Nom, identifiant (normalisé en minuscules, même motif que le serveur), courriel, profils, mot de passe initial saisi ou **généré** (aléa du navigateur, 16 caractères sans caractère ambigu). Un mot de passe généré est montré UNE fois après la création, pour être transmis en personne, puis oublié ; jamais dans l'adresse ni le stockage du navigateur |
+| Compte | `/parametres/personnel/:id` | `users.manage` | Droits effectifs (calculés par le serveur) ; modification (motif exigé pour désactiver ou retirer un profil) ; dérogation ALLOW/DENY/CLEAR motivée, échéance = fin d'un jour civil du cabinet (jamais minuit UTC), `users.manage` jamais proposé ; réinitialisation du mot de passe (motif, confirmation), jamais pour une gérante ni pour soi. La gérante ne se modifie ni profils ni activation et ne se déroge pas (l'écran ne le propose pas et le dit) |
+| Cabinet et documents | `/parametres/cabinet` | `users.manage` | Nom, adresse, téléphone, courriel, identifiant fiscal, mentions, lignes d'en-tête et de pied (6 au plus, 200 caractères), conditions de règlement ; les autres clés de `document_settings` sont conservées. Fuseau, monnaie et documents officiels en lecture seule |
+| Changer mon mot de passe | `/mon-compte/mot-de-passe` | tout compte connecté | `POST auth/password` avec le mot de passe actuel ; aucun module |
+
+Toutes les écritures passent par `pages/settings/useAdminWrite.ts` : 423 `REAUTHENTICATION_REQUIRED` ouvre
+`PasswordConfirmDialog` (mot de passe de la gérante, `POST auth/reauthenticate`) puis rejoue la MÊME écriture ;
+409 (version, garde-fous `LAST_MANAGER_REQUIRED`, `SELF_*`) est dit avec la saisie conservée ; une absence de
+réponse est « issue inconnue », jamais un succès supposé. Ces routes n'ont pas de clé d'idempotence (F06) : la
+version attendue protège les modifications, l'unicité de l'identifiant protège la création.
+
+Tests écrits : `tests/frontend/settings/{staff-pages,clinic-and-account}.test.ts`, `tests/frontend/domain/staff.test.ts`
+(référentiel des droits relu dans le SQL, règles de mot de passe et d'identifiant, échéance au fuseau du cabinet),
+`tests/Feature/Access/ClinicDocumentIdentityTest.php`.

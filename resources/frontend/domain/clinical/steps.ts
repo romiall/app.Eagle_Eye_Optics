@@ -1,7 +1,15 @@
-import { RuleViolation } from '../errors'
-import { trimBlanks } from '../values/text'
-import { newUlid } from '../values/ulid'
+import { visualAcuityCodec, type VisualAcuityData, type VisualAcuityDraft } from './acuity'
+import { type CenteringData, centeringCodec, type CenteringDraft } from './centering'
 import { CONTROL_IDS } from './controls'
+import {
+  cleanText,
+  type NewId,
+  type StepCodec,
+  type StepError,
+  type StepValidation,
+  TEXT_MAX_LENGTH,
+  textError,
+} from './fields'
 import {
   type DeliveredStep,
   HISTORY_GROUP_LABELS,
@@ -11,12 +19,25 @@ import {
   OTHER_PRECISION_LABELS,
   type Urgency,
 } from './labels'
-import { NONE_CODE, OTHER_CODE, termRank, type TermGroup } from './terms'
+import { type MedicationsData, medicationsCodec, type MedicationsDraft } from './medications'
+import { type RefractionData, refractionCodec, type RefractionDraft } from './refraction'
+import {
+  rowsFromData,
+  setOtherText,
+  sortRows,
+  type TermData,
+  termErrors,
+  type TermRow,
+  termsData,
+  toggleTerm,
+} from './termRows'
+import { type TermGroup } from './terms'
+import { newUlid } from '../values/ulid'
 
 /**
- * Rubriques narratives du dossier DP (C01 ; fichier 02, « Consultation et antécédents » ; DP §4, §5
- * et §10) : ANAMNESIS (motifs, symptômes, lunettes), HISTORIES (antécédents) et CONCLUSION
- * (conclusion, orientation). Deux formes :
+ * Rubriques du dossier DP (fichier 02, « Consultation et antécédents » et « Examens et réfraction » ; DP §4 à
+ * §10) : ANAMNESIS (motifs, symptômes, lunettes), HISTORIES (antécédents), VISUAL_ACUITY, REFRACTION et CENTERING
+ * (C02), MEDICATIONS (C04) et CONCLUSION (conclusion, orientation). Deux formes :
  *
  * - le BROUILLON (`*Draft`) que l'écran modifie : textes bruts, lignes de termes triées dans l'ordre
  *   du référentiel, un identifiant ULID par ligne créé sur le poste ;
@@ -25,23 +46,19 @@ import { NONE_CODE, OTHER_CODE, termRank, type TermGroup } from './terms'
  *
  * L'étape est REMPLACÉE en entier à chaque enregistrement : une ligne absente est supprimée par le
  * serveur. Les règles de `validateStep` sont celles du serveur ; une règle de plus ne s'invente pas
- * ici. Règles pures : ni Vue, ni réseau, ni stockage.
+ * ici. Les rubriques mesurées, la réfraction, le centrage et les médicaments vivent dans leurs modules
+ * (`acuity`, `refraction`, `centering`, `medications`), branchés ici. Règles pures : ni Vue, ni réseau, ni
+ * stockage.
  */
-export const TEXT_MAX_LENGTH = 4000
+export { cleanText, sortRows, setOtherText, TEXT_MAX_LENGTH, toggleTerm }
+export type { NewId, StepError, StepValidation, TermData, TermRow }
+
 /** Plafonds du schéma `clinical-steps.json`. */
 export const COMPLAINTS_MAX = 50
 export const HISTORY_TERMS_MAX = 50
 export const REFERRAL_REASONS_MAX = 20
 
-export type NewId = () => string
-
 // --- Forme du contrat -----------------------------------------------------------------------------
-
-export interface TermData {
-  id: string
-  term_code: string
-  other_text: string | null
-}
 
 export interface AnamnesisData {
   symptoms: string | null
@@ -73,17 +90,14 @@ export interface ConclusionData {
 export interface StepDataByName {
   ANAMNESIS: AnamnesisData
   HISTORIES: HistoriesData
+  VISUAL_ACUITY: VisualAcuityData
+  REFRACTION: RefractionData
+  CENTERING: CenteringData
+  MEDICATIONS: MedicationsData
   CONCLUSION: ConclusionData
 }
 
 // --- Brouillons -----------------------------------------------------------------------------------
-
-/** Une valeur cochée : identifiant de la ligne (créé sur le poste), code du terme, précision. */
-export interface TermRow {
-  id: string
-  code: string
-  otherText: string
-}
 
 export interface AnamnesisDraft {
   complaints: TermRow[]
@@ -113,136 +127,12 @@ export interface ConclusionDraft {
 export interface StepDrafts {
   ANAMNESIS: AnamnesisDraft
   HISTORIES: HistoriesDraft
+  VISUAL_ACUITY: VisualAcuityDraft
+  REFRACTION: RefractionDraft
+  CENTERING: CenteringDraft
+  MEDICATIONS: MedicationsDraft
   CONCLUSION: ConclusionDraft
 }
-
-// --- Textes ---------------------------------------------------------------------------------------
-
-/** Texte facultatif : fins de ligne en « \n », blancs de bord retirés, vide → null. */
-export function cleanText(value: string): string | null {
-  const text = value.replace(/\r\n?/g, '\n')
-  let trimmed: string
-  try {
-    trimmed = trimBlanks(text)
-  } catch (error) {
-    // Caractère isolé invalide : `validateStep` le signale ; la donnée reste constructible.
-    if (!(error instanceof RuleViolation)) throw error
-    trimmed = text.trim()
-  }
-  return trimmed === '' ? null : trimmed
-}
-
-function textError(value: string, subject: string): string | null {
-  try {
-    const trimmed = trimBlanks(value.replace(/\r\n?/g, '\n'))
-    return [...trimmed].length > TEXT_MAX_LENGTH
-      ? `${subject} : le texte ne peut pas dépasser ${TEXT_MAX_LENGTH} caractères.`
-      : null
-  } catch (error) {
-    if (!(error instanceof RuleViolation)) throw error
-    return `${subject} : le texte contient un caractère non valide.`
-  }
-}
-
-// --- Lignes de termes -----------------------------------------------------------------------------
-
-/** Lignes dans l'ordre du référentiel ; un code inconnu vient après les autres, par ordre alphabétique. */
-export function sortRows(group: TermGroup, rows: readonly TermRow[]): TermRow[] {
-  return [...rows].sort((left, right) => {
-    const rank = termRank(group, left.code) - termRank(group, right.code)
-    if (rank !== 0) return rank
-    return left.code < right.code ? -1 : left.code > right.code ? 1 : 0
-  })
-}
-
-/** Coche ou décoche un terme ; une ligne déjà cochée garde son identifiant et sa précision. */
-export function toggleTerm(
-  group: TermGroup,
-  rows: readonly TermRow[],
-  code: string,
-  checked: boolean,
-  newId: NewId = newUlid,
-): TermRow[] {
-  const existing = rows.find((row) => row.code === code)
-  if (!checked) return rows.filter((row) => row.code !== code)
-  if (existing !== undefined) return [...rows]
-  return sortRows(group, [...rows, { id: newId(), code, otherText: '' }])
-}
-
-/** Remplace la précision de la ligne « Autre » (ou de tout terme qui en porte une). */
-export function setOtherText(rows: readonly TermRow[], code: string, text: string): TermRow[] {
-  return rows.map((row) => (row.code === code ? { ...row, otherText: text } : row))
-}
-
-function rowsFromData(group: TermGroup, terms: readonly TermData[] | undefined): TermRow[] {
-  const seen = new Set<string>()
-  const rows: TermRow[] = []
-  for (const term of terms ?? []) {
-    if (term.term_code === NONE_CODE || seen.has(term.term_code)) continue
-    seen.add(term.term_code)
-    rows.push({ id: term.id, code: term.term_code, otherText: term.other_text ?? '' })
-  }
-  return sortRows(group, rows)
-}
-
-function termsData(rows: readonly TermRow[]): TermData[] {
-  return rows.map((row) => ({
-    id: row.id,
-    term_code: row.code,
-    other_text: row.code === OTHER_CODE ? cleanText(row.otherText) : null,
-  }))
-}
-
-interface TermsCheck {
-  path: string
-  group: TermGroup
-  rows: readonly TermRow[]
-  max: number
-  listControl: string
-  otherControl: string
-  otherSubject: string
-}
-
-function termErrors(check: TermsCheck): StepError[] {
-  const errors: StepError[] = []
-  if (check.rows.length > check.max) {
-    errors.push({
-      path: check.path,
-      controlId: check.listControl,
-      message: `Pas plus de ${check.max} valeurs dans cette liste.`,
-    })
-  }
-  check.rows.forEach((row, index) => {
-    if (row.code !== OTHER_CODE) return
-    const path = `${check.path}.${index}.other_text`
-    if (cleanText(row.otherText) === null) {
-      errors.push({
-        path,
-        controlId: check.otherControl,
-        message: `${check.otherSubject} : précisez la valeur « Autre ».`,
-      })
-      return
-    }
-    const message = textError(row.otherText, 'La précision')
-    if (message !== null) errors.push({ path, controlId: check.otherControl, message })
-  })
-  return errors
-}
-
-// --- Erreurs --------------------------------------------------------------------------------------
-
-/**
- * Erreur d'une étape : `path` est la clé pointée de la donnée envoyée (`complaints.0.other_text`),
- * comme les clés de `error.fields` du serveur (sans le préfixe `step.data.`) ; `controlId` est le
- * contrôle à atteindre.
- */
-export interface StepError {
-  path: string
-  controlId: string
-  message: string
-}
-
-export type StepValidation<D> = { ok: true; data: D } | { ok: false; errors: StepError[] }
 
 // --- ANAMNESIS ------------------------------------------------------------------------------------
 
@@ -475,13 +365,6 @@ function conclusionErrors(draft: ConclusionDraft): StepError[] {
 
 // --- Accès par nom d'étape ------------------------------------------------------------------------
 
-interface StepCodec<D, W> {
-  blank(newId: NewId): D
-  fromData(data: W, newId: NewId): D
-  toData(draft: D): W
-  errors(draft: D): StepError[]
-}
-
 const CODECS: { [S in DeliveredStep]: StepCodec<StepDrafts[S], StepDataByName[S]> } = {
   ANAMNESIS: {
     blank: () => blankAnamnesis(),
@@ -495,6 +378,10 @@ const CODECS: { [S in DeliveredStep]: StepCodec<StepDrafts[S], StepDataByName[S]
     toData: historiesData,
     errors: historiesErrors,
   },
+  VISUAL_ACUITY: visualAcuityCodec,
+  REFRACTION: refractionCodec,
+  CENTERING: centeringCodec,
+  MEDICATIONS: medicationsCodec,
   CONCLUSION: {
     blank: () => blankConclusion(),
     fromData: (data) => conclusionDraft(data),
@@ -511,6 +398,10 @@ export function blankDrafts(newId: NewId = newUlid): StepDrafts {
   return {
     ANAMNESIS: CODECS.ANAMNESIS.blank(newId),
     HISTORIES: CODECS.HISTORIES.blank(newId),
+    VISUAL_ACUITY: CODECS.VISUAL_ACUITY.blank(newId),
+    REFRACTION: CODECS.REFRACTION.blank(newId),
+    CENTERING: CODECS.CENTERING.blank(newId),
+    MEDICATIONS: CODECS.MEDICATIONS.blank(newId),
     CONCLUSION: CODECS.CONCLUSION.blank(newId),
   }
 }
@@ -555,6 +446,8 @@ export function isStepDirty<S extends DeliveredStep>(
   saved: StepDataByName[S],
 ): boolean {
   const codec = codecOf(step)
+  // Une saisie qui ne se convertit pas en donnée (nombre invalide) est une modification : elle ne disparaît pas.
+  if (codec.unparsable?.(draft) === true) return true
   return (
     JSON.stringify(codec.toData(draft)) !==
     JSON.stringify(codec.toData(codec.fromData(saved, NO_ID)))

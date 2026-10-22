@@ -111,6 +111,41 @@ final class NarrativeRulesTest extends TestCase
         $this->assertCount(1, $rows, 'Seule la première ligne est valide.');
     }
 
+    public function test_un_code_desactive_reste_valable_pour_la_ligne_deja_enregistree_seulement(): void
+    {
+        $kept = $this->term('REDNESS');
+        $existing = [$kept['id'] => 'REDNESS'];
+
+        $sameLine = new FieldErrors;
+        $used = [];
+        $this->assertSame([$kept], TermList::normalize([$kept], self::COMPLAINTS, 'c', $sameLine, $used, $existing));
+        $this->assertTrue($sameLine->isEmpty(), 'Même identifiant, même code : la ligne enregistrée se ré-enregistre.');
+
+        $newLine = new FieldErrors;
+        $used = [];
+        TermList::normalize([$this->term('REDNESS')], self::COMPLAINTS, 'c', $newLine, $used, $existing);
+        $this->assertSame(['c.0.term_code'], array_keys($newLine->all()), 'Une ligne nouvelle porte un code actif.');
+
+        $changedCode = new FieldErrors;
+        $used = [];
+        TermList::normalize([['id' => $kept['id'], 'term_code' => 'ITCHING', 'other_text' => null]], self::COMPLAINTS, 'c', $changedCode, $used, $existing);
+        $this->assertSame(['c.0.term_code'], array_keys($changedCode->all()), 'Une ligne dont le code change porte un code actif.');
+    }
+
+    public function test_autre_ne_demande_sa_precision_que_si_elle_manque_vraiment(): void
+    {
+        $blank = new FieldErrors;
+        $used = [];
+        TermList::normalize([$this->term('OTHER', '   ')], self::COMPLAINTS, 'c', $blank, $used);
+        $this->assertSame(['Précisez le texte de « Autre ».'], $blank->all()['c.0.other_text']);
+
+        $invalid = new FieldErrors;
+        $used = [];
+        TermList::normalize([$this->term('OTHER', "a\u{0007}b")], self::COMPLAINTS, 'c', $invalid, $used);
+        $this->assertCount(1, $invalid->all()['c.0.other_text'], 'Un texte fourni mais invalide n\'a que son propre message.');
+        $this->assertNotSame('Précisez le texte de « Autre ».', $invalid->all()['c.0.other_text'][0]);
+    }
+
     public function test_une_charge_qui_n_est_pas_une_liste_est_refusee(): void
     {
         $errors = new FieldErrors;

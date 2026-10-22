@@ -1,0 +1,122 @@
+{
+  "schema": "schemas/resources/patients.json#/$defs/PatientActivity",
+  "valid": true,
+  "description": "Activité vue par la gérante : visites, examen, prescriptions, ordonnance de médicaments, facture au solde projeté, reçu, avoir et remboursement ; aucune valeur clinique (données fictives)",
+  "data": {
+    "data": [
+      {
+        "type": "VISIT",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A001",
+        "occurred_at": "2026-10-15T10:00:00.000Z",
+        "screen_path": null,
+        "reason": "PICKUP",
+        "status": "ARRIVED"
+      },
+      {
+        "type": "REFUND",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A002",
+        "occurred_at": "2026-10-12T09:00:00.000Z",
+        "screen_path": null,
+        "number": "TEST-RMB-000001",
+        "amount": 5000,
+        "method": "MTN_MOMO",
+        "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W3A006",
+        "invoice_number": "TEST-FAC-000001"
+      },
+      {
+        "type": "CREDIT_NOTE",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A003",
+        "occurred_at": "2026-10-11T09:00:00.000Z",
+        "screen_path": null,
+        "number": "TEST-AV-000001",
+        "amount_gross": 5000,
+        "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W3A006",
+        "invoice_number": "TEST-FAC-000001"
+      },
+      {
+        "type": "PRESCRIPTION",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A004",
+        "occurred_at": "2026-10-10T12:00:00.000Z",
+        "screen_path": null,
+        "origin": "EXTERNAL",
+        "status": "DRAFT",
+        "version_no": 1,
+        "consultation_id": null,
+        "external_prescribed_on": "2026-09-30"
+      },
+      {
+        "type": "RECEIPT",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A005",
+        "occurred_at": "2026-10-01T09:05:00.000Z",
+        "screen_path": null,
+        "number": "TEST-REC-000001",
+        "amount": 20000,
+        "method": "ORANGE_MONEY",
+        "reversed_amount": 0,
+        "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W3A006",
+        "invoice_number": "TEST-FAC-000001"
+      },
+      {
+        "type": "INVOICE",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A006",
+        "occurred_at": "2026-10-01T09:00:00.000Z",
+        "screen_path": null,
+        "number": "TEST-FAC-000001",
+        "origin": "NATIVE",
+        "total_gross": 50000,
+        "paid_net": 20000,
+        "balance_due": 30000,
+        "credit_available": 0,
+        "settlement": "PARTIALLY_PAID"
+      },
+      {
+        "type": "PRESCRIPTION",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A007",
+        "occurred_at": "2026-10-01T08:40:00.000Z",
+        "screen_path": "/consultations/01J9ZXK4M2Q8R7S6T5V4W3A008/prescriptions",
+        "origin": "INTERNAL",
+        "status": "VALIDATED",
+        "version_no": 1,
+        "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "external_prescribed_on": null
+      },
+      {
+        "type": "MEDICATION_ORDER",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "occurred_at": "2026-10-01T08:10:00.000Z",
+        "screen_path": "/consultations/01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "consultation_status": "COMPLETED"
+      },
+      {
+        "type": "CONSULTATION",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "occurred_at": "2026-10-01T08:10:00.000Z",
+        "screen_path": "/consultations/01J9ZXK4M2Q8R7S6T5V4W3A008",
+        "status": "COMPLETED",
+        "clinician_name": "Professionnel Fictif"
+      },
+      {
+        "type": "VISIT",
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3A009",
+        "occurred_at": "2026-10-01T08:00:00.000Z",
+        "screen_path": null,
+        "reason": "EXAM",
+        "status": "COMPLETED"
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 10,
+      "section": null,
+      "sections": [
+        { "section": "VISITS", "total": 2 },
+        { "section": "EXAMS", "total": 1 },
+        { "section": "PRESCRIPTIONS", "total": 3 },
+        { "section": "FINANCIAL", "total": 4 }
+      ]
+    }
+  }
+}

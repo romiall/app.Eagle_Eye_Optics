@@ -83,7 +83,7 @@ describe('navigation de la coquille (fichier 04)', () => {
     ])
   })
 
-  it('ne présente aucun écran futur comme livré : seuls les écrans patient et la file du jour (P01 à P03) le sont', () => {
+  it('ne présente aucun écran futur comme livré : patients, file du jour, examens, ventes et paramètres seulement', () => {
     // Chaque tâche qui livre un écran passe son entrée à true en même temps que sa route et ses
     // tests (et met ce test à jour) : ici P01 (Nouveau patient), P02 (module Patients, Rechercher) et
     // P03 (module Aujourd'hui, action « Consultations du jour » qui mène à la file du jour).
@@ -93,20 +93,31 @@ describe('navigation de la coquille (fichier 04)', () => {
     ).toEqual([
       'today:P03',
       'patients:P02',
+      // Liste des examens du cabinet (C01 à C04, en ligne).
+      'consultations:C01',
+      // Ventes et caisse (B02 à B05, en ligne) : caisse, factures, encaissements, catalogue.
+      'sales:B02',
+      // Paramètres : comptes du personnel et identité du cabinet (écrans F09 des routes F05).
+      'settings:F09',
       'new-patient:P01',
       'search:P02',
       'consultations-today:P03',
+      'settings:F09',
     ])
 
     const everything = [...seededPermissions()]
     expect(visibleModules(everything, ALL_MODULES).map((module) => module.label)).toEqual([
       'Aujourd’hui',
       'Patients',
+      'Consultations',
+      'Ventes et caisse',
+      'Paramètres',
     ])
     expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([
       'Nouveau patient',
       'Rechercher',
       'Consultations du jour',
+      'Paramètres',
     ])
     // Livrés mais pas ouverts par l'exploitant : rien n'apparaît.
     expect(visibleModules(everything, [])).toEqual([])

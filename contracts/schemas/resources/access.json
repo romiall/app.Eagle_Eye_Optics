@@ -133,7 +133,7 @@
       }
     },
     "ClinicSummary": {
-      "description": "enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé.",
+      "description": "enabled_modules : modules ouverts par l'exploitant (EEO_ENABLED_MODULES), codes de la navigation ; vide = aucun module métier exposé. exam_fee_control : OFF (défaut, le paiement de l'examen n'est contrôlé nulle part) ou BILLED (EEO_EXAM_FEE_CONTROL=billed : facture de frais réglée ou dispense de la gérante exigée au démarrage de l'examen) ; absent pour un serveur plus ancien, lu comme OFF.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -172,6 +172,13 @@
             "minLength": 1,
             "maxLength": 40
           }
+        },
+        "exam_fee_control": {
+          "type": "string",
+          "enum": [
+            "OFF",
+            "BILLED"
+          ]
         }
       }
     },
@@ -351,6 +358,121 @@
         },
         "production_documents_enabled": {
           "type": "boolean"
+        }
+      }
+    },
+    "ClinicDocumentIdentity": {
+      "description": "Identité du cabinet imprimée sur les documents (en-tête, pied) : lisible par tout profil qui produit un document. production_documents_enabled faux : documents de TEST marqués comme tels.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "timezone",
+        "currency",
+        "address",
+        "phone",
+        "email",
+        "tax_identifier",
+        "professional_mentions",
+        "document_settings",
+        "production_documents_enabled"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "currency": {
+          "$ref": "../../schemas/common.json#/$defs/Currency"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_identifier": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professional_mentions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_settings": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "production_documents_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ClinicDocumentIdentityResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ClinicDocumentIdentity"
         }
       }
     },

@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante : M01 (interrupteur de mise en service des modules, hors backlog), puis P01 (patients). F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
+- Tâche courante (2026-10-22, soir) : **phase 1** (fonctions de base de la cliente) codée en parallèle SANS exécution, puis vérification transversale unique (section « Phase 1 »). F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -82,6 +82,48 @@ pas une recette de L0.
 | Preuves | Répétition : archive extraite dans un dossier neuf, base MySQL 8.4 vierge, diagnostic production sans point bloquant, `migrate --force` 40 s, `eeo:setup-clinic`, `eagle:verify-schema` sans écart, serveur démarré, contrôle de fumée complet (connexion, `enabled_modules`, recherche, file du jour, aucun fichier de configuration servi) ; mauvais mot de passe détecté. 16 tests du diagnostic (verdicts MariaDB/MySQL, production non sécurisée, droits réels dont le trigger, objets temporaires supprimés, identifiants jamais affichés) |
 | Risque principal | Hostinger peut fournir **MariaDB** ou refuser les **triggers** (88) : le diagnostic le dit avant toute installation ; sinon base MySQL 8 à obtenir (écart à consigner au fichier 15) |
 | Reprise | Exécuter le diagnostic sur le serveur, consigner le rapport (`--json`) dans `hosting-audit.md`, dérouler `deploiement.md` |
+
+## Phase 1 — fonctions de base codées en parallèle, vérification en fin de phase (2026-10-22)
+
+**Consigne du demandeur (2026-10-22).** Ne plus vérifier fichier par fichier : coder toute la phase
+jusqu'au bout, puis UNE vérification transversale (tests complets, build, e2e), corrections, une
+seconde passe si nécessaire. La phase 1 couvre ce que la cliente attend en premier : dossier patient
+(identité remplie automatiquement, recherche, doublons, activité), arrivées et file du jour,
+consultation complète, ordonnances et documents imprimables, facture, encaissement et reçu,
+paramètres du cabinet et déploiement. Le hors-ligne (O01–O07) est la phase suivante. Tant que la
+vérification de fin de phase n'a pas eu lieu, tout ce qui suit est **codé, non exécuté** : aucune
+tâche n'est DONE.
+
+| Chantier | Tâches | État au 2026-10-22 | Documentation |
+| --- | --- | --- | --- |
+| Clinique | C01 (corrections de revue), C02, C03, C04 | Codé, non exécuté (la première tranche C01 était vérifiée au commit `c0c8918`) | `clinical.md` |
+| Documents PDF locaux | D01, D02, impression clinique | Codé, non exécuté | `documents.md` |
+| Facturation serveur | B01, B02, I00, B03, B05, B04 | Codé, non exécuté | `billing.md` |
+| Écrans de vente, caisse, stock | B02–B05, I00 (écrans) | Codé, non exécuté | `billing.md` (Écrans) |
+| Activité du patient | R02 (partie activité) | Codé, non exécuté | `patients.md` |
+| Réauthentification, approbations, contrôle examen, avoirs, remboursements | B06, P03 (contrôle), B07, B08 (serveur) | En codage | `billing.md`, `access.md` |
+| Paramètres, personnel, accueil, liste des consultations, déploiement | F05 (écrans), H01, X02/X03 minimal | En codage | `access.md`, `deploiement.md` |
+| Compléments ventes et rapport de caisse du jour | B02–B05 (écarts), R01 minimal | En codage | `billing.md` |
+
+**Hypothèses prises pour avancer (à faire confirmer par la cliente, fichier 15 non modifié).**
+Empreinte des révisions cliniques = SHA-256 de JCS (G8) ; une consultation incomplète (motif ou
+conclusion absents) se termine avec une justification ; tolérance de l'écart pupillaire total = 0,
+pas de 0,25 signalé sans être imposé ; échelles d'acuité de DÉMONSTRATION non validées (G11/Q06) ;
+une seule série de prescription par consultation ; contrôle du paiement de l'examen désactivé par
+défaut (`EEO_EXAM_FEE_CONTROL=off`) ; préfixes de numéros de test (TEST-FAC, TEST-REC, TEST-AV,
+TEST-RMB) ; plafond de remise 0 sans `catalog.manage` ; polices PDF standard (pas de police
+embarquée) ; identifiants de modèles `<type>.v<n>` (`invoice.v1`, `optical_prescription.v1`).
+
+**Questions ouvertes pour le demandeur.** La caisse voit toutes les pièces du patient dans
+l'activité (la matrice 09 la limite à la facture sélectionnée) ; motif obligatoire d'une date
+d'examen rétrospective ; `MEDICATION_ORDER`, `REFERRAL_LETTER` et `CASH_SESSION_REPORT` absents de
+`generated_documents.document_type` (générés localement seulement).
+
+**Vérification de fin de phase (prévue).** Régénération des contrats en LF et contrôle `--check` ;
+PHPUnit complet sur MySQL 8.4.9 (Feature, Unit, Concurrency) ; Pint, PHPStan ; Vitest complet ;
+vue-tsc, ESLint, Prettier ; build ; Playwright complet (patients, file du jour, consultation,
+documents, facturation) ; rendu des PDF de démonstration (golden) relu ; corrections, puis seconde
+passe si nécessaire ; commit, push et CI.
 
 ## Environnement de développement (cloud)
 

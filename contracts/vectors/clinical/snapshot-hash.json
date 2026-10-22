@@ -1,0 +1,141 @@
+{
+  "description": "Vecteurs communs PHP/TypeScript de l’empreinte d’une révision clinique : SHA-256 hexadécimal minuscule de la sérialisation JSON canonique (JCS, RFC 8785, sous-ensemble : objets à clés ASCII triées, listes, chaînes, entiers, booléens, null). Recoupés par une implémentation indépendante (Python) ; rejoués par tests/Unit/Clinical/RevisionHashTest.php et tests/frontend/domain/clinical-snapshot.test.ts. Données fictives.",
+  "cases": [
+    {
+      "id": "liste-vide",
+      "description": "Une liste vide reste « [] ».",
+      "input": [],
+      "canonical": "[]",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "id": "cles-triees",
+      "description": "Clés triées à tous les niveaux.",
+      "input": {
+        "b": 1,
+        "a": 2,
+        "c": {
+          "z": true,
+          "y": null
+        }
+      },
+      "canonical": "{\"a\":2,\"b\":1,\"c\":{\"y\":null,\"z\":true}}",
+      "sha256": "e238c7551aeab3a4d63763242b13268386f4975976255faf6cd722430bbe8800"
+    },
+    {
+      "id": "entiers",
+      "description": "Entiers sans signe superflu ni exposant.",
+      "input": {
+        "axis": 180,
+        "zero": 0,
+        "negatif": -5
+      },
+      "canonical": "{\"axis\":180,\"negatif\":-5,\"zero\":0}",
+      "sha256": "ed56f6bc2dd85cae9c14bd1ce5f3a0b1aabeec7b9def362050eecc56c27f4141"
+    },
+    {
+      "id": "mesures-en-chaines",
+      "description": "Les mesures sont des chaînes décimales exactes : zéro est une valeur, null est « non mesuré ».",
+      "input": {
+        "sphere": "-1.25",
+        "cylinder": "0.00",
+        "addition": null
+      },
+      "canonical": "{\"addition\":null,\"cylinder\":\"0.00\",\"sphere\":\"-1.25\"}",
+      "sha256": "e3b3170cdc71f36bdc061f1f81244dd6350474f10149e0e297dfc11ebd29d9cf"
+    },
+    {
+      "id": "unicode-non-echappe",
+      "description": "Unicode conservé tel quel (UTF-8), sans normalisation.",
+      "input": {
+        "texte": "Éléphant à œil 😀",
+        "accent": "é"
+      },
+      "canonical": "{\"accent\":\"é\",\"texte\":\"Éléphant à œil 😀\"}",
+      "sha256": "2dd6650ffbf7cc5a991f1a59cfa93ba69788fb19f7bc742252d64b68a215aa8e"
+    },
+    {
+      "id": "separateurs-de-ligne",
+      "description": "U+2028 et U+2029 ne sont pas échappés.",
+      "input": {
+        "texte": "a b c"
+      },
+      "canonical": "{\"texte\":\"a b c\"}",
+      "sha256": "3a50621307e8470c4a11b67521f52275e270c361b8d4d5d36199a74c2a59227a"
+    },
+    {
+      "id": "controles-et-guillemets",
+      "description": "Retour à la ligne, tabulation, guillemet et barre oblique inverse échappés ; les autres contrôles en u00xx minuscule.",
+      "input": {
+        "texte": "ligne1\nligne2\t\"cité\"\\fin",
+        "bel": "\u0007"
+      },
+      "canonical": "{\"bel\":\"\\u0007\",\"texte\":\"ligne1\\nligne2\\t\\\"cité\\\"\\\\fin\"}",
+      "sha256": "0e7b3e8d03f0cf869ec186555973e51500e9cdd2f0ca4862511c7bb363f573a5"
+    },
+    {
+      "id": "barre-oblique",
+      "description": "La barre oblique n’est jamais échappée.",
+      "input": {
+        "valeur": "10/10 et 6/6"
+      },
+      "canonical": "{\"valeur\":\"10/10 et 6/6\"}",
+      "sha256": "2a376c65c46d9cf9d692c24a57e78d6ed89657a8c9ee7acbd3c0aafbbc36bfc2"
+    },
+    {
+      "id": "listes-imbriquees",
+      "description": "L’ordre des listes est conservé.",
+      "input": {
+        "liste": [
+          [
+            1,
+            2
+          ],
+          [],
+          [
+            "a"
+          ]
+        ],
+        "vide": []
+      },
+      "canonical": "{\"liste\":[[1,2],[],[\"a\"]],\"vide\":[]}",
+      "sha256": "73a9ebfc173d625263cc97363bb379598c41f4576d55a860a7774dd495d55c9e"
+    },
+    {
+      "id": "rubrique-realiste",
+      "description": "Extrait de dossier fictif.",
+      "input": {
+        "ANAMNESIS": {
+          "symptoms": "Gêne en vision de près (fictif)",
+          "wears_glasses": true,
+          "glasses_duration": null,
+          "previous_correction_available": null,
+          "complaints": []
+        },
+        "CENTERING": {
+          "centering_id": null,
+          "pd_total": "62.00",
+          "pd_od": null,
+          "pd_og": null,
+          "inconsistency_reason": null
+        },
+        "VISUAL_ACUITY": {
+          "acuities": [
+            {
+              "id": "01J9ZXK4M2Q8R7S6T5V4W30101",
+              "context": "PRELIMINARY",
+              "distance": "FAR",
+              "correction": "WITHOUT",
+              "eye": "OD",
+              "scale_id": "01J9ZXK4M2Q8R7S6T5V4W30100",
+              "raw_value": "10/10",
+              "normalized_value": null
+            }
+          ]
+        }
+      },
+      "canonical": "{\"ANAMNESIS\":{\"complaints\":[],\"glasses_duration\":null,\"previous_correction_available\":null,\"symptoms\":\"Gêne en vision de près (fictif)\",\"wears_glasses\":true},\"CENTERING\":{\"centering_id\":null,\"inconsistency_reason\":null,\"pd_od\":null,\"pd_og\":null,\"pd_total\":\"62.00\"},\"VISUAL_ACUITY\":{\"acuities\":[{\"context\":\"PRELIMINARY\",\"correction\":\"WITHOUT\",\"distance\":\"FAR\",\"eye\":\"OD\",\"id\":\"01J9ZXK4M2Q8R7S6T5V4W30101\",\"normalized_value\":null,\"raw_value\":\"10/10\",\"scale_id\":\"01J9ZXK4M2Q8R7S6T5V4W30100\"}]}}",
+      "sha256": "dc35be38e69a6ab90c1be22135f149b35f26360917c75426208afefa1da0c1d9"
+    }
+  ]
+}

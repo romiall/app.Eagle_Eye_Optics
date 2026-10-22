@@ -81,22 +81,58 @@ export const OTHER_PRECISION_LABELS = {
   MEDICAL_HISTORY: 'Autre antécédent médical : précisez',
   FAMILY_HISTORY: 'Autre antécédent familial oculaire : précisez',
   REFERRAL_REASON: 'Autre motif d’orientation : précisez',
+  AMETROPIA: 'Autre amétropie : précisez',
+  OPTICAL_USAGE: 'Autre usage : précisez',
+  LENS_TYPE: 'Autre type de verre : précisez',
+  LENS_TREATMENT: 'Autre traitement : précisez',
 } as const
 
-/** Étapes livrées par cette version (C01) ; les autres rubriques arrivent avec C02 et C03. */
-export const DELIVERED_STEPS = ['ANAMNESIS', 'HISTORIES', 'CONCLUSION'] as const
+/**
+ * Rubriques du dossier, dans l'ordre de l'examen (DP §18 : motif, antécédents, acuité, réfraction,
+ * centrage, médicaments, conclusion). Les sept sont livrées en ligne (C01, C02, C04).
+ */
+export const DELIVERED_STEPS = [
+  'ANAMNESIS',
+  'HISTORIES',
+  'VISUAL_ACUITY',
+  'REFRACTION',
+  'CENTERING',
+  'MEDICATIONS',
+  'CONCLUSION',
+] as const
 
 export type DeliveredStep = (typeof DELIVERED_STEPS)[number]
 
 export const STEP_TITLES: Readonly<Record<DeliveredStep, string>> = {
   ANAMNESIS: 'Motif et lunettes',
   HISTORIES: 'Antécédents',
+  VISUAL_ACUITY: 'Acuité visuelle',
+  REFRACTION: 'Réfraction',
+  CENTERING: 'Centrage',
+  MEDICATIONS: 'Médicaments',
   CONCLUSION: 'Conclusion et orientation',
 }
 
-/** Dit honnêtement ce que cette version ne propose pas encore (jamais un faux « Terminé »). */
-export const NEXT_VERSION_NOTICE =
-  'Acuités, réfraction et centrage : prochaine version. L’examen reste en cours tant qu’il n’est pas terminé.'
-
 /** Valeurs de la rubrique « oui / non / non renseigné » (DP §4 et §10 ; fichier 02). */
 export const YES_NO_LABELS = { yes: 'Oui', no: 'Non', unknown: 'Non renseigné' } as const
+
+/** Yeux (DP §6) : « OD » œil droit, « OG » œil gauche, « OU » les deux yeux. */
+export const EYE_LABELS = { OD: 'Œil droit (OD)', OG: 'Œil gauche (OG)', OU: 'Les deux yeux (OU)' } as const
+export const EYE_SHORT_LABELS = { OD: 'OD', OG: 'OG', OU: 'OU' } as const
+
+/** Stades de mesure (DP §6 et §7) : trois mesures DISTINCTES, jamais fusionnées. */
+export const STAGE_LABELS = {
+  AUTOREFRACTOR: 'Autoréfracteur',
+  OBJECTIVE: 'Réfraction objective',
+  SUBJECTIVE: 'Réfraction subjective',
+} as const
+
+/** Formes d'un médicament (DP §9) et unités de durée structurée. */
+export const MEDICATION_FORM_LABELS = {
+  DROPS: 'Collyre',
+  OINTMENT: 'Pommade',
+  TABLET: 'Comprimé',
+  OTHER: 'Autre',
+} as const
+
+export const DURATION_UNIT_LABELS = { DAY: 'jour(s)', WEEK: 'semaine(s)', MONTH: 'mois' } as const

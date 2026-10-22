@@ -1,0 +1,23 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashSessionResponse",
+  "valid": true,
+  "description": "Session close : attendu, compté et écart figés, écart motivé",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+      "cash_register_id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+      "cashier_id": "01J9ZXK4M2Q8R7S6T5V4W30005",
+      "opened_at": "2026-10-14T08:00:00.000Z",
+      "opening_amount": 25000,
+      "closed_at": "2026-10-14T18:00:00.000Z",
+      "counted_amount": 104500,
+      "expected_amount": 105000,
+      "variance": -500,
+      "variance_reason": "Écart de monnaie constaté (fictif)",
+      "closed_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+      "collected_cash": 80000,
+      "refunded_cash": 0,
+      "theoretical_cash": 105000
+    }
+  }
+}

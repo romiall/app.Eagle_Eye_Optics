@@ -1,13 +1,21 @@
 {
   "schema": "commands/RequestApproval.v1.json",
   "valid": true,
-  "description": "Demande d'avoir liée au contenu exact (empreinte de la charge visée)",
+  "description": "Demande d'avoir liée au contenu exact (facture, montant, lignes) : le serveur en dérive l'action, la cible et l'empreinte",
   "data": {
     "approval_id": "01J9ZXK4M2Q8R7S6T5V4W30036",
-    "action_code": "credit_note.issue",
-    "target_type": "invoices",
-    "target_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
-    "payload_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "subject": {
+      "kind": "CREDIT_NOTE",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "amount_gross": 10000,
+      "lines": [
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30027",
+          "quantity": null,
+          "amount_gross": 10000
+        }
+      ]
+    },
     "reason": "Remise commerciale demandée par la caisse (fictif)",
     "expires_at": "2026-10-14T18:00:00.000Z"
   }

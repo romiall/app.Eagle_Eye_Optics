@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": false,
+  "description": "Dispense d'examen avec un champ d'une autre nature : contenu inexact refusé",
+  "base": "commands/request-approval.exam-waiver.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/subject/amount",
+      "value": 15000
+    }
+  ]
+}

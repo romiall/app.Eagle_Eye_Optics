@@ -1,0 +1,32 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoicePage",
+  "valid": true,
+  "description": "Liste des factures avec l'identité de base du patient (dossier, nom, prénoms ; jamais clinique)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+          "record_number": "EE-2026-0001",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie Marie"
+        },
+        "number": "TEST-FAC-2026-000001",
+        "status": "ISSUED",
+        "issued_at": "2026-10-14T09:30:00.000Z",
+        "total_gross": 150000,
+        "balance_due": 50000,
+        "draft_version": 2,
+        "ledger_version": 3
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 1
+    }
+  }
+}

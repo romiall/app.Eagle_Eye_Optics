@@ -17,6 +17,7 @@ import {
   json,
   openConsultation,
   patchCalls,
+  patientSummary,
   patient,
   READ_ONLY,
   resetEverything,
@@ -24,9 +25,9 @@ import {
   textOf,
 } from './support'
 
-// Écran de consultation (C01) : ouverture, en-tête patient, état du travail, états de lecture (hors
-// ligne = « Consultation indisponible », jamais une consultation vide), droits, lecture seule, module
-// fermé. Données FICTIVES.
+// Écran de consultation (C01 à C03) : ouverture, en-tête patient (identité rendue avec la consultation),
+// état du travail, sept étapes, états de lecture (hors ligne = « Consultation indisponible », jamais une
+// consultation vide), droits, lecture seule, examen terminé, module fermé. Données FICTIVES.
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-10-22T09:42:00.000Z'))
@@ -38,7 +39,7 @@ afterEach(() => {
 })
 
 describe('ouverture de la consultation', () => {
-  it('lit la consultation et le patient, montre l’en-tête patient, l’état du travail et les trois étapes livrées', async () => {
+  it('lit la consultation, montre l’en-tête patient, l’état du travail et les sept étapes du dossier', async () => {
     const api = stubConsultationApi()
     const { root, router, unmount } = await openConsultation()
 
@@ -59,14 +60,18 @@ describe('ouverture de la consultation', () => {
     expect([...stepper.querySelectorAll('li')].map((item) => textOf(item).trim())).toEqual([
       '1.Motif et lunettes',
       '2.Antécédents',
-      '3.Conclusion et orientation',
+      '3.Acuité visuelle',
+      '4.Réfraction',
+      '5.Centrage',
+      '6.Médicaments',
+      '7.Conclusion et orientation',
     ])
     expect(stepper.querySelector('[aria-current="step"]')?.textContent).toContain(
       'Motif et lunettes',
     )
     expect(
       root.querySelector('h2#consultation-etape')?.textContent?.replace(/\s+/g, ' ').trim(),
-    ).toBe('Étape 1 sur 3 : Motif et lunettes')
+    ).toBe('Étape 1 sur 7 : Motif et lunettes')
     expect(router.currentRoute.value.fullPath).toBe(CONSULTATION_URL)
     unmount()
   })
@@ -82,19 +87,30 @@ describe('ouverture de la consultation', () => {
     unmount()
   })
 
-  it('dit honnêtement ce que cette version ne propose pas : acuités, réfraction, centrage ; ni « Terminer » ni faux « Terminé »', async () => {
+  it('un brouillon sans étape enregistrée ne propose pas « Terminer l’examen » ; aucun faux « Terminé »', async () => {
     stubConsultationApi()
     const { root, unmount } = await openConsultation()
 
-    const notice =
-      'Acuités, réfraction et centrage : prochaine version. L’examen reste en cours tant qu’il n’est pas terminé.'
-    const text = textOf(root)
-    expect(text).toContain(notice)
-    // Hors de cet encart, rien ne parle d'un examen « terminé » ni ne propose de le terminer.
-    expect(text.replace(notice, '')).not.toMatch(/termin/i)
-    expect(buttonByName(root, /termin/i)).toBeNull()
-    expect(text).not.toMatch(/rendez-vous|à revoir/i)
+    expect(buttonByName(root, /terminer l’examen/i)).toBeNull()
+    expect(textOf(root)).not.toContain('Examen terminé')
+    expect(textOf(root)).not.toMatch(/rendez-vous|à revoir/i)
     unmount()
+  })
+
+  it('un examen en cours propose « Terminer l’examen » au compte qui peut finaliser, jamais à un autre', async () => {
+    stubConsultationApi({ consultation: consultation({ status: 'IN_PROGRESS', version: 2 }) })
+    const first = await openConsultation()
+    expect(buttonByName(first.root, 'Terminer l’examen')).not.toBeNull()
+    first.unmount()
+
+    resetEverything()
+    stubConsultationApi({
+      permissions: ['clinical.read', 'clinical.write', 'patient.read', 'agenda.read'],
+      consultation: consultation({ status: 'IN_PROGRESS', version: 2 }),
+    })
+    const second = await openConsultation()
+    expect(buttonByName(second.root, 'Terminer l’examen')).toBeNull()
+    second.unmount()
   })
 
   it('« En cours » une fois qu’une étape est enregistrée, « Brouillon » avant', async () => {
@@ -280,50 +296,40 @@ describe('états de lecture : jamais une consultation vide', () => {
 })
 
 describe('identité du patient', () => {
-  it('sans identité lue, la saisie ne s’ouvre pas : on ne remplit jamais un dossier sans dire de qui il s’agit', async () => {
-    let up = false
+  it('l’identité vient de la consultation elle-même : aucune lecture de la fiche patient n’est nécessaire', async () => {
     const api = stubConsultationApi({
-      handlers: { getPatient: () => (up ? json(200, { data: patient() }) : 'network') },
+      handlers: { getPatient: () => 'network' },
     })
     const { root, unmount } = await openConsultation()
-
-    expect(textOf(root)).toContain('Identité du patient indisponible')
-    expect(textOf(root)).toContain(
-      'l’examen ne s’affiche pas tant que le patient n’est pas identifié',
-    )
-    expect(root.querySelector('form')).toBeNull()
-    expect(root.querySelector('nav[aria-label="Étapes de la consultation"]')).toBeNull()
-
-    up = true
-    await click(buttonByName(root, 'Réessayer'))
 
     expect(textOf(root)).toContain('PATIENT FICTIF Élodie Marie')
     expect(root.querySelector('form')).not.toBeNull()
-    expect(
-      api.requests.filter((request) => request.path === `/api/v1/patients/${ID_A}`),
-    ).toHaveLength(2)
+    expect(api.requests.filter((request) => request.path === `/api/v1/patients/${ID_A}`)).toHaveLength(0)
     unmount()
   })
 
-  it('fiche patient inaccessible (404, module Patients fermé) : dit, aucune saisie', async () => {
+  it('sans patient.read ni module Patients, l’en-tête reste renseigné (identité de base rendue avec clinical.read)', async () => {
     stubConsultationApi({
-      handlers: { getPatient: () => apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.') },
+      permissions: ['clinical.read', 'clinical.write'],
+      modules: ['today', 'consultations'],
     })
     const { root, unmount } = await openConsultation()
 
-    expect(textOf(root)).toContain('Fiche patient introuvable')
-    expect(root.querySelector('form')).toBeNull()
+    const banner = textOf(root.querySelector('[aria-label="Patient et consultation"]') as HTMLElement)
+    expect(banner).toContain('PATIENT FICTIF Élodie Marie')
+    expect(banner).toContain('Dossier EE-2026-0001')
     unmount()
   })
 
-  it('une fiche d’un autre patient que celui de la consultation n’est jamais affichée à sa place', async () => {
+  it('l’en-tête montre le patient de la consultation, jamais une autre fiche', async () => {
     stubConsultationApi({
       patient: patient({ id: '01J9ZXK4M2Q8R7S6T5V4W39998', last_name: 'AUTRE PATIENT' }),
+      consultation: consultation({ patient: patientSummary(patient({ last_name: 'PATIENT DE LA CONSULTATION' })) }),
     })
     const { root, unmount } = await openConsultation()
 
+    expect(textOf(root)).toContain('PATIENT DE LA CONSULTATION')
     expect(textOf(root)).not.toContain('AUTRE PATIENT')
-    expect(root.querySelector('form')).toBeNull()
     unmount()
   })
 })
@@ -407,26 +413,54 @@ describe('droits et module', () => {
 
     // La lecture seule se parcourt : Suivant ne fait que passer à l'étape suivante, sans rien envoyer.
     await click(buttonByName(root, 'Suivant'))
-    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 2 sur 3')
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 2 sur 7')
     expect(patchCalls(api)).toHaveLength(0)
     unmount()
   })
 
-  it('un examen terminé ne se modifie pas dans cette version : dit, aucun bouton d’enregistrement', async () => {
+  it('un examen terminé est en lecture seule : dit, aucun bouton d’enregistrement, correction motivée proposée', async () => {
     stubConsultationApi({
       consultation: consultation({
         status: 'COMPLETED',
         current_revision: 1,
         completed_at: '2026-10-22T09:50:00.000Z',
+        revisions: [
+          {
+            id: '01J9ZXK4M2Q8R7S6T5V4W30901',
+            revision_no: 1,
+            recorded_at: '2026-10-22T09:50:00.000Z',
+            author_id: '01J9ZXK4M2Q8R7S6T5V4W30002',
+            reason: 'Finalisation de la consultation',
+            previous_revision_id: null,
+            sha256: 'a'.repeat(64),
+          },
+        ],
       }),
     })
     const { root, unmount } = await openConsultation()
 
     expect(textOf(root)).toContain('Examen terminé')
-    expect(textOf(root)).toContain(
-      'La modification d’un examen terminé n’est pas disponible dans cette version.',
-    )
+    expect(textOf(root)).toContain('révision 1 sur 1 enregistrée(s)')
     expect(buttonByName(root, 'Enregistrer')).toBeNull()
+    expect(buttonByName(root, 'Terminer l’examen')).toBeNull()
+    expect(buttonByName(root, 'Corriger l’examen')).not.toBeNull()
+    expect(linkTo(root, `/consultations/${CONSULTATION_ID}/historique`)).not.toBeNull()
+    const controls = [
+      ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('main form input, main form textarea'),
+    ]
+    expect(controls.every((control) => control.disabled)).toBe(true)
+    unmount()
+  })
+
+  it('sans clinical.amend, un examen terminé ne propose pas de correction', async () => {
+    stubConsultationApi({
+      permissions: READ_ONLY,
+      consultation: consultation({ status: 'COMPLETED', current_revision: 1, completed_at: '2026-10-22T09:50:00.000Z' }),
+    })
+    const { root, unmount } = await openConsultation()
+
+    expect(textOf(root)).toContain('Examen terminé')
+    expect(buttonByName(root, 'Corriger l’examen')).toBeNull()
     unmount()
   })
 

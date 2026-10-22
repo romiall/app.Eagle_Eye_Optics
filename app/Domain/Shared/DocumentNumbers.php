@@ -4,6 +4,8 @@ namespace App\Domain\Shared;
 
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Shared\ValueObjects\Instant;
+use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -43,9 +45,9 @@ final class DocumentNumbers
      * Année civile de la série au fuseau du cabinet (jamais en UTC : le 31 décembre à 23 h 30 UTC est déjà le
      * 1er janvier à Douala).
      */
-    public static function yearOf(CommandContext $context, string $timezone): int
+    public static function yearOf(CommandContext $context, string $timezone, ?CarbonImmutable $at = null): int
     {
-        $milliseconds = (int) $context->now->format('Uv');
+        $milliseconds = (int) ($at ?? $context->now)->format('Uv');
 
         return Instant::fromEpochMilliseconds($milliseconds)->civilDate($timezone)->year;
     }
@@ -54,12 +56,19 @@ final class DocumentNumbers
      * Attribue le numéro suivant d'une série, en route directe (numéro central). Le verrou du cabinet est déjà
      * tenu par le chemin central ; celui de la séquence est pris ici dans l'ordre du contrat.
      *
+     * `$at` : instant qui fixe l'année de la série ; par défaut `context->now`, figé AVANT l'attente du verrou du
+     * cabinet. Les pièces financières (facture, reçu) passent un instant relu APRÈS ce verrou, pour qu'un numéro
+     * pris juste après minuit local porte l'année de son émission. `$renderer` : mise en forme du numéro d'une
+     * série dont le format est configuré hors de ce fichier (voir BillingNumbers) ; sans lui, seule la série du
+     * dossier patient a un format, et toute autre est refusée (aucun format n'est inventé).
+     *
+     * @param  (Closure(string, int, int): string)|null  $renderer
      * @return array{value: int, rendered: string, year: int}
      */
-    public static function allocateCentral(TransactionLocks $locks, CommandContext $context, string $type, string $timezone): array
+    public static function allocateCentral(TransactionLocks $locks, CommandContext $context, string $type, string $timezone, ?CarbonImmutable $at = null, ?Closure $renderer = null): array
     {
-        $year = self::yearOf($context, $timezone);
-        $now = $context->now->utc()->format('Y-m-d H:i:s.u');
+        $year = self::yearOf($context, $timezone, $at);
+        $now = ($at ?? $context->now)->utc()->format('Y-m-d H:i:s.u');
         $key = sprintf('%s:%04d', $type, $year);
 
         $row = $locks->sequences([[$type, $year]])[$key] ?? null;
@@ -69,7 +78,7 @@ final class DocumentNumbers
             ->where('clinic_id', $context->clinicId)->where('document_type', $type)->where('document_year', $year)
             ->max('number_value');
         $next = max($row === null ? 0 : (int) $row->last_value, $used) + 1;
-        $rendered = self::render($type, $year, $next);
+        $rendered = $renderer !== null ? $renderer($type, $year, $next) : self::render($type, $year, $next);
 
         if ($row === null) {
             DB::table('document_sequences')->insert([

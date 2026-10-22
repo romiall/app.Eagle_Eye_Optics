@@ -1,0 +1,20 @@
+{
+  "schema": "schemas/resources/access.json#/$defs/ClinicDocumentIdentityResponse",
+  "valid": false,
+  "description": "L'identité imprimable ne porte ni l'identifiant interne du cabinet ni ses paramètres administratifs : propriété refusée (données fictives)",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W30003",
+      "name": "CABINET FICTIF DES CONTRATS",
+      "timezone": "Africa/Douala",
+      "currency": "XAF",
+      "address": null,
+      "phone": null,
+      "email": null,
+      "tax_identifier": null,
+      "professional_mentions": null,
+      "document_settings": null,
+      "production_documents_enabled": false
+    }
+  }
+}

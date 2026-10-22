@@ -1,5 +1,15 @@
 import { ApiError, apiRequest } from '@/app/api'
-import type { Consultation, ConsultationResponse } from '@/domain/contracts/generated'
+import type {
+  ClinicalRevisionDetail,
+  ClinicalRevisionResponse,
+  Consultation,
+  ConsultationResponse,
+  Prescription,
+  PrescriptionList,
+  PrescriptionResponse,
+  VisualAcuityScale,
+  VisualAcuityScaleList,
+} from '@/domain/contracts/generated'
 import { isConsultation } from '@/domain/clinical/payload'
 
 import type { ReadOutcome } from './reads'
@@ -39,4 +49,67 @@ export async function getConsultation(id: string): Promise<ReadOutcome<Consultat
     freshness: { serverAsOf: new Date().toISOString(), complete: true },
     live: true,
   }
+}
+
+/** Lecture rendue avec sa fraîcheur : l'heure de la réponse du serveur à CET appel, `live` vrai. */
+function live<T>(data: T): ReadOutcome<T> {
+  return { data, freshness: { serverAsOf: new Date().toISOString(), complete: true }, live: true }
+}
+
+function unexpected(subject: string): ApiError {
+  return new ApiError(502, 'HTTP_ERROR', `Réponse inattendue du serveur (${subject}).`, {}, null, {}, null, false)
+}
+
+/**
+ * Échelles d'acuité du cabinet (C02). Aucune conversion entre échelles n'est rendue. Une liste vide est une
+ * réponse valide : le cabinet n'a alors configuré aucune échelle (l'écran le dit, il n'en invente pas).
+ */
+export async function getVisualAcuityScales(): Promise<ReadOutcome<VisualAcuityScale[]>> {
+  const response = await apiRequest<VisualAcuityScaleList>('GET', '/api/v1/visual-acuity-scales')
+  if (!Array.isArray(response?.data)) throw unexpected('échelles d’acuité')
+  return live(response.data)
+}
+
+/**
+ * Révision figée d'une consultation, avec son snapshot (C03). Immuable : relue telle qu'enregistrée, jamais
+ * recalculée. Lecture tracée côté serveur.
+ */
+export async function getRevision(
+  consultationId: string,
+  revisionNo: number,
+): Promise<ReadOutcome<ClinicalRevisionDetail>> {
+  const response = await apiRequest<ClinicalRevisionResponse>(
+    'GET',
+    `/api/v1/consultations/${encodeURIComponent(consultationId)}/revisions/${encodeURIComponent(String(revisionNo))}`,
+  )
+  const data = response?.data
+  if (typeof data !== 'object' || data === null || typeof data.snapshot !== 'object' || data.snapshot === null) {
+    throw unexpected('révision')
+  }
+  return live(data)
+}
+
+/** Toutes les versions des prescriptions optiques d'une consultation, de la plus récente à la plus ancienne (C04). */
+export async function getConsultationPrescriptions(
+  consultationId: string,
+): Promise<ReadOutcome<Prescription[]>> {
+  const response = await apiRequest<PrescriptionList>(
+    'GET',
+    `/api/v1/consultations/${encodeURIComponent(consultationId)}/prescriptions`,
+  )
+  if (!Array.isArray(response?.data)) throw unexpected('prescriptions')
+  return live(response.data)
+}
+
+/** Une prescription optique (C04). */
+export async function getPrescription(id: string): Promise<ReadOutcome<Prescription>> {
+  const response = await apiRequest<PrescriptionResponse>(
+    'GET',
+    `/api/v1/prescriptions/${encodeURIComponent(id)}`,
+  )
+  const data = response?.data
+  if (typeof data !== 'object' || data === null || !Array.isArray(data.eyes)) {
+    throw unexpected('prescription')
+  }
+  return live(data)
 }

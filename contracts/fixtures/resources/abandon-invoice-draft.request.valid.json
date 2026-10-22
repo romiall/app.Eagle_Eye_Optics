@@ -1,0 +1,10 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/AbandonInvoiceDraftRequest",
+  "valid": true,
+  "description": "Abandon d'un brouillon : version attendue, motif facultatif",
+  "data": {
+    "expected_version": 3,
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "reason": "Le patient renonce à l'achat"
+  }
+}

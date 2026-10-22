@@ -19,6 +19,7 @@ Ce document explique comment lancer chaque suite en local et en CI, comment la b
 | Build | `npm run build` | `npm ci` | Assets statiques, manifeste et service worker dans `public/build/` |
 | E2E | `npm run test:e2e` (build + tests) ou `npm run test:e2e:run` | Build, Chromium, `openssl` | Application construite dans un vrai navigateur : titre français, service worker actif, rechargement serveur arrêté, `/api` jamais remplacé par la coquille, aucune requête hors de l'origine (coquille, service worker et sonde `/up`), et origine HTTPS derrière un proxy qui termine TLS (pas de contenu mixte, service worker actif) |
 | Tout enchaîner | `tools/dev/check-all.sh [--strict] [--with-e2e]` | Dépendances installées | Pint, Larastan, PHPUnit, types, ESLint, Prettier, Vitest, build (+ e2e) |
+| Vérification de fin de phase | `tools/dev/phase-check.sh [--with-e2e] [--only a,b]` | MySQL de test joignable (obligatoire) | Mêmes contrôles plus `--check` des contrats, **sans s'arrêter au premier échec** : un journal par étape (`storage/framework/testing/phase-check/`) et un tableau final ; Vitest en une seule file |
 
 Un test MySQL dont la base est injoignable est **ignoré avec un message explicite** (pas d'échec silencieux) sauf si `EEO_REQUIRE_MYSQL=1` : alors c'est un échec. La CI et `check-all.sh --strict` positionnent cette variable.
 

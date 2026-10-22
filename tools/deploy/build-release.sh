@@ -58,7 +58,10 @@ git archive "$COMMIT" | tar -x -C "$WORK/app"
 # Hors livraison : développement, contrôle, documentation (voir docs/implementation/build.md).
 (
   cd "$WORK/app"
-  rm -rf tests tools specifications docs .github .spec-work database/tools database/tests \
+  # Seuls les scripts d'exploitation du serveur restent de tools/ : sauvegarde et exercice de restauration.
+  find tools -type f ! -path 'tools/deploy/backup.sh' ! -path 'tools/deploy/restore-check.sh' -delete
+  find tools -depth -type d -empty -delete
+  rm -rf tests specifications docs .github .spec-work database/tools database/tests \
     resources/frontend contracts/tools contracts/fixtures contracts/vectors
   rm -f package.json package-lock.json vite.config.ts tsconfig.json tsconfig.*.json eslint.config.js \
     vitest.config.ts playwright.config.ts phpstan.neon phpunit.xml pint.json .prettierrc* .prettierignore \
@@ -101,6 +104,12 @@ done
 [[ -f "$WORK/app/.env.example" ]] || { echo ".env.example absent de l'archive." >&2; exit 1; }
 [[ -f "$WORK/app/vendor/autoload.php" ]] || { echo "vendor/autoload.php absent de l'archive." >&2; exit 1; }
 if [[ -d "$WORK/app/vendor/phpunit" ]]; then echo "Une dépendance de développement (phpunit) est dans l'archive." >&2; exit 1; fi
+for script in tools/deploy/backup.sh tools/deploy/restore-check.sh; do
+  [[ -f "$WORK/app/$script" ]] || { echo "Script d'exploitation absent de l'archive : $script" >&2; exit 1; }
+done
+if [[ -n "$(find "$WORK/app/tools" -type f ! -name 'backup.sh' ! -name 'restore-check.sh' -print -quit)" ]]; then
+  echo "Un outil de développement est resté dans l'archive (tools/)." >&2; exit 1
+fi
 
 mkdir -p "$ROOT/release"
 ARCHIVE="$ROOT/release/${NAME}.tar.gz"

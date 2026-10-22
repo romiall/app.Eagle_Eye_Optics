@@ -1,0 +1,19 @@
+{
+  "schema": "schemas/resources/access.json#/$defs/ClinicDocumentIdentityResponse",
+  "valid": true,
+  "description": "Identité imprimable du cabinet (en-tête et pied des documents), saisie par la gérante ; documents de test tant que la bascule n'est pas faite (données fictives)",
+  "data": {
+    "data": {
+      "name": "CABINET FICTIF DES CONTRATS",
+      "timezone": "Africa/Douala",
+      "currency": "XAF",
+      "address": "Rue fictive 1, Ville fictive",
+      "phone": "+237 600 00 00 00",
+      "email": null,
+      "tax_identifier": "NIU-FICTIF-0001",
+      "professional_mentions": null,
+      "document_settings": { "footer_lines": ["Pied de page fictif"] },
+      "production_documents_enabled": false
+    }
+  }
+}

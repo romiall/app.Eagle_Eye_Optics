@@ -10,9 +10,14 @@ use App\Application\Contracts\ContractValidator;
 use App\Application\NullCommandBusProbe;
 use App\Application\TransactionRunner;
 use App\Domain\Access\AccessCommands;
+use App\Domain\Access\Approvals\ApprovalCommands;
+use App\Domain\Billing\BilledExamFeeControl;
+use App\Domain\Billing\BillingCommands;
+use App\Domain\Cash\CashCommands;
 use App\Domain\Clinical\ClinicalCommands;
 use App\Domain\Clinical\ExamFeeControl;
 use App\Domain\Clinical\UncontrolledExamFee;
+use App\Domain\Inventory\InventoryCommands;
 use App\Domain\Patients\PatientCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -45,9 +50,13 @@ final class CommandServiceProvider extends ServiceProvider
         // Pas de singleton : le bus est reconstruit avec la sonde liée à cet instant.
         $this->app->bind(CommandBus::class);
 
-        // Contrôle du paiement de l'examen : inactif dans le premier jalon clinique (B04, B06 le remplaceront).
-        // Aucun interrupteur de configuration : le contrôle réel n'existe pas encore.
-        $this->app->bind(ExamFeeControl::class, UncontrolledExamFee::class);
+        // Contrôle du paiement de l'examen. Par défaut (`eeo.billing.exam_fee_control` = « off ») : INACTIF, il répond
+        // « non contrôlé » et le dit (UncontrolledExamFee). `billed` branche le contrôle réel (B04) : facture de frais
+        // de CETTE visite réglée, ou dérogation exacte de la gérante. Toute autre valeur reste inactive (échec fermé :
+        // une faute de frappe n'active jamais un contrôle à moitié configuré). Lu à la résolution, pas au démarrage.
+        $this->app->bind(ExamFeeControl::class, static fn (Application $app): ExamFeeControl => BilledExamFeeControl::isActive()
+            ? $app->make(BilledExamFeeControl::class)
+            : $app->make(UncontrolledExamFee::class));
     }
 
     public function boot(): void
@@ -58,10 +67,23 @@ final class CommandServiceProvider extends ServiceProvider
         foreach (AccessCommands::definitions() as $definition) {
             $registry->register($definition);
         }
+        // Approbations exactes (B06) : demande et décision de la gérante.
+        foreach (ApprovalCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
         foreach (PatientCommands::definitions() as $definition) {
             $registry->register($definition);
         }
         foreach (ClinicalCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (BillingCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (CashCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (InventoryCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

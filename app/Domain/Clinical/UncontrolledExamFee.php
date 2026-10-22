@@ -2,6 +2,7 @@
 
 namespace App\Domain\Clinical;
 
+use App\Application\Locking\TransactionLocks;
 use stdClass;
 
 /**
@@ -14,7 +15,7 @@ final class UncontrolledExamFee implements ExamFeeControl
 {
     private const PROOFS = ['exam_invoice_id', 'exam_waiver_approval_id'];
 
-    public function decide(stdClass $visit, array $charge): ExamFeeDecision
+    public function decide(stdClass $visit, array $charge, ?TransactionLocks $locks = null): ExamFeeDecision
     {
         $errors = [];
         foreach (self::PROOFS as $field) {

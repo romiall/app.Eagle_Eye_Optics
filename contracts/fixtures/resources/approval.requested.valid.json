@@ -1,0 +1,43 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/ApprovalResponse",
+  "valid": true,
+  "description": "Demande de dispense d'examen en attente : contenu exact revérifié, cible résumée, aucune donnée clinique",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W30037",
+      "kind": "EXAM_FEE_WAIVER",
+      "action_code": "exam_fee.collect",
+      "target_type": "visits",
+      "target_id": "01J9ZXK4M2Q8R7S6T5V4W30021",
+      "payload_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "subject": {
+        "kind": "EXAM_FEE_WAIVER",
+        "visit_id": "01J9ZXK4M2Q8R7S6T5V4W30021",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001"
+      },
+      "reason": "Contrôle de suivi pris en charge par la gérante (fictif)",
+      "status": "REQUESTED",
+      "effective_status": "REQUESTED",
+      "requested_by": "01J9ZXK4M2Q8R7S6T5V4W30004",
+      "requested_by_name": "Réception Fictive",
+      "requested_at": "2026-10-14T09:31:00.000Z",
+      "decided_by": null,
+      "decided_by_name": null,
+      "decided_at": null,
+      "decision_reason": null,
+      "expires_at": null,
+      "consumed_at": null,
+      "target": {
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+          "record_number": "TEST-P-000001",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie Marie"
+        },
+        "invoice_number": null,
+        "visit_occurred_at": "2026-10-14T09:15:00.000Z",
+        "payment": null
+      }
+    }
+  }
+}

@@ -272,14 +272,26 @@ describe('CONCLUSION : reprise', () => {
   })
 })
 
+/** Rubriques mesurées et médicaments vides (C02, C04) : la consultation porte toujours les sept rubriques. */
+function measuredEmpty() {
+  return {
+    VISUAL_ACUITY: { acuities: [] },
+    REFRACTION: { measurements: [], refraction_observations: null, ametropias: [] },
+    CENTERING: { centering_id: null, pd_total: null, pd_od: null, pd_og: null, inconsistency_reason: null },
+    MEDICATIONS: { orders: [] },
+  }
+}
+
 describe('rebaseConsultation', () => {
   it('une étape non modifiée reprend le serveur ; une étape modifiée est rebasée ; les conflits sont rangés par étape', () => {
     const base = {
       ANAMNESIS: anamnesis({ symptoms: 'A' }),
       HISTORIES: { histories: [] } as HistoriesData,
+      ...measuredEmpty(),
       CONCLUSION: conclusion({ conclusion: 'C1' }),
     }
     const latest = {
+      ...measuredEmpty(),
       ANAMNESIS: anamnesis({ symptoms: 'A (autre poste)' }),
       HISTORIES: {
         histories: [
@@ -297,6 +309,10 @@ describe('rebaseConsultation', () => {
     const current = {
       ANAMNESIS: draftFromData('ANAMNESIS', base.ANAMNESIS, nextId),
       HISTORIES: draftFromData('HISTORIES', base.HISTORIES, nextId),
+      VISUAL_ACUITY: draftFromData('VISUAL_ACUITY', base.VISUAL_ACUITY, nextId),
+      REFRACTION: draftFromData('REFRACTION', base.REFRACTION, nextId),
+      CENTERING: draftFromData('CENTERING', base.CENTERING, nextId),
+      MEDICATIONS: draftFromData('MEDICATIONS', base.MEDICATIONS, nextId),
       CONCLUSION: draftFromData('CONCLUSION', base.CONCLUSION, nextId),
     }
     current.CONCLUSION.conclusion = 'C1 (mon poste)'
@@ -308,6 +324,8 @@ describe('rebaseConsultation', () => {
     expect(result.drafts.CONCLUSION.conclusion).toBe('C1 (mon poste)')
     expect(result.conflicts.ANAMNESIS).toEqual([])
     expect(result.conflicts.HISTORIES).toEqual([])
+    expect(result.conflicts.VISUAL_ACUITY).toEqual([])
+    expect(result.conflicts.MEDICATIONS).toEqual([])
     expect(result.conflicts.CONCLUSION).toEqual([
       { key: 'conclusion', label: 'Conclusion', current: 'C1 (autre poste)' },
     ])

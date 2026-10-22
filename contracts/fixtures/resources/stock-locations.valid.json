@@ -1,0 +1,15 @@
+{
+  "schema": "schemas/resources/stock.json#/$defs/StockLocationList",
+  "valid": true,
+  "description": "Emplacement principal du cabinet (créé par eeo:sales:bootstrap)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3004A",
+        "code": "PRINCIPAL",
+        "name": "Emplacement principal",
+        "active": true
+      }
+    ]
+  }
+}

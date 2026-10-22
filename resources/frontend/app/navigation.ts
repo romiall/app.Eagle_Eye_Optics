@@ -63,8 +63,9 @@ export const APP_MODULES: readonly AppModule[] = [
     label: 'Consultations',
     path: '/consultations',
     permissions: ['clinical.read'],
+    // Liste des examens du cabinet (C01 à C04, en ligne) : le dossier s'ouvre sur la consultation.
     deliveredBy: 'C01',
-    delivered: false,
+    delivered: true,
     mobileShortcut: false,
   },
   {
@@ -81,8 +82,9 @@ export const APP_MODULES: readonly AppModule[] = [
     label: 'Ventes et caisse',
     path: '/ventes',
     permissions: ['invoice.read', 'payment.collect', 'cash.own_session', 'exam_fee.collect'],
+    // Caisse, brouillon, émission, encaissement, catalogue (B01 à B05), en ligne ; le stock (I01) reste à livrer.
     deliveredBy: 'B02',
-    delivered: false,
+    delivered: true,
     mobileShortcut: false,
   },
   {
@@ -126,8 +128,10 @@ export const APP_MODULES: readonly AppModule[] = [
     label: 'Paramètres',
     path: '/parametres',
     permissions: ['users.manage', 'approval.decide'],
-    deliveredBy: 'B06',
-    delivered: false,
+    // Comptes du personnel et identité du cabinet (écrans F09 des routes F05) ; les autorisations (B06)
+    // s'y ajoutent quand leur écran existe.
+    deliveredBy: 'F09',
+    delivered: true,
     mobileShortcut: false,
   },
 ]
@@ -183,8 +187,8 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     label: 'Paramètres',
     path: '/parametres',
     permissions: ['users.manage', 'approval.decide'],
-    deliveredBy: 'B06',
-    delivered: false,
+    deliveredBy: 'F09',
+    delivered: true,
     module: 'settings',
   },
 ]
@@ -223,15 +227,138 @@ export function visibleHomeActions(
   return visibleEntries(permissions, actions, enabledModules)
 }
 
+/**
+ * Activité d'un raccourci de travail : l'accueil les regroupe par profil de travail (accueil des patients,
+ * examens, caisse, administration) sans jamais nommer un profil : seuls les droits et les modules ouverts
+ * décident de ce qui apparaît, comme pour le menu.
+ */
+export type WorkGroup = 'reception' | 'exams' | 'cash' | 'administration'
+
+export const WORK_GROUP_LABELS: Readonly<Record<WorkGroup, string>> = {
+  reception: 'Accueil des patients',
+  exams: 'Examens',
+  cash: 'Caisse et ventes',
+  administration: 'Administration',
+}
+
+/** Raccourci de travail de l'accueil (en plus des actions d'accueil du dossier patient, fichier 04). */
+export interface WorkShortcut extends NavigationEntry {
+  group: WorkGroup
+}
+
+export const WORK_SHORTCUTS: readonly WorkShortcut[] = [
+  {
+    id: 'arrival',
+    label: 'Enregistrer une arrivée',
+    path: '/aujourdhui/arrivee',
+    permissions: ['visit.register'],
+    deliveredBy: 'P03',
+    delivered: true,
+    module: 'today',
+    group: 'reception',
+  },
+  {
+    id: 'exams-in-progress',
+    label: 'Mes examens en cours',
+    path: '/consultations?jour=tous&etat=IN_PROGRESS&mes=1',
+    permissions: ['clinical.write'],
+    deliveredBy: 'C01',
+    delivered: true,
+    module: 'consultations',
+    group: 'exams',
+  },
+  {
+    id: 'exams-today',
+    label: 'Examens du jour',
+    path: '/consultations',
+    permissions: ['clinical.read'],
+    deliveredBy: 'C01',
+    delivered: true,
+    module: 'consultations',
+    group: 'exams',
+  },
+  {
+    id: 'cash-session',
+    label: 'Caisse',
+    path: '/ventes/caisse',
+    permissions: ['cash.own_session'],
+    deliveredBy: 'B05',
+    delivered: true,
+    module: 'sales',
+    group: 'cash',
+  },
+  {
+    id: 'new-invoice',
+    label: 'Nouvelle facture',
+    path: '/ventes/factures/nouvelle',
+    permissions: ['invoice.create', 'exam_fee.collect'],
+    deliveredBy: 'B02',
+    delivered: true,
+    module: 'sales',
+    group: 'cash',
+  },
+  {
+    id: 'invoices',
+    label: 'Factures',
+    path: '/ventes/factures',
+    permissions: ['invoice.read'],
+    deliveredBy: 'B02',
+    delivered: true,
+    module: 'sales',
+    group: 'cash',
+  },
+  {
+    id: 'staff',
+    label: 'Personnel',
+    path: '/parametres/personnel',
+    permissions: ['users.manage'],
+    deliveredBy: 'F09',
+    delivered: true,
+    module: 'settings',
+    group: 'administration',
+  },
+  {
+    id: 'clinic-settings',
+    label: 'Cabinet et documents',
+    path: '/parametres/cabinet',
+    permissions: ['users.manage'],
+    deliveredBy: 'F09',
+    delivered: true,
+    module: 'settings',
+    group: 'administration',
+  },
+  {
+    id: 'catalog',
+    label: 'Catalogue',
+    path: '/ventes/catalogue',
+    permissions: ['catalog.manage'],
+    deliveredBy: 'B01',
+    delivered: true,
+    module: 'sales',
+    group: 'administration',
+  },
+]
+
+export function visibleWorkShortcuts(
+  permissions: readonly string[],
+  enabledModules: readonly string[],
+  shortcuts: readonly WorkShortcut[] = WORK_SHORTCUTS,
+): WorkShortcut[] {
+  return visibleEntries(permissions, shortcuts, enabledModules)
+}
+
 /** Catalogue de navigation de l'application ; les tests en injectent un autre (écrans fictifs). */
 export interface NavigationCatalog {
   modules: readonly AppModule[]
   homeActions: readonly HomeAction[]
+  /** Raccourcis de travail de l'accueil, par activité (absents d'un catalogue de test : aucun). */
+  workShortcuts?: readonly WorkShortcut[]
 }
 
 export const DEFAULT_NAVIGATION: NavigationCatalog = {
   modules: APP_MODULES,
   homeActions: HOME_ACTIONS,
+  workShortcuts: WORK_SHORTCUTS,
 }
 
 export const NAVIGATION_KEY: InjectionKey<NavigationCatalog> = Symbol('eeo-navigation')

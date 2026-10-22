@@ -1,0 +1,13 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": false,
+  "description": "Valeur lue d’acuité en nombre : une chaîne est exigée",
+  "base": "commands/save-clinical-step.visual-acuity.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/step/data/acuities/0/raw_value",
+      "value": 1
+    }
+  ]
+}

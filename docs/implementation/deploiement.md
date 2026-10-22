@@ -20,7 +20,8 @@ racine web) n'est pas connue. C'est le rôle de l'étape 1.
 | 3. Envoyer et installer l'archive | Serveur (SSH) | 10 minutes |
 | 4. Configurer, installer la base, créer la gérante | Serveur (SSH) | 10 minutes |
 | 5. Ouvrir le site, contrôle de fumée | Poste | 5 minutes |
-| 6. Mise en service progressive des modules | Serveur (SSH) | 1 minute par module |
+| 6. Mise en service progressive des modules (phase 1) | Serveur (SSH) puis gérante | 1 minute par module |
+| 7. Sauvegarde quotidienne et exercice de restauration | Serveur (SSH, cron) | 15 minutes |
 
 ## 1. Diagnostic de l'hébergement (avant tout)
 
@@ -126,6 +127,9 @@ Valeurs à renseigner dans `.env` (aucune valeur d'exemple ne doit rester) :
 | `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | ceux du panneau Hostinger |
 | `PRODUCTION_DOCUMENTS_ENABLED` | `false` (documents marqués TEST tant que mentions légales, logo et fiscalité ne sont pas validés) |
 | `EEO_ENABLED_MODULES` | vide au départ ; voir l'étape 6 |
+| `EEO_EXAM_FEE_CONTROL` | `off` au départ (paiement de l'examen non contrôlé, dit à l'écran) ; voir l'étape 6 |
+| `EEO_EXAM_FEE_ITEM_REFERENCE` | vide tant que l'article « frais d'examen » n'existe pas au catalogue |
+| `EEO_BACKUP_DIR`, `EEO_BACKUP_KEEP_DAYS` | dossier des sauvegardes HORS racine web (vide : `~/eeo-backups`) et durée de conservation ; voir l'étape 7 |
 
 Puis :
 
@@ -143,6 +147,19 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 hors du serveur. Le cabinet est ensuite identifié par la base (si plusieurs cabinets existaient un jour, renseigner
 `EEO_CLINIC_ID`).
 
+Paramétrage de la phase 1 (à faire **avant** d'ouvrir le module concerné, étape 6) :
+
+```bash
+php artisan eeo:sales:bootstrap           # caisse principale et emplacement de stock (idempotent) : avant « sales »
+php artisan eeo:clinical:scales --code=<CODE> --label="<Libellé>"
+                                          # échelle d'acuité RÉELLE choisie par la cliente : avant « consultations »
+                                          # (répéter pour chaque échelle ; jamais --demo, refusé en production)
+```
+
+Aucune commande de démonstration (`eeo:demo:accounts`, `eeo:demo:sales`, `eeo:clinical:scales --demo`) ne s'exécute
+en production : elles le refusent et le disent. Aucun prix, taxe, échelle ni identité n'est fourni par l'application :
+tout est saisi par la gérante ou choisi par la cliente.
+
 ## 5. Ouvrir le site et contrôle de fumée
 
 Depuis le poste (jamais depuis un site tiers) :
@@ -153,33 +170,87 @@ EEO_SMOKE_PASSWORD='<mot de passe de la gérante>' bash tools/deploy/smoke.sh ht
 
 Le contrôle est **en lecture seule**. Il vérifie : `/up`, l'API (404 JSON), les fichiers du build, le service worker,
 que `.env`, `.git`, `composer.json`, `artisan` et les journaux **ne sont pas servis**, la connexion réelle, la lecture
-du compte, la recherche de patients et la file du jour (ou « module fermé »). Il doit se terminer par
+du compte, la recherche de patients, la file du jour, puis les lectures des modules de la phase 1 (examens, échelles
+d'acuité, factures, caisse, stock, personnel, identité des documents) : « module fermé » (404) ou « droit absent
+pour ce compte » (403) sont des informations, pas des échecs. Il doit se terminer par
 « Contrôle de fumée réussi. ». Puis ouvrir `https://app.eagleeyeoptic.com` dans un navigateur : écran de connexion,
 connexion avec la gérante, accueil.
 
-## 6. Mise en service progressive des modules
+## 6. Mise en service progressive des modules (phase 1)
 
-Un module livré reste invisible (écran **et** API) tant qu'il n'est pas ouvert. Pour ouvrir les premières fonctions :
+Un module livré reste invisible (écran **et** API) tant qu'il n'est pas ouvert. Pour ouvrir des fonctions :
 
 ```bash
 cd ~/eeo
-nano .env             # EEO_ENABLED_MODULES=patients,today
+nano .env             # EEO_ENABLED_MODULES=settings,patients,today
 php artisan config:cache
+php artisan eeo:preflight   # signale un code inconnu, une caisse ou une échelle manquante, un contrôle d'examen incohérent
 ```
 
-| Code | Fonction ouverte | Disponible dans cette version |
+| Code | Fonction ouverte | État dans cette version (EN LIGNE seulement) |
 | --- | --- | --- |
-| `patients` | Fiches patient, recherche | Oui (en ligne) |
-| `today` | Arrivée du patient, file du jour | Oui (en ligne) |
-| `consultations`, `sales`, `stock`, `agenda`, `reports`, `settings`, `workshop`, `communication` | — | Pas encore : les ouvrir n'affiche rien |
+| `settings` | Paramètres : personnel (comptes, profils, dérogations, mots de passe), identité du cabinet imprimée sur les documents | Livré |
+| `patients` | Fiches patient, recherche, ressemblances, activité du patient | Livré |
+| `today` | Arrivée du patient, file du jour | Livré |
+| `consultations` | Examens : motif, antécédents, acuités, réfraction, centrage, médicaments, conclusion ; terminer, corriger, révisions ; prescriptions optiques ; liste des examens ; impression locale (PDF) | Livré |
+| `sales` | Caisse (ouverture, clôture), factures (brouillon, émission), encaissements et reçus, catalogue et taxes (gérante), PDF facture et reçu | Livré |
+| `stock` | Disponibilités et stock initial | Livré (le reste du stock : lots suivants) |
+| `agenda`, `reports`, `workshop`, `communication` | — | Pas encore : les ouvrir n'affiche rien |
+
+Ordre conseillé, un module à la fois, après une courte formation :
+
+1. `settings,patients,today` : la gérante se connecte, renseigne **Paramètres → Cabinet et documents** (nom,
+   adresse, téléphone, identifiant fiscal, mentions : rien n'est proposé ni inventé), puis crée les comptes dans
+   **Paramètres → Personnel**. Chaque mot de passe initial se transmet **en personne** ; la personne le change à sa
+   première connexion (**Accueil → Changer mon mot de passe**).
+2. `consultations`, après `eeo:clinical:scales` (échelle réelle).
+3. `sales`, après `eeo:sales:bootstrap` ; la gérante saisit ensuite catalogue, prix et taxes (réauthentification
+   demandée). Les documents restent marqués **TEST** tant que `production_documents_enabled` n'est pas activé par
+   la procédure de bascule (mentions légales, logo et régime fiscal validés).
+4. `stock`, quand la gérante saisit le stock d'ouverture.
+
+**Contrôle du paiement de l'examen** : laisser `EEO_EXAM_FEE_CONTROL=off` au départ (les écrans disent « Paiement de
+l'examen non contrôlé »). Pour l'activer (`billed`), il faut le module `sales` ouvert ET l'article « frais d'examen »
+au catalogue (`EEO_EXAM_FEE_ITEM_REFERENCE`) : sinon `eeo:preflight` le déclare BLOQUANT, car aucun examen ne
+pourrait plus démarrer.
 
 Retour en arrière : retirer le code de la liste et relancer `php artisan config:cache`. Aucune donnée n'est touchée.
+
+## 7. Sauvegarde quotidienne et exercice de restauration (obligatoire avant d'ouvrir `patients`)
+
+La sauvegarde livrée dans l'archive (`tools/deploy/backup.sh`) copie la base (structure, données, vues, triggers),
+les fichiers produits par l'application (`storage/app`) et le `.env` (clé `APP_KEY`), dans un dossier daté, hors de
+la racine web, avec ses empreintes ; les sauvegardes plus anciennes que `EEO_BACKUP_KEEP_DAYS` jours sont supprimées.
+`eeo:preflight` dit si `mysqldump` est disponible ; sinon, s'appuyer sur les sauvegardes du panneau Hostinger.
+
+1. Essai à la main : `bash ~/eeo/tools/deploy/backup.sh ~/eeo` (dernière ligne : « Sauvegarde terminée »).
+2. Tâche planifiée (panneau Hostinger, **Avancé → Tâches Cron**), chaque nuit, par exemple à 2 h 30 :
+
+   ```
+   30 2 * * * bash $HOME/eeo/tools/deploy/backup.sh $HOME/eeo >> $HOME/eeo-backups/backup.log 2>&1
+   ```
+
+3. **Copie hors du serveur**, au moins chaque semaine, depuis le poste de la gérante ou de l'exploitant :
+   `scp -r -P <port> <utilisateur>@<hôte>:~/eeo-backups/eeo-backup-<date> <dossier sûr>`. Le dossier contient le
+   `.env` (mot de passe de la base, clé de l'application) et des données de santé : le garder chiffré (disque ou
+   coffre), jamais par courriel ni messagerie.
+4. **Exercice de restauration** avant la mise en service, puis chaque mois : créer dans le panneau une base vide dont
+   le nom finit par `_restore`, puis
+
+   ```bash
+   bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base>_restore ~/eeo
+   ```
+
+   Le script refuse la base de l'application, vérifie les empreintes, restaure, compare le schéma à la baseline
+   (`eagle:verify-schema`) et affiche le nombre de lignes de quelques tables. Supprimer la base jetable ensuite et
+   consigner l'exercice (date, sauvegarde, résultat).
 
 ## Mise à jour vers une nouvelle version
 
 ```bash
 # Poste : construire la nouvelle archive (étape 2) et l'envoyer (étape 3).
-# Serveur :
+# Serveur : sauvegarde d'abord
+bash ~/eeo/tools/deploy/backup.sh ~/eeo
 cd ~ && mkdir -p ~/eeo-releases/<nouvelle-archive> && tar -xzf eeo-<nouvelle>.tar.gz -C ~/eeo-releases/<nouvelle-archive>
 cp ~/eeo/.env ~/eeo-releases/<nouvelle-archive>/.env
 cd ~/eeo-releases/<nouvelle-archive> && chmod -R u+rwX storage bootstrap/cache
@@ -196,22 +267,22 @@ destructives ; ne jamais restaurer une ancienne base sans sauvegarde récente (v
 
 ## Sauvegardes (obligatoire avant la mise en service)
 
-- Activer et vérifier les **sauvegardes automatiques** de l'hébergeur (base et fichiers), et conserver au moins une
-  copie hors du serveur.
-- Avant chaque mise à jour : `mysqldump --single-transaction --routines --triggers -u <utilisateur> -p <base> > sauvegarde-AAAAMMJJ.sql`
-  (les triggers font partie de la protection de l'historique).
-- Tester la restauration sur une base jetable avant la mise en service : une sauvegarde jamais restaurée n'est pas
-  une sauvegarde (X03).
+Voir l'étape 7 : sauvegarde quotidienne par `tools/deploy/backup.sh` (cron), copie hors serveur, exercice de
+restauration par `tools/deploy/restore-check.sh`. En complément, activer les sauvegardes automatiques du panneau
+Hostinger. Avant chaque mise à jour : une sauvegarde à la main.
 
 ## Limites de cette version
 
 - **Rien ne fonctionne hors ligne** : le mode hors ligne (coffre local, numéros pré-alloués, synchronisation) arrive
-  ensuite. Une coupure d'Internet interrompt le travail.
-- Pas de consultation, de prescription, de facture ni de paiement : les modules correspondants ne sont pas ouverts.
-- Le **contrôle « examen payé ou dérogation » n'existe pas** : l'examen n'est pas bloqué faute de règlement. L'écran le
-  dit (« Paiement de l'examen non contrôlé »).
-- Les icônes de l'application sont provisoires ; le logo, les mentions légales et le régime fiscal ne sont pas
-  fournis (documents marqués TEST).
-- Aucune tâche planifiée (cron) n'est encore nécessaire.
+  dans la phase suivante. Une coupure d'Internet interrompt le travail ; aucun écran ne dit « enregistré sur ce
+  poste ».
+- Les documents PDF (reçus, factures, ordonnances, fiche de consultation) sont produits **sur le poste** et ouverts
+  dans la visionneuse du navigateur pour l'impression ; ils restent marqués **TEST** tant que les mentions légales,
+  le logo et le régime fiscal ne sont pas validés (procédure de bascule).
+- Le contrôle « examen payé ou dérogation » est **désactivé par défaut** (`EEO_EXAM_FEE_CONTROL=off`) : l'écran dit
+  « Paiement de l'examen non contrôlé ».
+- Agenda, rapports, atelier, communication : pas encore livrés.
+- Les icônes de l'application sont provisoires.
+- La seule tâche planifiée est la sauvegarde (étape 7).
 - Sécurité : HTTPS obligatoire, mot de passe de la gérante fort et conservé hors serveur, `.env` en `chmod 600`,
-  racine web = `public/` seul.
+  racine web = `public/` seul, sauvegardes hors racine web et copie chiffrée hors serveur.

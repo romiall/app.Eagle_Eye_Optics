@@ -1,0 +1,45 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Acuités : valeur lue conservée telle quelle, échelle du cabinet, normalized_value à null (aucune conversion)",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "VISUAL_ACUITY",
+      "data": {
+        "acuities": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30101",
+            "context": "PRELIMINARY",
+            "distance": "FAR",
+            "correction": "WITHOUT",
+            "eye": "OD",
+            "scale_id": "01J9ZXK4M2Q8R7S6T5V4W30100",
+            "raw_value": "10/10",
+            "normalized_value": null
+          },
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30102",
+            "context": "PRELIMINARY",
+            "distance": "NEAR",
+            "correction": "WITH",
+            "eye": "OU",
+            "scale_id": "01J9ZXK4M2Q8R7S6T5V4W30100",
+            "raw_value": "0",
+            "normalized_value": null
+          },
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30103",
+            "context": "POST_REFRACTION",
+            "distance": "UNSPECIFIED",
+            "correction": "WITH",
+            "eye": "OG",
+            "scale_id": "01J9ZXK4M2Q8R7S6T5V4W30100",
+            "raw_value": "9/10",
+            "normalized_value": null
+          }
+        ]
+      }
+    }
+  }
+}

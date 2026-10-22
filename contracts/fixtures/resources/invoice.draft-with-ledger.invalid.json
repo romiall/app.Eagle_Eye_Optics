@@ -18,6 +18,21 @@
       "op": "replace",
       "path": "/data/issued_at",
       "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/patient_snapshot",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/clinic_snapshot",
+      "value": null
+    },
+    {
+      "op": "replace",
+      "path": "/data/tax_snapshot",
+      "value": null
     }
   ]
 }

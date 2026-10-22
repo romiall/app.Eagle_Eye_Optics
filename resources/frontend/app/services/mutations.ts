@@ -22,8 +22,36 @@ import { commandContract, commandPath, type CommandContract } from './commandInd
  * Aucune issue n'est devinée : sans réponse de l'application, la commande a pu être appliquée ;
  * elle se reprend avec la même clé.
  */
+/**
+ * Commande EN LIGNE seulement, hors catalogue F06 (aucune charge hors-ligne) : modification d'une prescription
+ * brouillon (C04). Elle est toujours accompagnée d'une `route`.
+ */
+export type OnlineCommandName =
+  | 'UpdatePrescriptionDraft'
+  // Catalogue, règles fiscales et stock initial (B01, I00) : écritures de la gérante, en ligne seulement.
+  | 'CreateCatalogItem'
+  | 'UpdateCatalogItem'
+  | 'CreateTaxRule'
+  | 'UpdateTaxRule'
+  | 'RegisterOpeningStock'
+  // Abandon d'un brouillon de facture (fichier 03) : en ligne seulement, version du brouillon attendue.
+  | 'AbandonInvoiceDraft'
+
+/**
+ * Version attendue d'une route explicite : `none` (défaut : `expected_version: null` au corps), `entity`
+ * (version de l'entité obligatoire, 409 si elle a changé : article, règle fiscale) ou `omitted` (corps
+ * SANS `expected_version`, dont le schéma n'a pas ce champ : stock initial).
+ */
+export type RouteVersion = 'none' | 'entity' | 'omitted'
+
 export interface MutationRequest {
-  name: CommandName
+  name: CommandName | OnlineCommandName
+  /**
+   * Route directe qui diffère de celle du contrat de la commande : variantes de `CreatePrescription`
+   * (ordonnance externe, nouvelle version) ou commande en ligne seulement. Le chemin est concret (sans `{id}`),
+   * relatif à `/api/v1`. Sans `expectedVersion`, la commande n'a pas de version attendue (null au corps).
+   */
+  route?: { method: 'POST' | 'PATCH'; path: string; expectedVersion?: RouteVersion }
   /** Paramètres du chemin de la route directe (`{id}`, `{step}`). */
   path?: Readonly<Record<string, string>>
   /** Charge du contrat F06, identifiants des effets compris (connus avant tout envoi). */
@@ -95,7 +123,26 @@ export function directBody(
   }
   const body: Record<string, unknown> = { ...request.payload, expected_version: version }
   if (contract.directNumberField !== null) body[contract.directNumberField] = null
+  if (request.route?.expectedVersion === 'omitted') delete body['expected_version']
   return body
+}
+
+/** Contrat d'une route explicite : aucune version attendue ni numéro de pièce (le corps porte `expected_version: null`). */
+function routeContract(
+  name: MutationRequest['name'],
+  route: NonNullable<MutationRequest['route']>,
+): CommandContract {
+  return {
+    name: name as CommandName,
+    method: route.method,
+    path: `/api/v1${route.path}`,
+    permission: '',
+    expectedVersion: route.expectedVersion === 'entity' ? 'entity' : 'none',
+    entityType: '',
+    entityIdField: '',
+    numberType: null,
+    directNumberField: null,
+  }
 }
 
 function classify(error: ApiError): MutationOutcome {
@@ -135,7 +182,10 @@ export function createMutationDispatcher(
           'Clé d’idempotence invalide (8 à 128 caractères : lettres, chiffres, . _ : -).',
         )
       }
-      const contract = commandContract(request.name)
+      const contract =
+        request.route === undefined
+          ? commandContract(request.name as CommandName)
+          : routeContract(request.name, request.route)
 
       if (localEngine?.handles(request) === true) {
         try {

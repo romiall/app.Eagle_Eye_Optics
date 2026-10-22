@@ -11,6 +11,9 @@ use App\Domain\Shared\Ulid;
  * - L'absence d'élément pour un groupe signifie « non renseigné », distinct d'« Aucun connu ».
  * - « Aucun connu » est `known_none = true` et exclut tous les autres éléments du groupe ; il n'est jamais un terme.
  * - Chaque terme appartient au groupe de son élément ; « Autre » exige un texte ; pas de doublon.
+ * - Un élément vide (ni « Aucun connu », ni terme, ni commentaire) est admis tel quel : il est enregistré comme un
+ *   élément sans réponse, distinct de l'absence d'élément. Écart connu, documenté dans clinical.md (non corrigé) : les
+ *   deux se lisent « non renseigné » ; l'écran n'envoie jamais d'élément vide (`isHistoryGroupFilled`).
  */
 final class HistoriesStep
 {
@@ -19,9 +22,10 @@ final class HistoriesStep
     /**
      * @param  array<array-key, mixed>  $data
      * @param  array<string, list<string>>  $codesByGroup  codes actifs de chaque groupe d'antécédents
+     * @param  array<string, array<string, string>>  $existingTerms  termes déjà enregistrés, par groupe (identifiant → code) : un code désactivé depuis reste ré-enregistrable pour la même ligne
      * @return list<array{id: string, history_group: string, known_none: bool, comments: string|null, terms: list<array{id: string, term_code: string, other_text: string|null}>}>
      */
-    public static function normalize(array $data, array $codesByGroup, FieldErrors $errors, string $path = 'step.data'): array
+    public static function normalize(array $data, array $codesByGroup, FieldErrors $errors, string $path = 'step.data', array $existingTerms = []): array
     {
         $items = $data['histories'] ?? [];
         $at = $path.'.histories';
@@ -75,7 +79,7 @@ final class HistoriesStep
 
             $rawTerms = $item['terms'] ?? [];
             $codes = is_string($group) ? ($codesByGroup[$group] ?? []) : [];
-            $terms = TermList::normalize($rawTerms, $codes, $here.'.terms', $errors, $termIds);
+            $terms = TermList::normalize($rawTerms, $codes, $here.'.terms', $errors, $termIds, is_string($group) ? ($existingTerms[$group] ?? []) : []);
             $exclusive = true;
             if ($knownNone && is_array($rawTerms) && $rawTerms !== []) {
                 $errors->add($here.'.terms', '« Aucun connu » exclut tous les autres éléments du groupe : retirez-les ou décochez « Aucun connu ».');

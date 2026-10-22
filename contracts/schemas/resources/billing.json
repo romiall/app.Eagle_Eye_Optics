@@ -5,7 +5,7 @@
   "description": "Pièces financières immuables, projections de solde, réponses des opérations financières. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
   "$defs": {
     "CatalogItem": {
-      "description": "Article : prix de vente pour les profils autorisés ; purchase_cost présent seulement pour la gérante (fichier 08).",
+      "description": "Article : prix de vente pour les profils autorisés ; purchase_cost présent seulement pour la gérante (fichier 08). Mêmes champs que la requête CatalogItemRequest, pour pré-remplir la modification.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -21,7 +21,10 @@
         "tax_rule_id",
         "stock_mode",
         "requires_expiry",
+        "low_stock_threshold",
+        "expiry_alert_days",
         "active",
+        "public_visibility",
         "version"
       ],
       "properties": {
@@ -93,7 +96,32 @@
         "requires_expiry": {
           "type": "boolean"
         },
+        "low_stock_threshold": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiry_alert_days": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3650
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "active": {
+          "type": "boolean"
+        },
+        "public_visibility": {
           "type": "boolean"
         },
         "version": {
@@ -445,6 +473,7 @@
       }
     },
     "InvoicePayment": {
+      "description": "Encaissement d'une facture ; received_by_name est le nom ACTUEL du compte qui a encaissé (le reçu garde le nom figé dans son snapshot).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -457,7 +486,9 @@
         "status",
         "receipt_id",
         "receipt_number",
-        "reversed_amount"
+        "reversed_amount",
+        "received_by",
+        "received_by_name"
       ],
       "properties": {
         "id": {
@@ -507,6 +538,21 @@
         },
         "reversed_amount": {
           "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "received_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "received_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -528,7 +574,7 @@
       }
     },
     "Invoice": {
-      "description": "Facture : draft_version (version du brouillon, figée à l'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08).",
+      "description": "Facture : draft_version (version du brouillon, figée à l'émission) et ledger_version (projection après émission, null pour un brouillon) nommées distinctement (fichier 08). patient_snapshot, clinic_snapshot et tax_snapshot sont les contenus FIGÉS à l'émission (null pour un brouillon) : le document d'une facture émise est produit d'eux, jamais de l'identité ni des prix actuels (fichier 11). Un document dont clinic_snapshot.test_document vaut true est un document TEST.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -539,6 +585,7 @@
         "status",
         "issued_at",
         "issued_by",
+        "issued_by_name",
         "due_date",
         "currency",
         "total_gross",
@@ -552,7 +599,10 @@
         "credit_notes",
         "refunds",
         "write_owner",
-        "document"
+        "document",
+        "patient_snapshot",
+        "clinic_snapshot",
+        "tax_snapshot"
       ],
       "properties": {
         "id": {
@@ -584,6 +634,18 @@
         },
         "issued_by": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "issued_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "due_date": {
           "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
@@ -770,6 +832,7 @@
           "type": "array",
           "minItems": 0,
           "items": {
+            "description": "Encaissement d'une facture ; received_by_name est le nom ACTUEL du compte qui a encaissé (le reçu garde le nom figé dans son snapshot).",
             "type": "object",
             "additionalProperties": false,
             "required": [
@@ -782,7 +845,9 @@
               "status",
               "receipt_id",
               "receipt_number",
-              "reversed_amount"
+              "reversed_amount",
+              "received_by",
+              "received_by_name"
             ],
             "properties": {
               "id": {
@@ -832,6 +897,21 @@
               },
               "reversed_amount": {
                 "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "received_by": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "received_by_name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           }
@@ -962,6 +1042,36 @@
               "type": "null"
             }
           ]
+        },
+        "patient_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "../../snapshots/invoice-patient.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clinic_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "../../snapshots/invoice-clinic.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "../../snapshots/invoice-tax.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "allOf": [
@@ -985,6 +1095,15 @@
                 "type": "null"
               },
               "ledger_version": {
+                "type": "null"
+              },
+              "patient_snapshot": {
+                "type": "null"
+              },
+              "clinic_snapshot": {
+                "type": "null"
+              },
+              "tax_snapshot": {
                 "type": "null"
               }
             }
@@ -1016,6 +1135,15 @@
               },
               "ledger_version": {
                 "$ref": "../../schemas/common.json#/$defs/Version"
+              },
+              "patient_snapshot": {
+                "$ref": "../../snapshots/invoice-patient.json"
+              },
+              "clinic_snapshot": {
+                "$ref": "../../snapshots/invoice-clinic.json"
+              },
+              "tax_snapshot": {
+                "$ref": "../../snapshots/invoice-tax.json"
               }
             }
           }
@@ -1023,11 +1151,13 @@
       ]
     },
     "InvoiceSummary": {
+      "description": "Ligne de la liste des factures : identité de BASE du patient (dossier courant, jamais clinique), reste dû projeté.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
         "patient_id",
+        "patient",
         "number",
         "status",
         "issued_at",
@@ -1042,6 +1172,50 @@
         },
         "patient_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "record_number",
+                "last_name",
+                "first_names"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "record_number": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "last_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "first_names": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "number": {
           "anyOf": [
@@ -1556,25 +1730,51 @@
       }
     },
     "Approval": {
+      "description": "Approbation exacte (B06) : nature, cible et empreinte du contenu ; subject = contenu exact relu dans l'audit de la demande et REVÉRIFIÉ contre payload_hash (null s'il ne la reproduit pas, ou pour une exécution directe de la gérante) ; effective_status = statut à l'instant (une demande ou un accord échus sont EXPIRED, jamais écrit) ; noms à la date de la demande et de la décision ; motif de la décision. Aucune donnée clinique.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
+        "kind",
         "action_code",
         "target_type",
         "target_id",
         "payload_hash",
-        "requested_by",
+        "subject",
         "reason",
         "status",
+        "effective_status",
+        "requested_by",
+        "requested_by_name",
+        "requested_at",
         "decided_by",
+        "decided_by_name",
         "decided_at",
+        "decision_reason",
         "expires_at",
-        "consumed_at"
+        "consumed_at",
+        "target"
       ],
       "properties": {
         "id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "EXAM_FEE_WAIVER",
+                "DRAFT_LINE_RIGHTS",
+                "PAYMENT_REVERSAL",
+                "CREDIT_NOTE",
+                "REFUND"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "action_code": {
           "$ref": "../../schemas/common.json#/$defs/PermissionCode"
@@ -1590,8 +1790,15 @@
         "payload_hash": {
           "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
         },
-        "requested_by": {
-          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        "subject": {
+          "anyOf": [
+            {
+              "$ref": "../../commands/RequestApproval.v1.json#/$defs/ApprovalSubject"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "reason": {
           "type": "string",
@@ -1600,17 +1807,157 @@
         "status": {
           "$ref": "../../schemas/enums.json#/$defs/approvals.status"
         },
+        "effective_status": {
+          "$ref": "../../schemas/enums.json#/$defs/approvals.status"
+        },
+        "requested_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "requested_by_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "requested_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
         "decided_by": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
+        "decided_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "decided_at": {
           "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "decision_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "expires_at": {
           "$ref": "../../schemas/common.json#/$defs/NullableInstant"
         },
         "consumed_at": {
           "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "target": {
+          "$ref": "#/$defs/ApprovalTarget"
+        }
+      }
+    },
+    "ApprovalTarget": {
+      "description": "Résumé de la cible pour décider : identité administrative du patient, numéro de facture (null pour un brouillon), heure de la visite, paiement visé.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient",
+        "invoice_number",
+        "visit_occurred_at",
+        "payment"
+      ],
+      "properties": {
+        "patient": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "record_number",
+                "last_name",
+                "first_names"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "record_number": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "last_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "first_names": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 180
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visit_occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "payment": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "amount",
+                "method",
+                "effective_at"
+              ],
+              "properties": {
+                "amount": {
+                  "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+                },
+                "method": {
+                  "$ref": "../../schemas/enums.json#/$defs/payments.method"
+                },
+                "effective_at": {
+                  "$ref": "../../schemas/common.json#/$defs/Instant"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1626,8 +1973,149 @@
         }
       }
     },
+    "ApprovalPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Approval"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CashRegister": {
+      "description": "Caisse physique (cash_registers). Une seule caisse principale au premier jalon.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "name",
+        "active"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CashRegisterList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CashRegister"
+          }
+        }
+      }
+    },
+    "Receipt": {
+      "description": "Reçu d'un encaissement : pièce immuable, numéro définitif jamais renuméroté, snapshot figé (source de son document ; fichier 11). Un reçu ne se modifie ni ne se supprime.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "payment_id",
+        "invoice_id",
+        "number",
+        "issued_at",
+        "issued_by",
+        "snapshot",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "payment_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "issued_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "snapshot": {
+          "$ref": "../../snapshots/receipt.json"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReceiptResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Receipt"
+        }
+      }
+    },
     "CashSession": {
-      "description": "Session de caisse ; collected_cash/refunded_cash sont des projections de la session.",
+      "description": "Session de caisse ; collected_cash, refunded_cash et theoretical_cash (ouverture + espèces encaissées − contre-écritures − remboursements espèces + mouvements autorisés) sont des projections recalculées à chaque lecture. expected_amount, counted_amount et variance ne sont renseignés qu'à la clôture : photographie figée.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1643,7 +2131,8 @@
         "variance_reason",
         "closed_by",
         "collected_cash",
-        "refunded_cash"
+        "refunded_cash",
+        "theoretical_cash"
       ],
       "properties": {
         "id": {
@@ -1713,6 +2202,9 @@
         },
         "refunded_cash": {
           "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "theoretical_cash": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
         }
       }
     },
@@ -1829,6 +2321,572 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/Delivery"
+        }
+      }
+    },
+    "CashSessionEntry": {
+      "description": "Session de caisse et ses libellés : noms ACTUELS de la caissière et de qui a clôturé, caisse.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "cash_register_id",
+        "cashier_id",
+        "opened_at",
+        "opening_amount",
+        "closed_at",
+        "counted_amount",
+        "expected_amount",
+        "variance",
+        "variance_reason",
+        "closed_by",
+        "collected_cash",
+        "refunded_cash",
+        "theoretical_cash",
+        "cashier_name",
+        "closed_by_name",
+        "register_code",
+        "register_name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_register_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cashier_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "opened_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "opening_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "closed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "counted_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_amount": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variance_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "closed_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "collected_cash": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "refunded_cash": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "theoretical_cash": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "cashier_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "closed_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "register_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "register_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CashSessionPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CashSessionEntry"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "CashSessionReport": {
+      "description": "Relevé d'une session : tiroir espèces (encaissés, contre-écritures, remboursés, mouvements), encaissements de la session et, hors tiroir, les autres modes encaissés par la même caissière pendant la session. Session ouverte : relevé provisoire. Source du PDF produit sur le poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session",
+        "cash_received",
+        "cash_reversed",
+        "cash_refunded",
+        "movements_in",
+        "movements_out",
+        "movements",
+        "payments",
+        "other_methods",
+        "generated_at"
+      ],
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/CashSessionEntry"
+        },
+        "cash_received": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "cash_reversed": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "cash_refunded": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "movements_in": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "movements_out": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "movements": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "signed_amount",
+              "reason",
+              "occurred_at"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "kind": {
+                "$ref": "../../schemas/enums.json#/$defs/cash_movements.kind"
+              },
+              "signed_amount": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "occurred_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              }
+            }
+          }
+        },
+        "payments": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "payment_id",
+              "invoice_id",
+              "invoice_number",
+              "receipt_id",
+              "receipt_number",
+              "method",
+              "amount",
+              "reversed_amount",
+              "effective_at"
+            ],
+            "properties": {
+              "payment_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "invoice_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "invoice_number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "receipt_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "receipt_number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.method"
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+              },
+              "reversed_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "effective_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              }
+            }
+          }
+        },
+        "other_methods": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "count",
+              "amount"
+            ],
+            "properties": {
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.method"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              }
+            }
+          }
+        },
+        "generated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CashSessionReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashSessionReport"
+        }
+      }
+    },
+    "CashDayReport": {
+      "description": "Caisse du jour (jour civil du cabinet) : encaissements nets par mode (encaissés − contre-écritures − remboursements), sessions du jour. Portée CLINIC (finance.global.read) : tout le cabinet, factures et avoirs émis du jour, reste à encaisser des factures ouvertes à l'instant de la lecture. Portée OWN (caissière) : ses encaissements et ses sessions seulement ; issued, credited et outstanding à null.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "scope",
+        "collections",
+        "net_total",
+        "sessions",
+        "issued",
+        "credited",
+        "outstanding",
+        "generated_at"
+      ],
+      "properties": {
+        "date": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "CLINIC",
+            "OWN"
+          ]
+        },
+        "collections": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "payments_count",
+              "payments_amount",
+              "reversals_amount",
+              "refunds_amount",
+              "net_amount"
+            ],
+            "properties": {
+              "method": {
+                "$ref": "../../schemas/enums.json#/$defs/payments.method"
+              },
+              "payments_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "payments_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "reversals_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "refunds_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "net_amount": {
+                "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+              }
+            }
+          }
+        },
+        "net_total": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "sessions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CashSessionEntry"
+          }
+        },
+        "issued": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "count",
+                "total_gross"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total_gross": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "credited": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "count",
+                "amount_gross"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "amount_gross": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outstanding": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "invoices_count",
+                "amount_due",
+                "refundable_credit"
+              ],
+              "properties": {
+                "invoices_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "amount_due": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                },
+                "refundable_credit": {
+                  "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CashDayReportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashDayReport"
+        }
+      }
+    },
+    "SalesSettings": {
+      "description": "Règles de vente du compte connecté, pour l'affichage : le serveur reste seul juge à chaque commande.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_authority",
+        "discount_cap_percent",
+        "payment_methods",
+        "payment_reference_required",
+        "exam_fee_item_reference"
+      ],
+      "properties": {
+        "price_authority": {
+          "type": "boolean"
+        },
+        "discount_cap_percent": {
+          "$ref": "../../schemas/common.json#/$defs/Rate"
+        },
+        "payment_methods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "../../schemas/enums.json#/$defs/payments.method"
+          }
+        },
+        "payment_reference_required": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/enums.json#/$defs/payments.method"
+          }
+        },
+        "exam_fee_item_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SalesSettingsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/SalesSettings"
         }
       }
     }

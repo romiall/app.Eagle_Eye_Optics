@@ -42,8 +42,109 @@
         }
       }
     },
+    "ClinicalRevisionDetail": {
+      "description": "Révision figée avec son snapshot complet (clinical.read) : immuable, lue telle qu’enregistrée ; sha256 = SHA-256 de JCS(snapshot).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision_no",
+        "recorded_at",
+        "author_id",
+        "reason",
+        "previous_revision_id",
+        "sha256",
+        "snapshot"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "author_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "previous_revision_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "snapshot": {
+          "$ref": "../../snapshots/clinical-revision.json"
+        }
+      }
+    },
+    "ClinicalRevisionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ClinicalRevisionDetail"
+        }
+      }
+    },
+    "ConsultationPatient": {
+      "description": "Identité administrative de base du patient de la consultation, pour l’en-tête de l’écran (comme Visit.patient).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "sex",
+        "birth_date"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        }
+      }
+    },
     "Consultation": {
-      "description": "Consultation complète : professionnel et gérante seulement (clinical.read).",
+      "description": "Consultation complète : professionnel et gérante seulement (clinical.read). patient : identité administrative de base, pour l’en-tête (sans dépendre du module Patients).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -58,6 +159,7 @@
         "completed_at",
         "finalization_missing_data_reason",
         "version",
+        "patient",
         "steps",
         "revisions"
       ],
@@ -112,6 +214,9 @@
         "version": {
           "$ref": "../../schemas/common.json#/$defs/Version"
         },
+        "patient": {
+          "$ref": "#/$defs/ConsultationPatient"
+        },
         "steps": {
           "$ref": "../../schemas/clinical-steps.json#/$defs/AllSteps"
         },
@@ -159,6 +264,144 @@
         }
       }
     },
+    "ConsultationSummary": {
+      "description": "Examen dans la liste du cabinet : patient (identité administrative de base), état, dates, révision et professionnel. Aucune valeur clinique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "visit_id",
+        "patient_id",
+        "status",
+        "effective_at",
+        "completed_at",
+        "current_revision",
+        "patient",
+        "clinician"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/consultations.status"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "completed_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "patient": {
+          "$ref": "#/$defs/ConsultationPatient"
+        },
+        "clinician": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "display_name"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            },
+            "display_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            }
+          }
+        }
+      }
+    },
+    "ConsultationSummaryPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ConsultationSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "VisualAcuityScale": {
+      "description": "Échelle d’acuité configurée par le cabinet (visual_acuity_scales). Aucune conversion entre échelles n’est fournie ni présumée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "label",
+        "description",
+        "active"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "VisualAcuityScaleList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/VisualAcuityScale"
+          }
+        }
+      }
+    },
     "Prescription": {
       "description": "Prescription versionnée ; updated_at sert de jeton de concurrence pour PATCH d'un brouillon (optical_prescriptions n'a pas de colonne version).",
       "type": "object",
@@ -190,6 +433,7 @@
         "treatments",
         "validated_at",
         "validated_by",
+        "validated_by_name",
         "document_id",
         "updated_at"
       ],
@@ -424,6 +668,18 @@
         "validated_by": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
+        "validated_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "document_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
@@ -453,6 +709,23 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/Prescription"
+        }
+      }
+    },
+    "PrescriptionList": {
+      "description": "Toutes les versions des prescriptions de la consultation, de la plus récente à la plus ancienne.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/Prescription"
+          }
         }
       }
     }

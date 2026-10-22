@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Billing\BilledExamFeeControl;
 use App\Models\Clinic;
 use App\Models\User;
 use App\Support\Modules;
@@ -60,6 +61,9 @@ final class StaffMemberPresenter
                 'currency' => $clinic->currency,
                 'production_documents_enabled' => $clinic->production_documents_enabled,
                 'enabled_modules' => Modules::enabled(),
+                // Contrôle du paiement de l'examen du déploiement (P03) : l'écran dit « non contrôlé » ou « à encaisser »
+                // selon ce qui est réellement vérifié par le serveur, jamais l'inverse.
+                'exam_fee_control' => BilledExamFeeControl::isActive() ? 'BILLED' : 'OFF',
             ],
         ];
     }

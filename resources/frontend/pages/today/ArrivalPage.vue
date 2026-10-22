@@ -24,7 +24,7 @@ import type { MutationOutcome } from '@/app/services/mutations'
 import { getPatient, searchPatients } from '@/app/services/patients'
 import { useMutation } from '@/app/services/useMutation'
 import { type DayVisits, listDayVisits } from '@/app/services/visits'
-import { can, enabledModules, revalidateSession } from '@/app/session'
+import { can, enabledModules, examFeeControlledOnScreen, revalidateSession } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
@@ -481,7 +481,7 @@ async function retry(): Promise<void> {
           :error="errors.reason ?? null"
           :disabled="busy"
         />
-        <p v-if="reason" class="text-sm text-muted">{{ reasonHint(reason) }}</p>
+        <p v-if="reason" class="text-sm text-muted">{{ reasonHint(reason, examFeeControlledOnScreen()) }}</p>
       </div>
 
       <TextAreaField

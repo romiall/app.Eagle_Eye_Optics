@@ -3,10 +3,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
 import { resetNetworkForTests } from '@/app/network'
-import { getConsultation } from '@/app/services/consultations'
+import {
+  getConsultation,
+  getConsultationPrescriptions,
+  getPrescription,
+  getRevision,
+  getVisualAcuityScales,
+} from '@/app/services/consultations'
 import { useRead } from '@/app/services/reads'
 
-import { consultation, CONSULTATION_ID } from '../consultations/support'
+import { consultation, CONSULTATION_ID, prescription, PRESCRIPTION_ID, scales } from '../consultations/support'
 import { apiError, json } from '../patients/support'
 
 // Lecture de la consultation en ligne (C01) : URL, fraîcheur, `live`, sens des erreurs. Une réponse qui
@@ -106,5 +112,51 @@ describe('getConsultation', () => {
     const read = useRead(() => getConsultation(CONSULTATION_ID))
     await flushPromises()
     expect(read.state.value).toBe('offline')
+  })
+})
+
+describe('lectures C02 à C04', () => {
+  function stubOnce(body: unknown, status = 200) {
+    const fetchMock = vi.fn(async () => json(status, body))
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('échelles d’acuité : GET /api/v1/visual-acuity-scales ; une liste vide est une réponse valide', async () => {
+    const fetchMock = stubOnce({ data: scales() })
+
+    const outcome = await getVisualAcuityScales()
+
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('/api/v1/visual-acuity-scales')
+    expect(outcome.data).toHaveLength(2)
+    stubOnce({ data: [] })
+    expect((await getVisualAcuityScales()).data).toEqual([])
+    stubOnce({ data: null })
+    await expect(getVisualAcuityScales()).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('révision figée : GET /consultations/{id}/revisions/{n} ; sans snapshot, une erreur du serveur', async () => {
+    const fetchMock = stubOnce({ data: { id: 'R', revision_no: 2, snapshot: { steps: {} } } })
+
+    await getRevision(CONSULTATION_ID, 2)
+
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/consultations/${CONSULTATION_ID}/revisions/2`)
+    stubOnce({ data: { id: 'R', revision_no: 2 } })
+    await expect(getRevision(CONSULTATION_ID, 2)).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('prescriptions : la liste d’une consultation et une prescription ; une forme inattendue est une erreur', async () => {
+    const list = stubOnce({ data: [prescription()] })
+    expect((await getConsultationPrescriptions(CONSULTATION_ID)).data).toHaveLength(1)
+    expect((list.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/consultations/${CONSULTATION_ID}/prescriptions`)
+
+    const one = stubOnce({ data: prescription() })
+    expect((await getPrescription(PRESCRIPTION_ID)).data.id).toBe(PRESCRIPTION_ID)
+    expect((one.mock.calls[0] as unknown as [string])[0]).toBe(`/api/v1/prescriptions/${PRESCRIPTION_ID}`)
+
+    stubOnce({ data: { id: PRESCRIPTION_ID } })
+    await expect(getPrescription(PRESCRIPTION_ID)).rejects.toBeInstanceOf(ApiError)
+    stubOnce({ data: {} })
+    await expect(getConsultationPrescriptions(CONSULTATION_ID)).rejects.toBeInstanceOf(ApiError)
   })
 })

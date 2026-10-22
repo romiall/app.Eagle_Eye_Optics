@@ -1,0 +1,16 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/SalesSettingsResponse",
+  "valid": false,
+  "description": "Un plafond de remise au-delà de 100 % est refusé",
+  "data": {
+    "data": {
+      "price_authority": false,
+      "discount_cap_percent": "150.0000",
+      "payment_methods": [
+        "CASH"
+      ],
+      "payment_reference_required": [],
+      "exam_fee_item_reference": null
+    }
+  }
+}

@@ -247,6 +247,65 @@ final class SaveAnamnesisStepTest extends TestCase
             ->assertJsonStructure(['error' => ['fields' => ['step.data.symptoms']]]);
     }
 
+    public function test_une_ligne_existante_au_code_desactive_reste_enregistrable_mais_pas_une_ligne_neuve(): void
+    {
+        $kept = $this->term('REDNESS');
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Avant', 'complaints' => [$kept]]))->assertOk();
+        DB::table('clinical_terms')->where('group_code', 'COMPLAINT')->whereIn('code', ['REDNESS', 'ITCHING'])->update(['active' => false]);
+
+        // Même ligne (même identifiant, même code), seul le texte change : la sauvegarde passe.
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Après', 'complaints' => [$kept]]))
+            ->assertOk()
+            ->assertJsonPath('data.steps.ANAMNESIS.symptoms', 'Après')
+            ->assertJsonPath('data.steps.ANAMNESIS.complaints.0.term_code', 'REDNESS');
+        // Renvoi strictement identique : sans effet, pas d'erreur.
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Après', 'complaints' => [$kept]]))->assertOk()->assertJsonPath('data.version', 3);
+
+        // Une ligne neuve avec un code désactivé est refusée ; la ligne conservée ne l'est pas.
+        $response = $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['complaints' => [$kept, $this->term('ITCHING')]]));
+        $response->assertStatus(422);
+        $this->assertSame(['step.data.complaints.1.term_code'], array_keys($response->json('error.fields')));
+
+        // Le même identifiant avec un AUTRE code désactivé n'est pas « la même ligne » : refusé.
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['complaints' => [$this->term('ITCHING', null, $kept['id'])]]))
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['step.data.complaints.0.term_code']]]);
+    }
+
+    public function test_un_texte_autre_invalide_ne_recoit_pas_la_consigne_de_le_preciser(): void
+    {
+        // Retour à la ligne dans une précision sur une ligne : l'erreur est celle du caractère, pas « Précisez… ».
+        $control = $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['complaints' => [$this->term('OTHER', "a\nb")]]));
+        $control->assertStatus(422);
+        $this->assertSame(['Ce champ ne peut pas contenir de caractère de contrôle.'], $control->json('error.fields')['step.data.complaints.0.other_text']);
+
+        // Texte absent ou blanc : la consigne de préciser est donnée.
+        foreach ([null, '   '] as $missing) {
+            $response = $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['complaints' => [$this->term('OTHER', $missing)]]));
+            $response->assertStatus(422);
+            $this->assertSame(['Précisez le texte de « Autre ».'], $response->json('error.fields')['step.data.complaints.0.other_text']);
+        }
+    }
+
+    public function test_un_texte_trop_long_n_a_qu_un_message_de_limite_sans_type_invalide(): void
+    {
+        $response = $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['complaints' => [$this->term('OTHER', str_repeat('x', 4001))]]));
+
+        $response->assertStatus(422);
+        $this->assertSame(['Valeur hors des limites admises.'], $response->json('error.fields')['step.data.complaints.0.other_text']);
+    }
+
+    public function test_la_duree_de_port_est_bornee_a_4000_caracteres_et_refuse_les_caracteres_de_controle(): void
+    {
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['wears_glasses' => true, 'glasses_duration' => str_repeat('d', 4000)]))->assertOk();
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['wears_glasses' => true, 'glasses_duration' => str_repeat('d', 4001)]))
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['step.data.glasses_duration']]]);
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => "Alarme\x07"]))
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['step.data.symptoms']]]);
+    }
+
     /**
      * Seconde consultation du même cabinet, sur un autre patient et une autre visite.
      *

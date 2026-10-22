@@ -24,8 +24,8 @@ import {
   type,
 } from './support'
 
-// Les trois étapes livrées (C01) : motif et lunettes, antécédents, conclusion et orientation.
-// Enregistrement étape par étape (version lue, clé d'idempotence), « Suivant » enregistre avant
+// Les étapes narratives (C01) parmi les sept du dossier : motif et lunettes, antécédents, conclusion et
+// orientation (les étapes mesurées et les médicaments ont leurs propres tests). Enregistrement étape par étape (version lue, clé d'idempotence), « Suivant » enregistre avant
 // d'avancer, « Enregistré sur le serveur à 10h42 » seulement après la réponse. Données FICTIVES.
 const ULID = /^[0-9A-Z]{26}$/
 
@@ -38,6 +38,12 @@ afterEach(() => {
   vi.useRealTimers()
   resetEverything()
 })
+
+/** Va à une étape par la liste des étapes (sans rien enregistrer), comme l'utilisateur. */
+async function goToStep(root: HTMLElement, position: number): Promise<void> {
+  const stepper = root.querySelector('nav[aria-label="Étapes de la consultation"]') as HTMLElement
+  await click([...stepper.querySelectorAll('button')][position - 1] ?? null)
+}
 
 function stepTitle(root: HTMLElement): string {
   return (root.querySelector('h2#consultation-etape')?.textContent ?? '')
@@ -349,13 +355,13 @@ describe('navigation entre les étapes', () => {
 
     expect(patchCalls(api)).toHaveLength(1)
     expect(patchCalls(api)[0]?.path).toContain('/steps/ANAMNESIS')
-    expect(stepTitle(root)).toBe('Étape 2 sur 3 : Antécédents')
+    expect(stepTitle(root)).toBe('Étape 2 sur 7 : Antécédents')
     expect(document.activeElement?.id).toBe('consultation-etape')
     expect(
       [...root.querySelectorAll('[role="status"].sr-only')].map((element) =>
         element.textContent?.trim(),
       ),
-    ).toContain('Étape 2 sur 3 : Antécédents')
+    ).toContain('Étape 2 sur 7 : Antécédents')
     const current = root.querySelector(
       'nav[aria-label="Étapes de la consultation"] [aria-current="step"]',
     )
@@ -371,7 +377,7 @@ describe('navigation entre les étapes', () => {
     await click(buttonByName(root, 'Suivant'))
 
     expect(patchCalls(api)).toHaveLength(0)
-    expect(stepTitle(root)).toBe('Étape 2 sur 3 : Antécédents')
+    expect(stepTitle(root)).toBe('Étape 2 sur 7 : Antécédents')
     expect(textOf(root)).not.toContain('Enregistré sur le serveur')
     unmount()
   })
@@ -384,7 +390,7 @@ describe('navigation entre les étapes', () => {
     await click(buttonByName(root, 'Suivant'))
 
     expect(patchCalls(api)).toHaveLength(0)
-    expect(stepTitle(root)).toBe('Étape 1 sur 3 : Motif et lunettes')
+    expect(stepTitle(root)).toBe('Étape 1 sur 7 : Motif et lunettes')
     expect(textOf(root)).toContain('Motif : précisez la valeur « Autre ».')
     unmount()
   })
@@ -410,7 +416,7 @@ describe('navigation entre les étapes', () => {
     await click(buttonByName(root, 'Suivant'))
 
     expect(patchCalls(api)).toHaveLength(1)
-    expect(stepTitle(root)).toBe('Étape 1 sur 3 : Motif et lunettes')
+    expect(stepTitle(root)).toBe('Étape 1 sur 7 : Motif et lunettes')
     expect(field(root, 'Plaintes et symptômes').value).toBe('Texte')
     expect(textOf(root)).toContain('Ce texte est refusé par le serveur.')
     unmount()
@@ -425,7 +431,7 @@ describe('navigation entre les étapes', () => {
     await type(root, 'Commentaires sur les antécédents médicaux', 'Suivi en cours')
 
     await click(buttonByName(root, 'Précédent'))
-    expect(stepTitle(root)).toBe('Étape 1 sur 3 : Motif et lunettes')
+    expect(stepTitle(root)).toBe('Étape 1 sur 7 : Motif et lunettes')
     expect(field(root, 'Plaintes et symptômes').value).toBe('Texte non enregistré')
     expect(patchCalls(api)).toHaveLength(1)
 
@@ -434,7 +440,7 @@ describe('navigation entre les étapes', () => {
     expect(textOf(stepper)).toContain('2.Antécédents● non enregistrée')
     const buttons = [...stepper.querySelectorAll('button')]
     await click(buttons[1] ?? null)
-    expect(stepTitle(root)).toBe('Étape 2 sur 3 : Antécédents')
+    expect(stepTitle(root)).toBe('Étape 2 sur 7 : Antécédents')
     expect(box(root, 'Diabète').checked).toBe(true)
     expect(field(root, 'Commentaires sur les antécédents médicaux').value).toBe('Suivi en cours')
     unmount()
@@ -448,6 +454,7 @@ describe('navigation entre les étapes', () => {
     await click(buttonByName(root, 'Suivant'))
     await toggle(root, 'Diabète')
     await click(buttonByName(root, 'Suivant'))
+    await goToStep(root, 7)
     await type(root, 'Conclusion', 'Contrôle dans un an')
     await click(buttonByName(root, 'Enregistrer'))
 
@@ -717,24 +724,22 @@ describe('étape 2 : antécédents', () => {
   })
 })
 
-describe('étape 3 : conclusion et orientation', () => {
+describe('étape 7 : conclusion et orientation', () => {
   async function toStepThree(root: HTMLElement): Promise<void> {
-    await click(buttonByName(root, 'Suivant'))
-    await click(buttonByName(root, 'Suivant'))
+    await goToStep(root, 7)
   }
 
-  it('dernière étape : Enregistrer, jamais « Suivant » ni « Terminer »', async () => {
+  it('dernière étape : Enregistrer, jamais « Suivant » ; un brouillon ne propose pas encore « Terminer »', async () => {
     stubConsultationApi()
     const { root, unmount } = await openConsultation()
     await toStepThree(root)
 
-    expect(stepTitle(root)).toBe('Étape 3 sur 3 : Conclusion et orientation')
+    expect(stepTitle(root)).toBe('Étape 7 sur 7 : Conclusion et orientation')
     const labels = [...root.querySelectorAll('main form button')].map((button) =>
       button.textContent?.trim(),
     )
     expect(labels).toEqual(['Précédent', 'Enregistrer'])
     expect(buttonByName(root, /termin/i)).toBeNull()
-    expect(textOf(root)).toContain('Acuités, réfraction et centrage : prochaine version.')
     unmount()
   })
 

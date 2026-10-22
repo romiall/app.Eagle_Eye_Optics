@@ -14,28 +14,28 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Consultations du cabinet de la personne connectée (C01) : données CLINIQUES, réservées aux comptes qui
+ * Consultations du cabinet de la personne connectée (C01 à C03) : données CLINIQUES, réservées aux comptes qui
  * détiennent les permissions `clinical.*` (accueil et caisse n'y ont aucun accès, quelle que soit la
  * consultation). Les écritures passent par le chemin central de commandes ; la lecture est toujours limitée au
- * cabinet (un identifiant d'un autre cabinet répond « introuvable ») et tracée dans l'audit sans contenu.
+ * cabinet (un identifiant d'un autre cabinet répond « introuvable »), tracée dans l'audit sans contenu et limitée
+ * en débit par compte (limiteur `eeo-consultation-read`, posé sur les routes de lecture).
  *
- * Chaque réponse relit la consultation dans les tables vivantes APRÈS le commit : c'est l'état courant, qui peut
- * déjà intégrer l'écriture d'un autre poste survenue entre-temps (la version rendue est alors plus récente).
+ * Chaque réponse relit la consultation dans les tables vivantes APRÈS le commit, d'un seul tenant (instantané
+ * cohérent, voir `ConsultationReader::view`) : c'est l'état courant, qui peut déjà intégrer l'écriture d'un autre
+ * poste survenue entre-temps (la version rendue est alors plus récente). Une réponse d'écriture REND le dossier
+ * complet : c'est donc une lecture, tracée comme telle (au plus un événement par compte et par consultation toutes
+ * les 10 minutes), y compris pour un enregistrement sans effet ou le rejeu d'une clé.
  */
 final class ConsultationController extends CommandController
 {
-    public function __construct(private readonly ConsultationReader $reader) {}
+    public function __construct(
+        private readonly ConsultationReader $reader,
+        private readonly ClinicalReadAudit $audit,
+    ) {}
 
-    public function show(Request $request, string $id, ClinicalReadAudit $audit): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $actor = $this->actor($request);
-        $row = $this->reader->find((string) $actor->clinic_id, $id);
-        if ($row === null) {
-            throw BusinessError::notFound();
-        }
-        $audit->consultationViewed($actor, $row);
-
-        return $this->respond($actor, $id, 200);
+        return $this->respond($this->actor($request), $id, 200);
     }
 
     public function start(Request $request, string $id): JsonResponse
@@ -75,14 +75,61 @@ final class ConsultationController extends CommandController
         return $this->respond($this->actor($request), $id, 200);
     }
 
-    private function respond(User $actor, string $consultationId, int $status): JsonResponse
+    /**
+     * Finalisation (C03) : fige la révision 1 et termine la consultation.
+     */
+    public function complete(Request $request, string $id): JsonResponse
     {
-        $row = $this->reader->find((string) $actor->clinic_id, $consultationId);
-        if ($row === null) {
-            throw BusinessError::notFound();
+        [$payload, $expected] = $this->directBody($request);
+        if (($payload['consultation_id'] ?? null) !== $id) {
+            throw BusinessError::validation(['consultation_id' => ['L\'identifiant de la consultation du corps doit être celui de l\'adresse.']]);
         }
 
-        return new JsonResponse(['data' => ConsultationPresenter::consultation($row, $this->reader->steps($row), $this->reader->revisions($row))], $status);
+        $this->dispatchCommand($request, new Command('CompleteConsultation', $payload, $id, $expected));
+
+        return $this->respond($this->actor($request), $id, 200);
+    }
+
+    /**
+     * Correction motivée (C03) : nouvelle révision immuable d'une consultation terminée.
+     */
+    public function amend(Request $request, string $id): JsonResponse
+    {
+        [$payload, $expected] = $this->directBody($request);
+        if (($payload['consultation_id'] ?? null) !== $id) {
+            throw BusinessError::validation(['consultation_id' => ['L\'identifiant de la consultation du corps doit être celui de l\'adresse.']]);
+        }
+
+        $this->dispatchCommand($request, new Command('AmendConsultation', $payload, $id, $expected));
+
+        return $this->respond($this->actor($request), $id, 201);
+    }
+
+    /**
+     * Révision figée d'une consultation, avec son snapshot (lecture seule, tracée sans contenu).
+     */
+    public function revision(Request $request, string $id, string $revision_no): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $revision = $this->reader->revision((string) $actor->clinic_id, $id, (int) $revision_no);
+        if ($revision === null) {
+            throw BusinessError::notFound();
+        }
+        $this->audit->revisionViewed($actor, (string) $actor->clinic_id, (string) $revision['id']);
+
+        return new JsonResponse(['data' => ConsultationPresenter::revision($revision)]);
+    }
+
+    private function respond(User $actor, string $consultationId, int $status): JsonResponse
+    {
+        $view = $this->reader->view((string) $actor->clinic_id, $consultationId);
+        if ($view === null) {
+            throw BusinessError::notFound();
+        }
+        // La réponse REND le dossier : c'est une lecture, tracée (au plus un événement par intervalle).
+        $this->audit->consultationViewed($actor, $view->row);
+
+        return new JsonResponse(['data' => ConsultationPresenter::consultation($view)], $status);
     }
 
     private function actor(Request $request): User

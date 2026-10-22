@@ -236,6 +236,53 @@ final class SaveHistoriesStepTest extends TestCase
         $this->saveCurrent($this->consultationId, 'HISTORIES', $reordered)->assertOk()->assertJsonPath('data.version', 2);
     }
 
+    public function test_le_texte_autre_d_un_antecedent_existant_se_met_a_jour_en_base_et_a_la_relecture(): void
+    {
+        $term = $this->term('OTHER', 'Avant');
+        $history = $this->history('MEDICAL_HISTORY', false, [$term]);
+        $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$history]))->assertOk();
+
+        // Même élément, même terme (mêmes identifiants), seul le texte « Autre » change.
+        $changed = $this->history('MEDICAL_HISTORY', false, [$this->term('OTHER', 'Après', $term['id'])], null, $history['id']);
+        $response = $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$changed]))->assertOk();
+
+        $response->assertJsonPath('data.version', 3)->assertJsonPath('data.steps.HISTORIES.histories.0.terms.0.other_text', 'Après');
+        $this->assertSame('Après', DB::table('consultation_history_terms')->where('id', $term['id'])->value('other_text'), 'Une modification clinique ne se perd pas sans erreur.');
+        $this->assertSame('Après', $this->readConsultation($this->consultationId)->json('data.steps.HISTORIES.histories.0.terms.0.other_text'));
+    }
+
+    public function test_aucun_connu_peut_repasser_a_faux_avec_des_termes(): void
+    {
+        $history = $this->history('OCULAR_HISTORY', true);
+        $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$history]))->assertOk();
+
+        $changed = $this->history('OCULAR_HISTORY', false, [$this->term('GLAUCOMA')], null, $history['id']);
+        $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$changed]))->assertOk()
+            ->assertJsonPath('data.steps.HISTORIES.histories.0.known_none', false)
+            ->assertJsonPath('data.steps.HISTORIES.histories.0.terms.0.term_code', 'GLAUCOMA');
+        $this->assertSame(0, (int) DB::table('consultation_histories')->where('id', $history['id'])->value('known_none'));
+    }
+
+    public function test_un_code_desactive_depuis_la_saisie_reste_enregistrable_pour_la_meme_ligne_mais_pas_pour_une_ligne_neuve(): void
+    {
+        $term = $this->term('CATARACT');
+        $history = $this->history('OCULAR_HISTORY', false, [$term]);
+        $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$history]))->assertOk();
+        DB::table('clinical_terms')->where('group_code', 'OCULAR_HISTORY')->whereIn('code', ['CATARACT', 'GLAUCOMA'])->update(['active' => false]);
+
+        // La ligne déjà enregistrée (même élément, même identifiant, même code) reste ré-enregistrable avec un commentaire.
+        $kept = $this->history('OCULAR_HISTORY', false, [$this->term('CATARACT', null, $term['id'])], 'Commentaire ajouté', $history['id']);
+        $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$kept]))->assertOk()
+            ->assertJsonPath('data.steps.HISTORIES.histories.0.terms.0.term_code', 'CATARACT');
+
+        // Une ligne neuve avec un code désactivé reste refusée.
+        $withNew = $this->history('OCULAR_HISTORY', false, [$this->term('CATARACT', null, $term['id']), $this->term('GLAUCOMA')], 'Commentaire ajouté', $history['id']);
+        $response = $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$withNew]));
+        $response->assertStatus(422);
+        $this->assertArrayHasKey('step.data.histories.0.terms.1.term_code', $response->json('error.fields'));
+        $this->assertArrayNotHasKey('step.data.histories.0.terms.0.term_code', $response->json('error.fields'));
+    }
+
     public function test_aucune_valeur_clinique_ne_sort_des_tables_de_la_consultation(): void
     {
         $this->saveCurrent($this->consultationId, 'HISTORIES', $this->data([$this->history('MEDICAL_HISTORY', false, [$this->term('OTHER', 'SENTINELLE-ANTECEDENT-KP3')], 'SENTINELLE-COMMENTAIRE-LM8')]))->assertOk();
@@ -243,6 +290,6 @@ final class SaveHistoriesStepTest extends TestCase
         $dump = $this->sideEffectsDump();
         $this->assertStringNotContainsString('SENTINELLE-ANTECEDENT-KP3', $dump);
         $this->assertStringNotContainsString('SENTINELLE-COMMENTAIRE-LM8', $dump);
-        $this->assertEquals(['rows' => 2, 'step' => 'HISTORIES', 'version' => 2], json_decode((string) DB::table('audit_events')->where('action', 'consultation.step_saved')->value('sanitized_diff'), true));
+        $this->assertEquals(['step' => 'HISTORIES', 'version' => 2], json_decode((string) DB::table('audit_events')->where('action', 'consultation.step_saved')->value('sanitized_diff'), true));
     }
 }

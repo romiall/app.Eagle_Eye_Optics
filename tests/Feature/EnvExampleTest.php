@@ -67,6 +67,21 @@ final class EnvExampleTest extends TestCase
         $this->assertNotSame('eeo_test', $variables['DB_DATABASE'], 'La base applicative ne doit pas être la base de test.');
     }
 
+    public function test_chaque_reglage_de_l_application_est_documente_dans_env_example(): void
+    {
+        $variables = $this->variables();
+        $config = (string) file_get_contents(base_path('config/eeo.php'));
+        preg_match_all("/env\\('((?:EEO|PRODUCTION|CLINIC)_[A-Z0-9_]+)'/", $config, $matches);
+
+        $this->assertNotEmpty($matches[1]);
+        foreach (array_unique($matches[1]) as $name) {
+            $this->assertArrayHasKey($name, $variables, "{$name} est lu par config/eeo.php mais absent de .env.example.");
+        }
+        // Les réglages du déploiement de la phase 1 ont une valeur par défaut sûre.
+        $this->assertSame('off', $variables['EEO_EXAM_FEE_CONTROL']);
+        $this->assertSame('', $variables['EEO_ENABLED_MODULES'], 'Aucun module ouvert par défaut.');
+    }
+
     public function test_seul_env_example_est_versionnable(): void
     {
         // « git --version » répond sous sh comme sous cmd.exe (Windows), contrairement à « command -v ».

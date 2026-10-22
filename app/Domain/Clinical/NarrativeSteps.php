@@ -41,17 +41,57 @@ final class NarrativeSteps
     /**
      * État résultant validé de la rubrique (au format de `ConsultationReader::step`, listes comprises).
      *
+     * Un code désactivé depuis la saisie reste ré-enregistrable pour la ligne qui le porte déjà (même identifiant,
+     * même code) : voir `TermList`. Toute ligne nouvelle exige un code actif.
+     *
      * @param  array<array-key, mixed>  $data
      * @return array<string, mixed>
      */
-    public function normalize(string $step, array $data, FieldErrors $errors): array
+    public function normalize(stdClass $consultation, string $step, array $data, FieldErrors $errors): array
     {
         return match ($step) {
-            ClinicalSteps::ANAMNESIS => AnamnesisStep::normalize($data, $this->terms->activeCodes('COMPLAINT'), $errors),
-            ClinicalSteps::HISTORIES => ['histories' => HistoriesStep::normalize($data, $this->historyCodes(), $errors)],
-            ClinicalSteps::CONCLUSION => ConclusionStep::normalize($data, $this->terms->activeCodes('REFERRAL_REASON'), $errors),
-            default => throw new InvalidArgumentException('Rubrique non ouverte : '.$step),
+            ClinicalSteps::ANAMNESIS => AnamnesisStep::normalize($data, $this->terms->activeCodes('COMPLAINT'), $errors, 'step.data', $this->storedCodes(self::COMPLAINTS, $consultation)),
+            ClinicalSteps::HISTORIES => ['histories' => HistoriesStep::normalize($data, $this->historyCodes(), $errors, 'step.data', $this->storedHistoryCodes($consultation))],
+            ClinicalSteps::CONCLUSION => ConclusionStep::normalize($data, $this->terms->activeCodes('REFERRAL_REASON'), $errors, 'step.data', $this->storedCodes(self::REFERRAL_REASONS, $consultation)),
+            default => throw new InvalidArgumentException('Rubrique non narrative : '.$step),
         };
+    }
+
+    /**
+     * Codes des lignes déjà enregistrées d'une table de termes de la consultation (identifiant → code).
+     *
+     * @return array<string, string>
+     */
+    public function storedCodes(string $table, stdClass $consultation): array
+    {
+        $codes = [];
+        foreach (DB::table($table)->where('clinic_id', $consultation->clinic_id)->where('consultation_id', $consultation->id)->get(['id', 'term_code']) as $row) {
+            $codes[(string) $row->id] = (string) $row->term_code;
+        }
+
+        return $codes;
+    }
+
+    /**
+     * Termes d'antécédents déjà enregistrés, par groupe (identifiant → code).
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function storedHistoryCodes(stdClass $consultation): array
+    {
+        $codes = [];
+        $terms = DB::table(self::HISTORY_TERMS.' as t')
+            ->join(self::HISTORIES.' as h', static function ($join): void {
+                $join->on('h.clinic_id', '=', 't.clinic_id')->on('h.id', '=', 't.history_id');
+            })
+            ->where('h.clinic_id', $consultation->clinic_id)
+            ->where('h.consultation_id', $consultation->id)
+            ->get(['t.id', 't.term_code', 'h.history_group']);
+        foreach ($terms as $term) {
+            $codes[(string) $term->history_group][(string) $term->id] = (string) $term->term_code;
+        }
+
+        return $codes;
     }
 
     /**
@@ -84,25 +124,6 @@ final class NarrativeSteps
     public function isUnchanged(stdClass $consultation, string $step, array $normalized): bool
     {
         return CanonicalJson::hash(self::canonical($this->reader->step($consultation, $step))) === CanonicalJson::hash(self::canonical($normalized));
-    }
-
-    /**
-     * Nombre de lignes de la rubrique (lignes de ses tables enfants) : le seul compteur inscrit à l'audit.
-     *
-     * @param  array<string, mixed>  $normalized
-     */
-    public function rowCount(string $step, array $normalized): int
-    {
-        if ($step === ClinicalSteps::HISTORIES) {
-            $count = 0;
-            foreach (self::rows($normalized['histories'] ?? []) as $history) {
-                $count += 1 + count(self::rows($history['terms'] ?? []));
-            }
-
-            return $count;
-        }
-
-        return count(self::rows($normalized[$step === ClinicalSteps::ANAMNESIS ? 'complaints' : 'referral_reasons'] ?? []));
     }
 
     /**
@@ -156,7 +177,7 @@ final class NarrativeSteps
     /**
      * @param  list<array<string, mixed>>  $rows  lignes `{id, term_code, other_text}` de l'état résultant
      */
-    private function syncTerms(string $table, string $group, stdClass $consultation, array $rows, string $now): void
+    public function syncTerms(string $table, string $group, stdClass $consultation, array $rows, string $now): void
     {
         $clinicId = (string) $consultation->clinic_id;
         $consultationId = (string) $consultation->id;
@@ -328,7 +349,7 @@ final class NarrativeSteps
         ];
     }
 
-    private function rejectFlat(string $table, stdClass $consultation, mixed $items, string $path, FieldErrors $errors): void
+    public function rejectFlat(string $table, stdClass $consultation, mixed $items, string $path, FieldErrors $errors): void
     {
         $incoming = self::idsAt($items);
         if ($incoming === []) {

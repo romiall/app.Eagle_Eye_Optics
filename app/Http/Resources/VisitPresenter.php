@@ -12,21 +12,27 @@ use stdClass;
  *
  * La consultation de la visite (`consultation_id`, `consultation_status`) n'est rendue qu'à un compte qui détient
  * `clinical.read` : pour tout autre compte (accueil, caisse) les deux champs valent null, même quand la
- * consultation existe, pour que la file ne révèle pas qu'un examen est en cours ou terminé.
+ * consultation existe. C'est une défense en profondeur sur l'identifiant et le statut CLINIQUE (brouillon, en cours,
+ * terminé), pas une dissimulation de l'examen : le statut ADMINISTRATIF de la visite (`status`, par exemple « en
+ * consultation » ou « terminée ») reste rendu à tous, car la file du jour le distingue (fichier 02).
  */
 final class VisitPresenter
 {
     /**
+     * `$examFee` : marqueur du contrôle RÉEL du paiement de l'examen (`BilledExamFeeControl::queueMarker`), quand il est
+     * actif ; null sinon (contrôle inactif : « non contrôlé » ou « sans objet », statut tel qu'enregistré).
+     *
+     * @param  array{control: string, receipt_number: ?string, status: string}|null  $examFee
      * @return array<string, mixed>
      */
-    public static function visit(stdClass $row, bool $withConsultation = false): array
+    public static function visit(stdClass $row, bool $withConsultation = false, ?array $examFee = null): array
     {
         return [
             'id' => $row->id,
             'patient_id' => $row->patient_id,
             'reason' => $row->reason,
             'occurred_at' => self::instant((string) $row->occurred_at),
-            'status' => $row->status,
+            'status' => $examFee['status'] ?? $row->status,
             'appointment_id' => $row->appointment_id,
             'exam_invoice_id' => $row->exam_invoice_id,
             'exam_waiver_approval_id' => $row->exam_waiver_approval_id,
@@ -42,8 +48,10 @@ final class VisitPresenter
                 'sex' => $row->patient_sex,
                 'birth_date' => $row->patient_birth_date,
             ],
-            // Tant que B04 et B06 n'existent pas, le paiement de l'examen n'est contrôlé nulle part.
-            'exam_fee_control' => VisitStatus::examFeeControl((string) $row->reason),
+            // Contrôle inactif (défaut) : « non contrôlé » pour un examen ou un suivi, jamais « payé » ni « gratuit ». Actif :
+            // à encaisser, dispense demandée, encaissés (numéro du dernier reçu), dispense accordée, ou sans objet.
+            'exam_fee_control' => $examFee['control'] ?? VisitStatus::examFeeControl((string) $row->reason),
+            'exam_fee_receipt_number' => $examFee['receipt_number'] ?? null,
             'consultation_id' => $withConsultation && $row->consultation_id !== null ? (string) $row->consultation_id : null,
             'consultation_status' => $withConsultation && $row->consultation_status !== null ? (string) $row->consultation_status : null,
         ];

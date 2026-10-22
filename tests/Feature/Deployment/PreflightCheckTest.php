@@ -119,6 +119,69 @@ final class PreflightCheckTest extends TestCase
         }
     }
 
+    /**
+     * @return array<string, PreflightResult>
+     */
+    private function byLabel(bool $withDatabase = false): array
+    {
+        $results = [];
+        foreach ($this->app->make(PreflightChecks::class)->run($withDatabase) as $result) {
+            // Un même libellé peut revenir (échelles d'acuité) : le dernier l'emporte, comme à la lecture.
+            $results[$result->label] = $result;
+        }
+
+        return $results;
+    }
+
+    public function test_phase_1_un_code_de_module_inconnu_et_le_module_settings_ferme_sont_signales(): void
+    {
+        config(['eeo.enabled_modules' => ['patients', 'today', 'consultation']]);
+
+        $results = $this->byLabel();
+
+        $this->assertSame(PreflightResult::WARNING, $results['Codes de modules inconnus']->status);
+        $this->assertStringContainsString('consultation', $results['Codes de modules inconnus']->detail);
+        $this->assertSame(PreflightResult::WARNING, $results['Module « settings »']->status);
+    }
+
+    public function test_phase_1_le_controle_du_paiement_de_l_examen_incoherent_est_bloquant(): void
+    {
+        $label = 'Contrôle du paiement de l\'examen';
+
+        config(['eeo.enabled_modules' => ['patients', 'today', 'consultations', 'settings'], 'eeo.billing.exam_fee_control' => 'off']);
+        $this->assertSame(PreflightResult::INFO, $this->byLabel()[$label]->status);
+
+        config(['eeo.billing.exam_fee_control' => 'billed', 'eeo.billing.exam_fee_item_reference' => '']);
+        $this->assertTrue($this->byLabel()[$label]->isBlocking(), 'sans article de frais d\'examen');
+
+        config(['eeo.billing.exam_fee_item_reference' => 'EXAMEN-FICTIF']);
+        $this->assertTrue($this->byLabel()[$label]->isBlocking(), 'module « sales » fermé');
+
+        config(['eeo.enabled_modules' => ['patients', 'today', 'consultations', 'sales', 'settings']]);
+        $this->assertSame(PreflightResult::OK, $this->byLabel()[$label]->status);
+
+        config(['eeo.billing.exam_fee_control' => 'oui']);
+        $this->assertTrue($this->byLabel()[$label]->isBlocking(), 'valeur inconnue');
+    }
+
+    public function test_phase_1_la_caisse_et_les_echelles_manquantes_sont_signalees_pour_un_module_ouvert(): void
+    {
+        config([
+            'app.key' => 'base64:'.base64_encode(random_bytes(32)),
+            'eeo.enabled_modules' => ['patients', 'today', 'consultations', 'sales', 'settings'],
+        ]);
+
+        $results = $this->byLabel(true);
+
+        $this->assertSame(PreflightResult::WARNING, $results['Caisse principale']->status);
+        $this->assertStringContainsString('eeo:sales:bootstrap', $results['Caisse principale']->detail);
+        $this->assertSame(PreflightResult::WARNING, $results['Échelles d\'acuité']->status);
+        $this->assertStringContainsString('eeo:clinical:scales', $results['Échelles d\'acuité']->detail);
+        $this->assertSame(PreflightResult::INFO, $results['Cabinet à créer']->status);
+        $this->assertArrayHasKey('Outil de sauvegarde', $results);
+        $this->assertNotSame(PreflightResult::BLOCKING, $results['Outil de sauvegarde']->status);
+    }
+
     public function test_sans_cle_d_application_le_diagnostic_est_bloquant(): void
     {
         config(['app.key' => '']);

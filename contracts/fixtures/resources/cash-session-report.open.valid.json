@@ -1,0 +1,67 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashSessionReportResponse",
+  "valid": true,
+  "description": "Relevé provisoire d'une session ouverte : espèces dans le tiroir, mobile money rapproché à part (données fictives)",
+  "data": {
+    "data": {
+      "session": {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+        "cash_register_id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+        "cashier_id": "01J9ZXK4M2Q8R7S6T5V4W30005",
+        "opened_at": "2026-10-14T08:00:00.000Z",
+        "opening_amount": 25000,
+        "closed_at": null,
+        "counted_amount": null,
+        "expected_amount": null,
+        "variance": null,
+        "variance_reason": null,
+        "closed_by": null,
+        "collected_cash": 80000,
+        "refunded_cash": 0,
+        "theoretical_cash": 105000,
+        "cashier_name": "Caisse (démonstration)",
+        "closed_by_name": null,
+        "register_code": "CAISSE-PRINCIPALE",
+        "register_name": "Caisse principale"
+      },
+      "cash_received": 80000,
+      "cash_reversed": 0,
+      "cash_refunded": 0,
+      "movements_in": 0,
+      "movements_out": 0,
+      "movements": [],
+      "payments": [
+        {
+          "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "invoice_number": "TEST-FAC-2026-000001",
+          "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002V",
+          "receipt_number": "TEST-REC-2026-000001",
+          "method": "CASH",
+          "amount": 80000,
+          "reversed_amount": 0,
+          "effective_at": "2026-10-14T09:30:00.000Z"
+        },
+        {
+          "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002W",
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "invoice_number": "TEST-FAC-2026-000001",
+          "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002X",
+          "receipt_number": "TEST-REC-2026-000002",
+          "method": "MTN_MOMO",
+          "amount": 20000,
+          "reversed_amount": 0,
+          "effective_at": "2026-10-14T10:00:00.000Z"
+        }
+      ],
+      "other_methods": [
+        {
+          "method": "MTN_MOMO",
+          "count": 1,
+          "amount": 20000
+        }
+      ],
+      "generated_at": "2026-10-14T12:00:00.000Z"
+    }
+  }
+}

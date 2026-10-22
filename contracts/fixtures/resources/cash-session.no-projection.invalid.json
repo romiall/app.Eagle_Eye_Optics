@@ -1,0 +1,12 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashSessionResponse",
+  "valid": false,
+  "description": "Session sans espèces théoriques : refusée (l'écran en a besoin pour la clôture)",
+  "base": "resources/cash-session.open.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/data/theoretical_cash"
+    }
+  ]
+}

@@ -133,6 +133,25 @@
           "if": {
             "properties": {
               "step": {
+                "const": "MEDICATIONS"
+              }
+            },
+            "required": [
+              "step"
+            ]
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "../schemas/clinical-steps.json#/$defs/Medications"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "step": {
                 "const": "CONCLUSION"
               }
             },
@@ -275,6 +294,25 @@
                 "properties": {
                   "data": {
                     "$ref": "../schemas/clinical-steps.json#/$defs/Centering"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "step": {
+                    "const": "MEDICATIONS"
+                  }
+                },
+                "required": [
+                  "step"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "data": {
+                    "$ref": "../schemas/clinical-steps.json#/$defs/Medications"
                   }
                 }
               }

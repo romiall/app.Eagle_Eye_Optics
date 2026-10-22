@@ -1,0 +1,145 @@
+<?php
+
+namespace Tests\Feature\Billing;
+
+use App\Domain\Shared\Ulid;
+use Illuminate\Routing\Route as LaravelRoute;
+use Illuminate\Support\Facades\Route;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\BillingFixtures;
+use Tests\Support\MigratedDatabase;
+use Tests\TestCase;
+
+/**
+ * Portes des routes des ventes, de la caisse et du stock : modules fermés par défaut (404), compte obligatoire (401),
+ * matrice des droits par rôle (403 hors du rôle) alignée sur les `x-permission` du contrat. La matrice ne vérifie que
+ * la porte : au-delà, la route répond 200, 201, 404 ou 422 selon la requête, jamais 401 ni 403.
+ */
+final class BillingRoutesGateTest extends TestCase
+{
+    use BillingFixtures;
+    use MigratedDatabase;
+
+    private const ROLES = ['manager', 'clinician', 'reception', 'cashier'];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->bootBilling();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->resetClock();
+        parent::tearDown();
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string, 2: list<string>}> méthode, adresse, rôles admis par défaut
+     */
+    public static function routes(): array
+    {
+        $cash = ['manager', 'cashier'];
+        $invoices = ['manager', 'cashier'];
+
+        return [
+            'GET catalog' => ['GET', 'catalog', ['manager', 'clinician', 'cashier']],
+            'POST catalog/items' => ['POST', 'catalog/items', ['manager']],
+            'PATCH catalog/items/{id}' => ['PATCH', 'catalog/items/{id}', ['manager']],
+            'GET tax-rules' => ['GET', 'tax-rules', ['manager']],
+            'POST tax-rules' => ['POST', 'tax-rules', ['manager']],
+            'PATCH tax-rules/{id}' => ['PATCH', 'tax-rules/{id}', ['manager']],
+            'GET invoices' => ['GET', 'invoices', $invoices],
+            'POST invoices' => ['POST', 'invoices', $invoices],
+            'GET invoices/{id}' => ['GET', 'invoices/{id}', $invoices],
+            'PATCH invoices/{id}' => ['PATCH', 'invoices/{id}', $invoices],
+            'POST invoices/{id}/issue' => ['POST', 'invoices/{id}/issue', $invoices],
+            'POST invoices/{id}/payments' => ['POST', 'invoices/{id}/payments', $invoices],
+            'GET receipts/{id}' => ['GET', 'receipts/{id}', $invoices],
+            // Corrections (B07, B08) : permission propre à chaque opération, gérante seule avec le seed ; réauthentification
+            // en plus (la porte des droits passe avant : 423 pour la gérante, 403 pour les autres).
+            'POST payments/{id}/reversals' => ['POST', 'payments/{id}/reversals', ['manager']],
+            'POST invoices/{id}/credit-notes' => ['POST', 'invoices/{id}/credit-notes', ['manager']],
+            'POST invoices/{id}/refunds' => ['POST', 'invoices/{id}/refunds', ['manager']],
+            'GET cash-registers' => ['GET', 'cash-registers', $cash],
+            'GET cash-sessions/current' => ['GET', 'cash-sessions/current', $cash],
+            'POST cash-sessions' => ['POST', 'cash-sessions', $cash],
+            'POST cash-sessions/{id}/close' => ['POST', 'cash-sessions/{id}/close', $cash],
+            'GET stock/availability' => ['GET', 'stock/availability', ['manager', 'clinician', 'cashier']],
+            'POST stock/opening' => ['POST', 'stock/opening', ['manager']],
+        ];
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     */
+    #[DataProvider('routes')]
+    public function test_la_matrice_des_droits_par_route(string $method, string $uri, array $allowed): void
+    {
+        $path = '/api/v1/'.str_replace('{id}', Ulid::generate(), $uri);
+
+        foreach (self::ROLES as $role) {
+            $response = $this->actingAsFresh($this->{$role})->withHeaders(['Idempotency-Key' => Ulid::generate()])->json($method, $path, []);
+
+            if (in_array($role, $allowed, true)) {
+                $this->assertNotContains($response->getStatusCode(), [401, 403], $role.' doit passer la porte de '.$method.' '.$uri);
+            } else {
+                $this->assertSame(403, $response->getStatusCode(), $role.' ne doit pas passer la porte de '.$method.' '.$uri);
+            }
+        }
+    }
+
+    #[DataProvider('routes')]
+    public function test_un_visiteur_non_connecte_est_refuse(string $method, string $uri): void
+    {
+        $path = '/api/v1/'.str_replace('{id}', Ulid::generate(), $uri);
+
+        $this->json($method, $path, [])->assertUnauthorized();
+    }
+
+    #[DataProvider('routes')]
+    public function test_un_module_ferme_repond_404_meme_pour_la_gerante(string $method, string $uri): void
+    {
+        config(['eeo.enabled_modules' => ['today', 'patients']]);
+        $path = '/api/v1/'.str_replace('{id}', Ulid::generate(), $uri);
+
+        $this->actingAsReauthenticated($this->manager)->withHeaders(['Idempotency-Key' => Ulid::generate()])->json($method, $path, [])->assertNotFound();
+    }
+
+    public function test_chaque_route_des_ventes_et_du_stock_porte_son_module_et_une_permission(): void
+    {
+        $prefixes = ['api.catalog.', 'api.tax-rules.', 'api.invoices.', 'api.receipts.', 'api.payments.', 'api.cash-registers.', 'api.cash-sessions.', 'api.stock.'];
+        $checked = 0;
+
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            /** @var LaravelRoute $route */
+            $name = (string) $route->getName();
+            if (! array_filter($prefixes, static fn (string $prefix): bool => str_starts_with($name, $prefix))) {
+                continue;
+            }
+            $middleware = array_map('strval', $route->gatherMiddleware());
+            $module = str_starts_with($name, 'api.stock.') ? 'module:stock' : 'module:sales';
+
+            $this->assertContains($module, $middleware, $name.' doit être derrière son module');
+            $this->assertNotEmpty(
+                array_filter($middleware, static fn (string $entry): bool => str_starts_with($entry, 'can:') || str_starts_with($entry, 'any-permission:')),
+                $name.' doit exiger une permission',
+            );
+            $checked++;
+        }
+
+        $this->assertSame(count(self::routes()), $checked, 'Toutes les routes publiées sont dans la matrice ci-dessus.');
+    }
+
+    public function test_les_modules_ventes_et_stock_sont_fermes_par_defaut(): void
+    {
+        // Lecture du fichier plutôt que de la configuration chargée : un .env local peut ouvrir des modules.
+        $source = (string) file_get_contents(base_path('config/eeo.php'));
+        $example = (string) file_get_contents(base_path('.env.example'));
+
+        $this->assertStringContainsString("env('EEO_ENABLED_MODULES', '')", $source, 'Aucun module ouvert sans décision de l\'exploitant.');
+        $this->assertStringContainsString("env('EEO_EXAM_FEE_CONTROL', 'off')", $source, 'Le contrôle du paiement de l\'examen est inactif par défaut.');
+        $this->assertMatchesRegularExpression('/^EEO_EXAM_FEE_CONTROL=off$/m', $example);
+        $this->assertMatchesRegularExpression('/^EEO_ENABLED_MODULES=(?:[a-z,]*)$/m', $example);
+    }
+}

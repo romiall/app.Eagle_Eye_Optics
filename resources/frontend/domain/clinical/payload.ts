@@ -100,3 +100,80 @@ export function consultationFromResult(result: unknown): Consultation | null {
       : null
   return isConsultation(data) ? data : null
 }
+
+// --- Finalisation et correction (C03) ---------------------------------------------------------------
+
+/** Charge `CompleteConsultation` (alias d'objet : transmissible au répartiteur de mutations). */
+export type CompleteRequestPayload = {
+  consultation_id: string
+  revision_id: string
+  revision_no: 1
+  snapshot_sha256: string
+  finalization_missing_data_reason: string | null
+}
+
+/**
+ * Charge de finalisation. `digest` est l'empreinte SHA-256 de JCS(steps) des rubriques TELLES QUE LUES sur le
+ * serveur (`stepsDigest`) : le serveur la recalcule et refuse un écart. `revisionId` est créé sur le poste. La
+ * justification d'absence est celle que la personne a saisie (null si elle n'en donne pas).
+ */
+export function buildCompletePayload(
+  consultationId: string,
+  revisionId: string,
+  digest: string,
+  missingDataReason: string | null,
+): CompleteRequestPayload {
+  return {
+    consultation_id: consultationId,
+    revision_id: revisionId,
+    revision_no: 1,
+    snapshot_sha256: digest,
+    finalization_missing_data_reason: missingDataReason,
+  }
+}
+
+/** Charge `AmendConsultation`. */
+export type AmendRequestPayload = {
+  consultation_id: string
+  revision_id: string
+  revision_no: number
+  previous_revision_id: string
+  reason: string
+  steps: { step: StepName; data: object }[]
+  snapshot_sha256: string
+}
+
+/** Identifiant de la dernière révision d'une consultation terminée, ou null si elle n'en porte aucune. */
+export function latestRevisionId(
+  consultation: Pick<Consultation, 'current_revision' | 'revisions'>,
+): string | null {
+  const latest = consultation.revisions.find(
+    (revision) => revision.revision_no === consultation.current_revision,
+  )
+  return latest?.id ?? null
+}
+
+/**
+ * Charge de correction : les rubriques envoyées REMPLACENT les rubriques actuelles ; `digest` est l'empreinte
+ * SHA-256 de JCS(steps) de la requête elle-même (intégrité de ce qui est envoyé), que le serveur recalcule.
+ * Retourne null si la consultation n'a pas de révision précédente (elle n'est pas terminée).
+ */
+export function buildAmendPayload(
+  consultation: Pick<Consultation, 'id' | 'current_revision' | 'revisions'>,
+  revisionId: string,
+  reason: string,
+  steps: { step: StepName; data: object }[],
+  digest: string,
+): AmendRequestPayload | null {
+  const previous = latestRevisionId(consultation)
+  if (previous === null) return null
+  return {
+    consultation_id: consultation.id,
+    revision_id: revisionId,
+    revision_no: consultation.current_revision + 1,
+    previous_revision_id: previous,
+    reason,
+    steps,
+    snapshot_sha256: digest,
+  }
+}

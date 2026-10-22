@@ -5,8 +5,8 @@
  * médical n'est inventé ici. `tests/frontend/domain/clinical-terms.test.ts` relit le SQL et vérifie
  * l'égalité exacte (groupes, codes, libellés, ordre) : toute dérive fait échouer le test.
  *
- * Les groupes des étapes suivantes (amétropies, usage et traitements optiques) s'ajouteront avec C02
- * et C04. Règles pures : ni Vue, ni réseau, ni stockage.
+ * Groupes de C02 (amétropies) et de C04 (usage, type de verre et traitements de la prescription optique).
+ * Règles pures : ni Vue, ni réseau, ni stockage.
  */
 export const TERM_GROUPS = [
   'COMPLAINT',
@@ -14,6 +14,10 @@ export const TERM_GROUPS = [
   'MEDICAL_HISTORY',
   'FAMILY_HISTORY',
   'REFERRAL_REASON',
+  'AMETROPIA',
+  'OPTICAL_USAGE',
+  'LENS_TYPE',
+  'LENS_TREATMENT',
 ] as const
 
 export type TermGroup = (typeof TERM_GROUPS)[number]
@@ -82,6 +86,41 @@ export const CLINICAL_TERMS: Readonly<Record<TermGroup, readonly ClinicalTerm[]>
     { code: 'RED_EYE_INFLAMMATION', label: 'Œil rouge / inflammation' },
     { code: 'TRAUMA', label: 'Traumatisme' },
     { code: 'SUSPECTED_RETINAL_DISEASE', label: 'Pathologie rétinienne suspectée' },
+    { code: 'OTHER', label: 'Autre' },
+  ],
+  AMETROPIA: [
+    { code: 'EMMETROPIA', label: 'Emmétropie' },
+    { code: 'MYOPIA', label: 'Myopie' },
+    { code: 'HYPERMETROPIA', label: 'Hypermétropie' },
+    { code: 'ASTIGMATISM', label: 'Astigmatisme' },
+    { code: 'PRESBYOPIA', label: 'Presbytie' },
+    { code: 'ANISOMETROPIA', label: 'Anisométropie' },
+    { code: 'OTHER', label: 'Autre' },
+  ],
+  OPTICAL_USAGE: [
+    { code: 'DISTANCE', label: 'Vision de loin' },
+    { code: 'NEAR', label: 'Vision de près' },
+    { code: 'PERMANENT', label: 'Lunettes permanentes' },
+    { code: 'PROGRESSIVE', label: 'Progressifs' },
+    { code: 'BIFOCAL', label: 'Bifocaux' },
+    { code: 'COMPUTER_WORK', label: 'Travail / ordinateur' },
+    { code: 'OTHER', label: 'Autre' },
+  ],
+  LENS_TYPE: [
+    { code: 'SINGLE_VISION', label: 'Unifocal' },
+    { code: 'BIFOCAL', label: 'Bifocal' },
+    { code: 'PROGRESSIVE', label: 'Progressif' },
+    { code: 'ANTI_FATIGUE', label: 'Anti-fatigue' },
+    { code: 'OTHER', label: 'Autre' },
+  ],
+  LENS_TREATMENT: [
+    { code: 'ANTI_REFLECTION', label: 'Anti-reflet' },
+    { code: 'PHOTOCHROMIC', label: 'Photochromique' },
+    { code: 'UV', label: 'UV' },
+    { code: 'BLUE_LIGHT_FILTER', label: 'Filtre lumière bleue / Blue-Cut' },
+    { code: 'HARD_ANTI_SCRATCH', label: 'Durci / anti-rayures' },
+    { code: 'TINTED', label: 'Teinté' },
+    { code: 'HMC', label: 'HMC' },
     { code: 'OTHER', label: 'Autre' },
   ],
 }

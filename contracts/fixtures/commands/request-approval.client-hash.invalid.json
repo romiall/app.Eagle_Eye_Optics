@@ -1,0 +1,13 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": false,
+  "description": "Empreinte fournie par le client : refusée, le serveur la calcule depuis le contenu exact",
+  "base": "commands/request-approval.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/payload_hash",
+      "value": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    }
+  ]
+}

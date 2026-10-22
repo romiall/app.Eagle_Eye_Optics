@@ -11,6 +11,7 @@
       "status": "ISSUED",
       "issued_at": "2026-10-14T09:30:00.000Z",
       "issued_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+      "issued_by_name": "Caisse (démonstration)",
       "due_date": null,
       "currency": "XAF",
       "total_gross": 80000,
@@ -57,7 +58,9 @@
           "status": "CONFIRMED",
           "receipt_id": "01J9ZXK4M2Q8R7S6T5V4W3002V",
           "receipt_number": "TEST-REC-000001",
-          "reversed_amount": 0
+          "reversed_amount": 0,
+          "received_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+          "received_by_name": "Caisse (démonstration)"
         }
       ],
       "credit_notes": [],
@@ -70,6 +73,29 @@
       "document": {
         "document_id": "01J9ZXK4M2Q8R7S6T5V4W30029",
         "document_status": "READY"
+      },
+      "patient_snapshot": {
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+        "record_number": "TEST-P-000001",
+        "last_name": "PATIENT FICTIF",
+        "first_names": "Élodie Marie"
+      },
+      "clinic_snapshot": {
+        "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+        "name": "CABINET DE DÉMONSTRATION — DONNÉES FICTIVES",
+        "address": null,
+        "phone": null,
+        "email": null,
+        "tax_identifier": null,
+        "professional_mentions": null,
+        "document_settings": null,
+        "currency": "XAF",
+        "timezone": "Africa/Douala",
+        "test_document": true
+      },
+      "tax_snapshot": {
+        "regime": "NO_TAX_CONFIGURED",
+        "rules": []
       }
     }
   }

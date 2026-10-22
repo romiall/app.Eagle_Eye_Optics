@@ -1,169 +1,265 @@
-# Consultation clinique (C01) — serveur
+# Consultation clinique (C01 à C04)
 
-Première tranche des fonctions cliniques, **en ligne**, **sans contrôle du paiement de l'examen** (B04 et B06
-n'existent pas) : démarrer l'examen d'une visite, lire une consultation, enregistrer les rubriques
-**narratives** par étape (motifs et lunettes, antécédents, conclusion et orientation). Les rubriques mesurées
-(acuités, réfraction, centrage), la finalisation et la correction ne sont pas dans cette tranche (C02, C03).
-Rien ici n'est utilisable sans Internet : les commandes d'un poste hors-ligne sont refusées explicitement
-(`403 ACTION_FORBIDDEN`) tant que la synchronisation clinique (coffre, compartiments, O01 à O05) n'existe pas.
+Fonctions cliniques **en ligne**, **sans contrôle du paiement de l'examen** (B04 et B06 ne sont pas branchés
+sur la consultation) : démarrer l'examen d'une visite, enregistrer les **sept rubriques** du dossier par étape
+(motif et lunettes, antécédents, acuités, réfraction, centrage, médicaments, conclusion et orientation),
+**terminer** l'examen (révision 1 figée), le **corriger** par une révision motivée, relire et comparer les
+révisions, rédiger puis **valider** une prescription optique (brouillon, versions, ordonnance externe).
+
+Rien ici n'est utilisable sans Internet : toute commande d'un poste hors-ligne (source `SYNC` ou tâche) est
+refusée explicitement (`403 ACTION_FORBIDDEN`) tant que la synchronisation clinique (coffre, compartiments,
+O01 à O05) n'existe pas. L'écran ne dit jamais « enregistré sur ce poste » : une étape est dite enregistrée
+après la réponse du serveur seulement.
+
+> **État : codé, non exécuté.** Les tests PHPUnit, Vitest et Playwright de C01 à C04 sont écrits mais n'ont pas
+> été lancés dans cette passe (vérification transversale à la fin de la phase).
 
 ## Routes (module `consultations`, ouvert par l'exploitant)
 
-| Méthode et route | Permissions | Réponse |
+| Méthode et route | Permissions (toutes exigées) | Réponse |
 | --- | --- | --- |
-| `POST /api/v1/visits/{id}/consultations` | `clinical.write` et `clinical.read` | 201 `ConsultationResponse` (commande `StartConsultation`, `Idempotency-Key` obligatoire) |
-| `GET /api/v1/consultations/{id}` | `clinical.read` | 200 `ConsultationResponse` (relue dans les tables vivantes) |
-| `PATCH /api/v1/consultations/{id}/steps/{step}` | `clinical.write` et `clinical.read` | 200 `ConsultationResponse` (commande `SaveClinicalStep`, `Idempotency-Key` obligatoire, version attendue) |
+| `GET /api/v1/visual-acuity-scales` | `clinical.read` | 200 `VisualAcuityScaleList` (échelles du cabinet, actives d'abord) |
+| `POST /api/v1/visits/{id}/consultations` | `clinical.write`, `clinical.read` | 201 `ConsultationResponse` (`StartConsultation`) |
+| `GET /api/v1/consultations/{id}` | `clinical.read` · débit limité | 200 `ConsultationResponse` |
+| `PATCH /api/v1/consultations/{id}/steps/{step}` | `clinical.write`, `clinical.read` | 200 `ConsultationResponse` (`SaveClinicalStep`) |
+| `POST /api/v1/consultations/{id}/complete` | `clinical.complete`, `clinical.read` | 200 `ConsultationResponse` (`CompleteConsultation`) |
+| `POST /api/v1/consultations/{id}/amendments` | `clinical.amend`, `clinical.read` | 201 `ConsultationResponse` (`AmendConsultation`) |
+| `GET /api/v1/consultations/{id}/revisions/{revision_no}` | `clinical.read` · débit limité | 200 `ClinicalRevisionResponse` (snapshot figé) |
+| `GET /api/v1/consultations/{id}/prescriptions` | `clinical.read` · débit limité | 200 `PrescriptionList` (plus récente d'abord) |
+| `POST /api/v1/consultations/{id}/prescriptions` | `clinical.write`, `clinical.read` | 201 `PrescriptionResponse` (`CreatePrescription`, origine interne) |
+| `POST /api/v1/prescriptions/external` | `clinical.write`, `clinical.read` | 201 `PrescriptionResponse` (`CreatePrescription`, ordonnance externe) |
+| `GET /api/v1/prescriptions/{id}` | `clinical.read` · débit limité | 200 `PrescriptionResponse` |
+| `PATCH /api/v1/prescriptions/{id}` | `clinical.write`, `clinical.read` | 200 `PrescriptionResponse` (`UpdatePrescriptionDraft`, en ligne seulement) |
+| `POST /api/v1/prescriptions/{id}/revisions` | `clinical.amend`, `clinical.read` | 201 `PrescriptionResponse` (`CreatePrescription`, nouvelle version) |
+| `POST /api/v1/prescriptions/{id}/validate` | `clinical.complete`, `clinical.read` | 200 `PrescriptionResponse` (`ValidatePrescription`) |
 
-`CompleteConsultation`, `AmendConsultation` et `GetPatientHistory` restent `PLANNED` au contrat (C03, P02).
+Toutes les écritures passent par le chemin central (`Idempotency-Key` obligatoire, idempotence, verrous,
+audit, journal des changements) ; route directe, synchronisation future et tâche appellent la même action.
 
-- **Module fermé** : 404 `RESOURCE_NOT_FOUND`, avant toute vérification de droit (même pour la gérante).
-- **Droits** : gérante (`MANAGER`) et professionnel (`CLINICIAN`) seulement. Accueil et caisse n'ont aucune
-  permission `clinical.*` : 403 `ACTION_FORBIDDEN` sur ces routes, **y compris pour une consultation existante**
-  (le refus ne dit pas si elle existe : AT02). Un identifiant d'un autre cabinet répond 404.
-- **Les deux écritures exigent aussi `clinical.read`** : leur réponse est la consultation courante (un rejeu de
-  la même clé la relit, elle peut contenir ce que d'autres ont saisi). Une dérogation qui retire la lecture ne
-  se contourne donc pas par l'écriture (même règle que `POST/PATCH /patients` avec `patient.read`). Écart
-  assumé avec la liste de décisions du demandeur, qui ne demandait `clinical.read` que pour `PATCH` : sans effet
-  pour les profils seedés.
-- **Identifiants du chemin et du corps** : `visit_id` (démarrage), `consultation_id` et `step.step`
-  (enregistrement) doivent être ceux de l'adresse, sinon 422 (clés `visit_id`, `consultation_id`, `step.step`).
-  La rubrique du chemin n'est pas une contrainte de route (un nom inconnu donne un 422 lisible, pas un 404).
-- Aucune limite de débit dédiée : les identifiants sont des ULID non devinables, la lecture est tracée mais
-  limitée par l'intervalle de 10 minutes (ci-dessous), et les écritures sont sérialisées par le verrou du cabinet.
+- **Module fermé** : 404 avant toute vérification de droit (même pour la gérante).
+- **Droits** : gérante et professionnel seulement. Accueil et caisse n'ont aucune permission `clinical.*` :
+  403 sur toutes ces routes, **y compris pour une ressource existante** (le refus ne dit pas si elle existe). Un
+  identifiant d'un autre cabinet répond 404.
+- **Chaque écriture exige aussi `clinical.read`** : sa réponse rend le dossier (ou la prescription) courant ; une
+  dérogation qui retire la lecture ne se contourne pas par l'écriture.
+- **Identifiants du chemin et du corps** : ils doivent coïncider (422), jamais l'un pour l'autre :
+  `visit_id`, `consultation_id`, `step.step`, `supersedes_id` (nouvelle version), `prescription_id` (validation).
+- **Limite de débit des lectures** : limiteur `eeo-consultation-read`, **par compte**, 60 lectures par minute par
+  défaut (`EEO_RATE_CONSULTATION_READ`, `config('eeo.rate_limits.consultation_read')`), commun aux lectures d'une
+  consultation, d'une révision et des prescriptions ; au-delà : 429 `RATE_LIMITED`.
 
-## Démarrage de l'examen (`StartConsultation`)
+## Corrections de C01 (revue)
 
-Corps de la route directe : `expected_version: null`, `consultation_id` (ULID fourni par l'écran), `visit_id`,
-`patient_id`, `effective_at` (instant UTC `…T…:…:….mmmZ`), `date_change_reason` (texte ou null),
-`exam_invoice_id` et `exam_waiver_approval_id` (null).
-
-- **Contrat assoupli (G1)** : `exam_invoice_id` et `exam_waiver_approval_id` sont nullables et facultatifs au
-  schéma (charge et `DirectRequest`), sans preuve exigée. Schéma de la commande toujours en version `1`
-  (assouplissement : un poste qui détient une pièce `v1` reste valide).
-- **Contrôle du paiement de l'examen** : interface `ExamFeeControl`, liée à `UncontrolledExamFee`. Elle répond
-  toujours `NOT_CONTROLLED` ; **aucun interrupteur de configuration** ne permet de « faire comme si ».
-  `consultation.started` porte `exam_fee_control: NOT_CONTROLLED`. `visits.exam_invoice_id` et
-  `visits.exam_waiver_approval_id` restent null. Une preuve **fournie** (non null) est refusée en 422
-  (`exam_invoice_id` ou `exam_waiver_approval_id`) plutôt qu'ignorée : l'écran laisserait croire qu'elle est
-  enregistrée. B04 et B06 remplaceront seulement l'implémentation de l'interface.
-- **Visite** : du cabinet (404 sinon), du patient indiqué (422 `patient_id`), de motif `EXAM` ou `FOLLOW_UP`
-  (422 `visit_id` pour un achat direct ou un retrait : jamais de consultation fictive), au statut `ARRIVED` ou
-  `READY_FOR_EXAM`. Autre statut (`AWAITING_EXAM_FEE`, `IN_CONSULTATION`, `COMPLETED`, `CANCELLED`) ou
-  consultation déjà démarrée pour cette visite, **même sous une autre clé** : 409 `STATE_TRANSITION_REFUSED`
-  avec `details.current_status` = statut de la visite. L'écran reprend alors la consultation existante
-  (`consultation_id` de la visite).
-- **Écritures** (une transaction) : consultation `DRAFT`, `current_revision` 0, `version` 1, `clinician_id` = le
-  compte connecté (jamais un champ de la charge, même si la gérante démarre) ; visite → `IN_CONSULTATION`,
-  `version + 1`.
-- `effective_at` : pas dans le futur au-delà de la tolérance d'horloge (`eeo.offline.max_clock_skew_seconds`,
-  comme `RegisterVisit`) ; une saisie rétrospective est admise **avec ou sans** motif (`date_change_reason` est
-  facultatif ; le seuil de « rétrospectif » n'est pas défini par les sources, il n'est pas inventé). Le motif
-  fourni est conservé tel quel (blancs de bord retirés, vide → null).
-- **Effets** : audit `consultation.started` ({`visit_id`, `patient_id`, `exam_fee_control`, `effective_at`}, jamais
-  le motif de date) ; journal des changements `visits` (`ADMINISTRATIVE`, `UPDATED`, version + 1) et
-  `consultations` (`CLINICAL`, `CREATED`, version 1) ; aucun événement d'outbox ; résultat idempotent
-  `{consultation_id, visit_id, version, status}`.
-- **Verrous** : cabinet → idempotence → visite (rang 46) → consultation (rang 47).
-
-## Enregistrement d'une rubrique (`SaveClinicalStep`)
-
-Corps : `expected_version` (entier ≥ 1, `consultations.version`), `consultation_id`, `step: {step, data}`.
-
-- **Rubriques ouvertes** : `ANAMNESIS`, `HISTORIES`, `CONCLUSION`. `VISUAL_ACUITY`, `REFRACTION` et `CENTERING`
-  répondent **422** `step.step` « Cette rubrique n'est pas encore ouverte. » et **n'écrivent rien** (C02).
-- **Sémantique : remplacement complet** de la rubrique. Les lignes absentes de la charge sont supprimées (c'est
-  ainsi qu'on efface une valeur). Comparaison **par identifiant de ligne** : ligne inchangée non touchée, texte
-  modifié → mise à jour, code ou groupe modifié → ligne recréée avec le même identifiant ; **toutes les
-  suppressions précèdent les mises à jour puis les insertions** (deux lignes peuvent échanger leurs codes sans
-  heurter l'unicité). Un terme peut changer d'élément d'antécédents en gardant son identifiant.
-- **Version** : comparée à `consultations.version` lue sous le verrou de la consultation (rang 47) ; écart →
-  409 `VERSION_CONFLICT` avec `details.current_version`, rien d'écrit. La version couvre **toute la
-  consultation** : enregistrer une rubrique invalide la version tenue par un autre poste, même s'il édite une
-  autre rubrique (AT19 : conflit conservé, rien n'est perdu ni mélangé).
-- **État** : consultation `COMPLETED` → 409 `STATE_TRANSITION_REFUSED`, `details.current_status` = `COMPLETED`
-  (la correction passera par une révision motivée, C03). Première sauvegarde : `DRAFT` → `IN_PROGRESS`.
-- **Enregistrement sans effet** (état résultant identique à l'état enregistré, l'ordre des lignes ne comptant
-  pas, consultation déjà en cours) : même réponse, **version inchangée**, ni audit ni changement publié.
-- **Intégrité, toutes les erreurs rendues ensemble, avant la première écriture** (422 `VALIDATION_FAILED`, clés
-  pointées relatives au corps de la requête, comme celles du validateur de contrat) :
-
-| Rubrique | Règles refusées (clé en cas d'échec) |
+| Constat | Correction |
 | --- | --- |
-| Toutes | texte ≤ 4000 caractères (blancs de bord retirés, vide → null), aucun caractère de contrôle (retours à la ligne admis sauf dans le texte d'un « Autre ») ; `step.data.<champ>` |
-| Listes de termes | code inexistant, inactif ou d'un autre groupe de `clinical_terms` (`….term_code`) ; code en double dans la liste (`….term_code` de la 2e ligne) ; identifiant de ligne invalide ou en double (`….id`) ; `OTHER` sans texte, ou texte sur un autre code (`….other_text`) |
-| Identifiants | un identifiant de ligne déjà utilisé **ailleurs** (autre consultation, autre cabinet) → 422 `….id` « déjà utilisé », jamais une erreur SQL ; les lignes de cette consultation sont réutilisables |
-| `ANAMNESIS` | `wears_glasses` différent de `true` avec `glasses_duration` ou `previous_correction_available` renseignés → **refus** (`step.data.glasses_duration`, `step.data.previous_correction_available`), jamais d'effacement silencieux ; `false` (non) reste distinct de `null` (non renseigné) |
-| `HISTORIES` | un seul élément par groupe (`….history_group` du 2e) ; `known_none = true` avec des termes → `step.data.histories.N.terms` ; `NONE` n'est jamais un terme (`….term_code`) ; absence d'élément pour un groupe = non renseigné (distinct d'« Aucun connu ») ; un élément vide ou avec commentaire seul est admis |
-| `CONCLUSION` | `referral = true` sans `referral_urgency` → `step.data.referral_urgency` ; `referral` faux ou null avec niveau ou motifs → **refus** (`step.data.referral_urgency`, `step.data.referral_reasons`) ; aucun motif n'est exigé à l'enregistrement |
+| Une écriture sans effet (ou le rejeu d'une clé) rendait tout le dossier sans trace de lecture | Toute réponse qui rend le dossier est une **lecture tracée** (`ClinicalReadAudit`), démarrage, enregistrement, finalisation et correction compris ; même règle d'intervalle (au plus un événement par compte et par cible toutes les 10 minutes). |
+| Lecture en plusieurs requêtes autocommit : état mélangé possible pendant une écriture | `ConsultationReader::view` relit l'ensemble tant que la version relue en fin de lecture diffère de celle du début (3 tentatives), puis 503 `SERVER_BUSY` (à renvoyer à l'identique) plutôt qu'un état qui n'a jamais existé. Aucune transaction hors du chemin central. |
+| Aucune limite de débit sur la lecture d'un dossier | Limiteur par compte (ci-dessus). |
+| L'audit `consultation.step_saved` portait un nombre de lignes (`rows`) | Il ne porte plus que `{step, version}`. |
+| Un code de référentiel désactivé bloquait toute sauvegarde de la rubrique qui le contenait | Une ligne **déjà enregistrée** (même identifiant, même code) reste ré-enregistrable ; une ligne nouvelle ou dont le code change porte un code actif (`TermList`, paramètre `$existing`). |
+| « Précisez le texte de « Autre » » s'ajoutait au message d'un texte invalide | Le message de consigne n'est donné que si le texte manque vraiment. |
+| Message « Type de valeur invalide » en double d'un message de longueur | Le validateur de contrat ne garde que le message de limite. |
+| Un identifiant de consultation déjà pris dans un autre cabinet donnait une erreur SQL | 422 `consultation_id` (contrôle global). |
+| L'en-tête patient dépendait du module Patients et de `patient.read` | `Consultation.patient` : identité administrative de base (dossier, nom, prénoms, sexe, naissance) rendue avec `clinical.read`. |
+| Textes de la visite (consultation masquée) | Docblock et message corrigés ; le statut administratif `IN_CONSULTATION` reste visible de tous. |
 
-- **Audit** `consultation.step_saved` : **uniquement** `{step, version, rows}` (`rows` = nombre de lignes des
-  tables enfants de la rubrique : motifs ; éléments + termes ; motifs d'orientation). Jamais une valeur
-  clinique, jamais un motif. Journal des changements : `consultations`, `CLINICAL`, `UPDATED`. Résultat
-  idempotent : `{consultation_id, version, status, step}` (références seulement). Pas d'outbox.
-- **Verrous** : cabinet → idempotence → consultation (rang 47).
+Points relevés **documentés, non corrigés** (décision à prendre, voir « Points ouverts ») : normalisation des
+blancs internes d'un texte (le middleware `TrimStrings` ne retire que les bords), élément d'antécédents vide
+admis, motif d'une date rétrospective facultatif.
 
-## Lecture (`GET /consultations/{id}`)
+## Rubriques mesurées (C02)
 
-Relit les tables vivantes au format `AllSteps` (six rubriques, ordre du dossier). Les rubriques pas encore
-ouvertes sont rendues **vides** conformes au schéma : `acuities: []`, `measurements: []`,
-`refraction_observations: null`, `ametropias: []`, `centering_id: null` et mesures null (`centering_id` est
-**nullable** au contrat : une consultation sans centrage est représentable). Si des lignes existent déjà dans
-ces tables (insertion hors chemin), elles sont lues telles quelles (mesures en forme canonique `"0.00"`, `"-0.50"`).
-Listes dans l'ordre d'affichage du référentiel (`clinical_terms.sort_order`), puis identifiant ; antécédents dans
-l'ordre oculaire, médical, familial. `revisions` : métadonnées seulement (aucun snapshot) ; vide avant C03.
+Même mécanique que les rubriques narratives : **remplacement complet**, comparaison **par identifiant de ligne**
+(suppressions, puis mises à jour, puis insertions : deux lignes peuvent échanger leur clé d'unicité), toutes les
+erreurs rendues ensemble avant la première écriture (422, clés `step.data.…`), enregistrement sans effet =
+version inchangée, ni audit ni changement. Un identifiant de ligne déjà pris ailleurs → 422 par champ.
 
-**Audit de lecture** : `consultation.viewed` (cible `consultations`, aucun contenu, aucun motif), écrit par le
-contrôleur via `AuditRecorder` (hors chemin des commandes) — **au plus un événement par couple compte /
-consultation et par intervalle de 10 minutes** (`ClinicalReadAudit::INTERVAL_MINUTES`). Choix : un écran qui
-relit la consultation à chaque rubrique enregistrée ne doit pas noyer le journal, et dix minutes répondent à
-« qui a ouvert ce dossier et quand » à un quart d'heure près. Les écritures et les refus (403, 404) ne comptent
-pas comme lectures. Si l'écriture de l'audit échoue, la lecture échoue : un dossier ne se lit pas sans trace.
+**Mesures** (`Rules/Measures`, jumeau TypeScript `domain/clinical/fields`) : chaînes décimales exactes
+(contrat `Diopter`, `DECIMAL(6,2)`, au plus 4 chiffres entiers, 2 décimales) ; une valeur à 3 décimales est
+**refusée**, jamais arrondie ; un flottant JSON est refusé ; zéro est une valeur distincte de null (non mesuré) ;
+axe = entier 0 à 180 ; le cylindre positif n'est **jamais transposé**. Plages cliniques : aucune n'est inventée
+(Q06) ; le pas usuel de 0,25 est seulement **signalé** à l'écran, jamais imposé.
 
-## Visite : consultation de la visite
+| Rubrique | Règles |
+| --- | --- |
+| `VISUAL_ACUITY` | Une ligne = une valeur **mesurée** (case vide = pas de ligne). Préliminaire : loin ou près, sans ou avec correction ; après correction : distance `UNSPECIFIED`, `WITH` seulement. Une ligne par (contexte, distance, correction, œil). Valeur lue conservée **telle que saisie** (1 à 100 caractères : « 10/10 », « P2 », « CLD », « 0 »). Échelle **active** du cabinet ; une échelle désactivée depuis reste valable pour la ligne qui l'utilise déjà. `normalized_value` n'est **jamais calculée ni acceptée** (aucune conversion validée, Q06) : une valeur déjà enregistrée hors chemin est conservée telle quelle. |
+| `REFRACTION` | Autoréfracteur, objective, subjective **distincts**, une ligne par (stade, œil OD/OG) ; une ligne porte au moins une mesure ; l'addition n'existe que pour la subjective ; observations libres ; amétropies choisies dans le référentiel `AMETROPIA` (jamais déduites des chiffres). Un cylindre non nul sans axe est admis pour une **mesure** (exigé pour valider une prescription). |
+| `CENTERING` | Une ligne par consultation. Écarts strictement positifs ; le total et les monoculaires sont saisis séparément, **aucun n'est fabriqué** à partir de l'autre (l'écran propose la somme OD + OG, la personne la reporte si elle veut). Si total, OD et OG sont saisis et que OD + OG ≠ total au-delà de la tolérance : **justification obligatoire**. Tolérance : **hypothèse 0** (`CenteringStep::TOLERANCE_UNITS`, Q06). Une justification sans écart est refusée. Sans valeur : pas de ligne, `centering_id` null (G6) ; dès qu'une valeur est saisie, l'identifiant (ULID) vient du poste et doit être celui de la ligne existante. |
 
-La ressource `Visit` (file du jour, enregistrement d'une arrivée) porte `consultation_id` et
-`consultation_status` (`DRAFT`, `IN_PROGRESS`, `COMPLETED`), **rendus seulement avec `clinical.read`**, null
-sinon (accueil et caisse ne peuvent pas déduire qu'un examen est en cours), et null quand l'examen n'est pas
-démarré. L'écran s'en sert pour « Démarrer » (`consultation_id` null et visite d'examen arrivée) ou « Reprendre ».
+**Échelles d'acuité** (`visual_acuity_scales`, Q06 et décision G11 ouvertes) : aucune n'est validée par la
+cliente. Commande d'exploitation `php artisan eeo:clinical:scales` :
 
-## Erreur 409 `STATE_TRANSITION_REFUSED`
+- `--demo` : trois échelles de **DÉMONSTRATION** fictives (`DEMO_DIXIEMES`, `DEMO_SNELLEN_6`, `DEMO_PRES`), libellées
+  « DÉMONSTRATION », en environnements `local`, `testing`, `e2e`, `demo` seulement (refus en production) ;
+- `--code=… --label=… [--description=…]` : l'échelle **réelle** choisie par le cabinet, dans tout environnement ;
+- `--clinic=…` si la base a plusieurs cabinets. Idempotente (un code présent n'est ni dupliqué ni modifié), audit
+  `clinical.acuity_scale_created`. `tests/e2e/prepare-env.mjs` crée les échelles de démonstration.
 
-Nouveau code du catalogue (`contracts/schemas/error.json`, `BusinessError::stateRefused`) : l'état actuel de la
-ressource ne permet pas l'opération. `details.current_status` (valeur simple, jamais clinique) : statut de la
-**visite** au démarrage, de la **consultation** à l'enregistrement. Utilisé pour : consultation déjà démarrée,
-visite non démarrable, consultation terminée modifiée.
+## Médicaments (C04, rubrique `MEDICATIONS`)
 
-## Décisions, écarts, points ouverts
+Septième rubrique ajoutée au contrat (`StepName`, `AllSteps`, `AmendConsultation` jusqu'à 7 rubriques) entre
+le centrage et la conclusion. Saisie libre **contrôlée** (aucune base de médicaments fournie ni inventée) :
+nom (1 à 180) et forme (collyre, pommade, comprimé, autre + précision) obligatoires ; dosage, posologie,
+fréquence, durée en texte, instructions facultatifs et **conservés tels que saisis** (rien n'est déduit ni
+complété) ; durée structurée = nombre entier > 0 **et** unité (jour, semaine, mois), les deux ou aucun ; 20 lignes
+au plus. L'**ordre compte** (position = rang dans la liste, jamais saisie) : changer l'ordre est un changement réel.
+`catalog_item_id` facultatif, doit exister dans le catalogue du cabinet. Prescrire **ne crée ni vente ni
+mouvement de stock** (seule `medication_orders` est écrite).
+
+## Finalisation et correction (C03)
+
+### `CompleteConsultation`
+
+- Consultation `IN_PROGRESS` (brouillon sans rubrique ou déjà terminée : 409 `STATE_TRANSITION_REFUSED`) ; version
+  attendue = `consultations.version` (409 `VERSION_CONFLICT`) ; visite `IN_CONSULTATION`.
+- Fichier 02 : « exiger motif ou plaintes, conclusion ou justification d'absence, résolution des erreurs ; ne pas
+  exiger des mesures non réalisées ». Lecture retenue : si le motif/les plaintes **ou** la conclusion manquent,
+  `finalization_missing_data_reason` est obligatoire (≤ 4000). Les rubriques mesurées vides ne sont **jamais**
+  exigées ni transformées en « aucun ».
+- L'état enregistré des sept rubriques est **revalidé** par les règles de l'enregistrement (un état écrit hors
+  chemin et devenu invalide bloque : erreurs sous `steps.<RUBRIQUE>.…`).
+- `snapshot_sha256` = SHA-256 de JCS(steps) **que le poste a lues** ; le serveur le **recalcule** sur les tables
+  vivantes sous verrou et refuse un écart (422) : on ne fige jamais autre chose que ce qui a été relu.
+- Une transaction : révision 1 (`clinical_revisions`, snapshot complet, motif « Finalisation de la consultation »,
+  auteur, `sha256`), consultation `COMPLETED` (`completed_at`, `current_revision` 1, version + 1), visite
+  `COMPLETED` avec `closed_at`. Aucun contrôle de paiement.
+- Effets : audit `consultation.completed` `{revision_no, revision_id, sha256}` ; événement `ConsultationCompleted`
+  (références seulement) ; journal des changements (visite, consultation, révision). Verrous : cabinet →
+  idempotence → visite (46) → consultation (47).
+
+### `AmendConsultation`
+
+- Consultation `COMPLETED` (sinon 409 : une consultation en cours se modifie directement) ; version attendue ;
+  `revision_no` = révision courante + 1 et `previous_revision_id` = la révision courante (422 sinon) ;
+  identifiant de révision neuf.
+- **Motif obligatoire** (3 à 1000 caractères, schéma `Reason`) : conservé avec la révision (lisible avec
+  `clinical.read`), **jamais recopié dans l'audit** (il peut contenir une donnée clinique).
+- Chaque rubrique envoyée remplace la rubrique actuelle (mêmes règles, erreurs `steps.<n>.data.…`), une fois au
+  plus ; une correction qui ne change rien est refusée (422 `steps`).
+- `snapshot_sha256` = SHA-256 de JCS(`steps` de la requête), recalculé par le serveur (intégrité de ce qui est reçu).
+- Le snapshot de la révision N est construit **après** les écritures, dans la même transaction (état résultant,
+  `previous_revision_id`, `amendment_reason`). Les révisions antérieures ne changent jamais (triggers de la base).
+- Audit `consultation.amended` `{revision_no, revision_id, previous_revision_id, steps (noms), sha256}`. La visite
+  n'est pas touchée. Verrous : cabinet → idempotence → consultation.
+
+### Empreintes (hypothèse « G8 »)
+
+`clinical_revisions.sha256` = SHA-256 hexadécimal minuscule de **JCS(snapshot)**, calculé par le serveur seul
+(`RevisionHash`, sous-ensemble de JCS : objets à clés ASCII triées, listes, chaînes, **entiers** seulement, booléens,
+null ; un flottant lève une exception). Jumeau TypeScript `domain/clinical/snapshot.ts` (Web Crypto). Vecteurs
+communs `contracts/vectors/clinical/snapshot-hash.json` (recoupés par une implémentation Python indépendante),
+rejoués par PHPUnit et Vitest. La décision « G8 » des notes de pilotage n'est pas inscrite au registre 15 : à
+confirmer (point ouvert).
+
+### Lecture des révisions et comparaison
+
+`GET …/revisions/{n}` rend la révision **telle qu'enregistrée** (snapshot compris), trace `consultation.revision_viewed`
+(cible la révision, sans contenu). L'écran « Révisions de la consultation » compare deux révisions fait par fait :
+changement dit **en texte et par un symbole** (« ≠ Modifié », « + Ajouté », « − Retiré », « = Identique ») ; une
+valeur absente est « Non renseigné » ou « Non mesuré », jamais « aucun » ; une acuité est toujours rendue avec son
+échelle et deux échelles différentes sont déclarées **non comparables** (aucune conversion).
+
+## Prescription optique (C04)
+
+| État | Règles |
+| --- | --- |
+| Création (`CreatePrescription`) | Brouillon `DRAFT`. **Interne** : consultation du cabinet et du patient indiqué ; **une seule série par consultation** (une seconde première version → 409, la suite passe par une nouvelle version). **Externe** (A13) : prescripteur et date d'origine obligatoires (pas dans le futur, jour du cabinet), fichier facultatif qui doit exister, **aucune consultation** (aucun examen fictif). **Nouvelle version** : la précédente est `VALIDATED` et la plus récente de sa série ; même série, patient, origine et consultation ; numéro suivant. Identifiants (prescription, série, yeux, traitements) neufs : sinon 422 par champ. |
+| Contenu (`OpticalPrescriptionRules::normalize`) | Deux yeux exactement (OD, OG) ; mesures exactes (comme C02), cylindre positif non transposé, hauteur de montage > 0 ; « aucune correction » contradictoire avec une valeur ; usage, type de verre, traitements dans leurs référentiels (`OPTICAL_USAGE`, `LENS_TYPE`, `LENS_TREATMENT`), « Autre » avec précision ; indice dans la liste du fichier 02 (1.50 à 1.74) ou « autre » avec précision ; DP : mêmes règles que le centrage (justification d'un écart, jamais de DP fabriquée). Un brouillon peut être **incomplet**. Un code désactivé reste valable s'il est déjà enregistré sur ce brouillon. |
+| Modification d'un brouillon (`UpdatePrescriptionDraft`) | **En ligne seulement** (hors catalogue F06 : hors-ligne, une correction est une nouvelle version). Jeton `expected_updated_at` (la table n'a pas de colonne `version`, que le contrat 23 interdit d'inventer) : écart → 409 `VERSION_CONFLICT` avec `details.current_updated_at`. `changes` ne contient que des champs de contenu ; yeux et traitements fournis **remplacent** les actuels ; contenu résultant revalidé en entier ; sans effet : rien n'est écrit. Audit `prescription.updated` : noms des champs, jamais leurs valeurs. `expected_version: null` est toléré au corps (ajouté par le répartiteur du poste). |
+| Validation (`ValidatePrescription`) | Brouillon seulement (sinon 409) ; pour chaque œil, des valeurs saisies **ou** « aucune correction » ; un cylindre non nul exige un axe. La version devient **immuable** (triggers : ni la ligne ni ses enfants). Dans la même transaction, un document est **préparé** : `generated_documents` `OPTICAL_PRESCRIPTION`, statut `PENDING`, `source_key` `optical_prescription:<id>`, `revision_no` = numéro de version, `template_version` `optical_prescription.v1` (convention `<type>.v<n>` du registre des modèles ; la mention « test » vient du cabinet, jamais du nom). **Aucun fichier n'est écrit ici** : la génération suit le commit et appartient au moteur de documents (D01, D02). Rien n'est dit « imprimé ». Aucune vente, ligne de facture ni mouvement de stock. Audit `prescription.validated`, événement `PrescriptionValidated`. |
+| Lecture | Une prescription ; la liste des versions d'une consultation (plus récente d'abord). Traces `prescription.viewed` et `consultation.prescriptions_viewed`, sans contenu, au plus une par intervalle. |
+
+**Écran « Prescription optique »** (`/consultations/{id}/prescriptions`) : brouillon marqué « BROUILLON » ; copie
+de la réfraction **explicite** (choisir le stade, confirmer ; l'œil sans mesure n'est pas touché, la prescription
+s'édite ensuite sans modifier l'examen) ; report explicite des écarts du centrage ; « Valider » exige un brouillon
+enregistré sans modification en attente ; nouvelle version d'une version validée (lignes neuves) ; conflit de
+brouillon : saisie conservée et champs modifiés ailleurs montrés. **La transcription d'une ordonnance externe n'a
+pas d'écran** (aucune route de liste par patient) : serveur et domaine seulement.
+
+**Impression (branchée sur le moteur de documents, D02)** : l'ancien `domain/clinical/printModels.ts` (doublon
+du moteur) est **supprimé** ; une seule source de vérité, les adaptateurs `documents/data/clinicalAdapters.ts`
+lisant les ressources générées (`Prescription`, `Consultation`, `ClinicalRevisionDetail`), appelés par le service
+`app/services/clinicalDocuments.ts` (détail : `documents.md`, « Documents cliniques branchés sur les écrans »).
+
+- **Examen terminé** (`ConsultationDocuments.vue`, sous « Examen terminé », jamais pendant une correction ni pour un
+  examen en cours) : « Aperçu de la fiche de consultation » (`clinical.export`), « Aperçu de l'ordonnance de
+  médicaments » (rubrique Médicaments renseignée), « Aperçu de la lettre d'orientation » (orientation « oui ») ;
+  chaque document est construit de la **révision figée relue** au moment de la demande (`GET …/revisions/{n}`),
+  auteur et numéro de révision imprimés. Aucune lecture avant le clic.
+- **Prescription optique** (écran « Prescription optique ») : « Aperçu de la prescription (version N) » pour la
+  dernière version **validée** seulement ; un brouillon n'a aucune impression. Nom imprimé : compte connecté s'il a
+  validé, sinon nom figé d'une révision enregistrée par le même professionnel, sinon refus (jamais deviné).
+- Document de TEST tant que `production_documents_enabled` est faux ; identité légale, signature et cachet : non
+  inventés. Conservation : port `DocumentStore` volatil ; la ligne `generated_documents` reste `PENDING` (aucune
+  route de dépôt). Ordonnance et lettre : sans `document_type` serveur, générées localement.
+- L'écran de lecture d'une prescription (`PrescriptionView.vue`) affiche `prescriptionScreenModel` : mêmes valeurs
+  et mêmes mises en forme que le PDF.
+
+## Écran de consultation (frontend)
+
+`/consultations/{id}` : sept étapes (liste numérotée, « Étape N sur 7 »), en-tête patient lu dans la consultation,
+« Suivant » enregistre avant d'avancer, conflit de version rebasé valeur par valeur (rubriques mesurées comprises).
+Acuités : grille loin/près × sans/avec correction × OD/OG/OU puis après correction, **une échelle par groupe**
+choisie explicitement (suggestions de saisie des échelles de démonstration, saisie libre conservée), alerte si
+aucune échelle n'est configurée ou lisible. Réfraction : trois tableaux, indications non bloquantes (pas de 0,25,
+cylindre sans axe). Centrage : somme OD + OG proposée, justification demandée en cas d'écart. Médicaments : lignes
+ajoutées, retirées, déplacées. « Terminer l'examen » (compte `clinical.complete`, examen en cours, rien de non
+enregistré) : confirmation avec la liste des rubriques non renseignées et la justification si besoin. Examen
+terminé : lecture seule, liens « Révisions et comparaison » et « Prescription optique », « Corriger l'examen »
+(`clinical.amend`) : motif obligatoire, les rubriques modifiées partent en une révision. Rien n'est conservé dans
+le navigateur.
+
+## Décisions, hypothèses, points ouverts
 
 | Point | Décision / état |
 | --- | --- |
-| Contrôle du paiement de l'examen | Inactif, dit explicitement (`NOT_CONTROLLED`) ; à lever avec B04 et B06 (nouvelle implémentation de `ExamFeeControl`, refus `EXAM_PAYMENT_REQUIRED` côté serveur). Les tests AT05 et AT06 (examen non payé bloqué, dérogation) ne sont **pas** prouvés. À dire à la cliente. |
-| Preuve fournie au démarrage | Refusée (422) tant que le contrôle n'existe pas. Le contrat l'admet (schéma facultatif), le serveur non. |
-| `clinical.read` sur `POST` du démarrage | Ajouté (la réponse relit la consultation, y compris au rejeu) ; la liste de décisions ne le demandait que pour `PATCH`. |
-| Motif de date rétrospective | Facultatif et conservé ; aucun seuil inventé. À confirmer avec la cliente. |
-| Patient archivé ou fusionné après l'arrivée | Non contrôlé au démarrage (aucune commande d'archivage ou de fusion n'existe encore) ; à ajouter avec elles. |
-| Annulation / clôture d'une visite | Aucune commande au catalogue (G5) : une visite reste `IN_CONSULTATION` tant que C03 ne la clôt pas. |
-| Rubriques mesurées | Fermées (422) : C02. Échelles d'acuité (`visual_acuity_scales`) : aucune ligne, aucun seed (G11). |
-| `centering_id` nullable | Fait (G6). Pour C02 : un centrage sans ligne enregistrée a un identifiant null ; l'écran en fournit un à la première saisie. |
-| Un compte gérante qui démarre | Devient le professionnel de la consultation (`clinician_id` = compte connecté). |
-| Poste hors-ligne | `StartConsultation` et `SaveClinicalStep` refusées (403) pour toute source autre que la route directe, jusqu'au coffre et aux compartiments (O01 à O05, fichier 19). |
-| Version de la consultation | Couvre toute la consultation (pas par rubrique) : deux postes sur deux rubriques différentes se heurtent ; l'écran rebase sa saisie sur la version actuelle (`details.current_version`). |
-| Valeurs du référentiel | Seuls les codes **actifs** de `clinical_terms` sont admis ; un code désactivé reste lisible dans les consultations déjà saisies. Aucune règle d'exclusivité entre amétropies ou motifs n'est inventée. |
-| Dernière lecture avant le commit | Les réponses relisent après le commit : en cas d'écriture concurrente, la version rendue peut être plus récente que celle produite par l'appel (l'écran la reprend comme version attendue). |
+| Contrôle du paiement de l'examen | Inchangé pour la consultation : finalisation sans contrôle ; AT05/AT06 non prouvés par C01–C04. |
+| Échelles d'acuité (Q06, G11) | Démonstration seulement, libellées comme telles ; échelles réelles par `eeo:clinical:scales --code`. Aucune conversion (`normalized_value` jamais calculée). |
+| Tolérance DP total / OD + OG (Q06) | Hypothèse : 0 (toute différence se justifie). Pas de 0,25 : signalé, non imposé. Plages cliniques : non inventées. |
+| Empreintes (« G8 ») | JCS + SHA-256 ; `snapshot_sha256` de la finalisation = rubriques lues, de la correction = rubriques envoyées ; `sha256` de la révision = snapshot. À inscrire au registre 15. |
+| Règle de finalisation | Justification exigée si motif/plaintes **ou** conclusion manquent ; à confirmer avec la cliente. |
+| Motif d'une correction | Dans la révision, jamais dans l'audit. |
+| Prescription : une série par consultation | Unicité (consultation, version) du MLD ; les corrections sont des versions de la même série. |
+| Brouillon de prescription | Modifiable en ligne seulement, jeton `updated_at` (milliseconde). |
+| Document de prescription | Ligne `generated_documents` `PENDING` écrite par la validation, `template_version` `optical_prescription.v1` ; PDF généré sur le poste (D02), aucune route ne la passe à `READY`. |
+| Nom du professionnel d'une prescription | `Prescription.validated_by_name` (2026-10-22) : nom d'affichage du compte validateur, lu dans le cabinet à chaque lecture. Ce n'est PAS un nom figé (aucune colonne au schéma) : le PDF original, lui, est figé à sa génération. L'impression n'est refusée que si aucun nom n'est disponible. |
+| Ordonnance externe | Serveur et domaine prêts ; pas d'écran (nécessite une liste par patient, P02). |
+| Motif d'une date rétrospective, blancs internes, élément d'antécédents vide | Documentés, non tranchés (à confirmer avec la cliente). |
+| Poste hors-ligne | Toutes les commandes cliniques refusées (403) hors route directe jusqu'à O01–O05. |
 
-## Tests
+## Tests (écrits, non exécutés dans cette passe)
 
-PHPUnit sur MySQL réel : `tests/Feature/Clinical/` — `StartConsultationTest` (effets, motifs, états, rejeu,
-conflit de contenu, droits par rôle, module fermé, isolation des cabinets, retour arrière à chacun des 7 points
-du chemin, ordre des verrous, confidentialité des effets de bord), `SaveClinicalStepTest` (version, états,
-rubriques non ouvertes, identifiants du chemin et du corps, rejeu, droits, retour arrière, audit), 
-`SaveAnamnesisStepTest`, `SaveHistoriesStepTest`, `SaveConclusionStepTest` (une règle par test, remplacement
-complet, comparaison par identifiant, collisions d'identifiants), `GetConsultationTest` (contrat, rubriques
-vides, lignes existantes, droits, cabinets, audit de lecture et son intervalle) ; règles pures
-`tests/Unit/Clinical/NarrativeRulesTest.php` ; concurrence réelle entre connexions MySQL
-`tests/Concurrency/CommandBusConcurrencyTest.php` (AT19 : deux enregistrements de la même version → un seul
-succès ; double clic ; deux démarrages de la même visite → une consultation). Contrats : fixtures
-`start-consultation.no-proof.valid`, `start-consultation.bad-invoice-id.invalid`,
-`save-clinical-step.{histories,conclusion,centering-no-id}.valid`. Piège de test : figer l'horloge
-(`CarbonImmutable::setTestNow`) **avant** de créer les comptes (voir `tests/Support/ClinicalFixtures.php`).
+PHPUnit (MySQL réel) — `tests/Feature/Clinical/` : `StartConsultationTest`, `SaveClinicalStepTest`,
+`SaveAnamnesisStepTest`, `SaveHistoriesStepTest`, `SaveConclusionStepTest`, `GetConsultationTest` (traces des
+écritures, échec de l'audit = échec de la lecture, débit), `ConsultationReaderSnapshotTest` (relecture,
+503), `SaveVisualAcuityStepTest`, `SaveRefractionStepTest`, `SaveCenteringStepTest`, `SaveMedicationsStepTest`,
+`VisualAcuityScalesTest` (route et commande), `CompleteConsultationTest`, `AmendConsultationTest`,
+`GetRevisionTest`, `CreatePrescriptionTest`, `UpdatePrescriptionDraftTest`, `ValidatePrescriptionTest`,
+`GetPrescriptionTest` (droits, cabinets, module, rejeu, retour arrière à chaque point du chemin, ordre des
+verrous, sources hors-ligne, confidentialité des effets de bord, triggers d'immuabilité) ; règles pures
+`tests/Unit/Clinical/` : `NarrativeRulesTest`, `MeasurementRulesTest` (vecteurs), `RevisionHashTest` (vecteurs),
+`PrescriptionRulesTest`. Vitest — `tests/frontend/domain/clinical-{snapshot,measures,medications,compare,prescriptions}.test.ts`,
+`tests/frontend/consultations/consultation-{page,steps,errors,finish,measures,history}.test.ts`,
+`prescriptions-page.test.ts`, `consultation-documents.test.ts` (impression : état, droits, révision figée, nom de
+fichier), `tests/frontend/services/consultations.test.ts`. Playwright —
+`tests/e2e/consultation.spec.ts` (sept étapes, rechargement, finalisation, révision, 360 px). Contrats : fixtures
+`save-clinical-step.{visual-acuity,medications}.valid` et trois `.invalid`, snapshot de révision avec
+`MEDICATIONS`. Piège de test : figer l'horloge **avant** de créer les comptes (`tests/Support/ClinicalFixtures.php`) ;
+le jeton d'un brouillon de prescription est à la milliseconde : avancer l'horloge entre deux modifications.
+
+## Liste des examens (phase 1, ajoutée avec l'accueil par profil)
+
+`GET /api/v1/consultations` (`ListConsultations`, module `consultations`, `clinical.read`, même limite de débit par
+compte que les lectures de dossier) : 50 examens par page, du plus récent au plus ancien (date effective), filtres
+`date` (jour civil du cabinet, jamais minuit UTC), `status` et `mine=true`. Chaque élément porte l'identité
+administrative de base du patient, l'état, les dates, la révision et le professionnel (`ConsultationSummary`) :
+AUCUNE valeur clinique et aucune trace de lecture (le dossier s'ouvre par `GET /consultations/{id}`, tracé).
+Code : `app/Domain/Clinical/ConsultationDirectory.php`, `ConsultationListController`, `ConsultationSummaryPresenter`.
+Écran : `pages/consultations/ConsultationListPage.vue` (jour du cabinet par défaut ; préréglages `?jour=tous`,
+`?etat=IN_PROGRESS`, `?mes=1` pour les raccourcis de l'accueil). Tests écrits :
+`tests/Feature/Clinical/ListConsultationsTest.php`, `tests/frontend/consultations/consultation-list.test.ts`.
+
+Identité du cabinet sur les documents cliniques : `GET /api/v1/clinic/document-identity` (lisible avec
+`clinical.read`) et `clinicFromIdentity()` de `documents/data/clinic.ts` remplacent `clinicFromSummary()` (nom seul)
+pour une ordonnance ou une fiche de consultation ; le branchement dans `app/services/clinicalDocuments.ts` reste à
+faire par le chantier de l'impression clinique.

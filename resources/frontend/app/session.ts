@@ -83,6 +83,14 @@ export function moduleOpenOnScreen(code: string): boolean {
   return screenAccount()?.clinic.enabled_modules.includes(code) ?? false
 }
 
+/**
+ * Vrai si le serveur contrôle réellement le paiement de l'examen (`EEO_EXAM_FEE_CONTROL=billed`, lu dans
+ * `/auth/me`). Absent (serveur plus ancien) ou `OFF` : faux, l'écran dit « non contrôlé ».
+ */
+export function examFeeControlledOnScreen(): boolean {
+  return screenAccount()?.clinic.exam_fee_control === 'BILLED'
+}
+
 /** Identité de la session : compte connecté, sinon dernier compte connu de cet écran, sinon null. */
 export function knownAccountId(): string | null {
   return state.account?.id ?? state.lastAccount?.id ?? null

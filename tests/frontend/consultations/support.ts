@@ -1,13 +1,23 @@
-// Serveur simulé et aides de saisie pour les tests de la consultation par étapes (C01) et du démarrage
-// de l'examen depuis la file du jour. Données FICTIVES. `fetch` est remplacé : le vrai client HTTP, le
+// Serveur simulé et aides de saisie pour les tests de la consultation par étapes (C01 à C04) et du
+// démarrage de l'examen depuis la file du jour. Données FICTIVES. `fetch` est remplacé : le vrai client HTTP, le
 // vrai répartiteur de mutations et le vrai routeur travaillent contre des réponses au format des
 // contrats F06 (Consultation, ConsultationResponse, Visit, VisitPage, Patient). Le serveur simulé est
 // ÉTATFUL : un enregistrement d'étape change la consultation (version, état, étape) que la lecture
-// suivante rend, comme le serveur réel.
+// suivante rend, comme le serveur réel ; la finalisation et la correction écrivent des révisions
+// relisibles, les prescriptions se créent, se modifient et se valident.
 import { flushPromises } from '@vue/test-utils'
 import { vi, type Mock } from 'vitest'
 
-import type { Consultation, MeResponse, Patient, Visit } from '@/domain/contracts/generated'
+import type {
+  ClinicalRevisionDetail,
+  Consultation,
+  ConsultationPatient,
+  MeResponse,
+  Patient,
+  Prescription,
+  Visit,
+  VisualAcuityScale,
+} from '@/domain/contracts/generated'
 
 import {
   apiError,
@@ -58,6 +68,8 @@ export const ACCOUNT_ID = '01J9ZXK4M2Q8R7S6T5V4W30002'
 export const CLINICIAN = [
   'clinical.read',
   'clinical.write',
+  'clinical.complete',
+  'clinical.amend',
   'patient.read',
   'visit.register',
   'agenda.read',
@@ -86,6 +98,7 @@ export function emptySteps(): Steps {
       pd_og: null,
       inconsistency_reason: null,
     },
+    MEDICATIONS: { orders: [] },
     CONCLUSION: {
       conclusion: null,
       referral: null,
@@ -115,7 +128,101 @@ export function consultation(
     version: 1,
     steps: { ...emptySteps(), ...(steps ?? {}) } as Steps,
     revisions: [],
+    patient: patientSummary(),
     ...rest,
+  }
+}
+
+/** Identité de base rendue avec la consultation (en-tête), tirée de la fiche fictive. */
+export function patientSummary(source: Patient = basePatient()): ConsultationPatient {
+  return {
+    id: source.id,
+    record_number: source.record_number,
+    last_name: source.last_name,
+    first_names: source.first_names,
+    sex: source.sex,
+    birth_date: source.birth_date,
+  }
+}
+
+/** Échelles d'acuité de DÉMONSTRATION (fictives), comme `eeo:clinical:scales --demo` les crée. */
+export const SCALE_TENTHS = '01J9ZXK4M2Q8R7S6T5V4W30701'
+export const SCALE_NEAR = '01J9ZXK4M2Q8R7S6T5V4W30702'
+export function scales(): VisualAcuityScale[] {
+  return [
+    {
+      id: SCALE_TENTHS,
+      code: 'DEMO_DIXIEMES',
+      label: 'Dixièmes (X/10) — DÉMONSTRATION',
+      description: null,
+      active: true,
+    },
+    {
+      id: SCALE_NEAR,
+      code: 'DEMO_PRES',
+      label: 'Vision de près (Parinaud) — DÉMONSTRATION',
+      description: null,
+      active: true,
+    },
+  ]
+}
+
+export const PRESCRIPTION_ID = '01J9ZXK4M2Q8R7S6T5V4W30801'
+
+/** Prescription fictive (brouillon par défaut) au format de la ressource `Prescription`. */
+export function prescription(overrides: Partial<Prescription> = {}): Prescription {
+  return {
+    id: PRESCRIPTION_ID,
+    series_id: '01J9ZXK4M2Q8R7S6T5V4W30802',
+    version_no: 1,
+    supersedes_id: null,
+    patient_id: ID_A,
+    origin: 'INTERNAL',
+    consultation_id: CONSULTATION_ID,
+    external_prescriber: null,
+    external_prescribed_on: null,
+    external_file_id: null,
+    status: 'DRAFT',
+    usage_code: 'PERMANENT',
+    usage_other: null,
+    lens_type_code: 'SINGLE_VISION',
+    lens_type_other: null,
+    lens_index: '1.50',
+    lens_index_other: null,
+    pd_total: '62.00',
+    pd_od: '31.00',
+    pd_og: '31.00',
+    pd_inconsistency_reason: null,
+    notes: null,
+    eyes: [
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W30803',
+        eye: 'OD',
+        no_correction: false,
+        sphere: '-1.25',
+        cylinder: '-0.50',
+        axis: 90,
+        addition: null,
+        fitting_height: null,
+      },
+      {
+        id: '01J9ZXK4M2Q8R7S6T5V4W30804',
+        eye: 'OG',
+        no_correction: false,
+        sphere: '-1.00',
+        cylinder: null,
+        axis: null,
+        addition: null,
+        fitting_height: null,
+      },
+    ],
+    treatments: [],
+    validated_at: null,
+    validated_by: null,
+    validated_by_name: null,
+    document_id: null,
+    updated_at: '2026-10-22T09:40:00.000Z',
+    ...overrides,
   }
 }
 
@@ -151,6 +258,21 @@ export interface ConsultationApi {
   save: Handler<[id: string, step: string, body: Record<string, unknown>, request: Recorded]>
   start: Handler<[visitId: string, body: Record<string, unknown>, request: Recorded]>
   list: Handler<[day: string | null, page: number, request: Recorded]>
+  /** Échelles d'acuité du cabinet (GET /visual-acuity-scales). */
+  scales: VisualAcuityScale[]
+  getScales: Handler<[request: Recorded]>
+  complete: Handler<[id: string, body: Record<string, unknown>, request: Recorded]>
+  amend: Handler<[id: string, body: Record<string, unknown>, request: Recorded]>
+  getRevision: Handler<[id: string, revisionNo: number, request: Recorded]>
+  /** Révisions figées (avec snapshot) écrites par `complete` et `amend`. */
+  revisionDetails: ClinicalRevisionDetail[]
+  /** Prescriptions du serveur simulé (toutes versions). */
+  prescriptions: Prescription[]
+  listPrescriptions: Handler<[consultationId: string, request: Recorded]>
+  createPrescription: Handler<[path: string, body: Record<string, unknown>, request: Recorded]>
+  getPrescription: Handler<[id: string, request: Recorded]>
+  updatePrescription: Handler<[id: string, body: Record<string, unknown>, request: Recorded]>
+  validatePrescription: Handler<[id: string, body: Record<string, unknown>, request: Recorded]>
   requests: Recorded[]
   fetchMock: Mock
 }
@@ -159,6 +281,26 @@ const CONSULTATION_PATH = /^\/api\/v1\/consultations\/([^/]+)$/
 const STEP_PATH = /^\/api\/v1\/consultations\/([^/]+)\/steps\/([^/]+)$/
 const START_PATH = /^\/api\/v1\/visits\/([^/]+)\/consultations$/
 const PATIENT_PATH = /^\/api\/v1\/patients\/([^/]+)$/
+const COMPLETE_PATH = /^\/api\/v1\/consultations\/([^/]+)\/complete$/
+const AMEND_PATH = /^\/api\/v1\/consultations\/([^/]+)\/amendments$/
+const REVISION_PATH = /^\/api\/v1\/consultations\/([^/]+)\/revisions\/([0-9]+)$/
+const CONSULTATION_PRESCRIPTIONS_PATH = /^\/api\/v1\/consultations\/([^/]+)\/prescriptions$/
+const PRESCRIPTION_PATH = /^\/api\/v1\/prescriptions\/([^/]+)$/
+const PRESCRIPTION_REVISION_PATH = /^\/api\/v1\/prescriptions\/([^/]+)\/revisions$/
+const PRESCRIPTION_VALIDATE_PATH = /^\/api\/v1\/prescriptions\/([^/]+)\/validate$/
+const SCALES_PATH = /^\/api\/v1\/visual-acuity-scales$/
+
+/** Adresses des routes C02 à C04, pour filtrer les requêtes enregistrées. */
+export const PATHS = {
+  complete: COMPLETE_PATH,
+  amend: AMEND_PATH,
+  revision: REVISION_PATH,
+  consultationPrescriptions: CONSULTATION_PRESCRIPTIONS_PATH,
+  prescription: PRESCRIPTION_PATH,
+  prescriptionRevision: PRESCRIPTION_REVISION_PATH,
+  prescriptionValidate: PRESCRIPTION_VALIDATE_PATH,
+  scales: SCALES_PATH,
+} as const
 
 export function callsTo(api: ConsultationApi, method: string, path: RegExp): Recorded[] {
   return api.requests.filter((request) => request.method === method && path.test(request.path))
@@ -188,8 +330,27 @@ export function stubConsultationApi(
     consultation?: Consultation
     patient?: Patient
     handlers?: Partial<
-      Pick<ConsultationApi, 'getConsultation' | 'getPatient' | 'save' | 'start' | 'list'>
+      Pick<
+        ConsultationApi,
+        | 'getConsultation'
+        | 'getPatient'
+        | 'save'
+        | 'start'
+        | 'list'
+        | 'getScales'
+        | 'complete'
+        | 'amend'
+        | 'getRevision'
+        | 'listPrescriptions'
+        | 'createPrescription'
+        | 'getPrescription'
+        | 'updatePrescription'
+        | 'validatePrescription'
+      >
     >
+    scales?: VisualAcuityScale[]
+    prescriptions?: Prescription[]
+    revisionDetails?: ClinicalRevisionDetail[]
   } = {},
 ): ConsultationApi {
   const requests: Recorded[] = []
@@ -199,6 +360,9 @@ export function stubConsultationApi(
     ]),
     server: options.consultation ?? consultation(),
     patient: options.patient ?? patient(),
+    scales: options.scales ?? scales(),
+    prescriptions: options.prescriptions ?? [],
+    revisionDetails: options.revisionDetails ?? [],
     requests,
   } as ConsultationApi
 
@@ -234,6 +398,201 @@ export function stubConsultationApi(
       return json(201, { data: api.server })
     })
   api.list = options.handlers?.list ?? (() => json(200, visitPage([])))
+  api.getScales = options.handlers?.getScales ?? (() => json(200, { data: api.scales }))
+
+  const versionConflict = (body: Record<string, unknown>): Response | null =>
+    body['expected_version'] !== api.server.version
+      ? errorWithDetails(409, 'VERSION_CONFLICT', 'La consultation a été modifiée.', {
+          current_version: api.server.version,
+        })
+      : null
+  const freeze = (
+    revisionId: string,
+    revisionNo: number,
+    previous: string | null,
+    reason: string,
+    amendment: string | null,
+  ): void => {
+    const recordedAt = new Date().toISOString()
+    const meta = {
+      id: revisionId,
+      revision_no: revisionNo,
+      recorded_at: recordedAt,
+      author_id: ACCOUNT_ID,
+      reason,
+      previous_revision_id: previous,
+      sha256: 'a'.repeat(64),
+    }
+    api.server = { ...api.server, revisions: [...api.server.revisions, meta] }
+    api.revisionDetails = [
+      ...api.revisionDetails,
+      {
+        ...meta,
+        snapshot: {
+          consultation_id: api.server.id,
+          revision_no: revisionNo,
+          recorded_at: recordedAt,
+          author: { user_id: ACCOUNT_ID, display_name: 'Dr Fictif' },
+          patient: {
+            patient_id: api.server.patient.id,
+            record_number: api.server.patient.record_number,
+            last_name: api.server.patient.last_name,
+            first_names: api.server.patient.first_names,
+          },
+          visit_id: api.server.visit_id,
+          effective_at: api.server.effective_at,
+          steps: structuredClone(api.server.steps),
+          finalization_missing_data_reason: api.server.finalization_missing_data_reason,
+          previous_revision_id: previous,
+          amendment_reason: amendment,
+        },
+      },
+    ]
+  }
+
+  api.complete =
+    options.handlers?.complete ??
+    ((_id, body) => {
+      const conflict = versionConflict(body)
+      if (conflict !== null) return conflict
+      api.server = {
+        ...api.server,
+        status: 'COMPLETED',
+        version: api.server.version + 1,
+        current_revision: 1,
+        completed_at: new Date().toISOString(),
+        finalization_missing_data_reason:
+          (body['finalization_missing_data_reason'] as string | null | undefined) ?? null,
+      }
+      freeze(String(body['revision_id']), 1, null, 'Finalisation de la consultation', null)
+      return json(200, { data: api.server })
+    })
+
+  api.amend =
+    options.handlers?.amend ??
+    ((_id, body) => {
+      const conflict = versionConflict(body)
+      if (conflict !== null) return conflict
+      const changed = body['steps'] as { step: string; data: unknown }[]
+      const steps = { ...api.server.steps } as Record<string, unknown>
+      for (const item of changed) steps[item.step] = item.data
+      const revisionNo = api.server.current_revision + 1
+      api.server = {
+        ...api.server,
+        steps: steps as Steps,
+        version: api.server.version + 1,
+        current_revision: revisionNo,
+      }
+      freeze(
+        String(body['revision_id']),
+        revisionNo,
+        String(body['previous_revision_id']),
+        String(body['reason']),
+        String(body['reason']),
+      )
+      return json(201, { data: api.server })
+    })
+
+  api.getRevision =
+    options.handlers?.getRevision ??
+    ((_id, revisionNo) => {
+      const found = api.revisionDetails.find((revision) => revision.revision_no === revisionNo)
+      return found === undefined
+        ? apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.')
+        : json(200, { data: found })
+    })
+
+  const findPrescription = (id: string): Prescription | undefined =>
+    api.prescriptions.find((item) => item.id === id)
+  const replacePrescription = (next: Prescription): void => {
+    api.prescriptions = api.prescriptions.map((item) => (item.id === next.id ? next : item))
+  }
+
+  api.listPrescriptions =
+    options.handlers?.listPrescriptions ??
+    ((consultationId) =>
+      json(200, {
+        data: api.prescriptions
+          .filter((item) => item.consultation_id === consultationId)
+          .sort((a, b) => b.version_no - a.version_no),
+      }))
+
+  api.createPrescription =
+    options.handlers?.createPrescription ??
+    ((_path, body) => {
+      const content = { ...body }
+      delete content['expected_version']
+      const id = String(content['prescription_id'])
+      delete content['prescription_id']
+      const created = {
+        ...(content as unknown as Omit<Prescription, 'id'>),
+        id,
+        status: 'DRAFT',
+        validated_at: null,
+        validated_by: null,
+        validated_by_name: null,
+        document_id: null,
+        updated_at: new Date().toISOString(),
+      } as Prescription
+      api.prescriptions = [...api.prescriptions, created]
+      return json(201, { data: created })
+    })
+
+  api.getPrescription =
+    options.handlers?.getPrescription ??
+    ((id) => {
+      const found = findPrescription(id)
+      return found === undefined
+        ? apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.')
+        : json(200, { data: found })
+    })
+
+  api.updatePrescription =
+    options.handlers?.updatePrescription ??
+    ((id, body) => {
+      const found = findPrescription(id)
+      if (found === undefined) return apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.')
+      if (found.status !== 'DRAFT') {
+        return errorWithDetails(409, 'STATE_TRANSITION_REFUSED', 'Prescription validée.', {
+          current_status: found.status,
+        })
+      }
+      if (body['expected_updated_at'] !== found.updated_at) {
+        return errorWithDetails(409, 'VERSION_CONFLICT', 'Prescription modifiée entre-temps.', {
+          current_updated_at: found.updated_at,
+        })
+      }
+      const next = {
+        ...found,
+        ...(body['changes'] as Partial<Prescription>),
+        updated_at: new Date(Date.parse(found.updated_at) + 1000).toISOString(),
+      } as Prescription
+      replacePrescription(next)
+      return json(200, { data: next })
+    })
+
+  api.validatePrescription =
+    options.handlers?.validatePrescription ??
+    ((id, body) => {
+      const found = findPrescription(id)
+      if (found === undefined) return apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.')
+      if (found.status !== 'DRAFT') {
+        return errorWithDetails(409, 'STATE_TRANSITION_REFUSED', 'Prescription déjà validée.', {
+          current_status: found.status,
+        })
+      }
+      const next = {
+        ...found,
+        status: 'VALIDATED',
+        validated_at: new Date().toISOString(),
+        validated_by: ACCOUNT_ID,
+        validated_by_name: 'Professionnel (démonstration)',
+        document_id: String(body['document_id']),
+        updated_at: new Date().toISOString(),
+      } as Prescription
+      replacePrescription(next)
+      return json(200, { data: next })
+    })
 
   api.fetchMock = vi.fn(async (input: unknown, init?: RequestInit): Promise<Response> => {
     const url = new URL(String(input), 'https://cabinet.test')
@@ -264,6 +623,48 @@ export function stubConsultationApi(
           Number(url.searchParams.get('page') ?? '1'),
           request,
         ),
+      )
+    }
+    if (SCALES_PATH.test(url.pathname) && method === 'GET') return settle(api.getScales(request))
+    const completed = COMPLETE_PATH.exec(url.pathname)
+    if (completed !== null && method === 'POST') {
+      return settle(api.complete(decodeURIComponent(completed[1] ?? ''), body ?? {}, request))
+    }
+    const amended = AMEND_PATH.exec(url.pathname)
+    if (amended !== null && method === 'POST') {
+      return settle(api.amend(decodeURIComponent(amended[1] ?? ''), body ?? {}, request))
+    }
+    const revision = REVISION_PATH.exec(url.pathname)
+    if (revision !== null && method === 'GET') {
+      return settle(
+        api.getRevision(decodeURIComponent(revision[1] ?? ''), Number(revision[2]), request),
+      )
+    }
+    const listed = CONSULTATION_PRESCRIPTIONS_PATH.exec(url.pathname)
+    if (listed !== null && method === 'GET') {
+      return settle(api.listPrescriptions(decodeURIComponent(listed[1] ?? ''), request))
+    }
+    if (
+      method === 'POST' &&
+      (listed !== null ||
+        url.pathname === '/api/v1/prescriptions/external' ||
+        PRESCRIPTION_REVISION_PATH.test(url.pathname))
+    ) {
+      return settle(api.createPrescription(url.pathname, body ?? {}, request))
+    }
+    const validated = PRESCRIPTION_VALIDATE_PATH.exec(url.pathname)
+    if (validated !== null && method === 'POST') {
+      return settle(
+        api.validatePrescription(decodeURIComponent(validated[1] ?? ''), body ?? {}, request),
+      )
+    }
+    const single = PRESCRIPTION_PATH.exec(url.pathname)
+    if (single !== null && method === 'GET') {
+      return settle(api.getPrescription(decodeURIComponent(single[1] ?? ''), request))
+    }
+    if (single !== null && method === 'PATCH') {
+      return settle(
+        api.updatePrescription(decodeURIComponent(single[1] ?? ''), body ?? {}, request),
       )
     }
     const started = START_PATH.exec(url.pathname)

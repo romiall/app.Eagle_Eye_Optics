@@ -100,6 +100,11 @@ le marqueur `exam_fee_control`.
 - **Marqueur `exam_fee_control`** : `NOT_CONTROLLED` pour un examen ou un suivi, `NOT_APPLICABLE` pour un
   achat ou un retrait. L'écran écrit « Paiement de l'examen non contrôlé », jamais « payé », « soldé » ni
   « gratuit ». À dire à la cliente : l'examen n'est pas encore bloqué faute de règlement.
+- **Contrôle actif** (`EEO_EXAM_FEE_CONTROL=billed`, P03 avec B04 et B06, décision de l'exploitant) : les deux
+  points ci-dessus valent pour la valeur par défaut `off`. En `billed`, une visite d'examen ou de suivi arrive
+  `AWAITING_EXAM_FEE`, passe `READY_FOR_EXAM` à l'encaissement de sa facture de frais ou à la dispense accordée,
+  et le marqueur vaut `UNPAID`, `WAIVER_REQUESTED`, `PAID` (avec le numéro du reçu) ou `WAIVED` : voir
+  [billing.md](billing.md), « Contrôle du paiement de l'examen dans la file du jour (P03) ».
 - **Un achat ou un retrait ne crée jamais de consultation.** Une autre visite du même patient le même
   jour ne bloque pas.
 - **Jour civil du cabinet** : `DayWindow` convertit minuit local en UTC (à Douala, le 22 octobre local
@@ -112,6 +117,80 @@ le marqueur `exam_fee_control`.
 - Rangs de verrou 46 « visite » et 47 « consultation » ajoutés d'avance pour C01 (`LockRank`).
 - Reste du plan P03 : démarrage de l'examen (`StartConsultation`, avec C01), annulation d'une visite
   (commande absente du contrat), contrôle du paiement (B04, B06).
+
+## Activité du patient (onglet « Activité » de la fiche ; R02, partie « activité patient »)
+
+**Codé, non exécuté** (consigne du demandeur : vérification transversale en fin de phase). Lecture seule,
+en ligne : l'historique du dossier, jamais écrasé, du plus récent au plus ancien.
+
+| Méthode et route | Permission | Rôle |
+| --- | --- | --- |
+| `GET /api/v1/patients/{id}/activity?section=&page=` | `patient.read` (route) ; sections selon les droits ci-dessous | `PatientActivity` (contrat), 25 éléments par page |
+
+Module `patients` (404 fermé). Patient d'un autre cabinet ou inconnu : 404 ; identifiant non ULID : 404.
+
+| Section | Éléments (champs) | Rendue seulement si |
+| --- | --- | --- |
+| `VISITS` | visites : date, motif, statut administratif | `patient.read` (toujours) |
+| `EXAMS` | consultations : date effective, état, nom du professionnel | `clinical.read` et module `consultations` ouvert |
+| `PRESCRIPTIONS` | prescriptions optiques (une entrée par version : origine interne/externe, état, n° de version, date d'origine d'une ordonnance externe) ; ordonnance de médicaments d'une consultation (identifiant et état de la consultation) | `clinical.read` et module `consultations` ouvert |
+| `FINANCIAL` | factures émises (numéro, montant, solde projeté), reçus (numéro, montant, mode, contre-passé, facture), avoirs émis, remboursements | `invoice.read` et module `sales` ouvert |
+
+- **Droit financier** : `invoice.read` (« Lire facture autorisée », `02_reference_data.sql` : gérante et
+  caisse), celui des routes de factures et de reçus. Aucun droit inventé.
+- **Aucune trace d'une section non autorisée** : elle n'entre dans aucune requête ; `meta.sections` ne
+  liste que les sections visibles avec leur nombre d'éléments ; un filtre `section` non visible répond
+  403 sans rien dire du dossier, une valeur inconnue 422. Les droits sont les droits ACTUELS (une
+  dérogation DENY retire la section).
+- **Aucune valeur clinique** : ni motifs, mesures, conclusions, orientation, médicaments, notes ni
+  prescripteur externe ; objets stricts au contrat (une fixture invalide le prouve). Pas d'audit de
+  lecture pour cette liste (la consultation ouverte reste tracée par `consultation.viewed`).
+- **Pièces** : seules les pièces réelles (facture `ISSUED`, avoir `ISSUED`, reçus, remboursements) ;
+  brouillons et pièces abandonnées exclus. L'état de règlement est **dérivé** de la projection
+  `vw_invoice_balances` (`UNPAID`, `PARTIALLY_PAID`, `SETTLED` = solde nul, `IN_CREDIT`), mêmes valeurs
+  que `InvoiceBalance.settlement` ; aucun « payé » (un solde nul peut venir d'un avoir).
+- **Ordre** : instant décroissant (visite : heure ; consultation : date effective ; prescription :
+  validation, sinon création ; pièce : émission ou date d'effet), puis type (reçu avant facture,
+  prescription avant consultation, consultation avant visite), puis identifiant décroissant.
+- **Une ordonnance de médicaments** n'a ni table ni numéro propres : c'est la rubrique « médicaments »
+  d'une consultation ; l'entrée porte l'identifiant et la date de la consultation. Une prescription
+  optique n'a pas de numéro de pièce : le « numéro » affiché est sa version.
+- **`screen_path`** : adresse de l'écran qui ouvre l'élément, donnée seulement si l'écran existe et que le
+  compte peut l'ouvrir (`/consultations/{id}`, `/consultations/{id}/prescriptions`) ; null pour une
+  visite, une ordonnance externe et les pièces (aucun écran de facture ni de reçu pour l'instant).
+- Fichiers : `app/Domain/Patients/{PatientActivity,PatientActivityPage}.php`,
+  `app/Http/Controllers/Api/V1/PatientActivityController.php`, `app/Http/Resources/PatientActivityPresenter.php`,
+  route `api.patients.activity` ; contrat `patient_activity_resources()` dans `contracts/tools/build_resources.py`
+  et `GetPatientActivity` dans `build_openapi.py` (`x-read-scope`) ; fixtures
+  `contracts/fixtures/resources/patient-activity.*.json`.
+
+**Écran** : `/patients/:id/activite` (route `patient-activite`, `patient.read`, module `patients`), onglets
+« Identité » / « Activité » (`PatientRecordTabs`) ; la fiche d'identité ne lit jamais l'activité
+(chargement du seul onglet nécessaire, fichier 04). `PatientActivityList` lit via `useRead` (fraîcheur,
+« Activité indisponible » sans réponse, jamais un dossier vide), filtres par section seulement pour les
+sections reçues (aucun filtre si une seule section), vides confirmés propres à la section (« Aucune visite
+enregistrée »…), cartes empilées (aucun tableau à 360 px), lien seulement si l'adresse reçue correspond à
+une route de cette version que le compte peut ouvrir (droit et module), sinon texte simple. Libellés purs :
+`resources/frontend/domain/patients/activity.ts` ; service `listPatientActivity` (`app/services/patients.ts`).
+
+**Tests écrits, non exécutés** : `tests/Feature/Patients/PatientActivityTest.php` (matrice des quatre
+profils, DENY, modules fermés, cabinets, ordre, pagination, filtre, sentinelles cliniques et de référence de
+paiement, pièces exclues et états de règlement, versions de prescription ; horloge figée avant les comptes ;
+lignes insérées par `tests/Support/PatientActivityFixtures.php`), `tests/frontend/patients/activity-page.test.ts`
+(droits, sections absentes, liens, vides, erreurs, pagination, 360 px), `tests/frontend/bootstrap.test.ts`
+(15 routes).
+
+| Point ouvert | État |
+| --- | --- |
+| Caisse et pièces du patient | `invoice.read` donne à la caisse toutes les pièces du patient (comme `GET /invoices`) ; la matrice 09 limite la caisse à la « facture sélectionnée » pour la finance globale : à confirmer avec le demandeur. |
+| Liens vers les pièces | Aucun écran de facture ni de reçu : à ajouter dans le présentateur (`invoice.read`, module `sales`) quand la route d'écran existera. |
+| Cohérence comptes / page | Deux requêtes sans transaction (interdite hors `TransactionRunner`) : une écriture concurrente peut décaler un compte d'une unité. |
+| Performance | Union de 8 sous-requêtes indexées par cabinet et patient ; `vw_invoice_balances` agrège ses faits à chaque lecture : à mesurer sur le serveur de recette. |
+| Limite de débit | Aucune dédiée (fichiers partagés `AppServiceProvider`, `config/eeo.php`) : à décider. |
+| Dérivation du règlement | Recopiée de la règle de facturation (même contrat) pour ne pas dépendre de ses classes : à unifier après la phase. |
+| Fiche fusionnée | Seules ses propres lignes (la fusion est L1). |
+| Filtres conservés pendant la session (fichier 04) | Non : le filtre vit dans l'écran. |
+| `GetPatientHistory` (`/patients/{id}/history`, PLANNED, P02) | Laissé tel quel : historique clinique détaillé, distinct de cette liste. |
 
 ## Écarts et points ouverts
 

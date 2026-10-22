@@ -184,6 +184,24 @@ CLINICAL_STEPS = {
         'pd_og': N_DIOPTER,
         'inconsistency_reason': N_TEXT,
     }),
+    # Médicaments prescrits (DP §9) : lignes ordonnées (la position est celle de la liste), saisie libre contrôlée,
+    # aucune posologie déduite. Rubrique de la consultation, donc figée par la finalisation et corrigée par révision.
+    'MEDICATIONS': obj({
+        'orders': array(obj({
+            'id': ULID,
+            'catalog_item_id': N_ULID,
+            'name': text(180),
+            'form': enum('medication_orders.form'),
+            'form_other': nullable(text(100)),
+            'strength': nullable(text(100)),
+            'dosage': N_TEXT,
+            'frequency': nullable(text(180)),
+            'duration_text': nullable(text(180)),
+            'duration_value': nullable(integer(1, 4294967295)),
+            'duration_unit': nullable(enum('medication_orders.duration_unit')),
+            'instructions': N_TEXT,
+        }), max_items=20),
+    }),
     'CONCLUSION': obj({
         'conclusion': N_TEXT,
         'referral': nullable(boolean()),
@@ -194,7 +212,7 @@ CLINICAL_STEPS = {
 
 
 STEP_DEFS = {'ANAMNESIS': 'Anamnesis', 'HISTORIES': 'Histories', 'VISUAL_ACUITY': 'VisualAcuity', 'REFRACTION': 'Refraction',
-             'CENTERING': 'Centering', 'CONCLUSION': 'Conclusion'}
+             'CENTERING': 'Centering', 'MEDICATIONS': 'Medications', 'CONCLUSION': 'Conclusion'}
 
 
 def clinical_steps_schema():
@@ -242,6 +260,37 @@ PATIENT_FIELDS = {
                                   'description': 'Contact du responsable d’un mineur (extension facultative) : nom, lien, téléphone ; rien d’autre.'}),
 }
 
+def kind(value):
+    return {'type': 'string', 'const': value}
+
+
+# Contenu EXACT d'une opération soumise à approbation (B06) : le serveur en dérive le code d'action, la cible et
+# l'empreinte (payload_hash = SHA-256 du JSON canonique), et recalcule le même contenu depuis la commande approuvée au
+# moment de la consommer. Identifiants et montants seulement ; aucun texte de motif, aucune donnée clinique.
+APPROVAL_SUBJECTS = {
+    'ExamFeeWaiverSubject': obj({'kind': kind('EXAM_FEE_WAIVER'), 'visit_id': ULID, 'patient_id': ULID},
+        {'description': 'Dispense des frais d\'examen d\'UNE visite de CE patient (action exam_fee.collect, cible visits).'}),
+    'DraftLineRightsSubject': obj({'kind': kind('DRAFT_LINE_RIGHTS'), 'invoice_id': ULID, 'patient_id': ULID,
+        'lines': array(obj({'position': integer(1, 999), 'catalog_item_id': N_ULID, 'description': text(500), 'quantity': QUANTITY,
+                            'unit_price_gross': MONEY, 'discount_gross': MONEY, 'prescription_id': N_ULID}), min_items=1, max_items=200)},
+        {'description': 'Prix hors catalogue, ligne libre ou remise au-delà du plafond : TOUTES les lignes du brouillon telles qu\'elles seront enregistrées, sans leurs identifiants (action catalog.manage, cible invoices ; le brouillon peut ne pas encore exister).'}),
+    'PaymentReversalSubject': obj({'kind': kind('PAYMENT_REVERSAL'), 'invoice_id': ULID, 'payment_id': ULID, 'amount': POSITIVE_MONEY},
+        {'description': 'Contre-écriture d\'un paiement (action payment.reverse, cible payments).'}),
+    'CreditNoteSubject': obj({'kind': kind('CREDIT_NOTE'), 'invoice_id': ULID, 'amount_gross': POSITIVE_MONEY,
+        'lines': array(obj({'invoice_line_id': ULID, 'quantity': nullable(QUANTITY), 'amount_gross': POSITIVE_MONEY}), min_items=1, max_items=200)},
+        {'description': 'Avoir lié aux lignes d\'origine (action credit_note.issue, cible invoices).'}),
+    'RefundSubject': obj({'kind': kind('REFUND'), 'invoice_id': ULID, 'credit_note_id': ULID, 'amount': POSITIVE_MONEY, 'method': enum('refunds.method')},
+        {'description': 'Remboursement d\'un crédit (action refund.execute, cible invoices).'}),
+}
+
+APPROVAL_SUBJECT = {'description': 'Contenu exact de l\'opération à approuver ; la nature (kind) fixe l\'action, la cible et les champs.',
+                    'oneOf': [{'$ref': '#/$defs/' + name} for name in APPROVAL_SUBJECTS]}
+
+# Définitions supplémentaires d'un fichier de commande (référencées par la charge et par les ressources).
+EXTRA_DEFS = {
+    'RequestApproval': {'ApprovalSubject': APPROVAL_SUBJECT, **APPROVAL_SUBJECTS},
+}
+
 # nom : (entité, permission, version attendue, route directe, description, propriétés, règles supplémentaires)
 COMMANDS = {
     'CreatePatient': ('patient_records', 'patient.create', 'none', 'POST /patients',
@@ -258,9 +307,10 @@ COMMANDS = {
         {'visit_id': ULID, 'patient_id': ULID, 'reason': enum('visits.reason'), 'occurred_at': INSTANT, 'appointment_id': N_ULID, 'administrative_note': N_TEXT},
         []),
     'StartConsultation': ('consultations', 'clinical.write', 'none', 'POST /visits/{id}/consultations',
-        'Démarrage d\'examen. La pièce de frais de CETTE visite et la dérogation gérante exacte sont facultatives au contrat : '
-        'tant que le contrôle du paiement de l\'examen n\'existe pas (B04, B06), le serveur ne contrôle aucune preuve et le dit (NOT_CONTROLLED) ; '
-        'c\'est le serveur, non le schéma, qui exigera la preuve quand le contrôle sera actif.',
+        'Démarrage d\'examen. La pièce de frais de CETTE visite et la dispense exacte de la gérante sont facultatives au contrat : '
+        'contrôle inactif (EEO_EXAM_FEE_CONTROL=off, défaut), le serveur ne contrôle aucune preuve et le dit (NOT_CONTROLLED) ; '
+        'contrôle actif (billed), c\'est le serveur, non le schéma, qui exige la facture de frais réglée ou la dispense accordée '
+        '(retrouvée par son contenu exact quand exam_waiver_approval_id est null).',
         {'consultation_id': ULID, 'visit_id': ULID, 'patient_id': ULID, 'effective_at': INSTANT, 'date_change_reason': N_TEXT,
          'exam_invoice_id': N_ULID, 'exam_waiver_approval_id': N_ULID},
         []),
@@ -275,7 +325,7 @@ COMMANDS = {
     'AmendConsultation': ('consultations', 'clinical.amend', 'entity', 'POST /consultations/{id}/amendments',
         'Correction motivée : nouvelle révision immuable, révisions antérieures intactes.',
         {'consultation_id': ULID, 'revision_id': ULID, 'revision_no': integer(2), 'previous_revision_id': ULID, 'reason': REASON,
-         'steps': array(clinical_step(), min_items=1, max_items=6), 'snapshot_sha256': ref('Sha256Hex')},
+         'steps': array(clinical_step(), min_items=1, max_items=7), 'snapshot_sha256': ref('Sha256Hex')},
         []),
     'CreatePrescription': ('optical_prescriptions', 'clinical.write', 'none', 'POST /consultations/{id}/prescriptions',
         'Prescription interne (consultation) ou transcription d\'une ordonnance externe identifiée (A13) ; aucune prescription produite automatiquement.',
@@ -381,9 +431,9 @@ COMMANDS = {
          'appointment_id': N_ULID, 'administrative_note': N_TEXT, 'next_status': enum('contact_tasks.status'), 'next_attempt_at': ref('NullableInstant')},
         []),
     'RequestApproval': ('approvals', 'approval.request', 'none', 'POST /approvals',
-        'Demande d\'autorisation liée au contenu exact (hash de la charge visée).',
-        {'approval_id': ULID, 'action_code': ref('PermissionCode'), 'target_type': {'type': 'string', 'pattern': '^[a-z][a-z_]{1,63}$'},
-         'target_id': ULID, 'payload_hash': ref('Sha256Hex'), 'reason': REASON, 'expires_at': ref('NullableInstant')},
+        'Demande d\'autorisation liée au contenu exact de l\'opération (subject) : le serveur en dérive l\'action, la cible et '
+        'l\'empreinte (payload_hash), jamais fournies par le client ; échéance proposée facultative, raccourcie par la décision.',
+        {'approval_id': ULID, 'subject': {'$ref': '#/$defs/ApprovalSubject'}, 'reason': REASON, 'expires_at': ref('NullableInstant')},
         []),
     'DecideApproval': ('approvals', 'approval.decide', 'state', 'POST /approvals/{id}/decision',
         'Décision de la gérante présente (profil préparé ou réauthentification en ligne), consommable une fois.',
@@ -458,7 +508,8 @@ def build_command(name, spec):
         'description': description + ' Généré par contracts/tools/build_commands.py : ne pas modifier à la main.',
         **annotations,
         **payload,
-        '$defs': {'DirectRequest': {'description': 'Corps de la route directe ' + route + ' : même charge + expected_version (' + EXPECTED_VERSION[version_kind] + ') ; en-tête Idempotency-Key obligatoire.', **direct}},
+        '$defs': {'DirectRequest': {'description': 'Corps de la route directe ' + route + ' : même charge + expected_version (' + EXPECTED_VERSION[version_kind] + ') ; en-tête Idempotency-Key obligatoire.', **direct},
+                  **copy.deepcopy(EXTRA_DEFS.get(name, {}))},
     }
     return schema
 

@@ -1,13 +1,13 @@
 {
   "schema": "commands/RequestApproval.v1.json",
   "valid": false,
-  "description": "Code d'action hors format de permission",
+  "description": "Nature d'opération inconnue : aucune approbation « générale »",
   "base": "commands/request-approval.valid.json",
   "patch": [
     {
       "op": "replace",
-      "path": "/action_code",
-      "value": "CREDIT_NOTE"
+      "path": "/subject/kind",
+      "value": "ANY_OPERATION"
     }
   ]
 }

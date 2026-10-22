@@ -15,6 +15,7 @@ tags:
   - name: "Clinique"
   - name: "Catalogue"
   - name: "Ventes"
+  - name: "Approbations"
   - name: "Caisse"
   - name: "Stock"
   - name: "Agenda et suivi"
@@ -257,6 +258,44 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "F05"
+  /v1/clinic/document-identity:
+    get:
+      operationId: "GetClinicDocumentIdentity"
+      summary: "Identité du cabinet imprimée sur les documents"
+      tags:
+        - "Cabinet et comptes"
+      description: "En-tête et pied des documents (nom, coordonnées, identifiant fiscal, mentions professionnelles, réglages des documents, documents de test ou non) : lisible par tout profil qui produit un document (l'un des droits suffit), pas seulement par la gérante. Ne dépend d'aucun module. Les paramètres administratifs complets restent sur /clinic/settings (gérante)."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/access.json#/$defs/ClinicDocumentIdentityResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+        - "invoice.create"
+        - "invoice.issue"
+        - "payment.collect"
+        - "cash.own_session"
+        - "cash.manage"
+        - "credit_note.issue"
+        - "refund.execute"
+        - "finance.global.read"
+        - "clinical.read"
+        - "clinical.export"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "D02"
   /v1/staff:
     get:
       operationId: "ListStaff"
@@ -714,6 +753,62 @@ paths:
         FINANCIAL: "invoices (invoice.read)"
       x-implementation-status: "PLANNED"
       x-backlog-task: "P02"
+  /v1/patients/{id}/activity:
+    get:
+      operationId: "GetPatientActivity"
+      summary: "Activité du patient (visites, examens, ordonnances, pièces)"
+      tags:
+        - "Patients"
+      description: "Module patients. Lecture seule, du plus récent au plus ancien, 25 éléments par page. Une section non autorisée est absente : ni ses éléments, ni son compte (meta.sections), ni sa mention. Aucune valeur clinique : identifiants, dates, états, numéros. Pièces : factures émises (solde projeté, jamais « payé » stocké), reçus, avoirs émis, remboursements ; brouillons et pièces abandonnées exclus. screen_path : adresse de l'écran qui ouvre l'élément, seulement si le compte peut l'ouvrir."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "section"
+          in: "query"
+          required: false
+          description: "Filtre facultatif : VISITS, EXAMS, PRESCRIPTIONS ou FINANCIAL (section visible du compte, 403 sinon)."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/patients.json#/$defs/PatientActivity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "patient.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-read-scope:
+        ADMINISTRATIVE: "VISITS (patient.read)"
+        CLINICAL: "EXAMS, PRESCRIPTIONS (clinical.read, module consultations)"
+        FINANCIAL: "FINANCIAL (invoice.read, module sales)"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "R02"
   /v1/visits:
     post:
       operationId: "RegisterVisit"
@@ -805,7 +900,7 @@ paths:
       summary: "Démarrer l'examen"
       tags:
         - "Clinique"
-      description: "Rend la consultation (relue, même au rejeu de la clé), donc exige aussi clinical.read. Module consultations. Premier jalon : le paiement de l'examen n'est pas contrôlé (B04, B06 absents) ; exam_invoice_id et exam_waiver_approval_id sont facultatifs et refusés (422) s'ils sont fournis, car aucune preuve ne peut encore être enregistrée. Visite EXAM ou FOLLOW_UP au statut ARRIVED ou READY_FOR_EXAM, une seule consultation par visite (409 STATE_TRANSITION_REFUSED sinon). L'identifiant de la visite du chemin doit être celui du corps (422)."
+      description: "Rend la consultation (relue, même au rejeu de la clé), donc exige aussi clinical.read. Module consultations. Paiement de l'examen : contrôle inactif par défaut (EEO_EXAM_FEE_CONTROL=off : NOT_CONTROLLED dans l'audit, exam_invoice_id et exam_waiver_approval_id refusés en 422 s'ils sont fournis) ; contrôle actif (billed) : la facture de frais de CETTE visite réglée, ou la dispense exacte de la gérante (désignée, ou retrouvée par son contenu exact quand exam_waiver_approval_id est null) consommée dans la transaction, sinon 422 EXAM_PAYMENT_REQUIRED ; dispense désignée invalide, échue ou déjà utilisée : 422 APPROVAL_REQUIRED_OR_EXPIRED. Visite EXAM ou FOLLOW_UP au statut ARRIVED ou READY_FOR_EXAM (contrôle actif : aussi AWAITING_EXAM_FEE, qui reçoit alors 422 EXAM_PAYMENT_REQUIRED tant que rien ne prouve le règlement), une seule consultation par visite (409 STATE_TRANSITION_REFUSED sinon). L'identifiant de la visite du chemin doit être celui du corps (422)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -850,13 +945,73 @@ paths:
       x-offline-command: "StartConsultation"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P03"
+  /v1/consultations:
+    get:
+      operationId: "ListConsultations"
+      summary: "Examens du cabinet (liste sans valeur clinique)"
+      tags:
+        - "Clinique"
+      description: "Module consultations. 50 examens par page, du plus récent au plus ancien (date effective). Patient (identité administrative de base), état, dates, révision et professionnel : aucune valeur clinique, aucune lecture tracée (le dossier s'ouvre par GET /consultations/{id}, tracé). Même limite de débit par compte que les lectures de dossier (429 RATE_LIMITED)."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "date"
+          in: "query"
+          required: false
+          description: "Jour civil AAAA-MM-JJ (fuseau du cabinet) de la date effective ; absent : tous les jours."
+          schema:
+            type: "string"
+        - name: "status"
+          in: "query"
+          required: false
+          description: "DRAFT, IN_PROGRESS ou COMPLETED."
+          schema:
+            type: "string"
+        - name: "mine"
+          in: "query"
+          required: false
+          description: "true : seulement les examens du professionnel connecté."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/ConsultationSummaryPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-permission:
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C01"
   /v1/consultations/{id}:
     get:
       operationId: "GetConsultation"
       summary: "Consultation complète"
       tags:
         - "Clinique"
-      description: "Module consultations. Relit les tables vivantes au format AllSteps ; les rubriques pas encore ouvertes (acuités, réfraction, centrage) sont rendues vides. La lecture est tracée dans l'audit (consultation.viewed), sans contenu, au plus une fois par compte et par consultation toutes les 10 minutes."
+      description: "Module consultations. Relit les tables vivantes au format AllSteps (sept rubriques) dans un instantané cohérent ; une rubrique sans saisie est rendue vide. patient : identité administrative de base. La lecture est tracée dans l'audit (consultation.viewed), sans contenu, au plus une fois par compte et par consultation toutes les 10 minutes ; il en va de même des réponses des écritures (elles rendent le dossier). Débit limité par compte (429 RATE_LIMITED)."
       security:
         - sessionCookie: []
       parameters:
@@ -881,6 +1036,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "429":
+          $ref: "#/components/responses/RateLimited"
       x-permission:
         - "clinical.read"
       x-reauthentication: false
@@ -893,7 +1050,7 @@ paths:
       summary: "Saisir une rubrique du dossier"
       tags:
         - "Clinique"
-      description: "Rend la consultation, donc exige aussi clinical.read. Module consultations. Remplacement complet de la rubrique, version attendue (409 VERSION_CONFLICT). Premier jalon : seules ANAMNESIS, HISTORIES et CONCLUSION sont ouvertes ; les trois autres répondent 422 (step.step) sans rien écrire (C02). Consultation terminée : 409 STATE_TRANSITION_REFUSED. Les identifiants du chemin (consultation, rubrique) doivent être ceux du corps (422)."
+      description: "Rend la consultation, donc exige aussi clinical.read. Module consultations. Remplacement complet de la rubrique, version attendue (409 VERSION_CONFLICT). Les sept rubriques sont ouvertes (C01, C02, C04). Consultation terminée : 409 STATE_TRANSITION_REFUSED (la correction passe par AmendConsultation). Les identifiants du chemin (consultation, rubrique) doivent être ceux du corps (422)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -908,7 +1065,7 @@ paths:
         - name: "step"
           in: "path"
           required: true
-          description: "Rubrique : ANAMNESIS, HISTORIES, VISUAL_ACUITY, REFRACTION, CENTERING, CONCLUSION."
+          description: "Rubrique : ANAMNESIS, HISTORIES, VISUAL_ACUITY, REFRACTION, CENTERING, MEDICATIONS, CONCLUSION."
           schema:
             type: "string"
       requestBody:
@@ -950,6 +1107,7 @@ paths:
       summary: "Finaliser (révision 1 immuable)"
       tags:
         - "Clinique"
+      description: "Rend la consultation, donc exige aussi clinical.read. Module consultations. Snapshot complet et révision 1 dans la même transaction ; la visite passe à COMPLETED. snapshot_sha256 : SHA-256 de JCS(steps) tel que relu par le poste, que le serveur recalcule ; l'empreinte de la révision (clinical_revisions.sha256) est celle de JCS(snapshot), calculée par le serveur. Consultation déjà terminée ou brouillon : 409 STATE_TRANSITION_REFUSED."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -978,6 +1136,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -986,10 +1146,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.complete"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CompleteConsultation"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C03"
   /v1/consultations/{id}/amendments:
     post:
@@ -997,6 +1158,7 @@ paths:
       summary: "Corriger avec motif (nouvelle révision)"
       tags:
         - "Clinique"
+      description: "Rend la consultation, donc exige aussi clinical.read. Module consultations. Nouvelle révision immuable (motif, auteur), révisions antérieures intactes ; chaque rubrique envoyée remplace la rubrique actuelle. snapshot_sha256 : SHA-256 de JCS(steps) de la requête, recalculé par le serveur."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1025,6 +1187,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1033,17 +1197,100 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.amend"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "AmendConsultation"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C03"
+  /v1/consultations/{id}/revisions/{revision_no}:
+    get:
+      operationId: "GetClinicalRevision"
+      summary: "Révision figée d'une consultation"
+      tags:
+        - "Clinique"
+      description: "Snapshot complet immuable tel qu'enregistré. Module consultations. Lecture tracée (consultation.revision_viewed), sans contenu, au plus une fois par compte et par révision toutes les 10 minutes."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "revision_no"
+          in: "path"
+          required: true
+          description: "Numéro de la révision (entier ≥ 1)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/ClinicalRevisionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-permission:
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C03"
   /v1/consultations/{id}/prescriptions:
+    get:
+      operationId: "ListConsultationPrescriptions"
+      summary: "Prescriptions optiques de la consultation (toutes versions)"
+      tags:
+        - "Clinique"
+      description: "Module consultations. Toutes les versions, de la plus récente à la plus ancienne."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/PrescriptionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C04"
     post:
       operationId: "CreatePrescription"
       summary: "Prescription interne de la consultation"
       tags:
         - "Clinique"
+      description: "Crée une prescription BROUILLON (version 1 d'une nouvelle série). Module consultations. Rend la prescription : exige aussi clinical.read. Une consultation n'a qu'une série de prescriptions : les versions suivantes passent par /prescriptions/{id}/revisions. Rien n'est recopié depuis la réfraction sans choix explicite du professionnel (l'écran envoie les valeurs choisies)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1072,6 +1319,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1080,10 +1329,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.write"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePrescription"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
   /v1/prescriptions/external:
     post:
@@ -1091,7 +1341,7 @@ paths:
       summary: "Transcrire une ordonnance externe identifiée (A13)"
       tags:
         - "Clinique"
-      description: "Même commande que la prescription interne, origin = EXTERNAL."
+      description: "Même commande que la prescription interne, origin = EXTERNAL (prescripteur et date d'origine obligatoires, aucune consultation fictive). Module consultations."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1114,6 +1364,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1122,10 +1374,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.write"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePrescription"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
   /v1/prescriptions/{id}:
     get:
@@ -1133,6 +1386,7 @@ paths:
       summary: "Prescription versionnée"
       tags:
         - "Clinique"
+      description: "Module consultations."
       security:
         - sessionCookie: []
       parameters:
@@ -1153,19 +1407,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "clinical.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
     patch:
       operationId: "UpdatePrescriptionDraft"
       summary: "Modifier une prescription encore brouillon (en ligne)"
       tags:
         - "Clinique"
+      description: "Brouillon seulement (une prescription validée est immuable : 409 STATE_TRANSITION_REFUSED) ; jeton de concurrence expected_updated_at (409 VERSION_CONFLICT). Module consultations."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1194,6 +1451,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1202,9 +1461,10 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.write"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
   /v1/prescriptions/{id}/revisions:
     post:
@@ -1212,6 +1472,7 @@ paths:
       summary: "Nouvelle version d'une prescription (supersedes_id)"
       tags:
         - "Clinique"
+      description: "Nouvelle version BROUILLON de la dernière version validée de la série (supersedes_id = {id}). Module consultations."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1240,6 +1501,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1248,10 +1511,11 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.amend"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePrescription"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
   /v1/prescriptions/{id}/validate:
     post:
@@ -1259,6 +1523,7 @@ paths:
       summary: "Valider la prescription (version immuable)"
       tags:
         - "Clinique"
+      description: "Validation explicite : version immuable et document PDF préparé (generated_documents PENDING, génération par le moteur de documents). Aucune vente ni mouvement de stock n'est créé. Module consultations."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1287,6 +1552,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1295,24 +1562,60 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "clinical.complete"
+        - "clinical.read"
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "ValidatePrescription"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
+  /v1/visual-acuity-scales:
+    get:
+      operationId: "ListVisualAcuityScales"
+      summary: "Échelles d'acuité du cabinet"
+      tags:
+        - "Clinique"
+      description: "Échelles configurées par le cabinet (module consultations). Aucune conversion entre échelles n'est fournie ni présumée. Tant que la cliente n'a pas validé ses échelles (G11, Q06), seules des échelles de DÉMONSTRATION fictives existent."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/VisualAcuityScaleList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C02"
   /v1/catalog:
     get:
       operationId: "SearchCatalog"
       summary: "Rechercher le catalogue (prix de vente)"
       tags:
         - "Catalogue"
+      description: "Module sales. 25 articles par page, ordre du nom puis de la référence. purchase_cost est ABSENT de la réponse (jamais null) sans catalog.purchase_cost.read. Articles stockés, services et sur mesure sont distincts (stock_mode) ; une unité « paire » n'est jamais convertie en deux unités."
       security:
         - sessionCookie: []
       parameters:
         - name: "query"
           in: "query"
           required: false
-          description: "Référence, nom, marque ou modèle."
+          description: "Référence, nom, marque ou modèle (2 caractères au moins). Sans texte : les articles actifs."
+          schema:
+            type: "string"
+        - name: "include_inactive"
+          in: "query"
+          required: false
+          description: "true pour inclure les articles désactivés (réservé à qui détient catalog.manage)."
           schema:
             type: "string"
         - name: "page"
@@ -1333,8 +1636,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "catalog.read"
       x-reauthentication: false
@@ -1342,7 +1649,7 @@ paths:
       x-read-scope:
         FINANCIAL: "sale_price"
         MANAGER: "purchase_cost (catalog.purchase_cost.read)"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
   /v1/catalog/items:
     post:
@@ -1350,6 +1657,7 @@ paths:
       summary: "Créer un article"
       tags:
         - "Catalogue"
+      description: "Module sales, gérante. Référence unique par cabinet. Aucun prix réel n'est fourni par l'application : seules des données fictives existent en développement. L'audit garde le prix de vente, jamais le coût d'achat."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1372,6 +1680,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1382,7 +1692,7 @@ paths:
         - "catalog.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
   /v1/catalog/items/{id}:
     patch:
@@ -1390,6 +1700,7 @@ paths:
       summary: "Modifier un article (version attendue)"
       tags:
         - "Catalogue"
+      description: "Les champs de la requête remplacent ceux de l'article ; version attendue = catalog_items.version (409 VERSION_CONFLICT avec current_version). Un changement de prix ne touche jamais une facture émise. Une demande sans effet ne change pas la version."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1418,6 +1729,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1428,7 +1741,7 @@ paths:
         - "catalog.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
   /v1/tax-rules:
     get:
@@ -1436,6 +1749,7 @@ paths:
       summary: "Règles fiscales saisies par la gérante"
       tags:
         - "Catalogue"
+      description: "Module sales. Aucune règle n'est préconfigurée ; une règle n'est appliquée aux documents que si elle est active et validée."
       security:
         - sessionCookie: []
       responses:
@@ -1449,19 +1763,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "catalog.manage"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
     post:
       operationId: "CreateTaxRule"
       summary: "Saisir une règle fiscale (aucune taxe préconfigurée)"
       tags:
         - "Catalogue"
+      description: "Module sales, gérante réauthentifiée. Une règle active exige un taux et sa validation (validate = true)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1484,6 +1801,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1496,7 +1815,7 @@ paths:
         - "catalog.manage"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
   /v1/tax-rules/{id}:
     patch:
@@ -1504,6 +1823,7 @@ paths:
       summary: "Modifier ou valider une règle fiscale"
       tags:
         - "Catalogue"
+      description: "Version attendue = tax_rules.version. Changer le taux retire la validation : une règle active doit être revalidée dans la même demande."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1532,6 +1852,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1544,7 +1866,7 @@ paths:
         - "catalog.manage"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B01"
   /v1/invoices:
     post:
@@ -1552,7 +1874,7 @@ paths:
       summary: "Créer un brouillon de facture"
       tags:
         - "Ventes"
-      description: "exam_fee.collect limite le brouillon à la prestation d'examen fixe (fichier 09)."
+      description: "Module sales. exam_fee.collect limite le brouillon à la prestation d'examen fixe (fichier 09). Prix = prix du catalogue, remise plafonnée par le droit de l'auteur : ce qui le dépasse est refusé en 422 APPROVAL_REQUIRED_OR_EXPIRED champ par champ (lines.N.unit_price_gross, lines.N.discount_gross, lines.N.catalog_item_id). Le brouillon n'a aucun effet sur le stock. Corps direct : expected_version null et présent."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1575,6 +1897,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1587,13 +1911,14 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreateInvoiceDraft"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B02"
     get:
       operationId: "ListInvoices"
-      summary: "Factures par statut"
+      summary: "Factures par statut, patient ou jour d'émission"
       tags:
         - "Ventes"
+      description: "Module sales. 25 factures par page, les plus récentes d'abord, avec leur reste dû et leur ledger_version projetés, et l'identité de base du patient (numéro de dossier, nom, prénoms). issued_on illisible : 422."
       security:
         - sessionCookie: []
       parameters:
@@ -1607,6 +1932,12 @@ paths:
           in: "query"
           required: false
           description: "Filtre patient."
+          schema:
+            type: "string"
+        - name: "issued_on"
+          in: "query"
+          required: false
+          description: "Jour civil d'émission AAAA-MM-JJ au fuseau du cabinet (seules les factures émises ce jour-là)."
           schema:
             type: "string"
         - name: "page"
@@ -1627,13 +1958,17 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "invoice.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B02"
   /v1/invoices/{id}:
     get:
@@ -1641,6 +1976,7 @@ paths:
       summary: "Facture, lignes, encaissements et solde projeté"
       tags:
         - "Ventes"
+      description: "Module sales. Les snapshots (patient, cabinet, taxe) d'une facture émise sont ceux figés à l'émission : c'est d'eux, jamais de l'identité ni des prix actuels, que le document est produit."
       security:
         - sessionCookie: []
       parameters:
@@ -1661,19 +1997,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "invoice.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B02"
     patch:
       operationId: "UpdateDraft"
       summary: "Modifier le brouillon (version brouillon)"
       tags:
         - "Ventes"
+      description: "Module sales. Version attendue = draft_version (409 VERSION_CONFLICT avec current_version : l'écran conserve la saisie). La liste de lignes remplace la précédente. Créateur ou gérante seulement. Facture émise ou abandonnée : 409 STATE_TRANSITION_REFUSED. L'identifiant du corps doit être celui de l'adresse."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1702,6 +2041,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1714,7 +2055,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "UpdateDraft"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B02"
   /v1/invoices/{id}/issue:
     post:
@@ -1722,6 +2063,7 @@ paths:
       summary: "Émettre (numéro, snapshots, réserves, en transaction)"
       tags:
         - "Ventes"
+      description: "Module sales. Émission immuable : numéro central, snapshots, réserve du stock des articles stockés et document PENDING dans une transaction ; toute erreur annule tout, numéro compris. Par la route directe : write_owner_id null, reservations vide (le serveur choisit positions et lots), total_gross recalculé et vérifié (422 sinon), issued_at plausible (la date de la pièce est celle du serveur). Stock insuffisant : 409 STOCK_UNAVAILABLE (details.available) ; lot expiré : 422 LOT_EXPIRED. Facture détenue par un poste : 409 WRITE_OWNER_REQUIRED."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1750,6 +2092,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1762,7 +2106,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "IssueInvoice"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B03"
   /v1/invoices/{id}/payments:
     post:
@@ -1770,7 +2114,7 @@ paths:
       summary: "Encaisser (reçu numéroté au commit)"
       tags:
         - "Ventes"
-      description: "Montant ≤ solde verrouillé (PAYMENT_EXCEEDS_BALANCE) ; une réponse document_status = PENDING n'autorise jamais à répéter l'encaissement."
+      description: "Module sales. Montant ≤ solde verrouillé (409 PAYMENT_EXCEEDS_BALANCE avec details.amount_due et current_version) ; version attendue = ledger_version (409 VERSION_CONFLICT avec current_version et amount_due). Un reçu numéroté unique par encaissement, créé après le paiement confirmé dans la même transaction ; le PDF suit (document_status PENDING n'autorise jamais à répéter l'encaissement). Espèces : session de caisse ouverte de l'auteur ; autres modes : aucune session ; référence obligatoire pour mobile money et virement. Un jour civil antérieur exige retroactive_reason. Un rejeu de la même clé rend la réponse d'origine."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1799,6 +2143,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1811,7 +2157,127 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "RegisterPayment"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B04"
+  /v1/invoices/{id}/abandon:
+    post:
+      operationId: "AbandonInvoiceDraft"
+      summary: "Abandonner un brouillon de facture"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Version attendue = draft_version (409 VERSION_CONFLICT). Créateur du brouillon ou gérante (403 sinon). Facture émise ou déjà abandonnée : 409 STATE_TRANSITION_REFUSED (une facture émise se corrige par avoir). Aucun numéro, aucune réserve de stock, aucun document à annuler ; les lignes restent en base. Motif facultatif, conservé dans l'audit. L'identifiant du corps doit être celui de l'adresse."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AbandonInvoiceDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/InvoiceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+        - "exam_fee.collect"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B02"
+  /v1/sales/settings:
+    get:
+      operationId: "GetSalesSettings"
+      summary: "Règles de vente du compte connecté (affichage)"
+      tags:
+        - "Ventes"
+      description: "Module sales. Autorité de prix, plafond de remise effectif de CE compte, modes de règlement et modes à référence obligatoire, référence de l'article des frais d'examen. Le serveur reste seul juge à chaque commande."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/SalesSettingsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+        - "invoice.create"
+        - "payment.collect"
+        - "exam_fee.collect"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B04"
+  /v1/receipts/{id}:
+    get:
+      operationId: "GetReceipt"
+      summary: "Reçu d'un encaissement (pièce immuable, snapshot figé)"
+      tags:
+        - "Ventes"
+      description: "Module sales. Le snapshot du reçu (receipt.json) est la source de son document ; la nature (DEPOSIT ou BALANCE_SETTLEMENT) est calculée, jamais saisie."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/ReceiptResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B04"
   /v1/payments/{id}/reversals:
     post:
@@ -1819,6 +2285,7 @@ paths:
       summary: "Contre-écriture d'une erreur comptable"
       tags:
         - "Ventes"
+      description: "Module sales, réauthentification récente. L'identifiant de l'adresse est le paiement (payment_id du corps), l'agrégat sa facture (invoice_id) ; version attendue = ledger_version (409 VERSION_CONFLICT). Le paiement, son reçu et son numéro restent tels qu'émis : la contre-écriture est une pièce liée, motivée (erreur comptable), cumul ≤ paiement (422, details.reversible), jamais une sortie d'argent ; refusée si l'encaissé net deviendrait inférieur aux remboursements versés. Approbation exacte (facture, paiement, montant) consommée une fois, ou exécution directe de la gérante (approval_id inconnu, autorisation écrite consommée sous cet identifiant) ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED. Paiement en espèces : la session est verrouillée, une session close n'est jamais réécrite. Facture détenue par un poste : 409 WRITE_OWNER_REQUIRED."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1847,18 +2314,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
       x-permission:
         - "payment.reverse"
-      x-reauthentication: false
+      x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "ReversePayment"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B07"
   /v1/invoices/{id}/credit-notes:
     post:
@@ -1866,6 +2337,7 @@ paths:
       summary: "Émettre un avoir lié aux lignes d'origine"
       tags:
         - "Ventes"
+      description: "Module sales, réauthentification récente. Facture émise ; version attendue = ledger_version (409 VERSION_CONFLICT). Lignes d'origine de CETTE facture, une fois chacune ; cumul des avoirs émis ≤ ligne (montant et quantité indiquée, 422 details.creditable) ; somme des lignes = amount_gross ≤ part non créditée de la facture. Numéro central TEST-AV-AAAA-NNNNNN (number null dans la requête), snapshot figé (régime fiscal de la facture, aucune taxe inventée), document PENDING (credit_note.v1). Ni la facture, ni ses reçus, ni le stock ne changent ; un avoir au-delà du reste dû fait apparaître un crédit à rembourser (IN_CREDIT). Approbation exacte (facture, montant, lignes) ou exécution directe de la gérante ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1894,18 +2366,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
       x-permission:
         - "credit_note.issue"
-      x-reauthentication: false
+      x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "IssueCreditNote"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B07"
   /v1/invoices/{id}/refunds:
     post:
@@ -1913,6 +2389,7 @@ paths:
       summary: "Rembourser un crédit disponible"
       tags:
         - "Ventes"
+      description: "Module sales, réauthentification récente. Sortie d'argent liée à un avoir émis de la facture : montant ≤ crédit à rembourser de la facture (422 details.refundable_credit) et ≤ part de l'avoir non encore remboursée ; version attendue = ledger_version (409 VERSION_CONFLICT avec refundable_credit). Espèces : session de caisse ouverte de l'auteur (clôturée : 409) ; autres modes : aucune session, référence obligatoire pour mobile money et virement. Date effective du jour (ni future, ni d'un jour antérieur). Numéro central TEST-RMB-AAAA-NNNNNN, snapshot figé (bénéficiaire = identité figée de la facture), document PENDING (refund.v1). Approbation exacte (facture, avoir, montant, mode) ou exécution directe de la gérante ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED. Un rejeu de la même clé rend la réponse d'origine, jamais un second remboursement."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1941,25 +2418,76 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
       x-permission:
         - "refund.execute"
-      x-reauthentication: false
+      x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "RefundCredit"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B08"
   /v1/approvals:
+    get:
+      operationId: "ListApprovals"
+      summary: "Demandes d'approbation (gérante : toutes ; autre compte : les siennes)"
+      tags:
+        - "Approbations"
+      description: "Module settings. 25 par page, les plus récentes d'abord. Un compte sans approval.decide ne voit que ses propres demandes. subject : contenu exact revérifié contre payload_hash."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          description: "Statut effectif : REQUESTED, APPROVED, REFUSED, EXPIRED ou CONSUMED (toutes sans filtre)."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/ApprovalPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "approval.request"
+        - "approval.decide"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B06"
     post:
       operationId: "RequestApproval"
       summary: "Demander une autorisation liée au contenu exact"
       tags:
-        - "Ventes"
+        - "Approbations"
+      description: "Module settings. Le corps porte le contenu exact (subject) ; le serveur en dérive action_code, target_type, target_id et payload_hash. Cible vérifiée dans le cabinet et opération encore possible (422 sur subject.*, 409 STATE_TRANSITION_REFUSED sinon : visite déjà démarrée, frais déjà encaissés, facture non émise…) ; une demande identique en attente ou accordée : 409. Motif obligatoire ; échéance proposée facultative."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -1982,6 +2510,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -1993,14 +2523,53 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "RequestApproval"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B06"
+  /v1/approvals/{id}:
+    get:
+      operationId: "GetApproval"
+      summary: "Demande d'approbation"
+      tags:
+        - "Approbations"
+      description: "Module settings. Une demande d'un autre compte répond 404 à qui ne détient pas approval.decide."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/ApprovalResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "approval.request"
+        - "approval.decide"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B06"
   /v1/approvals/{id}/decision:
     post:
       operationId: "DecideApproval"
       summary: "Décider une autorisation (gérante réauthentifiée)"
       tags:
-        - "Ventes"
+        - "Approbations"
+      description: "Module settings, réauthentification récente (423 sinon). Seulement une demande en attente et non échue (409 STATE_TRANSITION_REFUSED, details.current_status) ; jamais par la personne qui l'a demandée (403) ; la gérante doit détenir aussi la permission que l'approbation remplace (403). Accord : échéance = la plus proche de celle proposée et de la décision + EEO_APPROVAL_TTL_MINUTES ; refus : motif obligatoire (422). Une dispense d'examen accordée passe la visite READY_FOR_EXAM."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -2029,6 +2598,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -2042,14 +2613,45 @@ paths:
       x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "DecideApproval"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B06"
+  /v1/cash-registers:
+    get:
+      operationId: "ListCashRegisters"
+      summary: "Caisses actives du cabinet (caisse principale)"
+      tags:
+        - "Caisse"
+      description: "Module sales. Une seule caisse principale au premier jalon (créée par eeo:sales:bootstrap) : aucune route n'en crée une autre."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashRegisterList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B05"
   /v1/cash-sessions/current:
     get:
       operationId: "GetCurrentCashSession"
       summary: "Session de caisse ouverte du compte"
       tags:
         - "Caisse"
+      description: "Module sales. data vaut null quand le compte n'a aucune session ouverte. collected_cash, refunded_cash et theoretical_cash sont des projections recalculées à chaque lecture."
       security:
         - sessionCookie: []
       responses:
@@ -2063,13 +2665,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "cash.own_session"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B05"
   /v1/cash-sessions:
     post:
@@ -2077,6 +2681,7 @@ paths:
       summary: "Ouvrir une session de caisse"
       tags:
         - "Caisse"
+      description: "Module sales. Une session ouverte par caisse et par caissière (409 STATE_TRANSITION_REFUSED, details.current_status OPEN). La caissière est le compte connecté."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -2099,6 +2704,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -2110,7 +2717,52 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "OpenCashSession"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B05"
+    get:
+      operationId: "ListCashSessions"
+      summary: "Sessions de caisse du cabinet (gérante)"
+      tags:
+        - "Caisse"
+      description: "Module sales. Toutes les caisses et caissières, 25 par page, avec les noms ACTUELS de la caissière et de qui a clôturé ; totaux projetés."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "state"
+          in: "query"
+          required: false
+          description: "open (ouvertes) ou closed (clôturées) ; sans filtre : ouvertes d'abord."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashSessionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "cash.manage"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B05"
   /v1/cash-sessions/{id}/close:
     post:
@@ -2118,6 +2770,7 @@ paths:
       summary: "Clôturer (attendu recalculé, écart motivé)"
       tags:
         - "Caisse"
+      description: "Module sales. L'attendu est recalculé par le serveur : si expected_amount a changé depuis l'affichage, 409 VERSION_CONFLICT avec details.expected_amount. Un écart non nul exige variance_reason (422). Session close immuable. Une caissière clôture sa session ; la gérante (cash.manage) clôture celle d'une autre."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -2146,6 +2799,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -2157,14 +2812,95 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CloseCashSession"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B05"
+  /v1/cash-sessions/{id}/report:
+    get:
+      operationId: "GetCashSessionReport"
+      summary: "Relevé d'une session de caisse"
+      tags:
+        - "Caisse"
+      description: "Module sales. Sa propre session ; la session d'une autre caissière seulement avec cash.manage (403 sinon). Tiroir espèces, mouvements, encaissements de la session et autres modes de la même caissière pendant la session ; relevé PROVISOIRE tant que la session est ouverte. Source du PDF du relevé, produit sur le poste."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashSessionReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B05"
+  /v1/reports/cash-day:
+    get:
+      operationId: "GetCashDayReport"
+      summary: "Caisse du jour"
+      tags:
+        - "Caisse"
+      description: "Module sales. Encaissements nets par mode (vw_collection_events) du jour civil du cabinet et sessions du jour. Lecture EN LIGNE, complète à son instant (generated_at) ; jamais un statut « payé »."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "date"
+          in: "query"
+          required: false
+          description: "Jour civil AAAA-MM-JJ au fuseau du cabinet (aujourd'hui par défaut)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashDayReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "finance.global.read"
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-read-scope:
+        MANAGER: "CLINIC (finance.global.read) : tout le cabinet, factures et avoirs émis, reste à encaisser"
+        CASHIER: "OWN (cash.own_session) : ses encaissements et ses sessions seulement"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "R01"
   /v1/stock/availability:
     get:
       operationId: "GetStockAvailability"
       summary: "Disponibilités (physique, réservé, quotas locaux)"
       tags:
         - "Stock"
+      description: "Module stock. Disponible central = physique − réservations centrales − quotas locaux non consommés ; aucun coût ni valeur de stock."
       security:
         - sessionCookie: []
       parameters:
@@ -2198,13 +2934,47 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "stock.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "I00"
+  /v1/stock/locations:
+    get:
+      operationId: "ListStockLocations"
+      summary: "Emplacements de stock actifs"
+      tags:
+        - "Stock"
+      description: "Module stock. Emplacements actifs du cabinet (PRINCIPAL créé par eeo:sales:bootstrap) ; aucune route n'en crée au premier jalon."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/stock.json#/$defs/StockLocationList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "stock.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I00"
   /v1/stock/opening:
     post:
@@ -2212,6 +2982,7 @@ paths:
       summary: "Stock initial validé"
       tags:
         - "Stock"
+      description: "Module stock, gérante réauthentifiée. Un mouvement OPENING par ligne, positions et lots créés au besoin ; le stock initial d'un article dans un emplacement ne s'enregistre qu'une fois. approval_id doit être null (la gérante accorde l'autorisation en exécutant elle-même ; les approbations à distance attendent B06). Corps sans expected_version."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -2234,6 +3005,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -2246,7 +3019,7 @@ paths:
         - "stock.adjust"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I00"
   /v1/stock/movements:
     post:

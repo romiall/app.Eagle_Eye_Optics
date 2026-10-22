@@ -1,0 +1,15 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashRegisterList",
+  "valid": true,
+  "description": "Caisse principale unique du premier jalon",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+        "code": "CAISSE-PRINCIPALE",
+        "name": "Caisse principale",
+        "active": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "description": "Vecteurs communs PHP/TypeScript des règles de mesure cliniques (C02) : axe 0–180, tolérance entre DP totale et somme OD + OG (hypothèse : aucune tolérance, à valider Q06), forme canonique des mesures. Rejoués par tests/Unit/Clinical/MeasurementRulesTest.php et tests/frontend/domain/clinical-measures.test.ts. Données fictives.",
+  "axis": [
+    {
+      "id": "axe-zero",
+      "value": 0,
+      "valid": true
+    },
+    {
+      "id": "axe-90",
+      "value": 90,
+      "valid": true
+    },
+    {
+      "id": "axe-180",
+      "value": 180,
+      "valid": true
+    },
+    {
+      "id": "axe-181",
+      "value": 181,
+      "valid": false
+    },
+    {
+      "id": "axe-negatif",
+      "value": -1,
+      "valid": false
+    }
+  ],
+  "pd_mismatch": [
+    {
+      "id": "dp-coherente",
+      "total": "62",
+      "od": "31",
+      "og": "31",
+      "mismatch": false
+    },
+    {
+      "id": "dp-ecart",
+      "total": "62",
+      "od": "31",
+      "og": "31.5",
+      "mismatch": true
+    },
+    {
+      "id": "dp-virgule",
+      "total": "62,5",
+      "od": "31,25",
+      "og": "31,25",
+      "mismatch": false
+    },
+    {
+      "id": "dp-sans-total",
+      "total": null,
+      "od": "31",
+      "og": "31.5",
+      "mismatch": false
+    },
+    {
+      "id": "dp-sans-og",
+      "total": "62",
+      "od": "31",
+      "og": null,
+      "mismatch": false
+    }
+  ],
+  "canonical": [
+    {
+      "id": "virgule-negative",
+      "text": "-0,5",
+      "canonical": "-0.50"
+    },
+    {
+      "id": "zero-est-une-valeur",
+      "text": "0",
+      "canonical": "0.00"
+    },
+    {
+      "id": "signe-plus",
+      "text": "+2",
+      "canonical": "2.00"
+    },
+    {
+      "id": "blancs-de-bord",
+      "text": "  1,25 ",
+      "canonical": "1.25"
+    },
+    {
+      "id": "deux-decimales",
+      "text": "3.75",
+      "canonical": "3.75"
+    }
+  ],
+  "refused": [
+    {
+      "id": "trois-decimales",
+      "text": "1,255"
+    },
+    {
+      "id": "quatre-chiffres-entiers-depasses",
+      "text": "10000"
+    },
+    {
+      "id": "pas-un-nombre",
+      "text": "abc"
+    }
+  ]
+}

@@ -2,23 +2,24 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Clinical\ConsultationView;
 use Carbon\CarbonImmutable;
-use stdClass;
 
 /**
  * Représentation d'une consultation pour l'API (schemas/resources/clinical.json#/$defs/Consultation) : données
  * cliniques complètes, réservées aux comptes qui détiennent `clinical.read`. Les instants sont rendus en UTC.
- * Les rubriques et les révisions sont lues par `ConsultationReader` ; ici, seule la mise en forme.
+ * Les rubriques, les révisions et le patient sont lus par `ConsultationReader::view` (un seul instantané cohérent) ;
+ * ici, seule la mise en forme.
  */
 final class ConsultationPresenter
 {
     /**
-     * @param  array<string, array<string, mixed>>  $steps
-     * @param  list<array<string, mixed>>  $revisions
      * @return array<string, mixed>
      */
-    public static function consultation(stdClass $row, array $steps, array $revisions): array
+    public static function consultation(ConsultationView $view): array
     {
+        $row = $view->row;
+
         return [
             'id' => $row->id,
             'visit_id' => $row->visit_id,
@@ -31,9 +32,21 @@ final class ConsultationPresenter
             'completed_at' => $row->completed_at === null ? null : self::instant((string) $row->completed_at),
             'finalization_missing_data_reason' => $row->finalization_missing_data_reason,
             'version' => (int) $row->version,
-            'steps' => $steps,
-            'revisions' => array_map(static fn (array $revision): array => [...$revision, 'recorded_at' => self::instant((string) $revision['recorded_at'])], $revisions),
+            'patient' => $view->patient,
+            'steps' => $view->steps,
+            'revisions' => array_map(static fn (array $revision): array => [...$revision, 'recorded_at' => self::instant((string) $revision['recorded_at'])], $view->revisions),
         ];
+    }
+
+    /**
+     * Révision figée avec son snapshot (`ClinicalRevisionDetail`).
+     *
+     * @param  array<string, mixed>  $revision
+     * @return array<string, mixed>
+     */
+    public static function revision(array $revision): array
+    {
+        return [...$revision, 'recorded_at' => self::instant((string) $revision['recorded_at'])];
     }
 
     private static function instant(string $stored): string

@@ -36,6 +36,10 @@ return [
         // Connexions par adresse IP : 20 par minute. Relevée seulement pour les parcours e2e (EEO_RATE_LOGIN_IP).
         'login_ip' => (int) env('EEO_RATE_LOGIN_IP', 20),
         'patient_search' => (int) env('EEO_RATE_PATIENT_SEARCH', 120),
+        // Lectures d'un dossier clinique (consultation, révision, prescription) : 60 par minute et par compte. Les
+        // identifiants sont des ULID non devinables, mais la file du jour les rend à qui détient clinical.read : la
+        // limite empêche de parcourir tous les dossiers à la chaîne (chaque lecture est de plus tracée).
+        'consultation_read' => (int) env('EEO_RATE_CONSULTATION_READ', 60),
     ],
 
     /*
@@ -99,6 +103,75 @@ return [
     */
 
     'production_documents_enabled' => (bool) env('PRODUCTION_DOCUMENTS_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Facturation, caisse et paiement de l'examen (B01 à B05)
+    |--------------------------------------------------------------------------
+    |
+    | Aucune de ces valeurs n'est un prix, une taxe ni une identité légale : elles règlent des CONTRÔLES, avec des
+    | valeurs prudentes par défaut. Les prix, taxes et séries réels viennent de la gérante (Q03, Q04) et ne se
+    | trouvent jamais dans le dépôt.
+    |
+    | exam_fee_control : `off` (par défaut) laisse le contrôle du paiement de l'examen inactif (« non contrôlé ») ;
+    |   `billed` exige, au démarrage d'un examen, la facture de frais de CETTE visite réglée ou une dérogation exacte
+    |   de la gérante (App\Domain\Billing\BilledExamFeeControl). Ne l'activer qu'avec l'article ci-dessous et l'écran
+    |   adapté (docs/implementation/billing.md).
+    | exam_fee_item_reference : référence du catalogue de l'article « frais d'examen » (profil `exam_fee.collect`,
+    |   contrôle du paiement de l'examen). Vide : aucun article n'est désigné, le profil ne peut rien facturer.
+    | discount_cap_percent : plafond de remise de ligne (en % du brut) pour un compte SANS autorité de prix
+    |   (`catalog.manage`) ; zéro par défaut : sans approbation exacte (B06), pas de remise. La gérante remise
+    |   jusqu'au brut de la ligne.
+    | payment_reference_required : modes de règlement dont la référence est obligatoire (mobile money, virement).
+    |
+    */
+
+    'billing' => [
+        'exam_fee_control' => env('EEO_EXAM_FEE_CONTROL', 'off'),
+        'exam_fee_item_reference' => env('EEO_EXAM_FEE_ITEM_REFERENCE'),
+        'discount_cap_percent' => env('EEO_DISCOUNT_CAP_PERCENT', '0'),
+        'payment_reference_required' => array_values(array_filter(
+            array_map('trim', explode(',', (string) env('EEO_PAYMENT_REFERENCE_REQUIRED', 'MTN_MOMO,ORANGE_MONEY,BANK_TRANSFER'))),
+            static fn (string $method): bool => $method !== '',
+        )),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Approbations exactes (B06)
+    |--------------------------------------------------------------------------
+    |
+    | ttl_minutes : durée de validité d'une approbation ACCORDÉE par la gérante (échéance = la plus proche de celle
+    |   proposée par la demande et de l'instant de la décision + cette durée), bornée de 1 minute à 24 heures. 60 minutes
+    |   par défaut : proposition à confirmer avec la gérante (Q07). Une approbation échue ne redevient jamais valable.
+    |
+    */
+
+    'approvals' => [
+        'ttl_minutes' => (int) env('EEO_APPROVAL_TTL_MINUTES', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Numérotation des pièces financières (fichier 03)
+    |--------------------------------------------------------------------------
+    |
+    | Format proposé `<préfixe>-AAAA-NNNNNN` (série par cabinet et par année civile du fuseau du cabinet). Les préfixes
+    | sont ceux des séries papier à CHOISIR avec la gérante avant la bascule (Q03, Q05) : tant qu'ils ne le sont pas,
+    | ils commencent par TEST et tout numéro émis est visiblement un numéro de test. Modifier un préfixe en cours
+    | d'année ne renumérote rien : la série continue (le numéro émis ne change jamais).
+    |
+    */
+
+    'numbering' => [
+        'width' => (int) env('EEO_NUMBER_WIDTH', 6),
+        'prefixes' => [
+            'INVOICE' => env('EEO_NUMBER_PREFIX_INVOICE', 'TEST-FAC'),
+            'RECEIPT' => env('EEO_NUMBER_PREFIX_RECEIPT', 'TEST-REC'),
+            'CREDIT_NOTE' => env('EEO_NUMBER_PREFIX_CREDIT_NOTE', 'TEST-AV'),
+            'REFUND' => env('EEO_NUMBER_PREFIX_REFUND', 'TEST-RMB'),
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

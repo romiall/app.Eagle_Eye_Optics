@@ -217,6 +217,52 @@ final class SaveConclusionStepTest extends TestCase
         $this->assertSame('CATARACT', DB::table('consultation_referral_reasons')->where('id', $taken['id'])->value('term_code'));
     }
 
+    public function test_un_enregistrement_identique_de_la_conclusion_est_sans_effet_meme_avec_les_motifs_dans_un_autre_ordre(): void
+    {
+        $data = $this->conclusion([
+            'conclusion' => 'Stable',
+            'referral' => true,
+            'referral_urgency' => 'RECOMMENDED',
+            'referral_reasons' => [$this->term('CATARACT'), $this->term('CORNEAL_DISEASE')],
+        ]);
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $data)->assertOk()->assertJsonPath('data.version', 2);
+        $before = $this->clinicalEffectCounts();
+
+        $reordered = [...$data, 'referral_reasons' => array_reverse($data['referral_reasons'])];
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $reordered)->assertOk()->assertJsonPath('data.version', 2);
+
+        $after = $this->clinicalEffectCounts();
+        $this->assertSame($before['audit'], $after['audit'], 'Aucun audit pour un enregistrement sans effet.');
+        $this->assertSame($before['changes'], $after['changes'], 'Aucun changement publié pour un enregistrement sans effet.');
+        $this->assertSame(2, (int) DB::table('consultations')->where('id', $this->consultationId)->value('version'));
+    }
+
+    public function test_la_conclusion_est_bornee_a_4000_caracteres_et_refuse_les_caracteres_de_controle(): void
+    {
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $this->conclusion(['conclusion' => str_repeat('c', 4000)]))->assertOk();
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $this->conclusion(['conclusion' => str_repeat('c', 4001)]))
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['step.data.conclusion']]]);
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $this->conclusion(['conclusion' => "Alarme\x07"]))
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['step.data.conclusion']]]);
+    }
+
+    public function test_un_motif_d_orientation_desactive_depuis_la_saisie_reste_enregistrable_pour_la_meme_ligne(): void
+    {
+        $kept = $this->term('TRAUMA');
+        $base = $this->conclusion(['referral' => true, 'referral_urgency' => 'RAPID', 'referral_reasons' => [$kept]]);
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', $base)->assertOk();
+        DB::table('clinical_terms')->where('group_code', 'REFERRAL_REASON')->whereIn('code', ['TRAUMA', 'CORNEAL_DISEASE'])->update(['active' => false]);
+
+        $this->saveCurrent($this->consultationId, 'CONCLUSION', [...$base, 'conclusion' => 'Texte ajouté'])->assertOk()
+            ->assertJsonPath('data.steps.CONCLUSION.referral_reasons.0.term_code', 'TRAUMA');
+
+        $response = $this->saveCurrent($this->consultationId, 'CONCLUSION', [...$base, 'referral_reasons' => [$kept, $this->term('CORNEAL_DISEASE')]]);
+        $response->assertStatus(422);
+        $this->assertSame(['step.data.referral_reasons.1.term_code'], array_keys($response->json('error.fields')));
+    }
+
     public function test_le_niveau_et_la_conclusion_ne_sortent_pas_des_tables_de_la_consultation(): void
     {
         $this->saveCurrent($this->consultationId, 'CONCLUSION', $this->conclusion([
@@ -230,6 +276,6 @@ final class SaveConclusionStepTest extends TestCase
         $this->assertStringNotContainsString('SENTINELLE-CONCLUSION-HD2', $dump);
         $this->assertStringNotContainsString('SENTINELLE-MOTIF-VB6', $dump);
         $this->assertStringNotContainsString('EMERGENCY', $dump);
-        $this->assertEquals(['rows' => 1, 'step' => 'CONCLUSION', 'version' => 2], json_decode((string) DB::table('audit_events')->where('action', 'consultation.step_saved')->value('sanitized_diff'), true));
+        $this->assertEquals(['step' => 'CONCLUSION', 'version' => 2], json_decode((string) DB::table('audit_events')->where('action', 'consultation.step_saved')->value('sanitized_diff'), true));
     }
 }

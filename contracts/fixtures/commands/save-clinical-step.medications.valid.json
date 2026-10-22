@@ -1,0 +1,43 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": true,
+  "description": "Médicaments : saisie libre contrôlée, deux lignes, durée structurée en nombre et unité",
+  "data": {
+    "consultation_id": "01J9ZXK4M2Q8R7S6T5V4W3000M",
+    "step": {
+      "step": "MEDICATIONS",
+      "data": {
+        "orders": [
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30111",
+            "catalog_item_id": null,
+            "name": "Collyre fictif A",
+            "form": "DROPS",
+            "form_other": null,
+            "strength": "0,5 %",
+            "dosage": "1 goutte",
+            "frequency": "3 fois par jour",
+            "duration_text": "10 jours",
+            "duration_value": 10,
+            "duration_unit": "DAY",
+            "instructions": null
+          },
+          {
+            "id": "01J9ZXK4M2Q8R7S6T5V4W30112",
+            "catalog_item_id": null,
+            "name": "Produit fictif B",
+            "form": "OTHER",
+            "form_other": "Gel",
+            "strength": null,
+            "dosage": null,
+            "frequency": null,
+            "duration_text": null,
+            "duration_value": null,
+            "duration_unit": null,
+            "instructions": "Selon la notice du produit fictif"
+          }
+        ]
+      }
+    }
+  }
+}

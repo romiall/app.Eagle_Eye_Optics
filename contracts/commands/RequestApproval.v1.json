@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eeo.invalid/contracts/commands/RequestApproval.v1.json",
   "title": "RequestApproval (charge v1)",
-  "description": "Demande d'autorisation liée au contenu exact (hash de la charge visée). Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
+  "description": "Demande d'autorisation liée au contenu exact de l'opération (subject) : le serveur en dérive l'action, la cible et l'empreinte (payload_hash), jamais fournies par le client ; échéance proposée facultative, raccourcie par la décision. Généré par contracts/tools/build_commands.py : ne pas modifier à la main.",
   "x-entity-type": "approvals",
   "x-entity-id-field": "approval_id",
   "x-permission": "approval.request",
@@ -12,10 +12,7 @@
   "additionalProperties": false,
   "required": [
     "approval_id",
-    "action_code",
-    "target_type",
-    "target_id",
-    "payload_hash",
+    "subject",
     "reason",
     "expires_at"
   ],
@@ -23,18 +20,8 @@
     "approval_id": {
       "$ref": "../schemas/common.json#/$defs/Ulid"
     },
-    "action_code": {
-      "$ref": "../schemas/common.json#/$defs/PermissionCode"
-    },
-    "target_type": {
-      "type": "string",
-      "pattern": "^[a-z][a-z_]{1,63}$"
-    },
-    "target_id": {
-      "$ref": "../schemas/common.json#/$defs/Ulid"
-    },
-    "payload_hash": {
-      "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+    "subject": {
+      "$ref": "#/$defs/ApprovalSubject"
     },
     "reason": {
       "$ref": "../schemas/common.json#/$defs/Reason"
@@ -51,10 +38,7 @@
       "required": [
         "expected_version",
         "approval_id",
-        "action_code",
-        "target_type",
-        "target_id",
-        "payload_hash",
+        "subject",
         "reason",
         "expires_at"
       ],
@@ -65,18 +49,8 @@
         "approval_id": {
           "$ref": "../schemas/common.json#/$defs/Ulid"
         },
-        "action_code": {
-          "$ref": "../schemas/common.json#/$defs/PermissionCode"
-        },
-        "target_type": {
-          "type": "string",
-          "pattern": "^[a-z][a-z_]{1,63}$"
-        },
-        "target_id": {
-          "$ref": "../schemas/common.json#/$defs/Ulid"
-        },
-        "payload_hash": {
-          "$ref": "../schemas/common.json#/$defs/Sha256Hex"
+        "subject": {
+          "$ref": "#/$defs/ApprovalSubject"
         },
         "reason": {
           "$ref": "../schemas/common.json#/$defs/Reason"
@@ -85,6 +59,227 @@
           "$ref": "../schemas/common.json#/$defs/NullableInstant"
         }
       }
+    },
+    "ApprovalSubject": {
+      "description": "Contenu exact de l'opération à approuver ; la nature (kind) fixe l'action, la cible et les champs.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ExamFeeWaiverSubject"
+        },
+        {
+          "$ref": "#/$defs/DraftLineRightsSubject"
+        },
+        {
+          "$ref": "#/$defs/PaymentReversalSubject"
+        },
+        {
+          "$ref": "#/$defs/CreditNoteSubject"
+        },
+        {
+          "$ref": "#/$defs/RefundSubject"
+        }
+      ]
+    },
+    "ExamFeeWaiverSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "visit_id",
+        "patient_id"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "EXAM_FEE_WAIVER"
+        },
+        "visit_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        }
+      },
+      "description": "Dispense des frais d'examen d'UNE visite de CE patient (action exam_fee.collect, cible visits)."
+    },
+    "DraftLineRightsSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "invoice_id",
+        "patient_id",
+        "lines"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "DRAFT_LINE_RIGHTS"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "catalog_item_id",
+              "description",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross",
+              "prescription_id"
+            ],
+            "properties": {
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "catalog_item_id": {
+                "$ref": "../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "quantity": {
+                "$ref": "../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "prescription_id": {
+                "$ref": "../schemas/common.json#/$defs/NullableUlid"
+              }
+            }
+          }
+        }
+      },
+      "description": "Prix hors catalogue, ligne libre ou remise au-delà du plafond : TOUTES les lignes du brouillon telles qu'elles seront enregistrées, sans leurs identifiants (action catalog.manage, cible invoices ; le brouillon peut ne pas encore exister)."
+    },
+    "PaymentReversalSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "invoice_id",
+        "payment_id",
+        "amount"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "PAYMENT_REVERSAL"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "payment_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        }
+      },
+      "description": "Contre-écriture d'un paiement (action payment.reverse, cible payments)."
+    },
+    "CreditNoteSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "invoice_id",
+        "amount_gross",
+        "lines"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "CREDIT_NOTE"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "amount_gross": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "invoice_line_id",
+              "quantity",
+              "amount_gross"
+            ],
+            "properties": {
+              "invoice_line_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "$ref": "../schemas/common.json#/$defs/Quantity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "amount_gross": {
+                "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+              }
+            }
+          }
+        }
+      },
+      "description": "Avoir lié aux lignes d'origine (action credit_note.issue, cible invoices)."
+    },
+    "RefundSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "invoice_id",
+        "credit_note_id",
+        "amount",
+        "method"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "REFUND"
+        },
+        "invoice_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "credit_note_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "amount": {
+          "$ref": "../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../schemas/enums.json#/$defs/refunds.method"
+        }
+      },
+      "description": "Remboursement d'un crédit (action refund.execute, cible invoices)."
     }
   }
 }

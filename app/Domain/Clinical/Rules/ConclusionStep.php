@@ -18,9 +18,10 @@ final class ConclusionStep
     /**
      * @param  array<array-key, mixed>  $data
      * @param  list<string>  $reasonCodes  codes actifs du groupe REFERRAL_REASON
+     * @param  array<string, string>  $existingReasons  motifs déjà enregistrés (identifiant → code), ré-enregistrables même désactivés depuis
      * @return array{conclusion: string|null, referral: bool|null, referral_urgency: string|null, referral_reasons: list<array{id: string, term_code: string, other_text: string|null}>}
      */
-    public static function normalize(array $data, array $reasonCodes, FieldErrors $errors, string $path = 'step.data'): array
+    public static function normalize(array $data, array $reasonCodes, FieldErrors $errors, string $path = 'step.data', array $existingReasons = []): array
     {
         $conclusion = ClinicalInput::text($data['conclusion'] ?? null, $path.'.conclusion', $errors);
         $referral = ClinicalInput::triState($data['referral'] ?? null, $path.'.referral', $errors);
@@ -34,7 +35,7 @@ final class ConclusionStep
 
         $rawReasons = $data['referral_reasons'] ?? [];
         $usedIds = [];
-        $reasons = TermList::normalize($rawReasons, $reasonCodes, $path.'.referral_reasons', $errors, $usedIds);
+        $reasons = TermList::normalize($rawReasons, $reasonCodes, $path.'.referral_reasons', $errors, $usedIds, $existingReasons);
 
         if ($referral === true) {
             if ($urgency === null && ! $urgencyUnknown) {

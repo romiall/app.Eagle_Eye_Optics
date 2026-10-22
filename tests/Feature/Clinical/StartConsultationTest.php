@@ -98,7 +98,8 @@ final class StartConsultationTest extends TestCase
 
         $steps = $this->startConsultation($visitId)->assertCreated()->json('data.steps');
 
-        $this->assertSame(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'CONCLUSION'], array_keys($steps));
+        $this->assertSame(['ANAMNESIS', 'HISTORIES', 'VISUAL_ACUITY', 'REFRACTION', 'CENTERING', 'MEDICATIONS', 'CONCLUSION'], array_keys($steps));
+        $this->assertSame(['orders' => []], $steps['MEDICATIONS']);
         $this->assertSame(['symptoms' => null, 'wears_glasses' => null, 'glasses_duration' => null, 'previous_correction_available' => null, 'complaints' => []], $steps['ANAMNESIS']);
         $this->assertSame(['histories' => []], $steps['HISTORIES']);
         $this->assertSame(['acuities' => []], $steps['VISUAL_ACUITY']);
@@ -271,6 +272,26 @@ final class StartConsultationTest extends TestCase
 
         $this->assertSame(1, DB::table('consultations')->count());
         $this->assertSame('ARRIVED', DB::table('visits')->where('id', $visitId)->value('status'));
+    }
+
+    public function test_un_identifiant_de_consultation_pris_dans_un_autre_cabinet_est_un_422_et_non_une_erreur_sql(): void
+    {
+        // Clé primaire GLOBALE : la consultation X existe dans le cabinet B ; le cabinet A ne peut pas la réutiliser.
+        $otherClinic = $this->makeClinic();
+        $otherClinician = $this->makeStaff($otherClinic, 'CLINICIAN', 'autre.pro.identifiant');
+        $otherPatient = $this->seedPatient($otherClinic);
+        $otherVisit = $this->seedVisit([], $otherClinic, $otherPatient);
+        $foreignId = Ulid::generate();
+        $this->startConsultation($otherVisit, [...$this->startBody($otherVisit, ['consultation_id' => $foreignId]), 'patient_id' => $otherPatient], $otherClinician)->assertCreated();
+        $visitId = $this->seedVisit();
+
+        $response = $this->startConsultation($visitId, $this->startBody($visitId, ['consultation_id' => $foreignId]));
+
+        $response->assertStatus(422)->assertJsonPath('error.code', 'VALIDATION_FAILED');
+        $this->assertSame(['Cet identifiant de consultation est déjà utilisé.'], $response->json('error.fields.consultation_id'), 'Même message que dans le cabinet : aucun oracle d\'existence entre cabinets.');
+        $this->assertSame('ARRIVED', DB::table('visits')->where('id', $visitId)->value('status'));
+        $this->assertSame(1, DB::table('consultations')->where('id', $foreignId)->count());
+        $this->assertSame($otherClinic, DB::table('consultations')->where('id', $foreignId)->value('clinic_id'));
     }
 
     public function test_la_date_effective_ne_peut_pas_etre_dans_le_futur_au_dela_de_la_tolerance_d_horloge(): void
@@ -493,8 +514,11 @@ final class StartConsultationTest extends TestCase
 
         foreach ([$this->reception, $this->cashier] as $user) {
             $masked = $this->actingAsFresh($user)->getJson('/api/v1/visits?date=2026-10-22')->assertOk();
-            $this->assertNull($masked->json('data.0.consultation_id'), 'La file ne révèle pas qu\'un examen est en cours.');
+            // Seuls l'identifiant et le statut CLINIQUE de la consultation sont masqués (défense en profondeur) ; le statut
+            // administratif de la visite reste rendu à tous, car la file du jour le distingue (fichier 02).
+            $this->assertNull($masked->json('data.0.consultation_id'), 'L\'identifiant de la consultation n\'est pas rendu sans clinical.read.');
             $this->assertNull($masked->json('data.0.consultation_status'));
+            $this->assertSame('IN_CONSULTATION', $masked->json('data.0.status'), 'Le statut de la visite reste visible de l\'accueil et de la caisse.');
             $this->assertMatchesContract($masked, 'schemas/resources/patients.json#/$defs/VisitPage');
         }
     }

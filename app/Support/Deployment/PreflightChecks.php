@@ -2,6 +2,10 @@
 
 namespace App\Support\Deployment;
 
+use App\Console\Commands\CreateDemoAccounts;
+use App\Console\Commands\ManageAcuityScales;
+use App\Domain\Billing\Setup\SalesBootstrap;
+use App\Support\Modules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -15,7 +19,12 @@ use Throwable;
  * temporaires, dont une clé étrangère, une contrainte CHECK, une colonne générée, une vue et un TRIGGER).
  *
  * Les objets temporaires portent le préfixe `eeo_preflight_` et un suffixe aléatoire ; ils sont supprimés dans tous
- * les cas. Aucune table de l'application n'est lue ni modifiée.
+ * les cas. Aucune table de l'application n'est modifiée ; quelques-unes sont seulement COMPTÉES (cabinet, caisse,
+ * échelles d'acuité) pour dire ce qui manque à la mise en service de la phase 1.
+ *
+ * Phase 1 (mise en service progressive) : codes de modules inconnus, module « settings » fermé (personnel non
+ * gérable à l'écran), contrôle du paiement de l'examen incohérent (bloquerait tous les examens), outil de sauvegarde
+ * absent, caisse ou échelle d'acuité non créées pour un module ouvert, données de démonstration en production.
  */
 final class PreflightChecks
 {
@@ -133,6 +142,7 @@ final class PreflightChecks
 
         $modules = (array) config('eeo.enabled_modules', []);
         $results[] = PreflightResult::info('Modules ouverts (EEO_ENABLED_MODULES)', $modules === [] ? 'aucun : tout module métier est invisible' : implode(', ', $modules));
+        $results = [...$results, ...$this->phaseOne()];
 
         $results[] = (string) config('eeo.clinic_currency') === 'XAF' && (string) config('eeo.clinic_timezone') === 'Africa/Douala'
             ? PreflightResult::ok('Cabinet', 'XAF, Africa/Douala')
@@ -213,6 +223,7 @@ final class PreflightChecks
                 $results[] = $official === 0
                     ? PreflightResult::ok('Documents officiels', 'désactivés : les pièces émises sont marquées TEST')
                     : PreflightResult::warning('Documents officiels', 'activés pour '.$official.' cabinet(s) : mentions légales, logo et régime fiscal doivent être validés.');
+                $results = [...$results, ...$this->phaseOneData()];
             } else {
                 $results[] = PreflightResult::info('Schéma applicatif', 'pas encore installé (php artisan migrate --force)');
             }
@@ -220,6 +231,105 @@ final class PreflightChecks
         }
 
         return [...$results, ...$this->privileges((int) $row->log_bin === 1 && (int) $row->trust === 0)];
+    }
+
+    /**
+     * Cohérence de la mise en service de la phase 1 (configuration seulement, aucune base).
+     *
+     * @return list<PreflightResult>
+     */
+    private function phaseOne(): array
+    {
+        $results = [];
+        $configured = array_map('strval', (array) config('eeo.enabled_modules', []));
+        $unknown = array_values(array_diff($configured, Modules::CODES));
+        if ($unknown !== []) {
+            $results[] = PreflightResult::warning('Codes de modules inconnus', implode(', ', $unknown).' : ignorés (faute de frappe ?), ces modules restent fermés. Codes admis : '.implode(', ', Modules::CODES).'.');
+        }
+
+        $open = Modules::enabled();
+        if ($open !== [] && ! in_array('settings', $open, true)) {
+            $results[] = PreflightResult::warning('Module « settings »', 'fermé : la gérante ne peut ni créer ni gérer les comptes du personnel, ni l\'identité du cabinet, à l\'écran (ajoutez settings à EEO_ENABLED_MODULES).');
+        }
+
+        $control = (string) config('eeo.billing.exam_fee_control', 'off');
+        $label = 'Contrôle du paiement de l\'examen';
+        if ($control === 'billed') {
+            $reference = trim((string) config('eeo.billing.exam_fee_item_reference', ''));
+            $results[] = match (true) {
+                $reference === '' => PreflightResult::blocking($label, 'EEO_EXAM_FEE_CONTROL=billed sans EEO_EXAM_FEE_ITEM_REFERENCE : aucun examen ne pourrait démarrer.'),
+                ! in_array('sales', $open, true) => PreflightResult::blocking($label, 'EEO_EXAM_FEE_CONTROL=billed avec le module « sales » fermé : les frais d\'examen ne pourraient pas être encaissés, aucun examen ne démarrerait.'),
+                default => PreflightResult::ok($label, 'actif (article '.$reference.')'),
+            };
+        } elseif ($control === 'off') {
+            $results[] = PreflightResult::info($label, 'non contrôlé (off) : les écrans le disent, rien n\'est bloqué faute de règlement');
+        } else {
+            $results[] = PreflightResult::blocking($label, "EEO_EXAM_FEE_CONTROL={$control} : valeurs admises off ou billed.");
+        }
+
+        $results[] = $this->executableOnPath('mysqldump') !== null
+            ? PreflightResult::ok('Outil de sauvegarde', 'mysqldump disponible (tools/deploy/backup.sh)')
+            : PreflightResult::warning('Outil de sauvegarde', 'mysqldump introuvable dans le PATH : tools/deploy/backup.sh ne fonctionnera pas ; s\'appuyer sur les sauvegardes du panneau et garder une copie hors du serveur.');
+
+        return $results;
+    }
+
+    /**
+     * Ce qui manque en base à un module ouvert (phase 1), lu par de simples comptes. Les tables existent (schéma
+     * installé) quand cette méthode est appelée.
+     *
+     * @return list<PreflightResult>
+     */
+    private function phaseOneData(): array
+    {
+        $results = [];
+        $open = Modules::enabled();
+
+        if (DB::table('clinics')->count() === 0) {
+            $results[] = PreflightResult::info('Cabinet à créer', 'aucun cabinet : lancez « php artisan eeo:setup-clinic » (une seule fois).');
+        }
+
+        if (app()->environment('production') && DB::table('clinics')->where('name', CreateDemoAccounts::DEMO_CLINIC_NAME)->exists()) {
+            $results[] = PreflightResult::warning('Données de démonstration', 'le cabinet de démonstration (données fictives) est présent dans la base de production.');
+        }
+
+        if (in_array('sales', $open, true)) {
+            $results[] = DB::table('cash_registers')->where('active', 1)->where('code', SalesBootstrap::REGISTER_CODE)->exists()
+                ? PreflightResult::ok('Caisse principale', 'créée')
+                : PreflightResult::warning('Caisse principale', 'absente alors que le module « sales » est ouvert : lancez « php artisan eeo:sales:bootstrap ».');
+        }
+
+        if (in_array('consultations', $open, true)) {
+            $active = DB::table('visual_acuity_scales')->where('active', 1)->count();
+            $results[] = $active > 0
+                ? PreflightResult::ok('Échelles d\'acuité', $active.' active(s)')
+                : PreflightResult::warning('Échelles d\'acuité', 'aucune alors que le module « consultations » est ouvert : lancez « php artisan eeo:clinical:scales --code=… --label=… » avec l\'échelle choisie par la cliente.');
+            $demo = DB::table('visual_acuity_scales')->where('active', 1)->whereIn('code', array_keys(ManageAcuityScales::DEMO_SCALES))->count();
+            if (app()->environment('production') && $demo > 0) {
+                $results[] = PreflightResult::warning('Échelles d\'acuité', 'des échelles de DÉMONSTRATION (DEMO_*) sont actives en production : elles ne sont pas validées cliniquement.');
+            }
+        }
+
+        return $results;
+    }
+
+    /** Chemin d'un exécutable du PATH, ou null (aucune commande lancée : seulement des tests de fichier). */
+    private function executableOnPath(string $name): ?string
+    {
+        $suffixes = PHP_OS_FAMILY === 'Windows' ? ['.exe', '.bat', ''] : [''];
+        foreach (explode(PATH_SEPARATOR, (string) getenv('PATH')) as $directory) {
+            if ($directory === '') {
+                continue;
+            }
+            foreach ($suffixes as $suffix) {
+                $candidate = rtrim($directory, '/\\').DIRECTORY_SEPARATOR.$name.$suffix;
+                if (@is_file($candidate) && @is_executable($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

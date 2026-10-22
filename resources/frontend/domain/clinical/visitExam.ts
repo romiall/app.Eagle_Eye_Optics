@@ -40,7 +40,11 @@ export type ExamAction =
   /** Consulter un examen terminé. */
   | 'view'
 
-/** Statuts de visite que le serveur accepte de démarrer (`ARRIVED`, et `READY_FOR_EXAM` quand B04 et B06 l'écriront). */
+/**
+ * Statuts de visite pour lesquels l'écran propose de démarrer : `ARRIVED` et `READY_FOR_EXAM` (contrôle du
+ * paiement de l'examen actif : frais encaissés ou dispense accordée). Une visite `AWAITING_EXAM_FEE` attend
+ * l'encaissement ou la dispense : aucun bouton ne laisse croire le contraire (le serveur le refuserait).
+ */
 const STARTABLE_STATUSES: readonly string[] = ['ARRIVED', 'READY_FOR_EXAM']
 
 /**

@@ -3,6 +3,10 @@
 namespace Tests\Support;
 
 use App\Domain\Access\EffectivePermissions;
+use App\Domain\Clinical\RevisionHash;
+use App\Domain\Clinical\RevisionSnapshot;
+use App\Domain\Shared\CommandContext;
+use App\Domain\Shared\GrantSnapshot;
 use App\Domain\Shared\Ulid;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -259,15 +263,344 @@ trait ClinicalFixtures
      */
     protected function clinicalEffectCounts(): array
     {
+        $count = fn (string $table): int => DB::table($table)->where('clinic_id', $this->clinicId)->count();
+
         return [
-            'consultations' => DB::table('consultations')->where('clinic_id', $this->clinicId)->count(),
-            'complaints' => DB::table('consultation_complaints')->where('clinic_id', $this->clinicId)->count(),
-            'histories' => DB::table('consultation_histories')->where('clinic_id', $this->clinicId)->count(),
-            'history_terms' => DB::table('consultation_history_terms')->where('clinic_id', $this->clinicId)->count(),
-            'referral_reasons' => DB::table('consultation_referral_reasons')->where('clinic_id', $this->clinicId)->count(),
+            'consultations' => $count('consultations'),
+            'complaints' => $count('consultation_complaints'),
+            'histories' => $count('consultation_histories'),
+            'history_terms' => $count('consultation_history_terms'),
+            'referral_reasons' => $count('consultation_referral_reasons'),
+            'acuities' => $count('visual_acuities'),
+            'measurements' => $count('refraction_measurements'),
+            'ametropias' => $count('consultation_ametropias'),
+            'centering' => $count('autorefractor_centering'),
+            'medications' => $count('medication_orders'),
+            'revisions' => $count('clinical_revisions'),
             'audit' => DB::table('audit_events')->where('clinic_id', $this->clinicId)->where('action', 'like', 'consultation.%')->count(),
-            'changes' => DB::table('sync_change_log')->where('clinic_id', $this->clinicId)->count(),
-            'idempotency' => DB::table('idempotency_requests')->where('clinic_id', $this->clinicId)->count(),
+            'changes' => $count('sync_change_log'),
+            'idempotency' => $count('idempotency_requests'),
         ];
+    }
+
+    /**
+     * Contexte d'une commande de poste (source SYNC) pour un compte : les actions cliniques le refusent tant que la
+     * synchronisation clinique n'existe pas (O01 à O05).
+     */
+    protected function syncContextFor(User $actor): CommandContext
+    {
+        $grant = new GrantSnapshot(
+            Ulid::generate(), Ulid::generate(), $actor->id, ['clinical.write', 'clinical.complete', 'clinical.amend', 'clinical.read'], 'rules-test', 'catalog-test',
+            CarbonImmutable::parse('2026-10-22 08:00:00', 'UTC'), CarbonImmutable::parse('2026-10-22 20:00:00', 'UTC'),
+        );
+
+        return CommandContext::sync(
+            $this->clinicId, $grant->deviceId, $actor->id, $actor->display_name, $grant, 'corr-sync-clin',
+            CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'), CarbonImmutable::parse('2026-10-22 09:00:00', 'UTC'),
+            CarbonImmutable::parse('2026-10-22 09:30:00', 'UTC'),
+        );
+    }
+
+    /** Échelle d'acuité fictive du cabinet (identifiant rendu). */
+    protected function seedScale(string $code = 'TEST_ECHELLE', bool $active = true, ?string $clinicId = null): string
+    {
+        $id = Ulid::generate();
+        DB::table('visual_acuity_scales')->insert([
+            'id' => $id, 'clinic_id' => $clinicId ?? $this->clinicId, 'code' => $code, 'label' => 'Échelle '.$code.' (fictive)', 'description' => null,
+            'active' => $active, 'created_at' => '2026-10-22 08:00:00.000000', 'updated_at' => '2026-10-22 08:00:00.000000',
+        ]);
+
+        return $id;
+    }
+
+    /**
+     * Ligne d'acuité.
+     *
+     * @return array<string, mixed>
+     */
+    protected function acuity(string $scaleId, string $rawValue, string $distance = 'FAR', string $correction = 'WITHOUT', string $eye = 'OD', string $context = 'PRELIMINARY', ?string $id = null): array
+    {
+        return [
+            'id' => $id ?? Ulid::generate(), 'context' => $context, 'distance' => $distance, 'correction' => $correction, 'eye' => $eye,
+            'scale_id' => $scaleId, 'raw_value' => $rawValue, 'normalized_value' => null,
+        ];
+    }
+
+    /**
+     * Mesure de réfraction.
+     *
+     * @return array<string, mixed>
+     */
+    protected function measurement(string $stage, string $eye, ?string $sphere = null, ?string $cylinder = null, ?int $axis = null, ?string $addition = null, ?string $id = null): array
+    {
+        return ['id' => $id ?? Ulid::generate(), 'stage' => $stage, 'eye' => $eye, 'sphere' => $sphere, 'cylinder' => $cylinder, 'axis' => $axis, 'addition' => $addition];
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function refraction(array $overrides = []): array
+    {
+        return array_merge(['measurements' => [], 'refraction_observations' => null, 'ametropias' => []], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function centering(array $overrides = []): array
+    {
+        return array_merge(['centering_id' => null, 'pd_total' => null, 'pd_od' => null, 'pd_og' => null, 'inconsistency_reason' => null], $overrides);
+    }
+
+    /**
+     * Ligne de médicament (saisie libre).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function order(string $name, array $overrides = []): array
+    {
+        return array_merge([
+            'id' => Ulid::generate(), 'catalog_item_id' => null, 'name' => $name, 'form' => 'DROPS', 'form_other' => null, 'strength' => null,
+            'dosage' => null, 'frequency' => null, 'duration_text' => null, 'duration_value' => null, 'duration_unit' => null, 'instructions' => null,
+        ], $overrides);
+    }
+
+    /**
+     * Examen en cours avec motif et conclusion renseignés (prêt à terminer sans justification) : [visite, consultation].
+     *
+     * @return array{0: string, 1: string}
+     */
+    protected function completableExam(): array
+    {
+        [$visitId, $consultationId] = $this->startedExam();
+        $this->saveCurrent($consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'Gêne en vision de près (fictif)', 'complaints' => [$this->term('NEAR_DIFFICULTY')]]))->assertOk();
+        $this->saveCurrent($consultationId, 'CONCLUSION', $this->conclusion(['conclusion' => 'Conclusion fictive', 'referral' => false]))->assertOk();
+
+        return [$visitId, $consultationId];
+    }
+
+    /**
+     * Corps de finalisation (route directe) : l'empreinte est celle des rubriques lues, comme le poste la calcule.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function completeBody(string $consultationId, array $overrides = []): array
+    {
+        $read = $this->readConsultation($consultationId)->assertOk();
+
+        return array_merge([
+            'expected_version' => (int) $read->json('data.version'),
+            'consultation_id' => $consultationId,
+            'revision_id' => Ulid::generate(),
+            'revision_no' => 1,
+            'snapshot_sha256' => RevisionSnapshot::stepsHash($read->json('data.steps')),
+            'finalization_missing_data_reason' => null,
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $body
+     */
+    protected function completeConsultation(string $consultationId, ?array $body = null, ?User $as = null, ?string $key = null, ?string $pathId = null): TestResponse
+    {
+        return $this->actingAsFresh($as ?? $this->clinician)
+            ->withHeaders(['Idempotency-Key' => $key ?? Ulid::generate()])
+            ->postJson('/api/v1/consultations/'.($pathId ?? $consultationId).'/complete', $body ?? $this->completeBody($consultationId));
+    }
+
+    /**
+     * Corps de correction (route directe) : une ou plusieurs rubriques complètes, motif, empreinte de la requête.
+     *
+     * @param  array<string, array<string, mixed>>  $stepsByName  nom de rubrique → données
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function amendBody(string $consultationId, array $stepsByName, string $reason = 'Erreur de saisie corrigée (fictif)', array $overrides = []): array
+    {
+        $consultation = DB::table('consultations')->where('id', $consultationId)->first();
+        $current = (int) $consultation->current_revision;
+        $previous = (string) DB::table('clinical_revisions')->where('consultation_id', $consultationId)->where('revision_no', $current)->value('id');
+        $steps = [];
+        foreach ($stepsByName as $name => $data) {
+            $steps[] = ['step' => $name, 'data' => $data];
+        }
+
+        return array_merge([
+            'expected_version' => (int) $consultation->version,
+            'consultation_id' => $consultationId,
+            'revision_id' => Ulid::generate(),
+            'revision_no' => $current + 1,
+            'previous_revision_id' => $previous,
+            'reason' => $reason,
+            'steps' => $steps,
+            'snapshot_sha256' => RevisionHash::hash($steps),
+        ], $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    protected function amendConsultation(string $consultationId, array $body, ?User $as = null, ?string $key = null): TestResponse
+    {
+        return $this->actingAsFresh($as ?? $this->clinician)
+            ->withHeaders(['Idempotency-Key' => $key ?? Ulid::generate()])
+            ->postJson('/api/v1/consultations/'.$consultationId.'/amendments', $body);
+    }
+
+    /**
+     * Œil d'une prescription optique (OD ou OG).
+     *
+     * @return array<string, mixed>
+     */
+    protected function rxEye(string $eye, ?string $sphere = null, ?string $cylinder = null, ?int $axis = null, ?string $addition = null, bool $noCorrection = false, ?string $fittingHeight = null, ?string $id = null): array
+    {
+        return [
+            'id' => $id ?? Ulid::generate(), 'eye' => $eye, 'no_correction' => $noCorrection, 'sphere' => $sphere, 'cylinder' => $cylinder,
+            'axis' => $axis, 'addition' => $addition, 'fitting_height' => $fittingHeight,
+        ];
+    }
+
+    /**
+     * Corps de création d'une prescription INTERNE (brouillon complet par défaut : deux yeux renseignés).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function rxBody(string $consultationId, array $overrides = []): array
+    {
+        return array_merge([
+            'expected_version' => null,
+            'prescription_id' => Ulid::generate(),
+            'series_id' => Ulid::generate(),
+            'version_no' => 1,
+            'supersedes_id' => null,
+            'patient_id' => $this->patientId,
+            'origin' => 'INTERNAL',
+            'consultation_id' => $consultationId,
+            'external_prescriber' => null,
+            'external_prescribed_on' => null,
+            'external_file_id' => null,
+            'usage_code' => 'PERMANENT',
+            'usage_other' => null,
+            'lens_type_code' => 'SINGLE_VISION',
+            'lens_type_other' => null,
+            'lens_index' => '1.50',
+            'lens_index_other' => null,
+            'pd_total' => '62.00',
+            'pd_od' => '31.00',
+            'pd_og' => '31.00',
+            'pd_inconsistency_reason' => null,
+            'notes' => null,
+            'eyes' => [$this->rxEye('OD', '-1.25', '-0.50', 90), $this->rxEye('OG', '-1.00', null, null)],
+            'treatments' => [],
+        ], $overrides);
+    }
+
+    /**
+     * Corps de transcription d'une ordonnance EXTERNE (aucune consultation).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function rxExternalBody(array $overrides = []): array
+    {
+        return $this->rxBody('', array_merge([
+            'origin' => 'EXTERNAL',
+            'consultation_id' => null,
+            'external_prescriber' => 'Dr Prescripteur Fictif',
+            'external_prescribed_on' => '2026-10-01',
+        ], $overrides));
+    }
+
+    /**
+     * Crée une prescription : interne (route de la consultation), externe ou nouvelle version selon le corps.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    protected function createPrescription(array $body, ?User $as = null, ?string $key = null): TestResponse
+    {
+        $url = match (true) {
+            ($body['supersedes_id'] ?? null) !== null => '/api/v1/prescriptions/'.$body['supersedes_id'].'/revisions',
+            ($body['origin'] ?? null) === 'EXTERNAL' => '/api/v1/prescriptions/external',
+            default => '/api/v1/consultations/'.($body['consultation_id'] ?? '').'/prescriptions',
+        };
+
+        return $this->actingAsFresh($as ?? $this->clinician)->withHeaders(['Idempotency-Key' => $key ?? Ulid::generate()])->postJson($url, $body);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    protected function updatePrescription(string $prescriptionId, array $body, ?User $as = null, ?string $key = null): TestResponse
+    {
+        return $this->actingAsFresh($as ?? $this->clinician)->withHeaders(['Idempotency-Key' => $key ?? Ulid::generate()])->patchJson('/api/v1/prescriptions/'.$prescriptionId, $body);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $body
+     */
+    protected function validatePrescription(string $prescriptionId, ?array $body = null, ?User $as = null, ?string $key = null): TestResponse
+    {
+        $body ??= ['expected_version' => null, 'prescription_id' => $prescriptionId, 'document_id' => Ulid::generate()];
+
+        return $this->actingAsFresh($as ?? $this->clinician)->withHeaders(['Idempotency-Key' => $key ?? Ulid::generate()])->postJson('/api/v1/prescriptions/'.$prescriptionId.'/validate', $body);
+    }
+
+    protected function readPrescription(string $prescriptionId, ?User $as = null): TestResponse
+    {
+        return $this->actingAsFresh($as ?? $this->clinician)->getJson('/api/v1/prescriptions/'.$prescriptionId);
+    }
+
+    /**
+     * Brouillon de prescription interne créé pour la consultation : sa ressource (`data`).
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function draftPrescription(string $consultationId, array $overrides = []): array
+    {
+        return (array) $this->createPrescription($this->rxBody($consultationId, $overrides))->assertCreated()->json('data');
+    }
+
+    /**
+     * Prescription interne validée : sa ressource (`data`) après validation.
+     *
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    protected function validatedPrescription(string $consultationId, array $overrides = []): array
+    {
+        $draft = $this->draftPrescription($consultationId, $overrides);
+
+        return (array) $this->validatePrescription((string) $draft['id'])->assertOk()->json('data');
+    }
+
+    /**
+     * Refus de validation (422) dont l'un des champs en erreur contient le fragment de chemin donné (« raw_value »,
+     * « acuities.1.eye »…). Les erreurs de schéma et de règle n'ont pas toujours exactement le même préfixe : le
+     * fragment est cherché dans les clés rendues.
+     */
+    protected function assertFieldError(TestResponse $response, string $fragment): void
+    {
+        $response->assertStatus(422);
+        $keys = array_keys((array) $response->json('error.fields'));
+        $this->assertTrue(
+            count(array_filter($keys, static fn (string $key): bool => str_contains($key, $fragment))) > 0,
+            'Aucune erreur de champ ne contient « '.$fragment.' » : '.implode(', ', $keys),
+        );
+    }
+
+    /**
+     * Rubrique enregistrée relue dans la consultation (état courant du dossier).
+     *
+     * @return array<string, mixed>
+     */
+    protected function stepOf(string $consultationId, string $step): array
+    {
+        return (array) $this->readConsultation($consultationId)->assertOk()->json('data.steps.'.$step);
     }
 }

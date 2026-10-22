@@ -1,0 +1,12 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/ReceiptResponse",
+  "valid": false,
+  "description": "Reçu sans snapshot figé : refusé (son document ne peut pas être produit)",
+  "base": "resources/receipt.valid.json",
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/data/snapshot"
+    }
+  ]
+}

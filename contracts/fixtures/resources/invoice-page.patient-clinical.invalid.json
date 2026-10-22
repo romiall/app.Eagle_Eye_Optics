@@ -1,0 +1,33 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoicePage",
+  "valid": false,
+  "description": "Aucune donnée clinique dans l'identité du patient d'une liste de factures (champ inconnu refusé)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+          "record_number": "EE-2026-0001",
+          "last_name": "PATIENT FICTIF",
+          "first_names": null,
+          "conclusion": "texte clinique"
+        },
+        "number": null,
+        "status": "DRAFT",
+        "issued_at": null,
+        "total_gross": 0,
+        "balance_due": 0,
+        "draft_version": 1,
+        "ledger_version": null
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 1
+    }
+  }
+}

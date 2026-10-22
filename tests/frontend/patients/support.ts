@@ -123,6 +123,8 @@ export interface PatientsApi {
   get: Handler<[id: string, request: Recorded]>
   create: Handler<[body: Record<string, unknown>, request: Recorded]>
   update: Handler<[id: string, body: Record<string, unknown>, request: Recorded]>
+  /** GET /patients/{id}/activity (onglet « Activité ») : filtre `section` (null sans filtre) et page. */
+  activity: Handler<[id: string, section: string | null, page: number, request: Recorded]>
   requests: Recorded[]
   fetchMock: Mock
 }
@@ -136,7 +138,7 @@ export function stubPatientsApi(
   options: {
     permissions?: string[]
     modules?: readonly string[]
-    handlers?: Partial<Pick<PatientsApi, 'search' | 'get' | 'create' | 'update'>>
+    handlers?: Partial<Pick<PatientsApi, 'search' | 'get' | 'create' | 'update' | 'activity'>>
   } = {},
 ): PatientsApi {
   const requests: Recorded[] = []
@@ -157,6 +159,9 @@ export function stubPatientsApi(
     update:
       options.handlers?.update ??
       ((_id, body) => json(200, { data: { patient_id: body['patient_id'], version: 4 } })),
+    activity:
+      options.handlers?.activity ??
+      (() => apiError(404, 'RESOURCE_NOT_FOUND', 'Ressource introuvable.')),
     requests,
   } as PatientsApi
 
@@ -193,6 +198,17 @@ export function stubPatientsApi(
     }
     if (url.pathname === '/api/v1/patients' && method === 'POST') {
       return settle(api.create(body ?? {}, request))
+    }
+    const activity = /^\/api\/v1\/patients\/([^/]+)\/activity$/.exec(url.pathname)
+    if (activity !== null && method === 'GET') {
+      return settle(
+        api.activity(
+          decodeURIComponent(activity[1] ?? ''),
+          url.searchParams.get('section'),
+          Number(url.searchParams.get('page') ?? '1'),
+          request,
+        ),
+      )
     }
     const one = /^\/api\/v1\/patients\/([^/]+)$/.exec(url.pathname)
     if (one !== null) {

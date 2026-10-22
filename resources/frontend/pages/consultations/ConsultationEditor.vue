@@ -1,45 +1,56 @@
 <script setup lang="ts">
 /**
- * Consultation par étapes (C01 ; fichier 02, « Consultation et antécédents » ; fichier 04,
- * « Consultation guidée » ; AT18, AT19). Première tranche, EN LIGNE : motif et lunettes, antécédents,
- * conclusion et orientation. Acuités, réfraction et centrage arrivent avec C02, la finalisation et la
- * correction avec C03 : l'écran le dit et ne propose NI « Terminer » NI faux état « Terminé ».
+ * Consultation par étapes (C01 à C04 ; fichier 02, « Consultation et antécédents », « Examens et réfraction »,
+ * « Médicaments et orientation » ; fichier 04, « Consultation guidée » ; AT18, AT19). EN LIGNE : motif et
+ * lunettes, antécédents, acuité visuelle, réfraction, centrage, médicaments, conclusion et orientation, puis
+ * « Terminer l'examen » (révision 1 figée) et « Corriger » (nouvelle révision motivée).
  *
- * - En-tête patient fixe sur écran large (identité, dossier, date et heure, professionnel) ; la saisie
- *   ne s'ouvre qu'une fois le patient identifié.
+ * - En-tête patient fixe sur écran large (identité, dossier, date et heure, professionnel), lu dans la
+ *   consultation elle-même.
  * - Précédent / Enregistrer / Suivant : « Suivant » valide et enregistre l'étape avant d'avancer. Une
  *   étape n'est dite enregistrée qu'après la réponse du serveur (« Enregistré sur le serveur à
  *   10h42 ») ; rien n'est dit « enregistré sur ce poste ».
  * - Conflit de version (409) : saisie conservée, « Recharger la consultation » la rebase sur la
  *   version actuelle et signale les valeurs modifiées des deux côtés.
+ * - Terminer l'examen : confirmation, récapitulatif des rubriques non renseignées (jamais transformées en
+ *   « Aucun »), justification d'absence si le motif/les plaintes ou la conclusion manquent.
+ * - Examen terminé : lecture seule, avec l'historique des révisions et la correction motivée (`clinical.amend`).
  * - Sans le droit d'écriture (clinical.write) : lecture seule, aucun bouton d'enregistrement.
  * - Hors ligne : « Consultation indisponible », jamais une consultation vide.
  * Une instance par consultation (l'écran la recrée quand l'adresse change).
  */
 import { computed, nextTick, ref, watch } from 'vue'
 
-import { clinicTimeZone } from '@/app/clinicTime'
+import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
+import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import TextAreaField from '@/components/form/TextAreaField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
+import { missingDataText } from '@/domain/clinical/completion'
+import { CONTROL_IDS } from '@/domain/clinical/controls'
 import {
   DELIVERED_STEPS,
-  NEXT_VERSION_NOTICE,
   REFERRAL_BADGE,
   STEP_TITLES,
   urgencyLabel,
   workStatusSymbol,
 } from '@/domain/clinical/labels'
-import { CONTROL_IDS } from '@/domain/clinical/controls'
 
 import AnamnesisStep from './AnamnesisStep.vue'
+import CenteringStep from './CenteringStep.vue'
 import ConclusionStep from './ConclusionStep.vue'
+import ConsultationDocuments from './ConsultationDocuments.vue'
 import ConsultationReadMessage from './ConsultationReadMessage.vue'
 import HistoriesStep from './HistoriesStep.vue'
+import MedicationsStep from './MedicationsStep.vue'
 import PatientBanner from './PatientBanner.vue'
-import { useConsultationEditor } from './useConsultationEditor'
+import RefractionStep from './RefractionStep.vue'
+import { AMEND_REASON_ID, FINISH_REASON_ID, useConsultationEditor } from './useConsultationEditor'
+import VisualAcuityStep from './VisualAcuityStep.vue'
 
 const props = defineProps<{ consultationId: string }>()
 
@@ -59,8 +70,14 @@ const {
   reloading,
   rebased,
   pending,
+  operation,
+  operationTitle,
+  completed,
+  canAmend,
   readOnly,
   busy,
+  scales,
+  scalesReady,
   dirtySteps,
   currentDirty,
   anyDirty,
@@ -70,13 +87,21 @@ const {
   failure,
   saveStatus,
   statusLabel,
+  completionRecap,
+  finishBlocked,
+  canFinish,
+  finishOpen,
+  finishReason,
+  finishError,
+  amending,
+  amendReason,
+  amendReasonError,
 } = editor
 const { failureMessage, recordedAt, state } = mutation
 
-/** L'identité du patient est lue : la saisie peut s'ouvrir. */
-const identified = ref(false)
 const heading = ref<HTMLElement | null>(null)
 const timeZone = clinicTimeZone()
+const confirmingCancel = ref(false)
 
 useUnsavedChangesGuard(anyDirty)
 
@@ -99,10 +124,9 @@ const referral = computed(() => {
 const referred = computed(() => baseline.value?.steps.CONCLUSION.referral === true)
 
 const saving = computed(() => state.value === 'saving')
-const pendingStepTitle = computed(() =>
-  pending.value === null ? '' : STEP_TITLES[pending.value.step],
-)
-const completed = computed(() => baseline.value?.status === 'COMPLETED')
+const savingStep = computed(() => saving.value && operation.value === null && pending.value !== null)
+const readOnlyNotCompleted = computed(() => readOnly.value && !completed.value)
+const finishDisabled = computed(() => busy.value || finishBlocked.value !== null)
 
 /** Le résumé d'erreurs est focalisé par l'éditeur (clic « Enregistrer » ou « Suivant » refusé). */
 function bindSummary(element: unknown): void {
@@ -117,6 +141,33 @@ async function save(): Promise<void> {
     document.getElementById('consultation-enregistrer')?.focus()
   }
 }
+
+async function onSubmit(): Promise<void> {
+  if (amending.value) {
+    await editor.submitAmend()
+    return
+  }
+  await save()
+}
+
+function cancelAmend(): void {
+  if (anyDirty.value) {
+    confirmingCancel.value = true
+    return
+  }
+  editor.cancelAmend()
+}
+
+function confirmCancelAmend(): void {
+  confirmingCancel.value = false
+  editor.cancelAmend()
+}
+
+const completedAt = computed(() => {
+  const at = baseline.value?.completed_at
+  return at === null || at === undefined ? null : formatInstantFr(at)
+})
+const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
 </script>
 
 <template>
@@ -132,7 +183,7 @@ async function save(): Promise<void> {
     />
 
     <template v-else>
-      <PatientBanner :consultation="baseline" @identity="identified = $event !== null">
+      <PatientBanner :consultation="baseline">
         <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
           <span class="inline-flex items-center gap-1 rounded-lg border-2 border-line px-2 py-1"
             ><span aria-hidden="true">{{ workStatusSymbol(baseline.status) }}</span
@@ -158,14 +209,51 @@ async function save(): Promise<void> {
         @retry="editor.reloadFromServer"
       />
 
-      <StateMessage v-if="readOnly && !completed" state="empty" title="Lecture seule">
+      <StateMessage v-if="readOnlyNotCompleted" state="empty" title="Lecture seule">
         Ce compte peut consulter l’examen mais pas le modifier.
       </StateMessage>
-      <StateMessage v-else-if="completed" state="empty" title="Examen terminé">
-        La modification d’un examen terminé n’est pas disponible dans cette version.
+      <StateMessage v-else-if="completed && !amending" state="success" title="Examen terminé">
+        <p>
+          Terminé<template v-if="completedAt"> le {{ completedAt }}</template> ; révision
+          {{ baseline.current_revision }} sur {{ revisionCount }} enregistrée(s). Les rubriques sont en
+          lecture seule : une correction crée une nouvelle révision motivée, les précédentes restent
+          lisibles.
+        </p>
+        <p v-if="baseline.finalization_missing_data_reason" class="mt-2">
+          Justification d’absence enregistrée : {{ baseline.finalization_missing_data_reason }}
+        </p>
+        <template #action>
+          <div class="flex flex-wrap gap-3">
+            <LinkButton
+              :to="{ name: 'consultation-historique', params: { id: props.consultationId } }"
+              variant="secondary"
+              >Révisions et comparaison</LinkButton
+            >
+            <LinkButton
+              :to="{ name: 'consultation-prescriptions', params: { id: props.consultationId } }"
+              variant="secondary"
+              >Prescription optique</LinkButton
+            >
+            <AppButton v-if="canAmend" variant="primary" :disabled="busy" @click="editor.startAmend"
+              >Corriger l’examen</AppButton
+            >
+          </div>
+        </template>
+      </StateMessage>
+      <StateMessage v-else-if="amending" state="conflict" title="Correction en cours">
+        Vous corrigez un examen terminé : vos modifications seront enregistrées ensemble comme la
+        révision {{ baseline.current_revision + 1 }}, avec le motif ci-dessous. Les révisions
+        précédentes ne changent pas.
       </StateMessage>
 
-      <template v-if="identified">
+      <!-- Documents imprimables : examen terminé seulement, depuis la révision figée (jamais en correction). -->
+      <ConsultationDocuments
+        v-if="completed && !amending && !needsReload"
+        :consultation="baseline"
+        :scales="scales"
+      />
+
+      <div class="space-y-6">
         <StateMessage
           v-if="needsReload"
           state="conflict"
@@ -210,8 +298,7 @@ async function save(): Promise<void> {
         <ErrorSummary :ref="bindSummary" :errors="summary" />
 
         <StateMessage v-if="failure" :state="failure.state" :title="failure.title">
-          <template v-if="pendingStepTitle">Étape « {{ pendingStepTitle }} » : </template
-          >{{ failureMessage }}
+          <template v-if="operationTitle">{{ operationTitle }} : </template>{{ failureMessage }}
           <template v-if="failure.retry" #action>
             <AppButton variant="secondary" :pending="busy" @click="editor.retry"
               >Réessayer l’enregistrement</AppButton
@@ -220,7 +307,7 @@ async function save(): Promise<void> {
         </StateMessage>
 
         <nav aria-label="Étapes de la consultation">
-          <ol class="grid gap-2 sm:grid-cols-3">
+          <ol class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <li v-for="(step, index) in DELIVERED_STEPS" :key="step">
               <button
                 type="button"
@@ -247,7 +334,7 @@ async function save(): Promise<void> {
 
         <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
 
-        <form class="space-y-6" novalidate @submit.prevent="save">
+        <form class="space-y-6" novalidate @submit.prevent="onSubmit">
           <h2
             :id="CONTROL_IDS.step"
             ref="heading"
@@ -270,6 +357,32 @@ async function save(): Promise<void> {
             :errors="errorMap"
             :disabled="readOnly || busy"
           />
+          <VisualAcuityStep
+            v-else-if="current === 'VISUAL_ACUITY'"
+            v-model="drafts.VISUAL_ACUITY"
+            :errors="errorMap"
+            :disabled="readOnly || busy"
+            :scales="scales"
+            :scales-ready="scalesReady"
+          />
+          <RefractionStep
+            v-else-if="current === 'REFRACTION'"
+            v-model="drafts.REFRACTION"
+            :errors="errorMap"
+            :disabled="readOnly || busy"
+          />
+          <CenteringStep
+            v-else-if="current === 'CENTERING'"
+            v-model="drafts.CENTERING"
+            :errors="errorMap"
+            :disabled="readOnly || busy"
+          />
+          <MedicationsStep
+            v-else-if="current === 'MEDICATIONS'"
+            v-model="drafts.MEDICATIONS"
+            :errors="errorMap"
+            :disabled="readOnly || busy"
+          />
           <ConclusionStep
             v-else
             v-model="drafts.CONCLUSION"
@@ -284,16 +397,52 @@ async function save(): Promise<void> {
             <span aria-hidden="true">● </span>Modifications non enregistrées sur cette étape.
           </p>
 
+          <section
+            v-if="amending"
+            aria-labelledby="titre-motif-correction"
+            class="space-y-3 rounded-lg border-2 border-warning bg-warning-soft p-4"
+          >
+            <h3 id="titre-motif-correction" class="text-lg font-semibold">Motif de la correction</h3>
+            <TextAreaField
+              v-model="amendReason"
+              label="Pourquoi corrigez-vous cet examen ?"
+              hint="Obligatoire. Conservé avec la révision, lisible par les profils cliniques ; jamais recopié dans le journal d’audit."
+              :control-id="AMEND_REASON_ID"
+              :rows="3"
+              :maxlength="1000"
+              :error="amendReasonError"
+              :disabled="busy"
+              required
+            />
+          </section>
+
           <div class="flex flex-wrap items-center gap-3">
             <AppButton variant="secondary" :disabled="busy || isFirst" @click="editor.previous"
               >Précédent</AppButton
             >
-            <template v-if="!readOnly">
+            <template v-if="amending">
+              <AppButton
+                id="consultation-enregistrer"
+                type="submit"
+                variant="primary"
+                :pending="saving && operation === 'amend'"
+                pending-label="Enregistrement de la correction…"
+                :disabled="busy || needsReload"
+                >Enregistrer la correction</AppButton
+              >
+              <AppButton v-if="!isLast" variant="secondary" :disabled="busy" @click="editor.advance"
+                >Suivant</AppButton
+              >
+              <AppButton variant="ghost" :disabled="busy" @click="cancelAmend"
+                >Abandonner la correction</AppButton
+              >
+            </template>
+            <template v-else-if="!readOnly">
               <AppButton
                 id="consultation-enregistrer"
                 type="submit"
                 :variant="isLast ? 'primary' : 'secondary'"
-                :pending="saving && pending !== null && !pending.advance"
+                :pending="savingStep && pending !== null && !pending.advance"
                 pending-label="Enregistrement en cours…"
                 :disabled="busy || needsReload"
                 >Enregistrer</AppButton
@@ -301,7 +450,7 @@ async function save(): Promise<void> {
               <AppButton
                 v-if="!isLast"
                 variant="primary"
-                :pending="saving && pending !== null && pending.advance"
+                :pending="savingStep && pending !== null && pending.advance"
                 pending-label="Enregistrement en cours…"
                 :disabled="busy || needsReload"
                 @click="editor.saveAndAdvance"
@@ -313,18 +462,89 @@ async function save(): Promise<void> {
             >
             <SaveStatus :state="saveStatus" :at="recordedAt" :time-zone="timeZone" />
           </div>
-          <p v-if="!readOnly" class="max-w-prose text-sm text-muted">
+          <p v-if="!readOnly && !amending" class="max-w-prose text-sm text-muted">
             « Suivant » enregistre l’étape sur le serveur avant de passer à la suivante.
           </p>
         </form>
 
-        <aside
-          aria-label="Étapes non disponibles dans cette version"
-          class="rounded-lg border-2 border-line bg-surface p-3 text-base text-ink"
+        <section
+          v-if="canFinish"
+          aria-labelledby="titre-terminer"
+          class="space-y-3 rounded-lg border-2 border-line bg-surface p-4"
         >
-          <p><span aria-hidden="true">○ </span>{{ NEXT_VERSION_NOTICE }}</p>
-        </aside>
-      </template>
+          <h2 id="titre-terminer" class="text-lg font-semibold">Terminer l’examen</h2>
+          <p class="max-w-prose text-base text-ink">
+            Terminer fige la première révision de l’examen : les rubriques deviennent lisibles mais ne
+            se modifient plus que par une correction motivée. Les rubriques non renseignées restent
+            « non renseignées ».
+          </p>
+          <p v-if="finishBlocked" class="text-sm font-medium text-warning">
+            <span aria-hidden="true">● </span>{{ finishBlocked }}
+          </p>
+          <AppButton variant="primary" :disabled="finishDisabled" @click="editor.openFinish"
+            >Terminer l’examen</AppButton
+          >
+        </section>
+
+        <!-- Monté seulement quand la finalisation est possible : aucun bouton « Terminer » caché ailleurs. -->
+        <ConfirmDialog
+          v-if="canFinish || finishOpen"
+          :open="finishOpen"
+          title="Terminer l’examen ?"
+          confirm-label="Terminer l’examen"
+          :pending="busy && operation === 'complete'"
+          pending-label="Finalisation en cours…"
+          initial-focus="#terminer-justification"
+          @confirm="editor.confirmFinish"
+          @cancel="editor.closeFinish"
+        >
+          <div v-if="completionRecap" class="space-y-3">
+            <p>
+              La première révision sera figée. Une correction ultérieure demandera un motif et créera une
+              nouvelle révision.
+            </p>
+            <div>
+              <p class="font-semibold">Rubriques non renseignées</p>
+              <ul v-if="completionRecap.emptySteps.length > 0" class="list-disc pl-5">
+                <li v-for="step in completionRecap.emptySteps" :key="step">
+                  {{ STEP_TITLES[step] }} : non renseigné
+                </li>
+              </ul>
+              <p v-else>Aucune : toutes les rubriques portent une réponse.</p>
+              <p class="mt-1 text-sm text-muted">
+                Une rubrique non renseignée n’est pas « aucun » : elle est figée telle quelle. Les
+                mesures non réalisées ne sont pas exigées.
+              </p>
+            </div>
+            <p v-if="completionRecap.reasonRequired" class="font-medium text-warning">
+              <span aria-hidden="true">⚠ </span>Il manque {{ missingDataText(completionRecap) }} :
+              justifiez leur absence ci-dessous.
+            </p>
+            <TextAreaField
+              v-model="finishReason"
+              :label="completionRecap.reasonRequired ? 'Justification d’absence' : 'Justification d’absence (facultative)'"
+              :control-id="FINISH_REASON_ID"
+              :rows="3"
+              :maxlength="4000"
+              :error="finishError"
+              :disabled="busy"
+              :required="completionRecap.reasonRequired"
+            />
+          </div>
+        </ConfirmDialog>
+
+        <ConfirmDialog
+          v-if="amending"
+          :open="confirmingCancel"
+          title="Abandonner la correction ?"
+          confirm-label="Abandonner la correction"
+          tone="danger"
+          @confirm="confirmCancelAmend"
+          @cancel="confirmingCancel = false"
+        >
+          Les modifications non envoyées seront perdues. L’examen terminé reste inchangé.
+        </ConfirmDialog>
+      </div>
     </template>
   </section>
 </template>

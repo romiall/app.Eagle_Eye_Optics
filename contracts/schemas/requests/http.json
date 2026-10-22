@@ -570,6 +570,36 @@
         }
       }
     },
+    "AbandonInvoiceDraftRequest": {
+      "description": "Abandon d'un brouillon de facture (fichier 03) : version de brouillon attendue, motif facultatif (conservé dans l'audit). Aucun numéro, aucune réserve, aucun document à annuler.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "invoice_id",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "OpeningStockRequest": {
       "description": "Stock initial validé (I00) : un mouvement OPENING par ligne, lots créés au besoin ; gérante.",
       "type": "object",

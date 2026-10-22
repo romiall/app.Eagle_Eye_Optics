@@ -1,0 +1,10 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/AbandonInvoiceDraftRequest",
+  "valid": false,
+  "description": "Sans version de brouillon attendue, l'abandon est refusé (jamais d'abandon à l'aveugle)",
+  "data": {
+    "expected_version": null,
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+    "reason": null
+  }
+}

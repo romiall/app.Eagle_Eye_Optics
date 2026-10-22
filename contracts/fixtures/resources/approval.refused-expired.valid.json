@@ -1,0 +1,78 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/ApprovalPage",
+  "valid": true,
+  "description": "Liste de la gérante : un refus motivé et un accord échu (statut effectif EXPIRED, jamais écrit) ; contenu non vérifiable rendu null",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W30038",
+        "kind": "PAYMENT_REVERSAL",
+        "action_code": "payment.reverse",
+        "target_type": "payments",
+        "target_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+        "payload_hash": "b1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "subject": {
+          "kind": "PAYMENT_REVERSAL",
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "payment_id": "01J9ZXK4M2Q8R7S6T5V4W3002T",
+          "amount": 30000
+        },
+        "reason": "Paiement saisi deux fois (fictif)",
+        "status": "REFUSED",
+        "effective_status": "REFUSED",
+        "requested_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+        "requested_by_name": "Caisse Fictive",
+        "requested_at": "2026-10-14T10:00:00.000Z",
+        "decided_by": "01J9ZXK4M2Q8R7S6T5V4W30002",
+        "decided_by_name": "Gérante Fictive",
+        "decided_at": "2026-10-14T10:05:00.000Z",
+        "decision_reason": "Le paiement est bien arrivé : vérifiez le relevé (fictif)",
+        "expires_at": null,
+        "consumed_at": null,
+        "target": {
+          "patient": null,
+          "invoice_number": "TEST-FAC-000001",
+          "visit_occurred_at": null,
+          "payment": {
+            "amount": 30000,
+            "method": "MTN_MOMO",
+            "effective_at": "2026-10-14T09:30:00.000Z"
+          }
+        }
+      },
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W30039",
+        "kind": "DRAFT_LINE_RIGHTS",
+        "action_code": "catalog.manage",
+        "target_type": "invoices",
+        "target_id": "01J9ZXK4M2Q8R7S6T5V4W30040",
+        "payload_hash": "c1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "subject": null,
+        "reason": "Remise accordée au client fidèle (fictif)",
+        "status": "APPROVED",
+        "effective_status": "EXPIRED",
+        "requested_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+        "requested_by_name": "Caisse Fictive",
+        "requested_at": "2026-10-14T08:00:00.000Z",
+        "decided_by": "01J9ZXK4M2Q8R7S6T5V4W30002",
+        "decided_by_name": "Gérante Fictive",
+        "decided_at": "2026-10-14T08:10:00.000Z",
+        "decision_reason": null,
+        "expires_at": "2026-10-14T09:10:00.000Z",
+        "consumed_at": null,
+        "target": {
+          "patient": null,
+          "invoice_number": null,
+          "visit_occurred_at": null,
+          "payment": null
+        }
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 25,
+      "total": 2
+    }
+  }
+}

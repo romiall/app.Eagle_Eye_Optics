@@ -6,8 +6,9 @@ namespace App\Domain\Clinical\Rules;
  * Rubriques du dossier de consultation (contrat `clinical-steps.json#StepName`, modèle DP) et états du travail
  * clinique (`consultations.status`).
  *
- * Premier jalon (C01) : seules les rubriques narratives sont OUVERTES à l'enregistrement. Les trois autres
- * (acuités, réfraction, centrage) répondent « pas encore ouverte » jusqu'à C02, sans rien écrire.
+ * Les sept rubriques sont ouvertes à l'enregistrement : narratives (C01), mesurées (C02 : acuités, réfraction,
+ * centrage) et médicaments (C04, DP §9). L'ordre de `ALL` est celui du dossier ; il est repris par la lecture,
+ * le snapshot d'une révision et l'écran.
  */
 final class ClinicalSteps
 {
@@ -21,13 +22,15 @@ final class ClinicalSteps
 
     public const CENTERING = 'CENTERING';
 
+    public const MEDICATIONS = 'MEDICATIONS';
+
     public const CONCLUSION = 'CONCLUSION';
 
-    /** Les six rubriques, dans l'ordre du dossier. */
-    public const ALL = [self::ANAMNESIS, self::HISTORIES, self::VISUAL_ACUITY, self::REFRACTION, self::CENTERING, self::CONCLUSION];
+    /** Les sept rubriques, dans l'ordre du dossier. */
+    public const ALL = [self::ANAMNESIS, self::HISTORIES, self::VISUAL_ACUITY, self::REFRACTION, self::CENTERING, self::MEDICATIONS, self::CONCLUSION];
 
-    /** Rubriques dont l'enregistrement est ouvert dans ce jalon. */
-    public const OPEN = [self::ANAMNESIS, self::HISTORIES, self::CONCLUSION];
+    /** Rubriques dont l'enregistrement est ouvert (toutes, depuis C02 et C04). */
+    public const OPEN = self::ALL;
 
     public const DRAFT = 'DRAFT';
 

@@ -452,9 +452,17 @@ describe('comparaison avec ce qui est enregistré', () => {
     expect(isStepDirty('HISTORIES', none, { histories: [] })).toBe(false)
   })
 
-  it('blankDrafts crée les trois étapes livrées vierges', () => {
+  it('blankDrafts crée les sept rubriques vierges, dans l’ordre du dossier', () => {
     const drafts = blankDrafts(nextId)
-    expect(Object.keys(drafts)).toEqual(['ANAMNESIS', 'HISTORIES', 'CONCLUSION'])
+    expect(Object.keys(drafts)).toEqual([
+      'ANAMNESIS',
+      'HISTORIES',
+      'VISUAL_ACUITY',
+      'REFRACTION',
+      'CENTERING',
+      'MEDICATIONS',
+      'CONCLUSION',
+    ])
     expect(
       isStepDirty('CONCLUSION', drafts.CONCLUSION, buildStepData('CONCLUSION', blankConclusion())),
     ).toBe(false)

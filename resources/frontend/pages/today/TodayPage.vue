@@ -5,16 +5,17 @@
  * minuit UTC), jour précédent ou suivant, ou une date saisie. « Enregistrer une arrivée » n'apparaît
  * qu'avec le droit visit.register ; la file elle-même se lit avec visit.register OU agenda.read.
  *
- * Le contrôle du paiement de l'examen N'EXISTE PAS encore (B04, B06) : l'écran le dit en toutes
- * lettres et n'affirme jamais qu'un examen est réglé, soldé ou gratuit. Un achat ou un retrait n'impose
- * aucun examen. « Démarrer l'examen » (C01) n'est donc PAS bloqué par le règlement : il apparaît pour
- * une visite d'examen ou de suivi arrivée, avec le droit clinical.write et le module « consultations »
- * ouvert (voir `VisitQueue`).
+ * Contrôle du paiement de l'examen INACTIF (défaut) : l'écran le dit en toutes lettres et n'affirme
+ * jamais qu'un examen est réglé, soldé ou gratuit ; « Démarrer l'examen » (C01) n'est PAS bloqué par le
+ * règlement. Contrôle ACTIF (`clinic.exam_fee_control = BILLED`, P03 avec B04 et B06) : l'écran dit que
+ * l'examen ne démarre qu'avec la facture de frais de la visite encaissée ou une dispense accordée par la
+ * gérante ; chaque visite porte son marqueur (voir `VisitQueue`). Un achat ou un retrait n'impose aucun
+ * examen.
  */
 import { computed, ref } from 'vue'
 
 import { clinicToday, formatDayFr } from '@/app/clinicTime'
-import { can, canOnScreen, moduleOpenOnScreen } from '@/app/session'
+import { can, canOnScreen, examFeeControlledOnScreen, moduleOpenOnScreen } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -42,6 +43,8 @@ const canRegister = computed(() => can('visit.register'))
 const mentionsExamStart = computed(
   () => canOnScreen('clinical.write') && moduleOpenOnScreen('consultations'),
 )
+/** Le serveur contrôle réellement le paiement de l'examen (`/auth/me`). */
+const examFeeControlled = computed(() => examFeeControlledOnScreen())
 const queueKey = computed(() => `${day.value}\u{1F}${page.value}\u{1F}${run.value}`)
 const isToday = computed(() => day.value === clinicToday().toString())
 const title = computed(() => {
@@ -98,7 +101,12 @@ function goToPage(next: number): void {
 
     <StateMessage v-if="flash" state="success" :title="flash" />
 
-    <p class="max-w-prose text-muted">
+    <p v-if="examFeeControlled" class="max-w-prose text-muted">
+      Les frais d’examen sont contrôlés : un examen de vue ou un contrôle de suivi ne démarre qu’avec
+      la facture de frais de la visite encaissée, ou une dispense accordée par la gérante. Un achat
+      direct ou un retrait de commande n’impose aucun examen.
+    </p>
+    <p v-else class="max-w-prose text-muted">
       <span aria-hidden="true">⚠ </span>Le contrôle du paiement de l’examen n’est pas encore actif.
       Une arrivée pour un examen de vue ou un contrôle de suivi n’est donc pas bloquée faute de
       règlement, et cet écran ne dit rien de l’état du règlement de l’examen.

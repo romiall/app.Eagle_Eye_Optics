@@ -1,0 +1,46 @@
+{
+  "schema": "schemas/resources/clinical.json#/$defs/ConsultationSummaryPage",
+  "valid": true,
+  "description": "Liste des examens (clinical.read) : identité administrative de base, état, dates, révision et professionnel ; aucune valeur clinique (données fictives)",
+  "data": {
+    "data": [
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3C011",
+        "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3V011",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3P011",
+        "status": "COMPLETED",
+        "effective_at": "2026-10-22T09:20:00.000Z",
+        "completed_at": "2026-10-22T10:05:00.000Z",
+        "current_revision": 1,
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3P011",
+          "record_number": "EE-2026-0042",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie",
+          "sex": "F",
+          "birth_date": "1990-05-17"
+        },
+        "clinician": { "id": "01J9ZXK4M2Q8R7S6T5V4W3S011", "display_name": "Professionnel Fictif" }
+      },
+      {
+        "id": "01J9ZXK4M2Q8R7S6T5V4W3C012",
+        "visit_id": "01J9ZXK4M2Q8R7S6T5V4W3V012",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3P012",
+        "status": "IN_PROGRESS",
+        "effective_at": "2026-10-22T08:40:00.000Z",
+        "completed_at": null,
+        "current_revision": 0,
+        "patient": {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3P012",
+          "record_number": "EE-2026-0043",
+          "last_name": "AUTRE PATIENT FICTIF",
+          "first_names": null,
+          "sex": "UNKNOWN",
+          "birth_date": null
+        },
+        "clinician": { "id": "01J9ZXK4M2Q8R7S6T5V4W3S011", "display_name": "Professionnel Fictif" }
+      }
+    ],
+    "meta": { "current_page": 1, "last_page": 1, "per_page": 50, "total": 2 }
+  }
+}

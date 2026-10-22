@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/patients.json#/$defs/PatientActivity",
+  "valid": false,
+  "description": "Un examen de la liste ne porte aucune valeur clinique : une conclusion ajoutée est refusée (objet strict)",
+  "base": "resources/patient-activity.manager.valid.json",
+  "patch": [
+    {
+      "op": "add",
+      "path": "/data/8/conclusion",
+      "value": "Conclusion fictive"
+    }
+  ]
+}

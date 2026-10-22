@@ -1,0 +1,66 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CashDayReportResponse",
+  "valid": true,
+  "description": "Caisse du jour de la gérante : encaissements nets par mode, factures émises et reste à encaisser (données fictives)",
+  "data": {
+    "data": {
+      "date": "2026-10-14",
+      "scope": "CLINIC",
+      "collections": [
+        {
+          "method": "CASH",
+          "payments_count": 1,
+          "payments_amount": 80000,
+          "reversals_amount": 0,
+          "refunds_amount": 0,
+          "net_amount": 80000
+        },
+        {
+          "method": "MTN_MOMO",
+          "payments_count": 1,
+          "payments_amount": 20000,
+          "reversals_amount": 0,
+          "refunds_amount": 0,
+          "net_amount": 20000
+        }
+      ],
+      "net_total": 100000,
+      "sessions": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3002Y",
+          "cash_register_id": "01J9ZXK4M2Q8R7S6T5V4W3003R",
+          "cashier_id": "01J9ZXK4M2Q8R7S6T5V4W30005",
+          "opened_at": "2026-10-14T08:00:00.000Z",
+          "opening_amount": 25000,
+          "closed_at": null,
+          "counted_amount": null,
+          "expected_amount": null,
+          "variance": null,
+          "variance_reason": null,
+          "closed_by": null,
+          "collected_cash": 80000,
+          "refunded_cash": 0,
+          "theoretical_cash": 105000,
+          "cashier_name": "Caisse (démonstration)",
+          "closed_by_name": null,
+          "register_code": "CAISSE-PRINCIPALE",
+          "register_name": "Caisse principale"
+        }
+      ],
+      "issued": {
+        "count": 1,
+        "total_gross": 150000
+      },
+      "credited": {
+        "count": 0,
+        "amount_gross": 0
+      },
+      "outstanding": {
+        "invoices_count": 1,
+        "amount_due": 50000,
+        "refundable_credit": 0
+      },
+      "generated_at": "2026-10-14T12:00:00.000Z"
+    }
+  }
+}

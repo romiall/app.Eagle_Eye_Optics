@@ -468,12 +468,12 @@ describe('refus d’état, droits, coupure et session', () => {
     await toggle(root, 'Douleur')
 
     await click(buttonByName(root, 'Suivant'))
-    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 1 sur 3')
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 1 sur 7')
 
     await click(buttonByName(root, 'Réessayer l’enregistrement'))
 
     expect(patchCalls(api)).toHaveLength(2)
-    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 2 sur 3')
+    expect(root.querySelector('h2#consultation-etape')?.textContent).toContain('Étape 2 sur 7')
     unmount()
   })
 

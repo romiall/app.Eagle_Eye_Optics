@@ -56,7 +56,7 @@ describe('amorçage de la coquille Vue', () => {
     unmount()
   })
 
-  it('ne déclare que les routes de la coquille, des écrans patient (P01, P02), de la file du jour (P03) et de la consultation (C01)', () => {
+  it('ne déclare que les routes de la coquille, des patients, de la file du jour, des consultations, des documents, des ventes et des paramètres', () => {
     const { router } = createEeoApp(createMemoryHistory())
 
     expect(router.getRoutes().map((route) => String(route.name))).toEqual(
@@ -71,31 +71,62 @@ describe('amorçage de la coquille Vue', () => {
         'patient-nouveau',
         'patient',
         'patient-modifier',
+        'patient-activite',
         'consultation',
+        'documents-apercu',
+        'ventes',
+        'caisse',
+        'factures',
+        'facture-nouvelle',
+        'facture',
+        'catalogue',
+        'taxes',
+        'stock',
+        'consultations',
+        'consultation-historique',
+        'consultation-prescriptions',
+        'parametres',
+        'parametres-personnel',
+        'parametres-personnel-nouveau',
+        'parametres-compte',
+        'parametres-cabinet',
+        'mot-de-passe',
+        'approbations',
       ]),
     )
-    expect(router.getRoutes()).toHaveLength(11)
+    // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
+    // + activité du patient (onglet du dossier) + ventes et caisse (8 : B01 à B05, I00)
+    // + liste des examens + paramètres (5 : F09) + changement de son mot de passe + approbations (B06).
+    expect(router.getRoutes()).toHaveLength(31)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
     for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/patients'))) {
       expect(route.meta.module, String(route.name)).toBe('patients')
       expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
     }
     // La consultation (C01) se lit avec clinical.read, module « consultations » ; l'adresse n'accepte
-    // qu'un identifiant ULID, et la liste des consultations (G15) n'a pas d'écran.
+    // qu'un identifiant ULID. La liste des examens n'a aucune valeur clinique.
     const consultations = router
       .getRoutes()
       .filter((entry) => entry.path.startsWith('/consultations'))
-    expect(
-      consultations.map((route) => [
-        String(route.name),
-        route.meta.module,
-        route.meta.permissions,
-        route.meta.title,
-      ]),
-    ).toEqual([['consultation', 'consultations', ['clinical.read'], 'Consultation']])
+    for (const route of consultations) {
+      expect(route.meta.module, String(route.name)).toBe('consultations')
+      expect(route.meta.permissions, String(route.name)).toEqual(['clinical.read'])
+    }
+    expect(consultations.map((route) => String(route.name)).sort()).toEqual([
+      'consultation',
+      'consultation-historique',
+      'consultation-prescriptions',
+      'consultations',
+    ])
+    expect(router.resolve('/consultations').name).toBe('consultations')
     expect(router.resolve('/consultations/01J9ZXK4M2Q8R7S6T5V4W30501').name).toBe('consultation')
+    // Les paramètres dépendent du module « settings » ; le mot de passe de son compte, d'aucun module.
+    for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/parametres'))) {
+      expect(route.meta.module, String(route.name)).toBe('settings')
+      expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
+    }
+    expect(router.resolve('/mon-compte/mot-de-passe').meta.module).toBeUndefined()
     for (const path of [
-      '/consultations',
       '/consultations/abc',
       '/consultations/01J9ZXK4M2Q8R7S6T5V4W30501/etape',
     ]) {

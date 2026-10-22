@@ -10,6 +10,8 @@ use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
+use App\Domain\Billing\BilledExamFeeControl;
+use App\Domain\Patients\Rules\VisitStatus;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
@@ -24,8 +26,9 @@ use Illuminate\Support\Facades\DB;
  * jamais de consultation vide. Une nouvelle visite ne remplace aucune précédente ; une autre visite du même
  * patient le même jour ne bloque pas (l'écran avertit à partir de la file du jour).
  *
- * Le statut est décidé par le serveur (`ARRIVED`). Le contrôle du paiement de l'examen n'existe pas encore (B04,
- * B06) : aucun statut « en attente de paiement » ni « prêt pour examen » n'est écrit.
+ * Le statut est décidé par le serveur (`VisitStatus::initial`) : `ARRIVED`, ou `AWAITING_EXAM_FEE` pour un examen ou
+ * un suivi quand le contrôle du paiement de l'examen est actif (`EEO_EXAM_FEE_CONTROL=billed`, P03 avec B04 et B06).
+ * Contrôle inactif (défaut) : toujours `ARRIVED`, aucun statut « en attente de paiement » ni « prêt pour examen ».
  */
 final class RegisterVisitHandler implements CommandHandler
 {
@@ -90,6 +93,7 @@ final class RegisterVisitHandler implements CommandHandler
 
         $arrival = CarbonImmutable::createFromTimestampMsUTC($occurredAt->epochMilliseconds)->format('Y-m-d H:i:s.u');
         $now = $context->now->utc()->format('Y-m-d H:i:s.u');
+        $status = VisitStatus::initial((string) $payload['reason'], BilledExamFeeControl::isActive());
 
         DB::table('visits')->insert([
             'id' => $visitId,
@@ -97,7 +101,7 @@ final class RegisterVisitHandler implements CommandHandler
             'patient_id' => $patientId,
             'reason' => (string) $payload['reason'],
             'occurred_at' => $arrival,
-            'status' => 'ARRIVED',
+            'status' => $status,
             'appointment_id' => $appointmentId,
             'exam_invoice_id' => null,
             'exam_waiver_approval_id' => null,

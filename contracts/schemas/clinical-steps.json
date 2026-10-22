@@ -377,6 +377,146 @@
         }
       }
     },
+    "Medications": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "orders"
+      ],
+      "properties": {
+        "orders": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "catalog_item_id",
+              "name",
+              "form",
+              "form_other",
+              "strength",
+              "dosage",
+              "frequency",
+              "duration_text",
+              "duration_value",
+              "duration_unit",
+              "instructions"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.json#/$defs/Ulid"
+              },
+              "catalog_item_id": {
+                "$ref": "common.json#/$defs/NullableUlid"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "form": {
+                "$ref": "enums.json#/$defs/medication_orders.form"
+              },
+              "form_other": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "strength": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dosage": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frequency": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "duration_text": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "duration_value": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "duration_unit": {
+                "anyOf": [
+                  {
+                    "$ref": "enums.json#/$defs/medication_orders.duration_unit"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "instructions": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "Conclusion": {
       "type": "object",
       "additionalProperties": false,
@@ -461,6 +601,7 @@
         "VISUAL_ACUITY",
         "REFRACTION",
         "CENTERING",
+        "MEDICATIONS",
         "CONCLUSION"
       ]
     },
@@ -473,6 +614,7 @@
         "VISUAL_ACUITY",
         "REFRACTION",
         "CENTERING",
+        "MEDICATIONS",
         "CONCLUSION"
       ],
       "properties": {
@@ -490,6 +632,9 @@
         },
         "CENTERING": {
           "$ref": "#/$defs/Centering"
+        },
+        "MEDICATIONS": {
+          "$ref": "#/$defs/Medications"
         },
         "CONCLUSION": {
           "$ref": "#/$defs/Conclusion"

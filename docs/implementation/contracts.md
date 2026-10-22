@@ -19,10 +19,10 @@ Ce que F06 ne fait pas :
 | `events/` | Enveloppe des événements internes et 13 charges minimales | `tools/build_events.py` |
 | `schemas/resources/`, `schemas/requests/` | Réponses de l'API et corps des routes en ligne sans commande | `tools/build_resources.py` |
 | `snapshots/` | Contenus figés des pièces (colonnes JSON `snapshot` du catalogue) | `tools/build_resources.py` |
-| `openapi.yaml` | 86 opérations de l'API privée et des routes publiques L2 | `tools/build_openapi.py` |
+| `openapi.yaml` | 91 opérations de l'API privée et des routes publiques L2 | `tools/build_openapi.py` |
 | `compatibility.json` | Ce que la release sait reprendre | Écrit à la main ; schéma `schemas/compatibility.json` |
 | `vocabulary.json` | Annotations `x-*` admises | Écrit à la main |
-| `fixtures/` | 150 fichiers acceptés ou refusés | Écrits à la main (données fictives) |
+| `fixtures/` | 168 fichiers acceptés ou refusés | Écrits à la main (données fictives) |
 
 Les générateurs sont déterministes et ont un mode `--check` exécuté en CI. Un fichier généré ne se modifie jamais à la main : on modifie le générateur puis on le relance. Les fichiers générés sont exclus de Prettier, car le contrôle compare les octets.
 
@@ -88,7 +88,9 @@ Par la route directe, le numéro de pièce est attribué par le serveur hors des
 
 « Version brouillon » = `invoices.version`, figée à l'émission. « ledger_version » = projection 1 + paiements confirmés + contre-écritures + avoirs émis + remboursements (contrat 23), jamais une colonne. « Transition d'état » : la table n'a pas de colonne `version` (`optical_prescriptions`, `cash_sessions`, `approvals`), le serveur vérifie sous verrou le statut attendu (brouillon, session ouverte, demande en attente). Le test `CommandCatalogConsistencyTest` interdit une version attendue sans colonne réelle.
 
-`StartConsultation` : `exam_invoice_id` et `exam_waiver_approval_id` sont **facultatifs au contrat** (null admis, aucune preuve exigée par le schéma) depuis C01 : tant que le contrôle du paiement de l'examen n'existe pas (B04, B06), le serveur ne contrôle rien et le dit (`NOT_CONTROLLED` dans l'audit) ; c'est le serveur, non le schéma, qui exigera la preuve quand le contrôle sera actif. `SaveClinicalStep`/`CENTERING` : `centering_id` est nullable (une consultation sans centrage est représentable). Voir [clinical.md](clinical.md).
+`StartConsultation` : `exam_invoice_id` et `exam_waiver_approval_id` sont **facultatifs au contrat** (null admis, aucune preuve exigée par le schéma) depuis C01 : contrôle du paiement de l'examen inactif (défaut), le serveur ne contrôle rien et le dit (`NOT_CONTROLLED` dans l'audit) ; contrôle actif (`EEO_EXAM_FEE_CONTROL=billed`, P03), c'est le serveur, non le schéma, qui exige la facture de frais réglée ou la dispense accordée (retrouvée par son contenu exact si elle n'est pas désignée).
+
+`RequestApproval` (B06) : la charge porte le **contenu exact** de l'opération (`subject`, une des cinq natures de `$defs/ApprovalSubject` : dispense d'examen, droits d'un brouillon, contre-écriture, avoir, remboursement) et non plus `action_code`, `target_type`, `target_id` ni `payload_hash` : le serveur les dérive du contenu et calcule l'empreinte lui-même, puis la recalcule depuis la commande approuvée au moment de la consommer. Une empreinte fournie par le client est refusée (fixture `request-approval.client-hash.invalid.json`). La ressource `Approval` rend le contenu revérifié (`subject`), le statut effectif (`effective_status`, `EXPIRED` calculé), les noms, le motif de la décision et un résumé de cible ; `ApprovalPage` pour la liste. `Visit.exam_fee_control` admet `UNPAID`, `WAIVER_REQUESTED`, `PAID`, `WAIVED` quand le contrôle est actif, et `exam_fee_receipt_number` (facultatif) ; `ClinicSummary.exam_fee_control` (facultatif : `OFF`, `BILLED`). Voir [billing.md](billing.md). `SaveClinicalStep`/`CENTERING` : `centering_id` est nullable (une consultation sans centrage est représentable). Voir [clinical.md](clinical.md).
 
 ## Protocole de synchronisation (`sync/`)
 
@@ -142,7 +144,7 @@ La charge est minimale : identifiants et attributs administratifs nécessaires, 
 
 ## OpenAPI 3.1
 
-86 opérations, regroupées en 14 thèmes. Chaque opération porte les annotations du vocabulaire : `x-permission` (l'un des codes suffit), `x-reauthentication`, `x-idempotency`, `x-offline-command`, `x-read-scope`, `x-implementation-status` et `x-backlog-task`.
+91 opérations, regroupées en 14 thèmes. Chaque opération porte les annotations du vocabulaire : `x-permission` (l'un des codes suffit), `x-reauthentication`, `x-idempotency`, `x-offline-command`, `x-read-scope`, `x-implementation-status` et `x-backlog-task`.
 
 Les erreurs renvoient à l'enveloppe du fichier 08 (401, 403, 404, 409, 410, 413, 419, 422, 423, 429, 503). La sécurité est décrite par le cookie de session Sanctum, plus `X-XSRF-TOKEN` (ou Fetch Metadata) pour les écritures.
 
@@ -153,6 +155,8 @@ Routes ajoutées au-delà des tableaux 08, 19 et 23, parce qu'une tâche L0 en a
 | `POST /catalog/items`, `PATCH /catalog/items/{id}`, `GET`/`POST /tax-rules`, `PATCH /tax-rules/{id}` | B01 | « Créer catalogue et paramètres prix/taxes » ; règles fiscales saisies et validées par la gérante, aucune taxe préconfigurée |
 | `POST /imports/catalog`, `POST /imports/legacy-balances` | X01 | Imports contrôlés (aperçu puis import) du catalogue et des créances papier |
 | `GET /reports/clinical` | R02 | Statistiques cliniques agrégées (`statistics.clinical`) |
+| `GET /receipts/{id}` | B04 | Relire un reçu (pièce immuable, snapshot figé, état de son PDF) : source du moteur de documents D01 et de la réimpression |
+| `GET /cash-registers` | B05 | Caisses actives du cabinet (la caisse principale créée par `eeo:sales:bootstrap`) pour ouvrir une session |
 | `GET /audit-events` | F07 | Consultation de l'audit (`audit.read`, fichier 09) ; rattachée au chemin central qui écrit l'audit |
 
 ## Décisions prises en F06
@@ -187,7 +191,7 @@ Les formats de coffre (O01) et les modèles de documents (D01/D02) sont vides ta
 
 | Test | Contrôle |
 | --- | --- |
-| `tests/Contracts/ContractFixturesTest.php` (Opis) et `tests/frontend/contracts.test.ts` (Ajv strict) | Chaque schéma déclare `$schema` 2020-12 et un `$id` qui reflète son chemin ; 150 fixtures, mêmes verdicts dans les deux runtimes. Une variante refusée est une fixture acceptée plus un patch JSON (RFC 6902), donc un défaut unique par construction. |
+| `tests/Contracts/ContractFixturesTest.php` (Opis) et `tests/frontend/contracts.test.ts` (Ajv strict) | Chaque schéma déclare `$schema` 2020-12 et un `$id` qui reflète son chemin ; 168 fixtures, mêmes verdicts dans les deux runtimes. Une variante refusée est une fixture acceptée plus un patch JSON (RFC 6902), donc un défaut unique par construction. |
 | `tests/frontend/openapi.test.ts` | Document valide selon le schéma officiel OAS 3.1, avec contrôles négatifs ; toutes les références résolues ; chaque commande associée à sa route directe ; permissions seedées ; tâches du backlog ; `Idempotency-Key` sur chaque mutation idempotente |
 | `tests/Contracts/OpenApiRoutesTest.php` | Routes Laravel `/api` identiques aux opérations `IMPLEMENTED` ; permission et réauthentification identiques au middleware |
 | `tests/Feature/Contracts/ImplementedRoutesContractTest.php` | Réponses réelles des routes F05 (session, comptes, cabinet, erreurs 401/403/404/409/422/423) validées contre leurs schémas, sur MySQL |

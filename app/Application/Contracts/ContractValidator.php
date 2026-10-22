@@ -81,6 +81,14 @@ final class ContractValidator
         $fields = [];
         $this->collect($error, $fields);
 
+        // Un champ « texte ou null » borné (anyOf) échoue deux fois quand le texte est trop long : la limite ET le type
+        // de la branche « null ». Seul le message de limite est juste ; l'autre ne fait que brouiller le message.
+        foreach ($fields as $path => $messages) {
+            if (count($messages) > 1 && in_array(self::message('maxLength'), $messages, true)) {
+                $fields[$path] = array_values(array_filter($messages, static fn (string $message): bool => $message !== self::message('type')));
+            }
+        }
+
         return $fields;
     }
 

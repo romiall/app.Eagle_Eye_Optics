@@ -6,9 +6,11 @@
  * jour » n'est dit que si le serveur a répondu à CET appel (`useRead` : état « vide ») ; sans réponse,
  * c'est « File du jour indisponible ». Identité administrative seulement : aucune donnée clinique.
  *
- * Cartes sur téléphone, tableau à partir de 1024 px : aucun défilement horizontal. Le contrôle du
- * paiement de l'examen n'existe pas encore : le marqueur le dit avec le texte exact du serveur
- * (`exam_fee_control`), jamais un état de règlement.
+ * Cartes sur téléphone, tableau à partir de 1024 px : aucun défilement horizontal. Le marqueur du
+ * paiement de l'examen reprend exactement le statut du serveur (`exam_fee_control`) : « non contrôlé »
+ * tant que le contrôle est inactif ; contrôle actif, « à encaisser », « dispense demandée », « encaissés :
+ * reçu n° … » ou « dispense approuvée », jamais « payé » ni « gratuit ». Frais à encaisser : le compte qui
+ * peut demander une approbation propose une dispense à la gérante (`ExamFeeWaiverAction`).
  *
  * Examen (C01) : « Démarrer l'examen », « Reprendre l'examen » ou « Consulter l'examen » par visite,
  * selon les droits clinical.write et clinical.read, le module « consultations » ouvert et l'état de la
@@ -23,6 +25,7 @@ import { can, canOnScreen, enabledModules, moduleOpenOnScreen } from '@/app/sess
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import ExamFeeMarker from '@/components/visits/ExamFeeMarker.vue'
 import type { Visit, VisitPage } from '@/domain/contracts/generated'
@@ -30,6 +33,7 @@ import { formatAge, patientAge, patientDisplayName } from '@/domain/patients/ide
 import { reasonLabel, statusLabel, statusSymbol } from '@/domain/patients/visits'
 
 import ExamAction from './ExamAction.vue'
+import ExamFeeWaiverAction from './ExamFeeWaiverAction.vue'
 import QueueStateMessage from './QueueStateMessage.vue'
 import { useServerRead } from './useServerRead'
 
@@ -70,11 +74,33 @@ const canOpenPatient = computed(
  * lui, ni reprendre ni démarrer un examen), module « consultations » ouvert.
  */
 const showExam = computed(() => moduleOpenOnScreen('consultations') && canOnScreen('clinical.read'))
+/**
+ * « Créer une facture » (B02) depuis une visite : droit invoice.create ou exam_fee.collect, module
+ * « sales » ouvert. Le patient et la visite passent par leurs identifiants opaques (rien n'est
+ * ressaisi) ; une visite annulée n'en propose pas.
+ */
+const canInvoice = computed(
+  () =>
+    (canOnScreen('invoice.create') || canOnScreen('exam_fee.collect')) &&
+    moduleOpenOnScreen('sales'),
+)
+
+function invoiceLink(visit: Visit) {
+  return { name: 'facture-nouvelle', query: { patient: visit.patient.id, visite: visit.id } }
+}
 /** Refus d'état au démarrage d'un examen : dit au-dessus de la liste, qui est alors relue. */
 const staleNotice = ref<string | null>(null)
 
 function onStale(message: string): void {
   staleNotice.value = message
+  void read.reload()
+}
+
+/** Demande de dispense envoyée (P03 avec B06) : dite au-dessus de la liste, qui est relue (marqueur à jour). */
+const requestNotice = ref<string | null>(null)
+
+function onRequested(message: string): void {
+  requestNotice.value = message
   void read.reload()
 }
 
@@ -146,6 +172,10 @@ const LINK_CLASS =
       {{ staleNotice }}
     </StateMessage>
 
+    <StateMessage v-if="requestNotice" state="success" title="Demande envoyée à la gérante">
+      {{ requestNotice }}
+    </StateMessage>
+
     <QueueStateMessage
       v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
       :state="read.state.value"
@@ -203,8 +233,21 @@ const LINK_CLASS =
           <p class="text-base">
             <span class="sr-only">Motif : </span>{{ reasonLabel(visit.reason) }}
           </p>
-          <p><ExamFeeMarker :control="visit.exam_fee_control" /></p>
+          <p>
+            <ExamFeeMarker
+              :control="visit.exam_fee_control"
+              :receipt-number="visit.exam_fee_receipt_number ?? null"
+            />
+          </p>
+          <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
           <ExamAction v-if="showExam" :visit="visit" @stale="onStale" />
+          <LinkButton
+            v-if="canInvoice && visit.status !== 'CANCELLED'"
+            :to="invoiceLink(visit)"
+            variant="secondary"
+            :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
+            >Créer une facture</LinkButton
+          >
           <p
             v-if="visit.administrative_note"
             class="text-sm break-words whitespace-pre-line text-muted"
@@ -228,6 +271,7 @@ const LINK_CLASS =
             <th scope="col" class="px-3 py-2 font-medium">Statut</th>
             <th scope="col" class="px-3 py-2 font-medium">Paiement de l’examen</th>
             <th v-if="showExam" scope="col" class="px-3 py-2 font-medium">Examen</th>
+            <th v-if="canInvoice" scope="col" class="px-3 py-2 font-medium">Facturation</th>
           </tr>
         </thead>
         <tbody>
@@ -255,9 +299,24 @@ const LINK_CLASS =
               <span aria-hidden="true">{{ statusSymbol(visit.status) }} </span
               >{{ statusLabel(visit.status) }}
             </td>
-            <td class="px-3 py-2"><ExamFeeMarker :control="visit.exam_fee_control" /></td>
+            <td class="space-y-2 px-3 py-2">
+              <ExamFeeMarker
+                :control="visit.exam_fee_control"
+                :receipt-number="visit.exam_fee_receipt_number ?? null"
+              />
+              <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
+            </td>
             <td v-if="showExam" class="px-3 py-2">
               <ExamAction :visit="visit" @stale="onStale" />
+            </td>
+            <td v-if="canInvoice" class="px-3 py-2">
+              <LinkButton
+                v-if="visit.status !== 'CANCELLED'"
+                :to="invoiceLink(visit)"
+                variant="secondary"
+                :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
+                >Créer une facture</LinkButton
+              >
             </td>
           </tr>
         </tbody>

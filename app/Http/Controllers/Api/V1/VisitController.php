@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Application\Command;
+use App\Domain\Billing\BilledExamFeeControl;
 use App\Domain\Patients\VisitQueue;
 use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\CommandController;
@@ -20,6 +21,8 @@ use Illuminate\Http\Request;
  */
 final class VisitController extends CommandController
 {
+    public function __construct(private readonly BilledExamFeeControl $examFee) {}
+
     public function index(Request $request, VisitQueue $queue): JsonResponse
     {
         $actor = $this->actor($request);
@@ -29,7 +32,7 @@ final class VisitController extends CommandController
         $clinical = $actor->can('clinical.read');
 
         return new JsonResponse([
-            'data' => array_map(static fn (\stdClass $row): array => VisitPresenter::visit($row, $clinical), $page->items()),
+            'data' => array_map(fn (\stdClass $row): array => VisitPresenter::visit($row, $clinical, $this->marker($row)), $page->items()),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
         ]);
     }
@@ -52,7 +55,18 @@ final class VisitController extends CommandController
             throw BusinessError::notFound();
         }
 
-        return new JsonResponse(['data' => VisitPresenter::visit($row, $this->actor($request)->can('clinical.read'))], 201);
+        return new JsonResponse(['data' => VisitPresenter::visit($row, $this->actor($request)->can('clinical.read'), $this->marker($row))], 201);
+    }
+
+    /**
+     * Marqueur du contrôle RÉEL du paiement de l'examen (P03), quand il est actif (`EEO_EXAM_FEE_CONTROL=billed`) ; null
+     * sinon : la file reste « non contrôlée », exactement comme au premier jalon.
+     *
+     * @return array{control: string, receipt_number: ?string, status: string}|null
+     */
+    private function marker(\stdClass $row): ?array
+    {
+        return BilledExamFeeControl::isActive() ? $this->examFee->queueMarker($row, CarbonImmutable::now('UTC')) : null;
     }
 
     private function actor(Request $request): User

@@ -39,7 +39,7 @@
     "steps": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 6,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -155,6 +155,25 @@
             "if": {
               "properties": {
                 "step": {
+                  "const": "MEDICATIONS"
+                }
+              },
+              "required": [
+                "step"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "$ref": "../schemas/clinical-steps.json#/$defs/Medications"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "step": {
                   "const": "CONCLUSION"
                 }
               },
@@ -215,7 +234,7 @@
         "steps": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 6,
+          "maxItems": 7,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -323,6 +342,25 @@
                   "properties": {
                     "data": {
                       "$ref": "../schemas/clinical-steps.json#/$defs/Centering"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "step": {
+                      "const": "MEDICATIONS"
+                    }
+                  },
+                  "required": [
+                    "step"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "data": {
+                      "$ref": "../schemas/clinical-steps.json#/$defs/Medications"
                     }
                   }
                 }

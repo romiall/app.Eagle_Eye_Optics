@@ -118,6 +118,37 @@ if [[ "$login_code" == "200" ]]; then
     *) check "File du jour" 1 "(reçu ${code})" ;;
   esac
 
+  # Lectures des modules de la phase 1 (aucune écriture) : 200 module ouvert, 404 module fermé, 403 droit absent
+  # pour ce compte (normal pour un compte qui n'est pas gérante).
+  read_check() { # libellé, chemin, module
+    local status
+    status="$(http_code -b "$JAR" -H 'Accept: application/json' -H "Referer: ${BASE}/" "${BASE}$2")"
+    case "$status" in
+      200) check "$1 (module ouvert)" 0 "" ;;
+      404) echo "  info    module « $3 » fermé (404) : normal tant qu'il n'est pas ouvert" ;;
+      403) echo "  info    $1 : ce compte n'a pas le droit de lecture (403)" ;;
+      *) check "$1" 1 "(reçu ${status})" ;;
+    esac
+  }
+  read_check "Liste des examens" "/api/v1/consultations" consultations
+  read_check "Échelles d'acuité" "/api/v1/visual-acuity-scales" consultations
+  read_check "Factures" "/api/v1/invoices" sales
+  read_check "Caisse principale" "/api/v1/cash-registers" sales
+  read_check "Disponibilités du stock" "/api/v1/stock/availability" stock
+
+  code="$(http_code -b "$JAR" -H 'Accept: application/json' -H "Referer: ${BASE}/" "${BASE}/api/v1/staff")"
+  case "$code" in
+    200) check "Personnel du cabinet (gérante)" 0 "" ;;
+    403) echo "  info    personnel : réservé à la gérante (403 pour ce compte)" ;;
+    *) check "Personnel du cabinet" 1 "(reçu ${code})" ;;
+  esac
+  code="$(http_code -b "$JAR" -H 'Accept: application/json' -H "Referer: ${BASE}/" "${BASE}/api/v1/clinic/document-identity")"
+  case "$code" in
+    200) check "Identité du cabinet pour les documents" 0 "" ;;
+    403) echo "  info    identité des documents : ce compte ne produit aucun document (403)" ;;
+    *) check "Identité du cabinet pour les documents" 1 "(reçu ${code})" ;;
+  esac
+
   curl -sS --max-time 30 -b "$JAR" -c "$JAR" -o /dev/null -H 'Accept: application/json' -H "X-XSRF-TOKEN: ${xsrf}" \
     -H "Origin: ${BASE}" -H "Referer: ${BASE}/" -X POST "${BASE}/api/v1/auth/logout" || true
 fi

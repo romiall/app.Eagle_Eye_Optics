@@ -6,7 +6,8 @@
  * heure le serveur a répondu ; sans réponse, la fiche est « indisponible », jamais une ancienne copie
  * présentée comme actuelle. « Modifier » n'apparaît qu'avec le droit patient.update ; « Enregistrer
  * une arrivée » (P03) qu'avec visit.register, module « today » ouvert, sur une fiche ni archivée ni
- * fusionnée.
+ * fusionnée. L'onglet « Activité » est une autre adresse (`PatientActivityPage`) : cette fiche ne lit
+ * jamais l'activité (chargement du seul onglet nécessaire, fichier 04).
  */
 import { computed, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
@@ -23,6 +24,7 @@ import type { Patient } from '@/domain/contracts/generated'
 import { formatAge, patientAge, sexLabel } from '@/domain/patients/identity'
 
 import { takeFlash } from './flash'
+import PatientRecordTabs from './PatientRecordTabs.vue'
 import ReadStateMessage from './ReadStateMessage.vue'
 import { usePatientRead } from './usePatientRead'
 
@@ -57,6 +59,19 @@ const canRegisterArrival = computed(
     patient.value.merged_into_patient_id === null,
 )
 
+/**
+ * « Créer une facture » (B02) : avec invoice.create ou exam_fee.collect, module « sales » ouvert, pour
+ * une fiche vivante. Le patient est présélectionné par son identifiant opaque : rien n'est ressaisi.
+ */
+const canInvoice = computed(
+  () =>
+    (can('invoice.create') || can('exam_fee.collect')) &&
+    enabledModules.value.includes('sales') &&
+    patient.value !== null &&
+    !patient.value.archived &&
+    patient.value.merged_into_patient_id === null,
+)
+
 const age = computed(() =>
   patient.value === null ? '' : formatAge(patientAge(patient.value.birth_date, clinicToday())),
 )
@@ -82,12 +97,18 @@ function absence(value: string | null, reason: string | null): string {
     <template v-if="patient">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <PatientIdentityHeader :patient="patient" as="h1" title-id="titre-fiche" />
-        <div v-if="canEdit || canRegisterArrival" class="flex flex-wrap gap-3">
+        <div v-if="canEdit || canRegisterArrival || canInvoice" class="flex flex-wrap gap-3">
           <LinkButton
             v-if="canRegisterArrival"
             :to="{ name: 'arrivee', query: { patient: patient.id } }"
             variant="secondary"
             >Enregistrer une arrivée</LinkButton
+          >
+          <LinkButton
+            v-if="canInvoice"
+            :to="{ name: 'facture-nouvelle', query: { patient: patient.id } }"
+            variant="secondary"
+            >Créer une facture</LinkButton
           >
           <LinkButton
             v-if="canEdit"
@@ -97,6 +118,8 @@ function absence(value: string | null, reason: string | null): string {
           >
         </div>
       </div>
+
+      <PatientRecordTabs :patient-id="patient.id" current="identite" />
 
       <ReadStateMessage
         v-if="read.state.value !== 'ready' && read.state.value !== 'loading'"

@@ -69,16 +69,30 @@ final class GetConsultationTest extends TestCase
         $this->assertSame('no-store, private', $response->headers->get('Cache-Control'));
     }
 
-    public function test_les_rubriques_pas_encore_ouvertes_sont_rendues_vides_et_conformes(): void
+    public function test_les_rubriques_sans_saisie_sont_rendues_vides_et_conformes(): void
     {
         $steps = $this->readConsultation($this->consultationId)->assertOk()->json('data.steps');
 
         $this->assertSame(['acuities' => []], $steps['VISUAL_ACUITY']);
         $this->assertSame(['measurements' => [], 'refraction_observations' => null, 'ametropias' => []], $steps['REFRACTION']);
         $this->assertSame(['centering_id' => null, 'pd_total' => null, 'pd_od' => null, 'pd_og' => null, 'inconsistency_reason' => null], $steps['CENTERING']);
+        $this->assertSame(['orders' => []], $steps['MEDICATIONS']);
     }
 
-    public function test_les_lignes_deja_presentes_des_rubriques_non_ouvertes_sont_lues_telles_quelles(): void
+    public function test_la_consultation_porte_l_identite_administrative_de_base_du_patient(): void
+    {
+        $response = $this->readConsultation($this->consultationId)->assertOk();
+
+        $this->assertMatchesContract($response, 'schemas/resources/clinical.json#/$defs/ConsultationResponse');
+        $patient = DB::table('patient_records')->where('id', $this->patientId)->first();
+        $this->assertNotNull($patient);
+        $this->assertSame($this->patientId, $response->json('data.patient.id'));
+        $this->assertSame($patient->record_number, $response->json('data.patient.record_number'));
+        $this->assertSame($patient->last_name, $response->json('data.patient.last_name'));
+        $this->assertSame(['id', 'record_number', 'last_name', 'first_names', 'sex', 'birth_date'], array_keys($response->json('data.patient')), 'Identité de base seulement : aucune coordonnée, aucun état clinique.');
+    }
+
+    public function test_les_lignes_deja_presentes_des_rubriques_hors_chemin_sont_lues_telles_quelles(): void
     {
         $now = CarbonImmutable::now('UTC')->format('Y-m-d H:i:s.u');
         $scaleId = Ulid::generate();
@@ -224,9 +238,22 @@ final class GetConsultationTest extends TestCase
         $this->assertStringNotContainsString('SENTINELLE-LECTURE-JN1', $this->sideEffectsDump());
     }
 
-    public function test_les_ecritures_ne_comptent_pas_comme_lectures_et_la_lecture_ne_modifie_rien(): void
+    public function test_les_reponses_des_ecritures_rendent_le_dossier_donc_sont_tracees_comme_des_lectures(): void
     {
-        $this->assertSame(0, $this->viewedCount(), 'Démarrer l\'examen ne trace pas de lecture.');
+        // Démarrer l'examen a rendu le dossier complet au professionnel : une lecture tracée (une fois par intervalle).
+        $this->assertSame(1, $this->viewedCount($this->clinician->id));
+        $this->assertSame(0, $this->viewedCount($this->manager->id));
+
+        // La gérante qui connaît l'identifiant et la version (obtenue par un 409) ne contourne pas la trace par une
+        // écriture sans effet : sa réponse rend tout le dossier, elle est donc tracée.
+        $data = $this->conclusion(['conclusion' => 'Conclusion fictive']);
+        $this->saveStep($this->consultationId, 'CONCLUSION', $data, 1)->assertOk();
+        $this->saveStep($this->consultationId, 'CONCLUSION', $data, 2, $this->manager)->assertOk()->assertJsonPath('data.version', 2);
+        $this->assertSame(1, $this->viewedCount($this->manager->id));
+    }
+
+    public function test_la_lecture_ne_modifie_rien(): void
+    {
         $before = [DB::table('consultations')->where('id', $this->consultationId)->first(), DB::table('sync_change_log')->count(), DB::table('outbox_events')->count()];
 
         $this->readConsultation($this->consultationId)->assertOk();
@@ -234,5 +261,34 @@ final class GetConsultationTest extends TestCase
         $this->assertEquals($before[0], DB::table('consultations')->where('id', $this->consultationId)->first());
         $this->assertSame($before[1], DB::table('sync_change_log')->count());
         $this->assertSame($before[2], DB::table('outbox_events')->count());
+    }
+
+    public function test_si_l_ecriture_de_l_audit_echoue_la_lecture_echoue_et_ne_rend_aucune_donnee(): void
+    {
+        $this->saveCurrent($this->consultationId, 'ANAMNESIS', $this->anamnesis(['symptoms' => 'SENTINELLE-AUDIT-EN-ECHEC-ZP4']))->assertOk();
+        // Plus de dix minutes plus tard : une nouvelle trace est due, et son écriture échoue.
+        CarbonImmutable::setTestNow(CarbonImmutable::now('UTC')->addMinutes(11));
+        DB::listen(static function (object $query): void {
+            if (str_contains((string) $query->sql, 'insert into `audit_events`')) {
+                throw new \RuntimeException('Échec injecté de l\'écriture de l\'audit.');
+            }
+        });
+
+        $response = $this->readConsultation($this->consultationId);
+
+        $response->assertStatus(500);
+        $this->assertStringNotContainsString('SENTINELLE-AUDIT-EN-ECHEC-ZP4', (string) $response->getContent(), 'Un dossier ne se lit pas sans trace : rien n\'est rendu.');
+    }
+
+    public function test_la_lecture_est_limitee_en_debit_par_compte(): void
+    {
+        config(['eeo.rate_limits.consultation_read' => 3]);
+
+        foreach ([1, 2, 3] as $attempt) {
+            $this->readConsultation($this->consultationId)->assertOk();
+        }
+        $this->readConsultation($this->consultationId)->assertStatus(429)->assertJsonPath('error.code', 'RATE_LIMITED');
+        // La limite est PAR COMPTE : un autre compte clinique lit encore.
+        $this->readConsultation($this->consultationId, $this->manager)->assertOk();
     }
 }

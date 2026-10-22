@@ -1,0 +1,13 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": false,
+  "description": "Œil d’acuité inconnu",
+  "base": "commands/save-clinical-step.visual-acuity.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/step/data/acuities/0/eye",
+      "value": "OX"
+    }
+  ]
+}

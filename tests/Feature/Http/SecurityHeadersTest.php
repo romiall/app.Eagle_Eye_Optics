@@ -27,7 +27,9 @@ final class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("default-src 'self'", $csp);
         $this->assertStringContainsString("script-src 'self'", $csp);
         $this->assertStringContainsString("frame-ancestors 'none'", $csp);
-        $this->assertStringContainsString("object-src 'none'", $csp);
+        // Visionneuse PDF des documents produits sur le poste (URL d'objet blob:) : rien d'autre que blob:.
+        $this->assertMatchesRegularExpression('/(^|; )object-src blob:(;|$)/', $csp);
+        $this->assertStringNotContainsString('frame-src', $csp, 'Aucun cadre en dehors de default-src.');
         $this->assertStringNotContainsString('unsafe-inline', $csp);
         $this->assertStringNotContainsString('unsafe-eval', $csp);
         $this->assertStringNotContainsString('http', $csp, 'Aucune origine tierce autorisée.');

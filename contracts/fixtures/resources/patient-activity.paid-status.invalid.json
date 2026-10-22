@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/patients.json#/$defs/PatientActivity",
+  "valid": false,
+  "description": "État de règlement PAID : inexistant (l'état est dérivé du solde projeté ; « soldée » n'est pas « payée »)",
+  "base": "resources/patient-activity.manager.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/data/5/settlement",
+      "value": "PAID"
+    }
+  ]
+}

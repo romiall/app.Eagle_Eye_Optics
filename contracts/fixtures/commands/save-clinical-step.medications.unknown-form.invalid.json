@@ -1,0 +1,13 @@
+{
+  "schema": "commands/SaveClinicalStep.v1.json",
+  "valid": false,
+  "description": "Forme de médicament hors référentiel",
+  "base": "commands/save-clinical-step.medications.valid.json",
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/step/data/orders/0/form",
+      "value": "SYRUP"
+    }
+  ]
+}
