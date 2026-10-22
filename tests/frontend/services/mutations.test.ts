@@ -454,7 +454,7 @@ describe('useMutation : saisie préservée, une clé par intention', () => {
     )
   })
 
-  it('un double clic n’envoie qu’une fois (même promesse), une autre saisie pendant l’envoi est refusée', async () => {
+  it('un double clic n’envoie qu’une fois (même issue), une autre saisie pendant l’envoi est refusée', async () => {
     let release!: (response: Response) => void
     const fetchMock = vi.fn(() => new Promise<Response>((resolve) => (release = resolve)))
     vi.stubGlobal('fetch', fetchMock)
@@ -462,7 +462,6 @@ describe('useMutation : saisie préservée, une clé par intention', () => {
 
     const first = mutation.submit(INTENT)
     const second = mutation.submit(INTENT)
-    expect(second).toBe(first)
     expect(mutation.state.value).toBe('saving')
 
     await expect(
@@ -471,7 +470,8 @@ describe('useMutation : saisie préservée, une clé par intention', () => {
     expect(() => mutation.reset()).toThrow(MutationBusyError)
 
     release(respond(201, { data: {} }))
-    await first
+    // Le double clic rend la même issue, sans second envoi.
+    expect(await second).toBe(await first)
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
@@ -605,6 +605,24 @@ describe('useMutation : session expirée et changement de compte', () => {
 
     expect((await mutation.retry()).kind).toBe('unavailable')
     expect(commandCalls(fetchMock)).toHaveLength(1)
+    // Rien n'est parti : le message ne dit pas que la commande a pu être appliquée.
+    expect(mutation.failureMessage.value).toContain('rien n’a été envoyé')
+    expect(mutation.failureMessage.value).not.toContain('a pu être appliquée')
+  })
+
+  it('l’intention est figée à l’envoi : une reprise renvoie la charge envoyée, pas celle modifiée depuis', async () => {
+    const fetchMock = stubFetch({
+      command: [apiError(500, 'INTERNAL_ERROR'), respond(201, { data: {} })],
+    })
+    const mutation = useMutation(createMutationDispatcher())
+    const payload = { ...INTENT.payload }
+    await mutation.submit({ ...INTENT, payload })
+
+    payload.amount = 99_999 // l'écran modifie ses objets après l'envoi
+    await mutation.retry()
+
+    expect(sentBody(fetchMock, 0)['amount']).toBe(20_000)
+    expect(sentBody(fetchMock, 1)['amount']).toBe(20_000)
   })
 
   it('un autre compte connecté depuis un autre onglet : la commande ne part pas en son nom', async () => {
@@ -646,6 +664,76 @@ describe('useMutation : session expirée et changement de compte', () => {
 
     expect(outcome.kind).toBe('account-changed')
     expect(commandCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('le compte est épinglé à l’ouverture du formulaire : un autre compte avant le premier envoi', async () => {
+    const fetchMock = stubFetch({
+      me: [meAs(meResponse([]).data.id), meAs(OTHER_ACCOUNT)],
+      command: [respond(201, { data: {} })],
+    })
+    await refreshSession()
+    const mutation = useMutation(createMutationDispatcher()) // formulaire ouvert sous le compte A
+
+    await refreshSession() // un autre onglet a connecté B ; la session est relue avant tout envoi
+    const outcome = await mutation.submit(INTENT)
+
+    expect(outcome.kind).toBe('account-changed')
+    expect(commandCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('session expirée après un premier envoi : « session expirée », jamais « compte changé »', async () => {
+    const fetchMock = stubFetch({
+      me: [meAs(meResponse([]).data.id), apiError(401, 'AUTH_REQUIRED')],
+      command: [respond(201, { data: {} }), apiError(401, 'AUTH_REQUIRED')],
+    })
+    await refreshSession()
+    const mutation = useMutation(createMutationDispatcher())
+    await mutation.submit(INTENT)
+
+    await refreshSession() // 401 : le dernier compte reste connu, personne n'est connecté
+    const outcome = await mutation.submit({
+      ...INTENT,
+      payload: { ...INTENT.payload, amount: 5_000 },
+    })
+
+    expect(outcome.kind).toBe('session-expired')
+    expect(mutation.failureMessage.value).toContain('Session expirée')
+    // Le serveur a répondu : l'envoi a bien eu lieu et c'est lui qui a refusé la session.
+    expect(commandCalls(fetchMock)).toHaveLength(2)
+  })
+
+  it('déconnecté dans un autre onglet (aucun compte connu) : la commande part et le serveur répond 401', async () => {
+    const fetchMock = stubFetch({
+      me: [meAs(meResponse([]).data.id)],
+      command: [apiError(401, 'AUTH_REQUIRED')],
+    })
+    await refreshSession()
+    const mutation = useMutation(createMutationDispatcher())
+
+    resetSessionForTests() // plus aucun compte connu de cet écran
+    const outcome = await mutation.submit(INTENT)
+
+    expect(outcome.kind).toBe('session-expired')
+    expect(commandCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('une reprise après « session expirée » avec le même compte repart avec la même clé', async () => {
+    const id = meResponse([]).data.id
+    const fetchMock = stubFetch({
+      me: [meAs(id), apiError(401, 'AUTH_REQUIRED'), meAs(id)],
+      command: [apiError(401, 'AUTH_REQUIRED'), respond(201, { data: {} })],
+    })
+    await refreshSession()
+    const mutation = useMutation(createMutationDispatcher())
+    await mutation.submit(INTENT)
+    await refreshSession() // expirée
+
+    const outcome = await mutation.retry() // la session est relue (rétablie), puis l'envoi repart
+
+    expect(outcome.kind).toBe('synced')
+    expect(sentHeaders(fetchMock, 1)['Idempotency-Key']).toBe(
+      sentHeaders(fetchMock, 0)['Idempotency-Key'],
+    )
   })
 })
 

@@ -1,7 +1,7 @@
 import { computed, readonly, ref } from 'vue'
 
 import type { ApiError } from '@/app/api'
-import { refreshSession, session } from '@/app/session'
+import { knownAccountId, refreshSession, session } from '@/app/session'
 import type { SaveState } from '@/components/feedback/SaveStatus.vue'
 import { newUlid } from '@/domain/values/ulid'
 
@@ -43,6 +43,9 @@ export type MutationState =
 
 export type MutationIntent = Omit<MutationRequest, 'idempotencyKey'>
 
+const NOT_CONFIRMED =
+  'L’enregistrement n’est pas confirmé : la commande a pu être appliquée. Vos saisies sont conservées ; « Réessayer » les renvoie sans doublon tant que cet écran reste ouvert.'
+
 /** Une autre saisie est envoyée pendant qu'un envoi est en cours : refus explicite. */
 export class MutationBusyError extends Error {
   constructor() {
@@ -76,8 +79,12 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
   let lastIntent: MutationIntent | null = null
   let inFlight: { fingerprint: string; promise: Promise<MutationOutcome> } | null = null
   let effectIds = new Map<string, string>()
-  /** Compte qui a commencé la saisie : une commande ne part jamais au nom d'un autre compte. */
-  let accountId: string | null = null
+  /**
+   * Compte connu à l'ouverture du formulaire : une commande ne part jamais au nom d'un autre compte.
+   * Épinglé à la création de l'instance (un écran protégé n'est ouvert qu'avec un compte connu), et
+   * non au premier envoi, où un autre compte peut déjà avoir pris la place dans un autre onglet.
+   */
+  let accountId: string | null = knownAccountId()
 
   /** Identifiant d'effet stable pour ce formulaire (`payment_id`, `receipt_id`…) jusqu'à `reset()`. */
   function effectId(name: string): string {
@@ -89,30 +96,40 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
     return id
   }
 
+  /** Vrai quand la dernière issue rend compte d'un envoi qui n'a pas eu lieu (rien n'est parti). */
+  const notSent = ref(false)
+
   /** Sortie anticipée sans rien envoyer : l'issue est rendue telle quelle à l'écran. */
   function stop(result: MutationOutcome): MutationOutcome {
     outcome.value = result
     state.value = result.kind
+    notSent.value = true
     return result
   }
 
   async function send(intent: MutationIntent, print: string): Promise<MutationOutcome> {
     const previous = outcome.value
     if (previous?.kind === 'session-expired' || previous?.kind === 'reauthentication-required') {
-      // La session a été perdue : elle est relue avant tout renvoi (reconnexion, autre onglet).
+      // Le serveur a signalé une session perdue : elle est relue avant tout renvoi (reconnexion
+      // faite ici ou dans un autre onglet). Rien n'est envoyé tant qu'elle n'est pas rétablie.
       await refreshSession().catch(() => undefined)
       if (session.status === 'unverified') return stop({ kind: 'unavailable' })
-      if (session.status !== 'authenticated') return stop(previous)
+      if (session.status !== 'authenticated') {
+        return stop({ kind: 'session-expired', error: previous.error })
+      }
     }
-    const current = session.account?.id ?? null
+    // Aucun compte connu (session perdue, déconnexion) : le serveur répond 401 et l'issue est
+    // « session expirée » ; un autre compte connu est un changement de compte, rien n'est envoyé.
+    const current = knownAccountId()
     if (accountId === null) accountId = current
-    else if (current !== accountId) return stop({ kind: 'account-changed' })
+    else if (current !== null && current !== accountId) return stop({ kind: 'account-changed' })
 
     if (key === null || print !== lastFingerprint) {
       key = newIdempotencyKey()
       lastFingerprint = print
     }
     lastIntent = intent
+    notSent.value = false
     state.value = 'saving'
     try {
       const result = await dispatcher.dispatch({ ...intent, idempotencyKey: key })
@@ -127,12 +144,18 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
     }
   }
 
-  /** Envoie la saisie ; la même saisie pendant un envoi en cours n'est pas doublée (double clic). */
-  function submit(intent: MutationIntent): Promise<MutationOutcome> {
+  /**
+   * Envoie la saisie ; la même saisie pendant un envoi en cours n'est pas doublée (double clic).
+   * L'intention est copiée en profondeur et figée au moment de l'envoi : l'empreinte, le corps
+   * envoyé et une reprise (`retry`) portent la même charge, même si l'écran modifie ensuite ses
+   * objets.
+   */
+  async function submit(request: MutationIntent): Promise<MutationOutcome> {
+    const intent = Object.freeze(structuredClone(request)) as MutationIntent
     const print = fingerprint(intent)
     if (inFlight !== null) {
       if (inFlight.fingerprint === print) return inFlight.promise
-      return Promise.reject(new MutationBusyError())
+      throw new MutationBusyError()
     }
     const promise = send(intent, print).finally(() => {
       inFlight = null
@@ -153,8 +176,9 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
     key = null
     lastFingerprint = null
     lastIntent = null
+    notSent.value = false
     effectIds = new Map()
-    accountId = null
+    accountId = knownAccountId()
     outcome.value = null
     recordedAt.value = null
     state.value = 'idle'
@@ -206,10 +230,14 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
       }
       case 'account-changed':
         return 'Le compte connecté n’est plus celui qui a commencé cette saisie : rien n’a été envoyé ; vos saisies sont conservées. Reconnectez-vous avec le compte d’origine.'
-      case 'uncertain':
       case 'unavailable':
+        if (notSent.value) {
+          return 'Session non vérifiée (serveur injoignable) : rien n’a été envoyé ; vos saisies sont conservées, réessayez quand la connexion revient.'
+        }
+        return NOT_CONFIRMED
+      case 'uncertain':
         // La commande a pu être appliquée : rien n'est conclu, la reprise garde la clé.
-        return 'L’enregistrement n’est pas confirmé : la commande a pu être appliquée. Vos saisies sont conservées ; « Réessayer » les renvoie sans doublon tant que cet écran reste ouvert.'
+        return NOT_CONFIRMED
       default:
         return null
     }

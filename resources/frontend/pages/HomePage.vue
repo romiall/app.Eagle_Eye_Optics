@@ -32,8 +32,13 @@ const menuModules = computed(() => visibleModules(currentPermissions.value, cata
       <p v-if="session.account" class="text-muted">{{ session.account.clinic.name }}</p>
     </div>
 
+    <StateMessage v-if="session.status === 'expired'" state="offline" title="Session expirée">
+      Votre session a pris fin. Reconnectez-vous avec le bouton de l’en-tête : vos saisies en cours
+      restent à l’écran.
+    </StateMessage>
+
     <StateMessage
-      v-if="session.status === 'unverified'"
+      v-else-if="session.status === 'unverified'"
       state="offline"
       :title="serverReachable === false ? 'Serveur injoignable' : 'Session non vérifiée'"
     >

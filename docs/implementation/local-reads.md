@@ -136,8 +136,8 @@ avec les identifiants de ses effets, version attendue, clé d'idempotence).
 | Échec du journal local | `local-failed` | « Échec de l'enregistrement sur ce poste » ; saisie conservée |
 | 409 `VERSION_CONFLICT`, `IDEMPOTENCY_PAYLOAD_MISMATCH` | `conflict` | Saisie conservée, version actuelle à vérifier ; aucune nouvelle tentative automatique |
 | 419 (jeton CSRF) | Renouvelé une fois, même clé ; si ça persiste : `session-expired` | — |
-| 401 | `session-expired` | Saisie conservée ; `ReauthDialog`, puis reprise avec la même clé |
-| 423 `REAUTHENTICATION_REQUIRED` | `reauthentication-required` | Confirmer le mot de passe, puis reprise |
+| 401 | `session-expired` | Saisie conservée ; « Se reconnecter » (`ReauthDialog`), puis reprise avec la même clé |
+| 423 `REAUTHENTICATION_REQUIRED` | `reauthentication-required` | Saisie conservée. **Aucun remède dans l'interface pour l'instant** : la confirmation du mot de passe (`POST /auth/reauthenticate`) arrive avec la première tâche qui en a besoin (B06, approbations) |
 | 429 `RATE_LIMITED`, `SERVER_BUSY` (de l'application) | `retryable` avec `Retry-After` | « Rien n'a été appliqué », délai annoncé |
 | 5xx, page HTML d'un hébergeur, d'un pare-feu ou d'un portail | `uncertain` | « La commande a pu être appliquée » : reprise avec la même clé |
 | 409 métier, 422, 403, 404… | `refused` | Message et valeurs actualisées (`error.details`, par exemple le reste dû) |
@@ -157,9 +157,11 @@ d'effets (`effectId('payment_id')`) sont liés au formulaire :
 - le même envoi pendant qu'un envoi est en cours rend la même promesse (double clic) ; une autre
   saisie est refusée par `MutationBusyError` ;
 - après `session-expired` ou `reauthentication-required`, la session est relue avant tout renvoi :
-  toujours déconnecté → rien n'est envoyé ; serveur muet → `unavailable` ; **compte différent de celui
-  qui a commencé la saisie** (autre onglet) → `account-changed`, rien n'est envoyé au nom d'un autre
-  profil ;
+  toujours déconnecté → `session-expired`, rien n'est envoyé ; serveur muet → `unavailable` (« rien n'a
+  été envoyé ») ; **compte différent de celui qui a commencé la saisie** (autre onglet) →
+  `account-changed`, rien n'est envoyé au nom d'un autre profil. Le compte est épinglé **à la création
+  de l'instance** (ouverture du formulaire), pas au premier envoi ; sans aucun compte connu (session
+  perdue), la commande part et c'est le serveur qui répond 401 ;
 - la clé vit en mémoire : un rechargement de la page la perd (les identifiants d'effets de la charge
   empêchent alors le doublon côté serveur ; le journal du poste, O04, conserve la commande).
 
@@ -167,11 +169,22 @@ d'effets (`effectId('payment_id')`) sont liés au formulaire :
 
 ### Reconnexion sur place
 
-La session garde le dernier compte connu (`session.lastAccount`) quand elle expire.
-`ReauthDialog` ne reconnecte que ce compte, compare l'identifiant obtenu à celui de la saisie et
-ferme la session obtenue si elle diffère. La coquille relit la session au retour sur l'onglet, sans
-navigation (une saisie en cours reste à l'écran) et affiche « Session expirée : reconnexion à
-l'enregistrement ».
+États de session : `unknown`, `anonymous` (aucun compte connu), `authenticated`, `unverified`
+(serveur muet ou en erreur au démarrage) et `expired` (401 ou 419 reçu par une session que cet écran
+avait ouverte). La session garde le dernier compte connu (`session.lastAccount`) quand elle expire.
+
+- Au retour sur l'onglet (`focus`, `visibilitychange`), la coquille appelle `revalidateSession()` :
+  **seule une réponse 401 ou 419 change une session ouverte** ; un réseau coupé, une erreur 5xx ou une
+  page d'hébergeur ne la dégradent jamais (le poste hors ligne continue de travailler ; le serveur
+  revérifie les droits à chaque action). Un autre compte connecté dans un autre onglet remplace le
+  compte affiché.
+- Session expirée : aucune navigation (l'écran et ses saisies restent), bannière « Session expirée :
+  vos saisies sont conservées » et bouton « Se reconnecter » dans l'en-tête ; l'accueil dit « Session
+  expirée » (jamais un manque de droits). Une navigation vers un autre écran protégé ouvre la
+  connexion, comme avant.
+- `ReauthDialog` ne reconnecte que le dernier compte connu, compare l'identifiant obtenu à celui de
+  la saisie et ferme la session obtenue s'il diffère. Le focus est mis sur le champ du mot de passe à
+  l'ouverture et y revient après une erreur (l'erreur est lue comme description du champ).
 
 ## Lectures : interface commune
 
@@ -179,8 +192,9 @@ l'enregistrement ».
 fichier 04 :
 
 - `ready`, `empty` ;
-- `offline` : serveur injoignable, en erreur (5xx) ou page d'hébergeur, **ou résultat vide sans
-  données complètes du serveur** — jamais « aucun dossier » (fichier 04) ;
+- `offline` : serveur injoignable, en erreur (5xx) ou page d'hébergeur, **ou résultat vide qui n'a
+  pas été confirmé par le serveur pendant cet appel** (`live`, avec des données complètes) — jamais
+  « aucun dossier » (fichier 04) ; un instantané ancien ou en cache n'affirme jamais une absence ;
 - `session-expired`, `forbidden`, `error` ;
 - un défaut inattendu du chargeur donne `error` et `failure` (jamais un écran bloqué en chargement
   ni une promesse rejetée).
@@ -247,3 +261,42 @@ lecture obsolète non ignoré, motif ESLint relatif retiré) et 7 autres (versio
 le poste, litige sans blocage d'encaissement, numéro non remis à null, garde de compte retirée, 429
 classé en refus, vide certain sans données complètes, identifiant non comparé à la reconnexion)
 font maintenant échouer au moins un test.
+
+## Seconde revue contradictoire (2026-10-21) et traitement
+
+Revue indépendante et adverse du commit `36e380b` (quatre angles : finance, transport, vérité de
+l'interface, architecture et tests) : **pass=false**, 14 majeurs, 26 mineurs, 14 constats réfutés.
+Ordre de traitement fixé par la priorité du demandeur du 2026-10-22 (fonctions de base d'abord) : tout
+ce qui touche la vérité des écrans de base, le compte et la session est corrigé maintenant ; le reste
+est reporté à la tâche qui en a besoin, avec son motif.
+
+### Traités dans ce commit
+
+| Constat | Gravité | Traitement | Test |
+| --- | --- | --- | --- |
+| « Soldée » vrai alors qu'un crédit reste à rembourser (seul `reste dû = 0` était testé) | Majeur | `settled` exige un solde signé nul ; `creditDue` expose le crédit à rembourser | `projections.test.ts` (avoir supérieur à l'encaissé, avoir et paiement qui soldent) |
+| Garde de compte épinglée au premier envoi ; envoi au nom d'un autre compte (3 angles) | Majeur | Compte épinglé à la création de l'instance `useMutation` ; sans compte connu, c'est le serveur qui répond 401 | `mutations.test.ts` |
+| Session expirée classée « compte changé » ; reconnexion non proposée | Majeur | État `expired` distinct ; issue `session-expired` ; bouton « Se reconnecter » ; accueil « Session expirée » | `session-lifecycle.test.ts`, `mutations.test.ts` |
+| Relecture au retour sur l'onglet : une panne réseau ou 5xx dégradait la session ouverte (2 angles) | Majeur | `revalidateSession()` ne change que sur 401 ou 419 ; la session expirée le reste sans réponse | `session-lifecycle.test.ts` (réseau, 500, HTML) |
+| `recheckSession` poussait vers la connexion et expulsait de la saisie | Majeur | Aucune navigation quand un compte était connu (bannière) ; la connexion ne s'ouvre que sans compte connu | `session-lifecycle.test.ts` |
+| Un 401 détecté vidait les permissions et l'accueil accusait un manque de droits | Majeur | Accueil « Session expirée » ; navigation masquée tant que la session est expirée | `session-lifecycle.test.ts` |
+| Boîte de reconnexion : erreurs non annoncées, focus sur le bouton | Majeur | Focus à l'ouverture sur le champ (`initialFocus` de `ConfirmDialog`), retour sur le champ après erreur, erreur lue comme description | `session-lifecycle.test.ts` |
+| Vide « certain » sans lecture serveur de cet appel (instantané ancien) | Majeur | `ReadOutcome.live` : sans lui, un vide donne `offline` | `reads.test.ts` |
+| Double soumission par Entrée dans la boîte de reconnexion ; mot de passe effacé même sur erreur du serveur | Mineur | Une seule connexion à la fois ; mot de passe effacé seulement sur refus 422 | `sync.test.ts` |
+| Intention ni copiée ni figée : empreinte et corps divergent, `retry()` renvoie des données modifiées depuis | Mineur | Copie profonde (`structuredClone`) et gel à `submit()` ; `submit` toujours asynchrone | `mutations.test.ts` |
+| Relecture lancée avant une déconnexion et terminée après : ressuscitait la session | Mineur | Époque de session (incrémentée par `signIn` et `signOut`) : une réponse tardive est ignorée | `session-lifecycle.test.ts` |
+| Relecture impossible (serveur muet) : message « la commande a pu être appliquée » alors que rien n'est parti | Mineur | Message distinct « rien n'a été envoyé » | `mutations.test.ts` |
+
+### Reportés (avec la tâche destinataire)
+
+| Constat | Gravité | Motif du report | Tâche |
+| --- | --- | --- | --- |
+| Aucun remède à `reauthentication-required` (423) : la confirmation du mot de passe n'a pas d'écran, `ReauthDialog` ouvre une session | Majeur (3 angles) | Seule `DecideApproval` et les droits (gérante) l'exigent, aucun écran de base ne la déclenche ; documentation corrigée (tableau des réponses). Attention : `POST /auth/login` efface la preuve de réauthentification, il faut `POST /auth/reauthenticate` (`{password}`, 422 si faux, 429) et un mode dédié de la boîte | B06 |
+| Contrôle côté serveur de l'acteur attendu (un autre onglet peut avoir connecté un autre compte avant la relecture de la session) | Majeur (limite résiduelle) | Demande un code d'erreur et un en-tête au contrat ; la garde du client et la relecture au retour sur l'onglet couvrent le cas courant | avant G1 (multi-comptes sur un poste partagé) |
+| `CreatePrescription` a 3 routes dans l'OpenAPI ; le répartiteur n'adresse que la première | Mineur | Écran de prescription non encore écrit | C04 |
+| Cohérence type et origine d'un fait financier (contre-écriture ⇒ paiement, remboursement ⇒ avoir ; auto-parent, cycle) | Mineur | Contre-écritures, avoirs et remboursements : B07, B08 | B07 |
+| `SyncStatus`, `FreshnessNote`, `SaveStatus` : erreur d'échange périmée, date invalide, fuseau du cabinet codé en dur, accords français | Mineur | Aucun poste préparé ne les alimente avant le journal du poste | O04, O05 |
+| Règle ESLint : formes relatives nues, traversée de chemin, dossiers nouveaux libres, porte unique de la racine de composition | Mineur | La règle sera revue avec le premier code `offline/` hors projections | O01 |
+| Interface `LocalCommandEngine` : idempotence de `commit` par clé, `handles` asynchrone | Mineur | Aucun moteur réel avant le journal | O04 |
+| Délais d'`api.ts` (repli sans `AbortSignal.timeout`, délai par appel), classement des réponses HTML 4xx, 503 avec `Retry-After`, 2xx sans `data` | Mineur | Aucun envoi lourd avant les PDF | D01 |
+| Tests : ULID (retenue, horloge qui recule), `SyncStatus` (7 états du badge), mutations survivantes | Mineur | Couverture, sans défaut observé | O04 |

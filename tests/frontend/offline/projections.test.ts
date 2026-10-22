@@ -427,6 +427,32 @@ describe('solde d’une facture vu par le poste (aucun total local + serveur)', 
     expect(localOnly.freshness.serverAsOf).toBeNull()
   })
 
+  it('un avoir qui dépasse l’encaissé laisse un crédit à rembourser : jamais « soldé »', () => {
+    const projection = projectLedger({
+      totalGross: 100_000,
+      server: snapshot([payment(P1, 60_000), fact(P2, 'credit_note', 100_000)]),
+      local: [],
+    })
+
+    expect(projection.balance.amountDue()).toBe(0)
+    expect(projection.creditDue).toBe(60_000)
+    expect(projection.settled).toBe(false)
+    // L'encaissement reste fermé : rien n'est dû, un remboursement est à faire.
+    expect(projection.collectable).toBe(0)
+  })
+
+  it('un avoir et un paiement qui soldent exactement la facture : soldée, sans crédit', () => {
+    const projection = projectLedger({
+      totalGross: 100_000,
+      server: snapshot([payment(P1, 60_000), fact(P2, 'credit_note', 40_000)]),
+      local: [],
+    })
+
+    expect(projection.balance.signedBalance()).toBe(0)
+    expect(projection.creditDue).toBe(0)
+    expect(projection.settled).toBe(true)
+  })
+
   it('refuse un montant non entier ou négatif (règles F08), jamais arrondi', () => {
     expect(() =>
       projectLedger({

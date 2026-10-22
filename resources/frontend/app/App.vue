@@ -22,12 +22,13 @@ import {
 } from 'vue-router'
 
 import NetworkStatus from '@/components/feedback/NetworkStatus.vue'
+import ReauthDialog from '@/components/session/ReauthDialog.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
 import { probeServer, useNetworkStatus } from './network'
-import { currentPermissions, refreshSession, session, signOut } from './session'
+import { currentPermissions, refreshSession, revalidateSession, session, signOut } from './session'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,10 +37,8 @@ const { online, serverReachable } = useNetworkStatus()
 
 const signedIn = computed(() => session.status === 'authenticated' && session.account !== null)
 /** Session perdue pendant le travail : l'écran et ses saisies restent, la reconnexion se fait sur place. */
-const sessionExpired = computed(
-  () =>
-    session.status === 'anonymous' && session.lastAccount !== null && route.meta.public !== true,
-)
+const sessionExpired = computed(() => session.status === 'expired' && route.meta.public !== true)
+const reconnecting = ref(false)
 const modules = computed(() =>
   signedIn.value && route.meta.public !== true
     ? visibleModules(currentPermissions.value, catalog.modules)
@@ -81,6 +80,8 @@ const SESSION_RETRY_MS = 30_000
 async function recheckSession(): Promise<void> {
   if (session.status !== 'unverified') return
   const status = await refreshSession().catch(() => session.status)
+  // Aucun compte n'a jamais été connu sur cet écran (donc aucune saisie à protéger) : la connexion
+  // s'ouvre. Une session expirée, elle, laisse l'écran et ses saisies en place (bannière).
   if (status === 'anonymous' && route.meta.public !== true) {
     await router.push({ name: 'connexion', query: route.path === '/' ? {} : { suite: route.path } })
   }
@@ -115,22 +116,24 @@ watchEffect((onCleanup) => {
 
 /**
  * Retour sur l'onglet : la session est relue (autre onglet connecté à un autre compte, session
- * expirée). Aucune navigation n'est provoquée : une saisie en cours reste à l'écran, et la
- * reconnexion se fait sur place à l'enregistrement (`ReauthDialog`, `useMutation`).
+ * expirée). Seule une réponse explicite 401 ou 419 la fait passer en « expirée » ; un réseau coupé
+ * ou une erreur du serveur ne la dégradent jamais (le poste hors ligne continue de travailler).
+ * Aucune navigation n'est provoquée : une saisie en cours reste à l'écran et la reconnexion se fait
+ * sur place (`ReauthDialog`).
  */
-function revalidateSession(): void {
+function onReturnToTab(): void {
   if (document.visibilityState !== 'visible' || session.status !== 'authenticated') return
-  void refreshSession().catch(() => undefined)
+  void revalidateSession().catch(() => undefined)
 }
 
 onMounted(() => {
-  document.addEventListener('visibilitychange', revalidateSession)
-  window.addEventListener('focus', revalidateSession)
+  document.addEventListener('visibilitychange', onReturnToTab)
+  window.addEventListener('focus', onReturnToTab)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('visibilitychange', revalidateSession)
-  window.removeEventListener('focus', revalidateSession)
+  document.removeEventListener('visibilitychange', onReturnToTab)
+  window.removeEventListener('focus', onReturnToTab)
 })
 
 /**
@@ -191,8 +194,11 @@ const linkClass =
             class="flex items-center gap-1 text-sm font-medium text-warning"
           >
             <span aria-hidden="true">⚠</span
-            ><span>Session expirée : reconnexion à l’enregistrement</span>
+            ><span>Session expirée : vos saisies sont conservées</span>
           </p>
+          <AppButton v-if="sessionExpired" variant="secondary" @click="reconnecting = true"
+            >Se reconnecter</AppButton
+          >
           <template v-if="signedIn && session.account">
             <p class="text-sm text-ink">
               <span class="sr-only">Compte connecté : </span>{{ session.account.display_name }}
@@ -262,4 +268,10 @@ const linkClass =
       </ul>
     </nav>
   </div>
+  <ReauthDialog
+    v-if="reconnecting && sessionExpired"
+    :open="true"
+    @reauthenticated="reconnecting = false"
+    @cancel="reconnecting = false"
+  />
 </template>

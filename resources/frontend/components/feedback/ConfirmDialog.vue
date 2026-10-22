@@ -2,8 +2,9 @@
 /**
  * Confirmation d'une action (fichier 04) : boîte de dialogue modale native (`<dialog>` ouverte par
  * showModal : le reste de la page devient inerte, Échap annule), bouton qui dit la conséquence
- * (« Émettre la facture »), focus initial sur « Annuler » pour une action risquée, focus rendu au
- * déclencheur à la fermeture. Le parent garde l'état ouvert/fermé ; ce composant ne décide rien
+ * (« Émettre la facture »), focus initial sur « Annuler » pour une action risquée (ou sur le champ
+ * à saisir quand la boîte contient un formulaire : `initialFocus`), focus rendu au déclencheur à la
+ * fermeture. Le parent garde l'état ouvert/fermé ; ce composant ne décide rien
  * lui-même. Pendant la commande (`pending`), ni Échap ni « Annuler » n'interrompent l'action.
  */
 import { nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
@@ -20,12 +21,15 @@ const props = withDefaults(
     pending?: boolean
     /** Libellé pendant la commande (« Émission en cours… »). */
     pendingLabel?: string
+    /** Sélecteur CSS d'un élément de la boîte qui reçoit le focus à l'ouverture (champ à saisir). */
+    initialFocus?: string | undefined
   }>(),
   {
     cancelLabel: 'Annuler',
     tone: 'default',
     pending: false,
     pendingLabel: 'Traitement en cours…',
+    initialFocus: undefined,
   },
 )
 
@@ -48,6 +52,12 @@ async function show(): Promise<void> {
     else element.setAttribute('open', '')
   }
   await nextTick()
+  const field =
+    props.initialFocus === undefined ? null : element.querySelector<HTMLElement>(props.initialFocus)
+  if (field !== null) {
+    field.focus()
+    return
+  }
   const first = props.tone === 'danger' ? cancelButton.value : confirmButton.value
   first?.$el.focus()
 }

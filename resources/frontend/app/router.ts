@@ -59,7 +59,7 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         ? { name: 'accueil' }
         : true
     }
-    if (session.status === 'anonymous') {
+    if (session.status === 'anonymous' || session.status === 'expired') {
       // Seul le chemin interne est conservé, jamais de paramètre de requête (aucun dossier dans l'URL).
       return { name: 'connexion', query: to.path === '/' ? {} : { suite: to.path } }
     }

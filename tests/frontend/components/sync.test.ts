@@ -242,6 +242,41 @@ describe('ReauthDialog : reconnexion sur place du même compte, saisie conservé
     wrapper.unmount()
   })
 
+  it('une erreur du serveur garde le mot de passe saisi et ne rouvre pas de seconde demande', async () => {
+    const fetchMock = await expiredSession({
+      login: { status: 500, code: 'INTERNAL_ERROR', message: 'Erreur interne.' },
+    })
+    const wrapper = openDialog()
+
+    await fillAndConfirm(wrapper, 'mot-de-passe-fictif')
+
+    expect(wrapper.text()).toContain('Erreur interne.')
+    expect((wrapper.get('input[type="password"]').element as HTMLInputElement).value).toBe(
+      'mot-de-passe-fictif',
+    )
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url) === '/api/v1/auth/login'),
+    ).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('une double soumission (Entrée deux fois) ne lance qu’une connexion', async () => {
+    const fetchMock = await expiredSession({ login: meResponse(['payment.collect']) })
+    const wrapper = openDialog()
+    await flushPromises()
+    await wrapper.get('input[type="password"]').setValue('mot-de-passe-fictif')
+
+    const form = wrapper.get('form')
+    await form.trigger('submit')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url) === '/api/v1/auth/login'),
+    ).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('serveur injoignable pendant la reconnexion : message clair, rien n’est perdu', async () => {
     await expiredSession({})
     const wrapper = openDialog()

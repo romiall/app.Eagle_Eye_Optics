@@ -7,7 +7,7 @@
  * reprend l'envoi avec la même clé d'idempotence (`useMutation().retry()`), qui relit la session et
  * refuse l'envoi si le compte a changé.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
 import { session, signIn, signOut } from '@/app/session'
@@ -17,6 +17,8 @@ import TextField from '@/components/form/TextField.vue'
 const props = defineProps<{ open: boolean }>()
 
 const emit = defineEmits<{ reauthenticated: []; cancel: [] }>()
+
+const FIELD_ID = 'reconnexion-mot-de-passe'
 
 const account = computed(() => session.lastAccount)
 const password = ref('')
@@ -33,7 +35,14 @@ watch(
   },
 )
 
+/** Après une erreur, le focus revient sur le champ : le lecteur d'écran lit l'erreur qui le décrit. */
+async function focusField(): Promise<void> {
+  await nextTick()
+  document.getElementById(FIELD_ID)?.focus()
+}
+
 async function confirm(): Promise<void> {
+  if (pending.value) return
   const expected = account.value
   if (expected === null) {
     error.value = 'Aucun compte à reconnecter : ouvrez la page de connexion.'
@@ -41,6 +50,7 @@ async function confirm(): Promise<void> {
   }
   if (password.value === '') {
     error.value = 'Saisissez votre mot de passe.'
+    await focusField()
     return
   }
   pending.value = true
@@ -52,6 +62,7 @@ async function confirm(): Promise<void> {
       // Défense en profondeur : l'identifiant obtenu n'est pas celui de la saisie.
       await signOut().catch(() => undefined)
       error.value = 'Ce n’est pas le compte qui a commencé cette saisie : rien n’a été envoyé.'
+      await focusField()
       return
     }
     emit('reauthenticated')
@@ -60,10 +71,12 @@ async function confirm(): Promise<void> {
       error.value = 'Serveur injoignable : réessayez quand la connexion revient.'
     } else if (failure instanceof ApiError) {
       error.value = failure.fields['login']?.[0] ?? failure.message
-      password.value = ''
+      // Le mot de passe n'est effacé que s'il a été refusé ; une erreur du serveur le garde.
+      if (failure.status === 422) password.value = ''
     } else {
       throw failure
     }
+    await focusField()
   } finally {
     pending.value = false
   }
@@ -77,6 +90,7 @@ async function confirm(): Promise<void> {
     confirm-label="Se reconnecter"
     pending-label="Reconnexion en cours…"
     :pending="pending"
+    :initial-focus="`#${FIELD_ID}`"
     @confirm="confirm"
     @cancel="emit('cancel')"
   >
@@ -89,6 +103,7 @@ async function confirm(): Promise<void> {
       <form novalidate @submit.prevent="confirm">
         <TextField
           v-model="password"
+          :control-id="FIELD_ID"
           label="Mot de passe"
           type="password"
           autocomplete="current-password"

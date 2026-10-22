@@ -31,10 +31,23 @@ describe('interface de lecture commune (états d’écran du fichier 04)', () =>
     expect(read.freshness.value).toEqual(FRESH)
   })
 
-  it('« aucun résultat » seulement quand le serveur a répondu de façon complète', async () => {
-    const certain = useRead(async () => ({ data: [] as string[], freshness: FRESH }), { isEmpty })
+  it('« aucun résultat » seulement quand le serveur a répondu à cet appel, de façon complète', async () => {
+    const certain = useRead(async () => ({ data: [] as string[], freshness: FRESH, live: true }), {
+      isEmpty,
+    })
     await flushPromises()
     expect(certain.state.value).toBe('empty')
+  })
+
+  it('un instantané ancien et complet, lu hors ligne (live absent ou faux), n’est pas « aucun résultat »', async () => {
+    const cached = useRead(async () => ({ data: [] as string[], freshness: FRESH, live: false }), {
+      isEmpty,
+    })
+    const forgotten = useRead(async () => ({ data: [] as string[], freshness: FRESH }), { isEmpty })
+    await flushPromises()
+
+    expect(cached.state.value).toBe('offline')
+    expect(forgotten.state.value).toBe('offline')
   })
 
   it.each([

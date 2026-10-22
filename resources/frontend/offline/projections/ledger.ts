@@ -23,8 +23,9 @@ import { isUnconfirmedState } from './syncStates'
  *   ou rejeté. Tant qu'un fait est en revue, aucun nouvel encaissement n'est admis sans décision de
  *   la gérante (contrat 23 : jamais un second paiement créé arbitrairement).
  * - Rejetés après revue : non comptés, conservés pour la trace.
- * Une facture n'est « soldée » que si tout est confirmé par le serveur, sans fait en revue, avec des
- * données distantes complètes.
+ * Une facture n'est « soldée » que si son solde signé est exactement nul (ni reste dû, ni crédit à
+ * rembourser), tout est confirmé par le serveur, sans fait en revue, avec des données distantes
+ * complètes.
  */
 export type LedgerFactKind = 'payment' | 'reversal' | 'credit_note' | 'refund'
 
@@ -68,7 +69,9 @@ export interface LedgerProjection {
   collectionBlocked: boolean
   /** Montant encaissable maintenant (0 si l'encaissement est bloqué). */
   collectable: number
-  /** Vrai seulement si rien n'est dû, tout est confirmé, sans fait en revue, données complètes. */
+  /** Crédit à rembourser au patient (avoir ou trop-perçu) : une facture à crédit n'est pas soldée. */
+  creditDue: number
+  /** Vrai seulement si le solde est nul, tout est confirmé, sans fait en revue, données complètes. */
   settled: boolean
   freshness: Freshness
 }
@@ -157,8 +160,9 @@ export function projectLedger(input: LedgerProjectionInput): LedgerProjection {
     confirmedLedgerVersion: 1 + counted.filter(isConfirmed).length,
     collectionBlocked,
     collectable: collectionBlocked ? 0 : balance.amountDue(),
+    creditDue: balance.refundableCredit(),
     settled:
-      balance.amountDue() === 0 &&
+      balance.signedBalance() === 0 &&
       inReview.length === 0 &&
       unconfirmedFacts.length === 0 &&
       view.freshness.complete,

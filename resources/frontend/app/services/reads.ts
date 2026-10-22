@@ -10,8 +10,8 @@ export type { Freshness } from '@/offline/projections/merge'
  * une interface de lecture commune aux pages »). Un écran fournit une fonction de lecture (service
  * de lecture du serveur, projection locale ou fusion des deux par identifiant) qui rend la donnée et
  * sa fraîcheur ; l'interface traduit l'issue en états d'écran du fichier 04 :
- * - `offline` : serveur injoignable ou en erreur, ou résultat vide sans données complètes du
- *   serveur — jamais « aucun dossier » ;
+ * - `offline` : serveur injoignable ou en erreur, ou résultat vide qui n'a pas été confirmé par le
+ *   serveur pendant cet appel (`live`) avec des données complètes — jamais « aucun dossier » ;
  * - `session-expired` : la lecture demande une reconnexion ;
  * - `forbidden`, `error`, `empty`, `ready`.
  * Les données locales seules sont `ready`, avec une fraîcheur qui le dit (`serverAsOf` null).
@@ -22,6 +22,12 @@ export type ReadState =
 export interface ReadOutcome<T> {
   data: T
   freshness: Freshness
+  /**
+   * Vrai si le serveur a répondu à CET appel (et non un instantané gardé en cache ou sur le poste,
+   * même daté et complet). Seul un vide `live` est « aucun résultat » ; absent, il vaut faux : un
+   * chargeur qui l'oublie rend « hors ligne », jamais une absence affirmée à tort.
+   */
+  live?: boolean
 }
 
 export interface ReadOptions<T> {
@@ -50,9 +56,10 @@ export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadO
       data.value = result.data
       freshness.value = result.freshness
       if (options.isEmpty?.(result.data) === true) {
-        // Vide sans données complètes du serveur : rien n'est conclu (fichier 04 : « Recherche
-        // serveur indisponible », jamais « aucun dossier »).
-        const certain = result.freshness.serverAsOf !== null && result.freshness.complete
+        // Vide non confirmé par le serveur pendant cet appel, ou sans données complètes : rien n'est
+        // conclu (fichier 04 : « Recherche serveur indisponible », jamais « aucun dossier »).
+        const certain =
+          result.live === true && result.freshness.serverAsOf !== null && result.freshness.complete
         state.value = certain ? 'empty' : 'offline'
       } else {
         state.value = 'ready'
