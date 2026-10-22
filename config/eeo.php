@@ -33,6 +33,8 @@ return [
 
     // Limites de débit par compte (requêtes par minute).
     'rate_limits' => [
+        // Connexions par adresse IP : 20 par minute. Relevée seulement pour les parcours e2e (EEO_RATE_LOGIN_IP).
+        'login_ip' => (int) env('EEO_RATE_LOGIN_IP', 20),
         'patient_search' => (int) env('EEO_RATE_PATIENT_SEARCH', 120),
     ],
 
