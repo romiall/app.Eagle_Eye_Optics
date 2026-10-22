@@ -1,0 +1,86 @@
+# Patients (P01 création et modification, P02 recherche) — serveur
+
+Premier jalon des fonctions de base, **en ligne** : la fiche patient passe par le chemin central de
+commandes (F07). Le hors-ligne (O01 à O05) est branché ensuite sur les mêmes services ; rien ici n'est
+annoncé comme utilisable sans Internet, et la création depuis un poste hors-ligne est refusée
+explicitement tant que les plages de numéros (O03) n'existent pas.
+
+## Routes (module `patients`, ouvert par l'exploitant)
+
+| Méthode et route | Permission | Rôle |
+| --- | --- | --- |
+| `GET /api/v1/patients?query=&page=` | `patient.read` | Recherche (P02) : `PatientPage`, 25 par page |
+| `POST /api/v1/patients` | `patient.create` | Création (commande `CreatePatient`, `Idempotency-Key` obligatoire) |
+| `GET /api/v1/patients/{id}` | `patient.read` | Fiche complète (`PatientResponse`) |
+| `PATCH /api/v1/patients/{id}` | `patient.update` | Modification (commande `UpdatePatient`, version attendue) |
+
+Module fermé : chaque route répond 404 `RESOURCE_NOT_FOUND`, avant toute vérification de droit
+(`docs/implementation/modules.md`). Rôles du référentiel : la gérante et l'accueil créent et modifient ;
+le professionnel et la caisse lisent seulement (la « correction proposée » de la matrice du fichier 09
+n'a ni table ni commande : écart documenté ci-dessous).
+
+## Création
+
+- Corps de la route directe : la charge de la commande, `expected_version: null` et `record_number: null`
+  (le serveur numérote). `CommandDefinition::$directSchema` fait valider ce corps par le bus contre
+  `commands/CreatePatient.v1.json#/$defs/DirectRequest` (la charge d'un poste reste validée par `schema`).
+- Numéro `EE-AAAA-NNNN` : `DocumentNumbers::allocateCentral` prend le numéro dans `document_sequences`
+  sous le verrou exclusif du cabinet puis celui de la séquence, l'inscrit dans `document_number_usages`
+  (append-only) et écrit la fiche dans la **même transaction** : un échec à n'importe quel point du chemin
+  annule tout, numéro compris (aucun trou). L'année est celle du fuseau du cabinet (le 31 décembre à
+  23 h 30 UTC est déjà l'année suivante à Douala). Au-delà de quatre chiffres, aucune troncature
+  (`EE-2026-10000`). Les autres séries n'ont pas de format : `render()` refuse ce qui n'est pas validé.
+- Identité (`PatientIdentity`) : nom obligatoire ; naissance connue et non future (au jour civil du
+  cabinet) ou absence expliquée, jamais de date inventée ; téléphone principal ou absence expliquée ;
+  sexe `F`, `M` ou `UNKNOWN`. Une raison d'absence n'est conservée que si la valeur est absente. Les
+  colonnes `name_search` et `*_normalized` sont toujours recalculées par le serveur. Toutes les erreurs
+  sont rendues ensemble (422, une entrée par champ). La date de naissance accepte `JJ/MM/AAAA` et
+  `AAAA-MM-JJ`.
+- Un homonyme ou un téléphone partagé ne bloque jamais l'enregistrement. Le signalement des
+  ressemblances (sans fusion) est fait par l'écran avant l'enregistrement, à partir de la recherche
+  (aucune route de « contrôle de doublon » n'existe au contrat).
+- Un identifiant de patient ou d'usage de numéro déjà pris (nouvelle clé d'idempotence, même identifiant)
+  est refusé en 422, jamais en erreur SQL.
+- Effets : audit `patient.created`, événement `PatientCreated`, journal des changements
+  (`ADMINISTRATIVE`, `CREATED`), résultat idempotent (références seulement).
+
+## Modification
+
+- Verrou « dossier patient » (rang 45 de `LockRank`, entre les séquences et la propriété de facture),
+  version lue sous verrou comparée à `expected_version` : 409 `VERSION_CONFLICT` avec
+  `details.current_version`.
+- L'état **résultant** (fiche + changements) est revalidé en entier : retirer une date de naissance sans
+  expliquer son absence donne un 422 (`changes.birth_date_missing_reason`), jamais une erreur SQL.
+- Le numéro de dossier et les champs d'import historique ne se modifient pas. Un changement sans effet
+  n'incrémente pas la version. L'audit `patient.updated` garde l'avant et l'après de chaque champ modifié
+  (c'est l'historique de l'identité).
+
+## Recherche (P02)
+
+Deux caractères au moins (422 sinon). Numéro de dossier (requête qui commence par `EE-`, préfixe) ;
+chiffres (téléphones normalisés, qui ne déduisent aucun indicatif, et fin du numéro de dossier) ;
+sinon nom et prénoms (accents, casse et ponctuation ignorés, ordre des mots indifférent, tous les mots
+doivent se retrouver). Les jokers de `LIKE` sont échappés. Toujours limitée au cabinet ; les fiches
+fusionnées ne sont pas proposées ; tri stable (`name_search`, numéro, identifiant). La liste ne porte que
+l'identité de base. **Non mesuré** : la recherche par nom est un balayage du cabinet (`LIKE '%mot%'`) ; la
+cible du fichier 05 (moins d'une seconde sur 20 000 patients) reste à mesurer sur le serveur de recette.
+
+## Tests
+
+`tests/Feature/Patients/PatientCommandsTest.php` (création, numérotation, année du fuseau, idempotence,
+retour arrière à chacun des 7 points du chemin, version, état résultant, droits, module fermé, isolation
+des cabinets), `PatientSearchTest.php`, `tests/Unit/Patients/PatientIdentityTest.php` (règles pures et
+format du numéro), `tests/Concurrency/CommandBusConcurrencyTest.php` (cinq créations simultanées dans
+cinq processus : cinq numéros consécutifs distincts ; double clic : une seule fiche),
+`TransactionLocksTest` (rang 45).
+
+## Écarts et points ouverts
+
+| Point | Décision / état |
+| --- | --- |
+| « Correction proposée » du professionnel et de la caisse (matrice 09) | Aucune table ni commande au contrat : ces rôles lisent seulement. À décider avec le demandeur. |
+| Détection de doublons côté serveur | Signalement par l'écran (recherche avant création) ; pas de route dédiée au contrat. Règle de ressemblance à confirmer (nom identique et même naissance ou même téléphone). |
+| Création depuis un poste hors-ligne | Refusée (403) jusqu'à O03 (plages) et O05 (synchronisation). |
+| Recherche : fiches archivées | Proposées (indicateur `archived`) ; à confirmer. |
+| Structure du contact du responsable (`guardian_contact`) | Objet JSON libre, sans écran dans P01. |
+| Performance de la recherche | À mesurer (20 000 patients) ; un index de préfixe ou une recherche plein texte seront envisagés si la cible n'est pas tenue. |

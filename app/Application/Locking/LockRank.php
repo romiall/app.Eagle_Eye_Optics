@@ -21,6 +21,7 @@ enum LockRank: int
     case Device = 20;
     case Idempotency = 30;
     case Sequence = 40;
+    case Patient = 45;
     case InvoiceOwner = 50;
     case Invoice = 60;
     case CashSession = 70;
@@ -37,6 +38,7 @@ enum LockRank: int
             self::Device => 'appareil',
             self::Idempotency => 'idempotence',
             self::Sequence => 'séquence de numéros',
+            self::Patient => 'dossier patient',
             self::InvoiceOwner => 'propriété de facture',
             self::Invoice => 'facture',
             self::CashSession => 'session de caisse',

@@ -10,6 +10,7 @@ use App\Application\Contracts\ContractValidator;
 use App\Application\NullCommandBusProbe;
 use App\Application\TransactionRunner;
 use App\Domain\Access\AccessCommands;
+use App\Domain\Patients\PatientCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
@@ -48,6 +49,9 @@ final class CommandServiceProvider extends ServiceProvider
 
         // Chaque module déclare ici ses commandes ; une commande non enregistrée n'existe pas.
         foreach (AccessCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        foreach (PatientCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

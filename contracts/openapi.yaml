@@ -511,7 +511,7 @@ paths:
         - name: "query"
           in: "query"
           required: false
-          description: "Nom, numéro de dossier ou téléphone (recherche normalisée)."
+          description: "Nom, numéro de dossier ou téléphone (recherche normalisée, 2 caractères au moins)."
           schema:
             type: "string"
         - name: "page"
@@ -534,11 +534,13 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "patient.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P02"
     post:
       operationId: "CreatePatient"
@@ -578,7 +580,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePatient"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P01"
   /v1/patients/{id}:
     get:
@@ -606,13 +608,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
         - "patient.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P01"
     patch:
       operationId: "UpdatePatient"
@@ -647,6 +651,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -658,7 +664,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "UpdatePatient"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P01"
   /v1/patients/{id}/history:
     get:

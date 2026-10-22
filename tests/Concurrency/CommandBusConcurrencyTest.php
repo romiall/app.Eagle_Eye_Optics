@@ -389,6 +389,96 @@ final class CommandBusConcurrencyTest extends TestCase
         $this->assertSame(40000, $this->counterBalance($this->counterId));
     }
 
+    public function test_cinq_creations_simultanees_de_patients_recoivent_cinq_numeros_distincts_et_consecutifs(): void
+    {
+        // AT03 : numéros attribués sous le verrou du cabinet puis de la séquence, sans doublon ni trou. Le
+        // compteur de test a déjà fait monter la série PATIENT de l'année : on part de son haut-niveau.
+        $base = $this->patientHighWater();
+        $this->holdClinicLock();
+        $children = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $children[] = $this->createPatient($this->receptionist, 'cle-patient-0000'.$i);
+        }
+        $this->waitForBlockedQuery('`clinics`', 'for update', 5);
+
+        $this->releaseGate();
+        $outcomes = array_map(static fn (ScenarioProcess $child): array => $child->wait(self::WAIT), $children);
+
+        foreach ($outcomes as $outcome) {
+            $this->assertTrue($outcome['ok'], json_encode($outcome, JSON_UNESCAPED_UNICODE));
+        }
+        $numbers = array_map(static fn (array $outcome): string => (string) $outcome['result']['result']['record_number'], $outcomes);
+        sort($numbers);
+        $year = (int) DB::table('document_sequences')->where('clinic_id', $this->clinicId)->where('document_type', 'PATIENT')->value('document_year');
+        $expected = array_map(static fn (int $n): string => sprintf('EE-%04d-%s', $year, str_pad((string) ($base + $n), 4, '0', STR_PAD_LEFT)), [1, 2, 3, 4, 5]);
+        $this->assertSame($expected, $numbers);
+        $this->assertSame($base + 5, $this->patientHighWater());
+        $this->assertSame(5, DB::table('patient_records')->where('clinic_id', $this->clinicId)->count());
+        $this->assertSame(5, DB::table('document_number_usages')->where('clinic_id', $this->clinicId)->count());
+    }
+
+    public function test_un_double_clic_concurrent_sur_une_creation_de_patient_ne_cree_qu_une_fiche(): void
+    {
+        $patientId = Ulid::generate();
+        $usageId = Ulid::generate();
+        $base = $this->patientHighWater();
+        $this->holdClinicLock();
+        $children = [
+            $this->createPatient($this->receptionist, 'cle-doubleclic-pat', $patientId, $usageId),
+            $this->createPatient($this->receptionist, 'cle-doubleclic-pat', $patientId, $usageId),
+        ];
+        $this->waitForBlockedQuery('`clinics`', 'for update', 2);
+
+        $this->releaseGate();
+        $outcomes = array_map(static fn (ScenarioProcess $child): array => $child->wait(self::WAIT), $children);
+
+        foreach ($outcomes as $outcome) {
+            $this->assertTrue($outcome['ok'], json_encode($outcome, JSON_UNESCAPED_UNICODE));
+        }
+        $replays = array_map(static fn (array $outcome): bool => (bool) $outcome['result']['replayed'], $outcomes);
+        sort($replays);
+        $this->assertSame([false, true], $replays, 'Une exécution, un rejeu.');
+        $this->assertSame(1, DB::table('patient_records')->where('clinic_id', $this->clinicId)->count());
+        $this->assertSame($base + 1, $this->patientHighWater());
+    }
+
+    private function patientHighWater(): int
+    {
+        return (int) DB::table('document_sequences')->where('clinic_id', $this->clinicId)->where('document_type', 'PATIENT')->value('last_value');
+    }
+
+    /**
+     * Création de patient par un processus distinct (route directe du chemin central), données fictives.
+     */
+    private function createPatient(User $actor, string $key, ?string $patientId = null, ?string $usageId = null): ScenarioProcess
+    {
+        return $this->child('create-patient', [
+            'actor_id' => $actor->id,
+            'key' => $key,
+            'payload' => [
+                'expected_version' => null,
+                'patient_id' => $patientId ?? Ulid::generate(),
+                'record_number_usage_id' => $usageId ?? Ulid::generate(),
+                'record_number' => null,
+                'last_name' => 'Patient Concurrent',
+                'first_names' => null,
+                'sex' => 'UNKNOWN',
+                'birth_date' => '1990-05-12',
+                'birth_date_missing_reason' => null,
+                'phone_primary' => '600000001',
+                'phone_secondary' => null,
+                'phone_missing_reason' => null,
+                'address' => null,
+                'profession' => null,
+                'guardian_contact' => null,
+                'legacy_record' => false,
+                'first_known_visit_on' => null,
+                'first_visit_certified' => false,
+                'legacy_record_number' => null,
+            ],
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $extra
      */

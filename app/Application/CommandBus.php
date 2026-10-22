@@ -63,7 +63,10 @@ final class CommandBus
 
         $this->assertIdempotencyKey($definition, $idempotencyKey);
         $idempotencyKey = $idempotencyKey === null ? null : strtoupper($idempotencyKey);
-        if ($definition->schema !== null) {
+        if ($context->source === CommandSource::Direct && $definition->directSchema !== null) {
+            // Corps de la route directe : la charge, `expected_version` et le numéro de pièce à null.
+            $this->contracts->assertCommandPayload($definition->directSchema, $command->payload + ['expected_version' => $command->expectedVersion]);
+        } elseif ($definition->schema !== null) {
             $this->contracts->assertCommandPayload($definition->schema, $command->payload);
         }
         $this->authorizer->precheck($context, $definition, $handler);

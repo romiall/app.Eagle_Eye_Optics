@@ -41,6 +41,7 @@ Un refus métier (`BusinessError`) ou toute exception **annule tout**, y compris
 | 20 | appareil | `enrolled_devices` |
 | 30 | idempotence | `idempotency_requests` (cabinet, espace de noms, commande, clé) |
 | 40 | séquences de numéros | `document_sequences` par (type, année) croissants |
+| 45 | dossier patient | `patient_records` (P01 : version lue sous verrou avant modification) |
 | 50 | propriété de facture | `invoice_write_owners` par facture |
 | 60 | facture | `invoices` |
 | 70 | session de caisse | `cash_sessions` |
@@ -166,7 +167,7 @@ Un vérificateur indépendant et adverse (lecture seule, base jetable `eeo_revie
 | `tests/Unit/Application/HistoricalAuthorizationTest.php` | Contexte historique : 15 cas (accordé, refusé, revue, tolérance, révocation postérieure, verdict inchangé au nouveau jugement, tolérance avant révocation) |
 | `tests/Unit/Application/TransactionRunnerTest.php` | 3 tentatives, attentes bornées, `SERVER_BUSY`, aucune relance d'un refus métier |
 | `tests/Unit/Application/CommandHashTest.php` | Empreinte stable, sensible aux valeurs, `null` ≠ 0, tri des clés total, objet vide, empreinte liée à l'auteur, au poste et au grant |
-| `tests/Feature/Application/TransactionLocksTest.php` | Ordre des 10 rangs, refus avant toute requête, verrou partagé jamais monté en exclusif, rang du compte, isolation des cabinets (séquences, comptes, clés d'idempotence) |
+| `tests/Feature/Application/TransactionLocksTest.php` | Ordre des 11 rangs, refus avant toute requête, verrou partagé jamais monté en exclusif, rang du compte, isolation des cabinets (séquences, comptes, clés d'idempotence) |
 | `tests/Feature/Application/CommandBusTest.php` | Effets écrits ensemble, rejeu, conflit, refus sans effet, retour arrière à chaque point (dans la transaction de test, donc par point de sauvegarde), droits, sources, poste, rejeu lié à l'auteur et au grant, identifiant d'idempotence transmis à l'action, clé insensible à la casse, version attendue (AT19), audit non modifiable (AT13) |
 | `tests/Feature/Application/CommandHttpTest.php` | AT11 et AT38 au niveau de l'API : en-tête, rejeu identique, 409, 422, 401, 403, 503 + `Retry-After` |
 | `tests/Feature/Application/ChangeFeedTest.php` | Pages bornées, borne qui avance sur les entrées filtrées, isolation des cabinets |

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ClinicSettingsController;
+use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,23 @@ Route::prefix('v1')->group(function (): void {
                 Route::post('staff/{id}/permissions', [StaffController::class, 'permissions'])->name('api.staff.permissions');
                 Route::post('staff/{id}/password', [StaffController::class, 'resetPassword'])->name('api.staff.password');
             });
+        });
+
+        // Patients (P01, P02) : module « patients », ouvert par l'exploitant (EEO_ENABLED_MODULES) ; fermé,
+        // chaque route répond 404 comme si elle n'existait pas. Écritures par le chemin central de commandes.
+        Route::middleware('module:patients')->group(function (): void {
+            Route::get('patients', [PatientController::class, 'index'])
+                ->middleware('can:patient.read')
+                ->name('api.patients.index');
+            Route::post('patients', [PatientController::class, 'store'])
+                ->middleware('can:patient.create')
+                ->name('api.patients.store');
+            Route::get('patients/{id}', [PatientController::class, 'show'])
+                ->middleware('can:patient.read')
+                ->name('api.patients.show');
+            Route::patch('patients/{id}', [PatientController::class, 'update'])
+                ->middleware('can:patient.update')
+                ->name('api.patients.update');
         });
     });
 });

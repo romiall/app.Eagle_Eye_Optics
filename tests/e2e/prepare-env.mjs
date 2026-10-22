@@ -37,6 +37,8 @@ const overrides = {
   // Origine de test en HTTP simple : un cookie « Secure » n'y serait pas renvoyé par le navigateur.
   SESSION_SECURE_COOKIE: 'false',
   EEO_CLINIC_ID: '',
+  // Modules ouverts pour les parcours e2e (mise en service progressive : fermés par défaut en production).
+  EEO_ENABLED_MODULES: 'patients',
 }
 
 const lines = readFileSync(join(root, '.env.example'), 'utf8')

@@ -147,6 +147,18 @@ final class TransactionLocks
     }
 
     /**
+     * Fiche patient (`patient_records`) du cabinet, au rang « dossier patient » : après les séquences de
+     * numéros, avant la propriété de facture. Lue sous verrou pour comparer la version attendue avant toute
+     * modification ; null si elle n'existe pas dans ce cabinet.
+     */
+    public function patient(string $patientId): ?stdClass
+    {
+        $this->enter(LockRank::Patient, $patientId);
+
+        return $this->byId('patient_records', $patientId);
+    }
+
+    /**
      * Propriétaires d'écriture d'une facture (une ligne par époque), du plus ancien au plus récent.
      *
      * @return list<stdClass>
@@ -265,7 +277,7 @@ final class TransactionLocks
         if ($rank->value < $this->highestRank) {
             throw new LockOrderViolation(sprintf(
                 'Ordre des verrous violé : « %s » demandé après un verrou de rang supérieur (« %s » déjà tenu). '
-                .'Ordre du contrat 23 : cabinet, compte, appareil, idempotence, séquences, propriété de facture, facture, session de caisse, stock, approbation.',
+                .'Ordre du contrat 23 : cabinet, compte, appareil, idempotence, séquences, dossier patient, propriété de facture, facture, session de caisse, stock, approbation.',
                 $rank->label(),
                 LockRank::from($this->highestRank)->label(),
             ));

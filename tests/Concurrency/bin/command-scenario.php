@@ -100,6 +100,23 @@ try {
 
             return ['replayed' => $result->replayed, 'result' => $result->result];
         })(),
+        'create-patient' => (static function () use ($app, $arguments, $barrierProbe): array {
+            // Création d'un patient par la route directe du chemin central : numéro central sous verrou.
+            $app->instance(CommandBusProbe::class, $barrierProbe);
+
+            /** @var User $actor */
+            $actor = User::query()->findOrFail((string) $arguments['actor_id']);
+            /** @var array<string, mixed> $payload */
+            $payload = $arguments['payload'];
+            unset($payload['expected_version']);
+            $result = $app->make(CommandBus::class)->dispatch(
+                new Command('CreatePatient', $payload, (string) $payload['patient_id'], null),
+                CommandContext::direct($actor, (string) ($arguments['correlation_id'] ?? 'corr-child-0001')),
+                isset($arguments['key']) ? (string) $arguments['key'] : null,
+            );
+
+            return ['replayed' => $result->replayed, 'result' => $result->result];
+        })(),
         'pull' => (static function () use ($app, $arguments): array {
             $page = $app->make(ChangeFeed::class)->page((string) $arguments['clinic_id'], (int) $arguments['after']);
 
