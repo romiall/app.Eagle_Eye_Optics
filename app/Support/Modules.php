@@ -24,6 +24,8 @@ final class Modules
         'communication',
         'reports',
         'settings',
+        // Préparation des postes pour le hors-ligne (O01, O02) : coffre local et enrôlement ; aucune entrée de menu.
+        'offline',
     ];
 
     /**

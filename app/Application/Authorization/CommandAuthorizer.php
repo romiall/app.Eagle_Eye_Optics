@@ -88,7 +88,10 @@ final class CommandAuthorizer
         match ($verdict->decision) {
             AuthorizationDecision::Allowed => null,
             AuthorizationDecision::Denied => throw new BusinessError('GRANT_EXPIRED_OR_REVOKED', $verdict->reason, 403),
-            AuthorizationDecision::NeedsReview => throw new BusinessError('AUTHORIZATION_REVIEW_REQUIRED', $verdict->reason, 409),
+            // Revue déjà tranchée par la gérante (ACCEPT_LOCAL, motif conservé) : seul un « en revue » est levé, jamais un refus.
+            AuthorizationDecision::NeedsReview => $context->syncReferences?->reviewApproved === true
+                ? null
+                : throw new BusinessError('AUTHORIZATION_REVIEW_REQUIRED', $verdict->reason, 409),
         };
     }
 

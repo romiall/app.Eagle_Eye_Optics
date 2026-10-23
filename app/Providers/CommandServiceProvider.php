@@ -17,8 +17,12 @@ use App\Domain\Cash\CashCommands;
 use App\Domain\Clinical\ClinicalCommands;
 use App\Domain\Clinical\ExamFeeControl;
 use App\Domain\Clinical\UncontrolledExamFee;
+use App\Domain\Documents\DocumentCommands;
 use App\Domain\Inventory\InventoryCommands;
+use App\Domain\Operations\OperationsCommands;
 use App\Domain\Patients\PatientCommands;
+use App\Domain\Scheduling\SchedulingCommands;
+use App\Offline\OfflineCommands;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
@@ -80,10 +84,26 @@ final class CommandServiceProvider extends ServiceProvider
         foreach (BillingCommands::definitions() as $definition) {
             $registry->register($definition);
         }
+        // Exploitation (X02) : demande d'un export contrôlé.
+        foreach (OperationsCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Documents générés (D01) : dépôt de l'original PDF.
+        foreach (DocumentCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
         foreach (CashCommands::definitions() as $definition) {
             $registry->register($definition);
         }
         foreach (InventoryCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Agenda interne (S01) et suivis / tâches de contact internes (S02).
+        foreach (SchedulingCommands::definitions() as $definition) {
+            $registry->register($definition);
+        }
+        // Préparation des postes (O02) : enrôlement, grants signés et révocations, en ligne seulement.
+        foreach (OfflineCommands::definitions() as $definition) {
             $registry->register($definition);
         }
     }

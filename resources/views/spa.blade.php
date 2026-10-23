@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#155e75">
+    <meta name="theme-color" content="#231f20">
     <title>Eagle’s Eye Optics Medical – Gestion des patients</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">

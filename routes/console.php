@@ -6,5 +6,11 @@
 |--------------------------------------------------------------------------
 |
 | Aucune commande de démonstration. Les commandes applicatives sont des classes de
-| app/Console/Commands ; la planification (cron de l'hébergement, jobs courts) arrive avec H01.
+| app/Console/Commands. Planification : une seule entrée cron sur l'hébergement,
+| « * * * * * php artisan schedule:run » (docs/implementation/deploiement.md).
 */
+
+use Illuminate\Support\Facades\Schedule;
+
+// Exports contrôlés (X02) : production des archives demandées et expiration après 48 h.
+Schedule::command('eeo:exports:process')->everyMinute()->withoutOverlapping();

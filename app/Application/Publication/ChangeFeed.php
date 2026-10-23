@@ -5,6 +5,7 @@ namespace App\Application\Publication;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
 use App\Application\TransactionRunner;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use stdClass;
 
@@ -29,14 +30,19 @@ final class ChangeFeed
     public function __construct(private readonly TransactionRunner $transactions) {}
 
     /**
+     * `$project` (pull, O05) : projection autorisée de chaque changement RETENU, calculée DANS la même transaction, sous
+     * le même verrou partagé du cabinet, et rangée dans `$row->projection` : la page et ses projections sont un état
+     * committé cohérent (aucune mutation du cabinet ne s'intercale entre les deux lectures).
+     *
      * @param  list<ChangeVisibility>|null  $visibilities  compartiments lisibles par le profil ; null : tous
+     * @param  (Closure(stdClass): array<string, mixed>)|null  $project
      * @return array{changes: list<stdClass>, upper_bound: int, has_more: bool}
      */
-    public function page(string $clinicId, int $afterSequence, int $limit = self::MAX_PAGE_SIZE, ?array $visibilities = null): array
+    public function page(string $clinicId, int $afterSequence, int $limit = self::MAX_PAGE_SIZE, ?array $visibilities = null, ?Closure $project = null): array
     {
         $limit = max(1, min($limit, self::MAX_PAGE_SIZE));
 
-        return $this->transactions->run(function () use ($clinicId, $afterSequence, $limit, $visibilities): array {
+        return $this->transactions->run(function () use ($clinicId, $afterSequence, $limit, $visibilities, $project): array {
             (new TransactionLocks($clinicId))->clinicShared();
 
             /** @var list<stdClass> $scanned */
@@ -56,6 +62,11 @@ final class ChangeFeed
                 $scanned,
                 static fn (stdClass $row): bool => $allowed === null || in_array($row->visibility, $allowed, true),
             ));
+            if ($project !== null) {
+                foreach ($changes as $row) {
+                    $row->projection = $project($row);
+                }
+            }
 
             return [
                 'changes' => $changes,

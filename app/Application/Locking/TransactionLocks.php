@@ -179,6 +179,57 @@ final class TransactionLocks
     }
 
     /**
+     * Contrôle recommandé (`follow_up_plans`) du cabinet, au rang « contrôle recommandé » : après la consultation qui
+     * le recommande, avant le rendez-vous qui le programme.
+     */
+    public function followUpPlan(string $planId): ?stdClass
+    {
+        $this->enter(LockRank::FollowUpPlan, $planId);
+
+        return $this->byId('follow_up_plans', $planId);
+    }
+
+    /**
+     * Rendez-vous (`appointments`) du cabinet, au rang « rendez-vous » : lu sous verrou pour comparer sa version.
+     */
+    public function appointment(string $appointmentId): ?stdClass
+    {
+        $this->enter(LockRank::Appointment, $appointmentId);
+
+        return $this->byId('appointments', $appointmentId);
+    }
+
+    /**
+     * Tâche de contact (`contact_tasks`) du cabinet, au rang « tâche de contact ».
+     */
+    public function contactTask(string $taskId): ?stdClass
+    {
+        $this->enter(LockRank::ContactTask, $taskId);
+
+        return $this->byId('contact_tasks', $taskId);
+    }
+
+    /**
+     * Ressource de l'agenda (`scheduling_resources`) du cabinet : modifications de la gérante (version attendue).
+     */
+    public function schedulingResource(string $resourceId): ?stdClass
+    {
+        $this->enter(LockRank::SchedulingResource, $resourceId);
+
+        return $this->byId('scheduling_resources', $resourceId);
+    }
+
+    /**
+     * Prestation réservable (`appointment_services`) du cabinet : modifications de la gérante (version attendue).
+     */
+    public function appointmentService(string $serviceId): ?stdClass
+    {
+        $this->enter(LockRank::AppointmentService, $serviceId);
+
+        return $this->byId('appointment_services', $serviceId);
+    }
+
+    /**
      * Propriétaires d'écriture d'une facture (une ligne par époque), du plus ancien au plus récent.
      *
      * @return list<stdClass>
@@ -194,6 +245,16 @@ final class TransactionLocks
             ->lockForUpdate()
             ->get()
             ->all());
+    }
+
+    /**
+     * Devis (`quotes`) du cabinet, au rang « devis » : après le dossier patient, avant la facture de sa conversion.
+     */
+    public function quote(string $quoteId): ?stdClass
+    {
+        $this->enter(LockRank::Quote, $quoteId);
+
+        return $this->byId('quotes', $quoteId);
     }
 
     public function invoice(string $invoiceId): ?stdClass

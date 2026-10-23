@@ -8,6 +8,7 @@ use App\Application\Effects\AuditWriter;
 use App\Application\Effects\ChangeLogWriter;
 use App\Application\Effects\IdempotencyStore;
 use App\Application\Effects\OutboxWriter;
+use App\Application\Effects\SyncAcknowledgements;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
@@ -51,6 +52,7 @@ final class CommandBus
         private readonly OutboxWriter $outbox,
         private readonly ChangeLogWriter $changeLog,
         private readonly CommandBusProbe $probe,
+        private readonly SyncAcknowledgements $syncAcknowledgements,
     ) {}
 
     public function dispatch(Command $command, CommandContext $context, ?string $idempotencyKey = null): CommandResult
@@ -137,6 +139,11 @@ final class CommandBus
 
         $this->changeLog->write($context, $locks, $outcome->changes);
         $this->probe->reached(Checkpoint::ChangeLogWritten, $context);
+
+        // Commande d'un poste (O05) : ACK durable et préfixe finalisé du poste, dans la transaction de l'effet.
+        if ($context->syncReferences !== null) {
+            $this->syncAcknowledgements->accepted($context, $locks, $outcome);
+        }
 
         if ($reservation !== null) {
             $this->idempotency->complete($context, $reservation, $outcome->resultType, $outcome->resultId, $outcome->result);
