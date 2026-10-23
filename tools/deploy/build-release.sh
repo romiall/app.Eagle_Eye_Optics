@@ -67,7 +67,10 @@ git archive "$COMMIT" | tar -x -C "$WORK/app"
     vitest.config.ts playwright.config.ts phpstan.neon phpunit.xml pint.json .prettierrc* .prettierignore \
     .editorconfig .npmrc CLAUDE.md README.md *.zip *.docx *.pdf
   # Scripts SQL d'origine et rapports : l'installation passe par les migrations et database/baseline/.
-  rm -f database/*.sql database/*.md database/*.json 2>/dev/null || true
+  # schema_catalog.json (dictionnaire des exports, ExportBuilder) et 05_integrity_checks.sql (contrôles de
+  # restauration, RestoreVerifier) restent : l'application les lit à l'exécution.
+  find database -maxdepth 1 -type f \( -name '*.sql' -o -name '*.md' -o -name '*.json' \) \
+    ! -name 'schema_catalog.json' ! -name '05_integrity_checks.sql' -delete
 )
 
 echo "Frontend construit…"
@@ -104,6 +107,10 @@ done
 [[ -f "$WORK/app/.env.example" ]] || { echo ".env.example absent de l'archive." >&2; exit 1; }
 [[ -f "$WORK/app/vendor/autoload.php" ]] || { echo "vendor/autoload.php absent de l'archive." >&2; exit 1; }
 if [[ -d "$WORK/app/vendor/phpunit" ]]; then echo "Une dépendance de développement (phpunit) est dans l'archive." >&2; exit 1; fi
+# Fichiers lus à l'exécution par l'application (un oubli ne se voit qu'en production : exports, restauration).
+for runtime in database/schema_catalog.json database/05_integrity_checks.sql database/baseline/metadata.json database/baseline/statements.json; do
+  [[ -f "$WORK/app/$runtime" ]] || { echo "Fichier d'exécution absent de l'archive : $runtime" >&2; exit 1; }
+done
 for script in tools/deploy/backup.sh tools/deploy/restore-check.sh; do
   [[ -f "$WORK/app/$script" ]] || { echo "Script d'exploitation absent de l'archive : $script" >&2; exit 1; }
 done
