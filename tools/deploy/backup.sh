@@ -6,7 +6,13 @@
 #   bash tools/deploy/backup.sh [dossier de l'application]        (par défaut : ~/eeo)
 #
 # Réglages lus dans le .env de l'application : DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD,
-# EEO_BACKUP_DIR (vide : ~/eeo-backups, toujours HORS de la racine web) et EEO_BACKUP_KEEP_DAYS (14 par défaut).
+# EEO_BACKUP_DIR (vide : ~/eeo-backups, toujours HORS de la racine web), EEO_BACKUP_KEEP_DAYS (14 par défaut) et
+# EEO_BACKUP_KEY_FILE : fichier de clé de chiffrement (hors de l'application, 0600, copie gardée HORS du serveur par
+# la personne responsable ; sans elle, une sauvegarde chiffrée ne se relit plus). Créé une fois :
+#   openssl rand -base64 48 > ~/.eeo-backup.key && chmod 600 ~/.eeo-backup.key
+# Avec la clé : base, fichiers et .env sont chiffrés (AES-256, openssl, dérivation PBKDF2) et le journal backup_runs
+# reçoit l'identifiant de la clé (jamais la clé). Sans clé : la sauvegarde est faite EN CLAIR et consignée en échec
+# NOT_ENCRYPTED (fichier 09 : copie chiffrée obligatoire) ; elle ne sert pas de preuve de restauration.
 #
 # Le mot de passe de la base n'apparaît jamais sur la ligne de commande (fichier d'options temporaire en 0600).
 # Chaque sauvegarde est un dossier daté en 0700 avec ses empreintes SHA-256 ; les sauvegardes plus anciennes que
@@ -43,6 +49,20 @@ KEEP_DAYS="$(env_value EEO_BACKUP_KEEP_DAYS)"; KEEP_DAYS="${KEEP_DAYS:-14}"
 
 [[ -n "$DB_DATABASE" && -n "$DB_USERNAME" ]] || { echo "DB_DATABASE et DB_USERNAME doivent être renseignés dans ${ENV_FILE}." >&2; exit 2; }
 [[ "$KEEP_DAYS" =~ ^[0-9]+$ && "$KEEP_DAYS" -ge 1 ]] || { echo "EEO_BACKUP_KEEP_DAYS doit être un entier ≥ 1." >&2; exit 2; }
+KEY_FILE="$(env_value EEO_BACKUP_KEY_FILE)"; KEY_FILE="${KEY_FILE/#\~/$HOME}"
+KEY_ID=""
+if [[ -n "$KEY_FILE" ]]; then
+  command -v openssl >/dev/null || { echo "openssl est introuvable : chiffrement impossible." >&2; exit 2; }
+  [[ -f "$KEY_FILE" && -r "$KEY_FILE" ]] || { echo "EEO_BACKUP_KEY_FILE (${KEY_FILE}) est introuvable ou illisible." >&2; exit 2; }
+  case "$(cd "$(dirname "$KEY_FILE")" && pwd)" in
+    "$APP"|"$APP"/*) echo "EEO_BACKUP_KEY_FILE ne doit pas être dans le dossier de l'application." >&2; exit 2 ;;
+  esac
+  [[ "$(wc -c < "$KEY_FILE")" -ge 32 ]] || { echo "La clé ${KEY_FILE} est trop courte (32 octets au moins)." >&2; exit 2; }
+  KEY_ID="sha256:$(sha256sum "$KEY_FILE" | cut -c1-16)"
+else
+  echo "ATTENTION : EEO_BACKUP_KEY_FILE n'est pas renseigné, la sauvegarde sera EN CLAIR et consignée NOT_ENCRYPTED." >&2
+fi
+PHP_BIN="${EEO_PHP_BIN:-php}"
 case "$(cd "$(dirname "$BACKUP_DIR")" 2>/dev/null && pwd)/$(basename "$BACKUP_DIR")" in
   "$APP"/public|"$APP"/public/*) echo "EEO_BACKUP_DIR ne doit jamais être sous public/ (racine web)." >&2; exit 2 ;;
 esac
@@ -73,7 +93,8 @@ if mysqldump --help 2>/dev/null | grep -q -- '--set-gtid-purged'; then
   DUMP_OPTIONS+=(--set-gtid-purged=OFF)
 fi
 
-echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Sauvegarde de ${DB_DATABASE} vers ${TARGET}"
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "[${STARTED_AT}] Sauvegarde de ${DB_DATABASE} vers ${TARGET}"
 # Les clauses DEFINER sont retirées : une restauration par un autre utilisateur (sans SUPER) recrée vues et triggers
 # au nom de l'utilisateur qui restaure.
 mysqldump --defaults-extra-file="$OPTIONS" "${DUMP_OPTIONS[@]}" "$DB_DATABASE" \
@@ -89,8 +110,34 @@ fi
 cp "$ENV_FILE" "${TARGET}/env.backup"
 [[ -f "${APP}/RELEASE.json" ]] && cp "${APP}/RELEASE.json" "${TARGET}/RELEASE.json"
 
+# Chiffrement : chaque fichier porteur de données ou de secrets devient <fichier>.enc ; l'original en clair est retiré.
+if [[ -n "$KEY_FILE" ]]; then
+  for part in database.sql.gz storage-app.tar.gz env.backup; do
+    [[ -f "${TARGET}/${part}" ]] || continue
+    openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in "${TARGET}/${part}" -out "${TARGET}/${part}.enc" -pass "file:${KEY_FILE}" \
+      || { echo "Chiffrement de ${part} impossible : sauvegarde refusée." >&2; rm -rf "$TARGET"; exit 1; }
+    rm -f "${TARGET}/${part}"
+  done
+fi
+
 (cd "$TARGET" && sha256sum ./* > SHA256SUMS)
 chmod 600 "${TARGET}"/*
+COMPLETED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# Journal backup_runs (une ligne par partie). Un journal non écrit n'annule pas la sauvegarde : il est signalé.
+record_part() {
+  local scope="$1" file="$2" sha size
+  [[ -f "${TARGET}/${file}" ]] || return 0
+  sha="$(sha256sum "${TARGET}/${file}" | cut -d' ' -f1)"
+  size="$(wc -c < "${TARGET}/${file}" | tr -d ' ')"
+  (cd "$APP" && "$PHP_BIN" artisan eeo:backup:record --scope="$scope" --status=SUCCEEDED \
+    --started-at="$STARTED_AT" --completed-at="$COMPLETED_AT" --destination="$TARGET" \
+    --sha256="$sha" --size="$size" ${KEY_ID:+--key-id="$KEY_ID"}) \
+    || echo "ATTENTION : journal backup_runs non écrit pour ${file}." >&2
+}
+SUFFIX=""; [[ -n "$KEY_FILE" ]] && SUFFIX=".enc"
+record_part SERVER_DATABASE "database.sql.gz${SUFFIX}"
+record_part SERVER_FILES "storage-app.tar.gz${SUFFIX}"
 
 # Rétention : les dossiers de sauvegarde plus anciens que KEEP_DAYS jours (jamais d'autres fichiers).
 find "$BACKUP_DIR" -maxdepth 1 -type d -name 'eeo-backup-*' -mtime +"$KEEP_DAYS" -exec rm -rf {} +

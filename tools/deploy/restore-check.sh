@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Exercice de restauration (X03 minimal) : restaure une sauvegarde de tools/deploy/backup.sh dans une base MySQL
-# JETABLE, vérifie le schéma par rapport à la baseline et compte quelques tables. La base de production n'est jamais
-# touchée : le script refuse une base cible égale à DB_DATABASE du .env, ou dont le nom ne se termine pas par
-# « _restore » (ou « _test »).
+# Exercice de restauration (X03) : restaure une sauvegarde de tools/deploy/backup.sh dans une base MySQL JETABLE,
+# déchiffre au besoin (clé EEO_BACKUP_KEY_FILE), vérifie le schéma, puis lance « php artisan eeo:restore:verify » :
+# diagnostics d'intégrité, séquences jamais remises à zéro, pièces numérotées, empreintes d'audit, fichiers privés
+# restaurés, postes à synchroniser avant réouverture, perte mesurée contre la base vivante, durée constatée. La base
+# de production n'est jamais touchée : le script refuse une base cible égale à DB_DATABASE du .env, ou dont le nom ne
+# se termine pas par « _restore » (ou « _test »). Pour consigner l'exercice dans restore_tests, relancer ensuite
+# eeo:restore:verify avec --backup-run, --tested-by et --record (docs/runbooks/server-restore.md).
 #
 #   bash tools/deploy/restore-check.sh <dossier eeo-backup-…> <base jetable> [dossier de l'application]
 #
@@ -23,7 +26,8 @@ if [[ -z "$BACKUP" || -z "$TARGET_DB" ]]; then
 fi
 ENV_FILE="${APP}/.env"
 [[ -f "$ENV_FILE" ]] || { echo "Fichier ${ENV_FILE} introuvable." >&2; exit 2; }
-[[ -f "${BACKUP}/database.sql.gz" ]] || { echo "${BACKUP}/database.sql.gz introuvable." >&2; exit 2; }
+DUMP="${BACKUP}/database.sql.gz"; [[ -f "${DUMP}.enc" ]] && DUMP="${DUMP}.enc"
+[[ -f "$DUMP" ]] || { echo "${BACKUP}/database.sql.gz(.enc) introuvable." >&2; exit 2; }
 command -v mysql >/dev/null || { echo "Le client mysql est introuvable." >&2; exit 2; }
 
 env_value() {
@@ -35,6 +39,21 @@ env_value() {
   if [[ "$value" == \'*\' && "$value" == *\' ]]; then value="${value:1:${#value}-2}"; fi
   printf '%s' "$value"
 }
+
+KEY_FILE="${EEO_BACKUP_KEY_FILE:-$(env_value EEO_BACKUP_KEY_FILE)}"; KEY_FILE="${KEY_FILE/#\~/$HOME}"
+if [[ "$DUMP" == *.enc ]]; then
+  command -v openssl >/dev/null || { echo "openssl est introuvable : déchiffrement impossible." >&2; exit 2; }
+  [[ -n "$KEY_FILE" && -r "$KEY_FILE" ]] || { echo "Sauvegarde chiffrée : indiquez la clé (EEO_BACKUP_KEY_FILE)." >&2; exit 2; }
+fi
+# Lecture d'une partie de la sauvegarde sur la sortie standard, déchiffrée si elle l'est.
+read_part() {
+  if [[ "$1" == *.enc ]]; then
+    openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in "$1" -pass "file:${KEY_FILE}"
+  else
+    cat "$1"
+  fi
+}
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 PRODUCTION_DB="$(env_value DB_DATABASE)"
 if [[ "$TARGET_DB" == "$PRODUCTION_DB" ]]; then
@@ -55,8 +74,10 @@ DB_USERNAME="${EEO_RESTORE_DB_USERNAME:-$(env_value DB_USERNAME)}"
 DB_PASSWORD="${EEO_RESTORE_DB_PASSWORD:-$(env_value DB_PASSWORD)}"
 
 OPTIONS="$(mktemp)"
-trap 'rm -f "$OPTIONS"' EXIT
+FILES_DIR="$(mktemp -d)"
+trap 'rm -f "$OPTIONS"; rm -rf "$FILES_DIR"' EXIT
 chmod 600 "$OPTIONS"
+chmod 700 "$FILES_DIR"
 {
   echo '[client]'
   echo "host=${DB_HOST}"
@@ -73,7 +94,13 @@ if [[ "$existing" != "0" ]]; then
 fi
 
 echo "Restauration dans ${TARGET_DB}…"
-gzip -dc "${BACKUP}/database.sql.gz" | mysql --defaults-extra-file="$OPTIONS" --default-character-set=utf8mb4 "$TARGET_DB"
+read_part "$DUMP" | gzip -dc | mysql --defaults-extra-file="$OPTIONS" --default-character-set=utf8mb4 "$TARGET_DB"
+
+ARCHIVE="${BACKUP}/storage-app.tar.gz"; [[ -f "${ARCHIVE}.enc" ]] && ARCHIVE="${ARCHIVE}.enc"
+if [[ -f "$ARCHIVE" ]]; then
+  echo "Fichiers privés restaurés dans un dossier temporaire…"
+  read_part "$ARCHIVE" | tar -xzf - -C "$FILES_DIR"
+fi
 
 echo "Vérification du schéma (baseline complète)…"
 # Configuration relue sans le cache de production, base cible substituée : la base de l'application n'est pas lue.
@@ -87,4 +114,16 @@ for table in clinics users patient_records visits consultations invoices payment
 done
 
 echo
-echo "Restauration vérifiée dans ${TARGET_DB}. Supprimez cette base jetable une fois l'exercice consigné."
+echo "Contrôles de la base restaurée (eeo:restore:verify)…"
+VERIFY_FILES=()
+[[ -d "${FILES_DIR}/app/private" ]] && VERIFY_FILES=(--files="${FILES_DIR}/app/private")
+status=0
+(cd "$APP" && "${EEO_PHP_BIN:-php}" artisan eeo:restore:verify "$TARGET_DB" ${VERIFY_FILES[@]+"${VERIFY_FILES[@]}"} --started-at="$STARTED_AT") || status=$?
+
+echo
+if [[ "$status" -eq 0 ]]; then
+  echo "Restauration vérifiée dans ${TARGET_DB}. Consignez l'exercice (--record), puis supprimez cette base jetable."
+else
+  echo "Des contrôles ont échoué (voir ci-dessus) : ne vous fiez pas à cette sauvegarde avant d'avoir compris l'écart." >&2
+  exit "$status"
+fi
