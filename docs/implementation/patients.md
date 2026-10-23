@@ -118,6 +118,21 @@ le marqueur `exam_fee_control`.
 - Reste du plan P03 : démarrage de l'examen (`StartConsultation`, avec C01), annulation d'une visite
   (commande absente du contrat), contrôle du paiement (B04, B06).
 
+### Annulation d'une visite (P03)
+
+État : **codé, non exécuté** (2026-10-23). `POST /api/v1/visits/{id}/cancel` (module `today`, `can:visit.register`,
+commande centrale `CancelVisit`, EN LIGNE seulement, corps `schemas/requests/http.json#/$defs/CancelVisitRequest`) :
+version de la visite attendue (409 `VERSION_CONFLICT` avec `current_version`), motif OBLIGATOIRE de 3 à 500 caractères
+(information d'accueil, conservé dans l'audit `visit.cancelled`, aucune colonne ne le porte). Seulement avant l'examen
+(`ARRIVED`, `AWAITING_EXAM_FEE`, `READY_FOR_EXAM`) ; examen démarré (consultation), visite close ou déjà annulée, ou
+facture NON abandonnée liée à la visite : 409 `STATE_TRANSITION_REFUSED` avec `details.current_status` (l'argent ne se
+règle pas par l'annulation d'une visite : abandonner le brouillon, ou corriger la facture émise par avoir). La visite
+passe `CANCELLED` avec `closed_at` et reste dans la file du jour ; rien n'est supprimé. Verrou de la visite (46).
+Écran : « Annuler la visite » dans la file (`pages/today/CancelVisitAction.vue`, confirmation et motif dans
+`ConfirmDialog`, règles `domain/patients/visits.ts` : `isCancellable`, `validateCancelReason`). Tests écrits :
+`tests/Feature/Patients/CancelVisitTest.php`, `tests/e2e/today.spec.ts` (annulation par l'accueil).
+Décision : même droit que l'arrivée (accueil, gérante, professionnel) ; la spécification ne nomme pas de droit propre.
+
 ## Activité du patient (onglet « Activité » de la fiche ; R02, partie « activité patient »)
 
 **Codé, non exécuté** (consigne du demandeur : vérification transversale en fin de phase). Lecture seule,
@@ -188,7 +203,7 @@ lignes insérées par `tests/Support/PatientActivityFixtures.php`), `tests/front
 | Performance | Union de 8 sous-requêtes indexées par cabinet et patient ; `vw_invoice_balances` agrège ses faits à chaque lecture : à mesurer sur le serveur de recette. |
 | Limite de débit | Aucune dédiée (fichiers partagés `AppServiceProvider`, `config/eeo.php`) : à décider. |
 | Dérivation du règlement | Recopiée de la règle de facturation (même contrat) pour ne pas dépendre de ses classes : à unifier après la phase. |
-| Fiche fusionnée | Seules ses propres lignes (la fusion est L1). |
+| Fiche fusionnée | Seules ses propres lignes ; la fiche conservée réunit les siennes et celles des fiches absorbées (`MergePatients::lineage`, L1D08). |
 | Filtres conservés pendant la session (fichier 04) | Non : le filtre vit dans l'écran. |
 | `GetPatientHistory` (`/patients/{id}/history`, PLANNED, P02) | Laissé tel quel : historique clinique détaillé, distinct de cette liste. |
 
@@ -207,3 +222,30 @@ lignes insérées par `tests/Support/PatientActivityFixtures.php`), `tests/front
 | Recherche : fiches archivées | Proposées (indicateur `archived`) ; à confirmer. |
 | Structure du contact du responsable (`guardian_contact`) | Objet JSON libre, sans écran dans P01. |
 | Performance de la recherche | À mesurer (20 000 patients) ; un index de préfixe ou une recherche plein texte seront envisagés si la cible n'est pas tenue. |
+
+## Fusion manuelle de deux fiches (L1D08, 2026-10-23)
+
+Code : `app/Domain/Patients/{MergePatients,Handlers/MergePatientsHandler}.php`,
+`app/Http/Controllers/Api/V1/PatientMergeController.php`, écran `pages/manager/PatientMerge.vue` (route
+`/patients/{id}/fusion`), règles d'écran `domain/patients/merge.ts`. État : codé, non exécuté (vérification de fin
+de lot). Tests écrits : `tests/Feature/Patients/PatientMergeTest.php`, `tests/frontend/domain/patient-merge.test.ts`.
+
+- Jamais automatique : la gérante (`patient.merge`) ouvre la fiche en double, cherche la fiche à conserver, compare
+  les identités côte à côte (différences surlignées), voit ce qui est rattaché (visites et rendez-vous à venir ;
+  examens et prescriptions avec `clinical.read` ; factures émises avec `invoice.read`) et les garde-fous.
+- `POST /patients/{id}/merge` : commande centrale `MergePatients`, en ligne seulement, mot de passe confirmé
+  récemment (423), motif de 5 à 1000 caractères, version attendue de la fiche absorbée. Verrous : les deux fiches au
+  rang « dossier patient », par identifiant croissant ; une arrivée, une facture ou un rendez-vous pris en même
+  temps attend puis voit la fiche fusionnée et refuse.
+- Garde-fous (409 `STATE_TRANSITION_REFUSED`, `current_status` = code) : fiche déjà fusionnée, fiche conservée
+  fusionnée ou archivée, visite ou examen en cours, brouillon de facture, rendez-vous à venir (un devis, même brouillon, reste sur sa fiche d'origine : il n'est pas abandonnable).
+- Aucune réécriture : visites, consultations, prescriptions et pièces gardent leur `patient_id` et leurs
+  snapshots ; `patient_merges` (immuable, snapshot de l'identité absorbée) et `merged_into_patient_id` (version + 1)
+  seulement. La fiche absorbée sort de la recherche ; `GET /patients/{id}` de la fiche conservée rend
+  `merged_records` (numéro et date des fiches absorbées).
+
+| Point | Décision / état |
+| --- | --- |
+| Défaire une fusion | Non prévu : une fusion est définitive et tracée (à confirmer avec la cliente). |
+| Comparaison clinique approfondie (3e étape de L1D08) | Codée, non exécutée : `pages/clinical/Compare.vue` (route `/patients/{id}/comparaison`, `clinical.read`, module consultations), règles `domain/clinical/visitCompare.ts` + `compareSteps` (C03) sur la révision actuelle de deux examens terminés et leur dernière prescription validée ; échelles d'acuité différentes non comparées. Test : `tests/frontend/domain/visit-compare.test.ts`. Liens d'entrée (onglet de la fiche, page d'examen) à ajouter après la passe visuelle. |
+| Activité de la fiche conservée | Les éléments des fiches absorbées n'indiquent pas encore leur fiche d'origine dans la liste. |

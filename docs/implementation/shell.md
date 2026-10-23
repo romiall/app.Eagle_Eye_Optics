@@ -12,7 +12,7 @@ dans les écrans patient et caisse. Validation : contrastes, focus, clavier et l
 | Palette et règles de base | `resources/frontend/styles/tokens.css`, `resources/frontend/styles/base.css`, importés par `resources/frontend/app/styles.css` |
 | Coquille | `resources/frontend/app/App.vue`, `router.ts`, `bootstrap.ts`, `navigation.ts`, `session.ts`, `api.ts`, `network.ts`, `unsavedChanges.ts` |
 | Écrans de la coquille | `resources/frontend/pages/{LoginPage,HomePage,ForbiddenPage,NotFoundPage}.vue` |
-| Composants | `resources/frontend/components/ui/AppButton.vue`, `form/{FieldShell,TextField,DecimalField,MoneyField,DateField,SelectField,ComboboxField}.vue`, `form/{classes,format}.ts`, `feedback/{ErrorSummary,ConfirmDialog,SaveStatus,StateMessage,NetworkStatus}.vue`, `clinical/OpticalTable.vue`, `finance/AmountSummary.vue` |
+| Composants | `resources/frontend/components/ui/{AppButton,LinkButton,AppIcon}.vue`, `layout/{PageHeader,SectionCard,StatTile,StatusChip,EmptyState}.vue` (présentation des écrans, voir « Identité visuelle »), `form/{FieldShell,TextField,DecimalField,MoneyField,DateField,SelectField,ComboboxField}.vue`, `form/{classes,format}.ts`, `feedback/{ErrorSummary,ConfirmDialog,SaveStatus,StateMessage,NetworkStatus}.vue`, `clinical/OpticalTable.vue`, `finance/AmountSummary.vue` |
 | Tests | `tests/frontend/bootstrap.test.ts`, `tests/frontend/shell/*.test.ts` (serveur simulé `server.ts`), `tests/frontend/components/*.test.ts`, `tests/e2e/shell.spec.ts`, `tests/e2e/support/accounts.ts` |
 
 ## Navigation : seulement ce qui est livré et autorisé
@@ -119,29 +119,129 @@ Un composant ne lit ni n'écrit aucune table locale et n'appelle aucune API mét
 statiques interdisent `localStorage` et `sessionStorage` et toute ressource distante (fonte, style,
 script, appel).
 
+## Identité visuelle (charte du logo, 2026-10-23)
+
+Le demandeur a fourni le logo de la marque (aigle, « EAGLE'S EYE OPTICS — SEE BEYOND ») : il remplace
+la proposition de palette du fichier 04, faite « sans charte fournie ». Fichiers :
+
+| Fichier | Usage |
+| --- | --- |
+| `resources/frontend/assets/brand/eeo-logo.svg` | Marque complète (préférée par le demandeur) : grande sur la connexion, réduite dans l'en-tête, dans le bandeau d'accueil. Importée par Vite (hachée, précachée : `globPatterns` inclut `svg`). |
+| `resources/frontend/assets/brand/eeo-mark.svg` | Aigle seul (carré) : favicon (`public/icons/favicon.svg`) et icônes PWA (`icon-192`, `icon-512`, `icon-maskable-512`, aigle dans la zone de sécurité). |
+
+Les deux SVG sont extraits du fichier vectoriel d'origine (Illustrator) : cadre et bandeau de
+coordonnées (téléphone, adresse) **retirés du fichier**, pas seulement masqués. Le logo n'est jamais
+recoloré. L'identité affichée du cabinet (nom, adresse, mentions) vient des paramètres, jamais du logo.
+
+**Règles de mise en page.** Fond très légèrement chaud, surfaces blanches en cartes à bordure fine
+(`rounded-xl border border-line bg-surface shadow-card`), ombres légères (`--shadow-card`,
+`--shadow-raised`), coins `--radius-lg` / `--radius-xl`. Action principale à l'encre (boutons pleins
+noirs), boutons secondaires blancs à bordure de champ. L'or est un ACCENT : filet doré en haut de
+l'en-tête, court filet sous chaque titre d'écran (`#contenu h1`, couche `base`), repère de l'entrée de
+navigation active (filet gauche + fond doré léger + gras), onglet actif, pastilles d'icônes, état
+« vide » ou « chargement », bordure haute des dialogues, option choisie (puces Oui / Non et cases à
+cocher en pastilles : fond doré léger et bordure dorée, en plus de la case). Icônes : SVG au trait
+dessinés pour l'application (`components/ui/AppIcon.vue`, correspondances dans
+`app/navigationIcons.ts`), décoratives (`aria-hidden`), jamais seules porteuses du sens. Messages
+d'état : carte avec filet gauche de la couleur de l'état et symbole dans une pastille. Aucun texte,
+libellé, rôle ni nom accessible n'a changé avec la charte.
+
+### Briques de présentation des écrans (`components/layout/`)
+
+Composants de présentation purs, communs à tous les écrans : aucun appel serveur, aucun droit
+vérifié (l'écran ne leur passe que ce qui est ouvert au compte), aucune teinte hors des jetons. Un
+écran qui les adopte garde **à l'identique** ses textes visibles, titres, `id`, rôles ARIA, noms
+accessibles et `data-testid` (ciblés par `tests/e2e` et `tests/frontend`) ; il remplace son propre
+balisage, il ne l'emballe pas (pas de deuxième région ou titre du même nom).
+
+| Composant (`@/components/layout/…`) | Props | Fentes | Garanties |
+| --- | --- | --- | --- |
+| `PageHeader.vue` | `titleId` (obligatoire), `title`, `subtitle`, `icon`, `eyebrow`, `back` (`{ to, label }`, type `PageBackLink`) | `title` (contenu du `h1`), défaut (puces, précisions sous le sous-titre), `actions` | Vrai `h1` au texte fourni, `id` = `titleId` (cible de l'`aria-labelledby` de la section de l'écran), filet doré de `#contenu h1` ; pastille d'icône dorée décorative ; lien de retour de 44 px au-dessus du titre ; actions à droite dès 640 px, dessous et en pleine largeur sur téléphone (`<template v-if="…" #actions>` pour une action soumise à un droit) |
+| `SectionCard.vue` | `title`, `titleId`, `description`, `icon`, `headingLevel` (`h2` par défaut, `h3`), `as` (`section`, `div`, `article`), `flat`, `flush` | défaut (corps), `actions` | Titrée **et** identifiée : `section` nommée par son titre ; sinon `div` ; `flat` : fond crème sans ombre (bloc secondaire, carte dans une carte) ; `flush` : corps sans marge pour un `data-table-wrap` collé aux bords. Pas de rognage (`overflow`) : les listes d'un `ComboboxField` restent visibles |
+| `StatTile.vue` | `label`, `value` (`string`, `number` ou `null`), `unit`, `hint`, `unavailableText` (« Non disponible »), `tone` (`neutral`, `gold`, `success`, `warning`, `danger`), `icon`, `to`, `linkLabel` (« Voir le détail »), `standalone` | défaut (précision sous la valeur, non interactive si `to`) | Groupe `dt`/`dd` à placer dans `<dl class="stat-grid">` (ou son propre `<dl>` avec `standalone`) ; valeur affichée telle quelle en chiffres tabulaires (l'écran la met en forme : FCFA entiers, pour cent), jamais arrondie ni inventée ; `null` : « — » (masqué aux lecteurs d'écran) et l'explication écrite ; teinte = filet haut, pastille et couleur de la valeur, en plus du libellé ; avec `to`, toute la tuile est cliquable et le lien s'appelle « Voir le détail : <libellé> » |
+| `StatusChip.vue` | `tone` (`neutral`, `info`, `success`, `warning`, `danger`, `gold`), `icon` (à la place du point), `as` (`span`, `p`, `li`, `div`) | défaut (libellé de l'état) | Fond léger de la teinte, point ou icône décoratifs, texte en encre (associations vérifiées) : le libellé porte le sens, jamais la couleur seule ; l'état est fourni par l'écran, la puce ne le déduit pas |
+| `EmptyState.vue` | `title`, `icon` (`folder` par défaut), `titleAs` (`p`, `h2`, `h3`), `flat` | défaut (explication), `action` | Liste vide ou premier usage seulement : une lecture en échec ou impossible hors ligne reste un `StateMessage` (« Recherche serveur indisponible », jamais « aucun dossier ») ; aucun rôle ARIA (l'annonce reste celle de l'écran) |
+
+Exemple :
+
+```vue
+<section aria-labelledby="titre-patients" class="page-stack">
+  <PageHeader title-id="titre-patients" title="Patients" icon="patients">
+    <template v-if="canCreate" #actions>
+      <LinkButton to="/patients/nouveau" variant="primary">Nouveau patient</LinkButton>
+    </template>
+  </PageHeader>
+  <dl class="stat-grid">
+    <StatTile label="Visites" :value="report.visits" icon="today" tone="gold" />
+    <StatTile label="Rendez-vous programmés" :value="null" unavailable-text="Non disponible dans cette version (agenda)" />
+  </dl>
+  <SectionCard title="Visites par motif" title-id="titre-motifs" flush>
+    <div class="data-table-wrap">
+      <table class="data-table">…<td class="num">12</td>…</table>
+    </div>
+  </SectionCard>
+</section>
+```
+
+**Classes de mise en page** (`styles/base.css`, couche `components` : un utilitaire de l'écran les
+complète ou les remplace) :
+
+| Classe | Rôle |
+| --- | --- |
+| `page-stack` | Pile d'un écran : colonne espacée de 1,5 rem, 2 rem dès 640 px (à poser sur la `section` de l'écran) |
+| `card` | Carte : surface blanche, bordure `line`, `rounded-xl`, ombre `card` (marge intérieure au choix de l'écran) |
+| `card-link` | Avec `card`, sur un `RouterLink` : carte cliquable en colonne, bordure dorée et ombre `raised` au survol |
+| `card-grid` | Grille de cartes : 1 colonne, 2 dès 640 px, 3 dès 1024 px |
+| `stat-grid` | Grille de `StatTile` sur un `<dl>` : colonnes automatiques d'au moins 9,5 rem (deux par ligne dès 360 px) |
+| `stat-grid-wide` | Avec `stat-grid` : colonnes d'au moins 14 rem (montants en FCFA, une par ligne sur téléphone) |
+| `toolbar` | Barre de filtres ou de choix (jour, période) : empilée sur téléphone, en ligne alignée en bas dès 640 px |
+| `section-title` | Titre de section hors carte (`h2`) : 1,125 rem demi-gras, court filet doré vertical devant (décoratif) |
+| `detail-list` | `<dl>` de paires `<div><dt/><dd/></div>` : libellé discret (`muted`, 0,875 rem), valeur en encre, 2 colonnes dès 640 px |
+| `form-grid` | Champs d'un formulaire : 1 colonne, 2 dès 640 px (`col-span-full` pour un champ long) |
+| `form-actions` | Boutons d'un formulaire sous un filet : pleine largeur et empilés sur téléphone, en ligne dès 640 px (ordre du DOM = ordre visuel) |
+| `text-link` | Lien dans un texte : action à l'encre, souligné, soulignement doré et épaissi au survol |
+| `data-table-wrap` | Cadre de carte d'un tableau, qui défile seul en largeur si besoin (jamais la page). Filet de sécurité : un tableau est conçu pour tenir à 360 px (colonnes courtes, blocs sur téléphone) |
+| `data-table` | Tableau de données : en-tête sur `primary-soft` (texte encre, 0,875 rem), lignes séparées par `line`, survol crème, `tfoot` en gras sous un filet de 2 px ; `th`/`td` de classe `num` alignés à droite en chiffres tabulaires, sans retour à la ligne. Les `th scope="col"` / `scope="row"` et la `caption` restent à l'écran |
+| `section-card-flush` | Posée par `SectionCard` (`flush`) : retire le cadre du `data-table-wrap` qu'elle contient |
+
+**Icônes d'`AppIcon`** (trait 24 × 24, `currentColor`, décoratives ; un nom inconnu rend un point) :
+navigation et accueil `home`, `today`, `patients`, `consultations`, `agenda`, `sales`, `stock`,
+`workshop`, `communication`, `reports`, `settings`, `offline`, `user-plus`, `search`,
+`calendar-plus`, `arrival`, `list`, `cash`, `file-plus`, `file`, `building`, `tag`, `key`, `help`,
+`logout`, `more`, `shield`, `dot` ; personnes et coordonnées `user`, `users`, `id-card`, `phone`,
+`smartphone`, `mail`, `map-pin` ; examens `eye`, `eye-off`, `glasses`, `stethoscope`, `clipboard` ;
+temps `calendar`, `clock`, `history` ; ventes et documents `receipt`, `wallet`, `percent`, `chart`,
+`printer`, `download`, `upload`, `folder`, `archive` ; actions `plus`, `minus`, `edit`, `trash`,
+`filter`, `refresh`, `merge`, `send`, `external-link`, `lock`, `bell` ; directions `chevron-right`,
+`chevron-left`, `chevron-down`, `chevron-up`, `arrow-left`, `arrow-right` ; états `check`,
+`check-circle`, `x`, `x-circle`, `alert`, `info`, `cloud`, `cloud-off`. Correspondances des entrées
+de navigation : `app/navigationIcons.ts`.
+
 ## Palette et contrastes
 
-Teintes du fichier 04 reprises exactement : fond `#F6F8FB`, surface blanche, texte `#172B3A`, action
-principale `#155E75`, accent `#167D65`. Les teintes d'état en dérivent. Le manifeste PWA et la
-balise `theme-color` utilisent la même action principale. `tests/frontend/shell/palette.test.ts`
-calcule le contraste WCAG 2.2 de chaque association à partir de `tokens.css`. Une teinte ajoutée
-sans association vérifiée fait échouer le test. Extrait :
+Jetons de `resources/frontend/styles/tokens.css` (charte du logo). Le manifeste PWA et la balise
+`theme-color` prennent l'encre de la marque (`#231F20`) et le fond (`#F7F5F1`).
+`tests/frontend/shell/palette.test.ts` calcule le contraste WCAG 2.2 de chaque association à partir
+de `tokens.css` ; une teinte ajoutée sans association vérifiée fait échouer le test. Extrait :
 
 | Association | Usage | Contraste |
 | --- | --- | --- |
-| `ink` sur `surface` | texte courant | 14,55:1 |
-| `ink` sur `canvas` | texte sur le fond | 13,68:1 |
-| `muted` sur `surface` | aide, texte secondaire | 7,01:1 |
-| `primary` sur `surface` | liens, boutons secondaires | 7,27:1 |
-| `primary` sur `primary-soft` | navigation active | 6,32:1 |
-| `primary-contrast` sur `primary` | bouton principal | 7,27:1 |
+| `ink` (#231F20) sur `surface` | texte courant | 16,30:1 |
+| `ink` sur `canvas` (#F7F5F1) | texte sur le fond | 14,97:1 |
+| `muted` sur `surface` | aide, texte secondaire | 7,24:1 |
+| `primary` (#2B2520) sur `surface` | liens, boutons secondaires | 15,13:1 |
+| `primary` sur `primary-soft` | navigation active | 13,18:1 |
+| `primary-contrast` sur `primary` | bouton principal | 15,13:1 |
 | `primary-contrast` sur `danger` | action risquée | 6,57:1 |
-| `accent` sur `surface` | « En ligne », « Synchronisé » | 5,05:1 |
+| `gold-ink` (#6C5A16) sur `surface` | texte doré (titres de marque, badges) | 6,75:1 |
+| `gold` (#8D7827) sur `surface` | filets, repères, icônes (≥ 3:1, jamais du petit texte) | 4,33:1 |
+| `gold` sur `primary-soft` | repère de l'entrée active | 3,77:1 |
+| `accent` sur `surface` | « En ligne », « Synchronisé » | 6,29:1 |
 | `warning` sur `surface` | « Hors ligne » | 5,93:1 |
-| `danger` sur `danger-soft` | titre du résumé d'erreurs | 6,05:1 |
-| `disabled-ink` sur `disabled` | bouton ou champ désactivé | 5,74:1 |
-| `field` sur `canvas` | bordure de champ (≥ 3:1) | 4,14:1 |
-| `primary` sur `canvas` | contour de focus (≥ 3:1) | 6,83:1 |
+| `danger` sur `danger-soft` | titre du résumé d'erreurs | 5,99:1 |
+| `disabled-ink` sur `disabled` | bouton ou champ désactivé | 6,35:1 |
+| `field` sur `canvas` | bordure de champ (≥ 3:1) | 3,78:1 |
+| `primary` sur `canvas` | contour de focus (≥ 3:1) | 13,89:1 |
 
 Le texte désactivé est tenu à 4,5:1 bien que WCAG l'exempte. Le texte courant fait 16 px et suit le
 réglage du navigateur. La police est celle du système, sans aucune fonte distante.

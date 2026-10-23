@@ -298,3 +298,37 @@ Fichiers partagés touchés (modifications ciblées) : `app/router.ts` (route `d
 - Étiquettes : le fichier 11 n'en prévoit pas, aucun gabarit n'est livré.
 - Impression intégrée sans visionneuse (voir CSP) ; impression silencieuse non prévue.
 - Polices Unicode embarquées (voir `fonts/README.md`).
+
+## Conservation des originaux sur le serveur (D01, 2026-10-23)
+
+- `POST /api/v1/documents/{id}/content` (`StoreDocumentContent`, corps `application/pdf`, en-tête facultatif
+  `X-Content-Sha256`) : le contrôleur vérifie la Policy de la famille (`App\Domain\Documents\DocumentPolicy` :
+  pièce financière avec `invoice.issue` ou `payment.collect`, document clinique avec `clinical.complete`), le
+  module de la famille (`sales` ou `consultations`, 404 sinon), la signature « %PDF- », la taille
+  (`EEO_DOCUMENT_MAX_BYTES`, 5 Mo) et l'empreinte ; il écrit le fichier sur le disque PRIVÉ `local`
+  (`documents/<cabinet>/<document>-<empreinte>.pdf`, adressé par le contenu, aucune donnée personnelle), puis la
+  commande centrale rattache le fichier (`stored_files`, classement FINANCIAL ou MEDICAL) et passe le document
+  de PENDING (ou FAILED) à READY. Un READY ne se remplace jamais : même contenu = reconnu sans écriture, autre
+  contenu = 409. Audit `document.stored` sans contenu.
+- `GET /api/v1/documents/{id}/download` : l'original READY (empreinte revérifiée), `application/pdf`, sans cache,
+  nom `document-<type>-<AAAAMMJJ>.pdf` ; pièce financière avec `invoice.read`, document clinique avec
+  `clinical.export` (téléchargement tracé `document.downloaded`).
+- Poste : `depositOriginal` (`app/services/documents.ts`) part en arrière-plan dès que l'original est conservé
+  dans le magasin du poste (reçu, facture, avoir, remboursement, ordonnance validée), clé d'idempotence liée au
+  document et au contenu, `markUploaded` après confirmation ; sans réponse, rien n'est conclu (redépôt à la
+  prochaine impression). Un fichier écrit mais non rattaché (commande refusée) reste orphelin, sans métadonnées.
+- Reste : réimpression depuis l'original du serveur quand le magasin du poste l'a perdu (le PDF est aujourd'hui
+  régénéré, identique par construction), purge des fichiers orphelins, chiffrement au repos (`encryption_key_id`).
+- Tests écrits : `tests/Feature/Documents/DocumentContentTest.php`, `tests/frontend/documents/deposit-original.test.ts`.
+
+## Logo de la marque sur les documents (2026-10-23)
+
+Le logo complet de la marque (aigle et « EAGLE’S EYE OPTICS — SEE BEYOND »), tiré du logo vectoriel fourni par le
+demandeur sans le cadre ni les coordonnées de l'original, est rendu en PNG pour l'en-tête des PDF
+(`resources/frontend/assets/brand/eeo-logo-document.png`, 301 × 330 px, fond blanc pour l'impression en noir et
+blanc, environ 20 × 22 mm à l'impression). `app/services/brandLogo.ts` le lit une fois par session (fichier haché
+et précaché par le service worker : il s'imprime hors ligne) et le passe aux documents cliniques
+(`currentDocumentClinic`), au relevé de caisse et aux pièces financières (adaptateurs `*FromSnapshot`,
+`invoiceFromResource`). S'il ne se lit pas, le document s'imprime sans logo. Les coordonnées du cabinet restent
+celles des paramètres de la gérante, jamais celles du logo d'origine.
+

@@ -19,7 +19,8 @@ depuis les paramètres du cabinet.
 ## Codes
 
 `today`, `patients`, `consultations`, `agenda`, `sales`, `stock`, `workshop`, `communication`,
-`reports`, `settings` : les identifiants des modules de la navigation (fichier 04), dans cet ordre.
+`reports`, `settings`, `offline` : les identifiants des modules de la navigation (fichier 04), dans cet ordre
+(`offline` : préparation des postes pour le hors-ligne, O01 et O02, sans entrée de menu).
 `app/Support/Modules.php` en est la liste côté serveur ; un test compare les deux listes. Une valeur
 inconnue est ignorée : une faute de frappe laisse un module caché, jamais ouvert.
 
@@ -70,6 +71,7 @@ Vide (valeur par défaut) : aucun module métier n'est exposé. Les routes d'acc
 | `sales` | Ventes et caisse, factures, catalogue, taxes, aperçu des documents | `module:sales` |
 | `stock` | Stock (disponibilités, stock initial) — entrée de menu non livrée (I01) | `module:stock` |
 | `settings` | Paramètres (personnel, cabinet et documents) | aucune route de module : les routes de comptes et du cabinet (F05) restent ouvertes à la gérante même module fermé ; seul l'écran dépend de `settings` |
+| `offline` | « Préparer ce poste » (`/parametres/poste`) : coffre chiffré du poste, enrôlement, profils et grants signés (O01, O02), numéros réservés (O03), journal du poste (O04) et synchronisation (O05, push, pull, conflits : `/parametres/conflits-synchronisation`). Codé, non vérifié : à n'ouvrir en production qu'après G1 | `module:offline` (`/devices…`, `/offline-grants…`, `/offline/signing-keys`, `/sync/…`) |
 
 L'accueil affiche, sous les actions du dossier patient (fichier 04), des **raccourcis de travail** par activité
 (`WORK_SHORTCUTS` de `navigation.ts` : accueil des patients, examens, caisse et ventes, administration), soumis aux

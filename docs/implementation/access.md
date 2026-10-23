@@ -218,3 +218,25 @@ version attendue protège les modifications, l'unicité de l'identifiant protèg
 Tests écrits : `tests/frontend/settings/{staff-pages,clinic-and-account}.test.ts`, `tests/frontend/domain/staff.test.ts`
 (référentiel des droits relu dans le SQL, règles de mot de passe et d'identifiant, échéance au fuseau du cabinet),
 `tests/Feature/Access/ClinicDocumentIdentityTest.php`.
+
+## Postes préparés pour le hors-ligne (O02, codé le 2026-10-23, non exécuté)
+
+Module `offline` (fermé par défaut), gérante seulement (`offline.enroll`), réauthentification récente pour toute
+écriture (423 sinon), clé d'idempotence obligatoire. Commandes du chemin central EN LIGNE seulement : `EnrollDevice`,
+`IssueOfflineGrant`, `RevokeDevice`, `RevokeOfflineGrant`.
+
+| Route | Effet |
+| --- | --- |
+| `POST /api/v1/devices/enroll` | Enrôle un poste : clé publique ES256 et preuve de possession signée par sa clé privée (cabinet, code, fraîcheur 10 min) ; seule la clé publique est conservée |
+| `GET /api/v1/devices`, `GET /api/v1/devices/{id}` | Postes du cabinet (clé publique, statut, responsable, grants actifs) |
+| `POST /api/v1/devices/{id}/grants` | Grant signé d'un profil : permissions effectives, compartiments, règles et empreinte du catalogue figés, 72 h par défaut ; un nouveau grant du même profil révoque les précédents |
+| `GET /api/v1/devices/{id}/grants` | Grants du poste (ACTIVE, EXPIRED, REVOKED) avec leur jeton |
+| `POST /api/v1/devices/{id}/revoke` | Poste REVOKED ou LOST (motif) et tous ses grants révoqués ; connu du poste à sa prochaine connexion |
+| `POST /api/v1/offline-grants/{id}/revoke` | Révoque un grant (motif) |
+| `GET /api/v1/offline/signing-keys` | Clés PUBLIQUES du serveur à épingler (courante puis retirées) |
+
+Clé privée de signature du serveur : fichier PEM privé créé par `php artisan eeo:offline:signing-key` (`--rotate`,
+`--show`), hors de la racine web, hors du dépôt et de MySQL ; elle entre dans la sauvegarde des clés. Sans elle,
+l'émission d'un grant répond 409 et rien n'est écrit. Audit : `device.enrolled`, `offline_grant.issued`,
+`device.revoked`, `offline_grant.revoked` (jamais de secret ni de donnée patient). Détails et coffre local :
+`vault.md`, section « Implémentation (O01, O02) ».

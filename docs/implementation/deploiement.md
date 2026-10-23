@@ -130,6 +130,7 @@ Valeurs à renseigner dans `.env` (aucune valeur d'exemple ne doit rester) :
 | `EEO_EXAM_FEE_CONTROL` | `off` au départ (paiement de l'examen non contrôlé, dit à l'écran) ; voir l'étape 6 |
 | `EEO_EXAM_FEE_ITEM_REFERENCE` | vide tant que l'article « frais d'examen » n'existe pas au catalogue |
 | `EEO_BACKUP_DIR`, `EEO_BACKUP_KEEP_DAYS` | dossier des sauvegardes HORS racine web (vide : `~/eeo-backups`) et durée de conservation ; voir l'étape 7 |
+| `EEO_BACKUP_KEY_FILE` | clé de chiffrement des sauvegardes (fichier hors de l'application, 0600, copie hors serveur chez la responsable) ; sans elle, sauvegarde en clair consignée `NOT_ENCRYPTED` dans `backup_runs` ; voir l'étape 7 et `docs/runbooks/server-restore.md` |
 
 Puis :
 
@@ -195,9 +196,13 @@ php artisan eeo:preflight   # signale un code inconnu, une caisse ou une échell
 | `consultations` | Examens : motif, antécédents, acuités, réfraction, centrage, médicaments, conclusion ; terminer, corriger, révisions ; prescriptions optiques ; liste des examens ; impression locale (PDF) | Livré |
 | `sales` | Caisse (ouverture, clôture), factures (brouillon, émission), encaissements et reçus, catalogue et taxes (gérante), PDF facture et reçu | Livré |
 | `stock` | Disponibilités et stock initial | Livré (le reste du stock : lots suivants) |
-| `agenda`, `reports`, `workshop`, `communication` | — | Pas encore : les ouvrir n'affiche rien |
+| `reports` | Statistiques du cabinet (activité, ventes selon les droits ; export contrôlé) | Livré |
+| `agenda` | Rendez-vous, plages d'ouverture, patients à rappeler et suivis | Livré (hors de la première liste conseillée : à ouvrir après formation) |
+| `offline` | Préparation d'un poste pour le travail sans Internet | **À laisser FERMÉ en production** : preuve G1/G2 à produire d'abord |
+| `workshop`, `communication` | — | Pas encore : les ouvrir n'affiche rien |
 
-Ordre conseillé, un module à la fois, après une courte formation :
+Liste conseillée pour la première mise en ligne : `EEO_ENABLED_MODULES=settings,patients,today,consultations,sales,stock,reports`
+(sans `agenda` ni `offline`). Ordre conseillé, un module à la fois, après une courte formation :
 
 1. `settings,patients,today` : la gérante se connecte, renseigne **Paramètres → Cabinet et documents** (nom,
    adresse, téléphone, identifiant fiscal, mentions : rien n'est proposé ni inventé), puis crée les comptes dans
@@ -223,6 +228,11 @@ les fichiers produits par l'application (`storage/app`) et le `.env` (clé `APP_
 la racine web, avec ses empreintes ; les sauvegardes plus anciennes que `EEO_BACKUP_KEEP_DAYS` jours sont supprimées.
 `eeo:preflight` dit si `mysqldump` est disponible ; sinon, s'appuyer sur les sauvegardes du panneau Hostinger.
 
+0. **Clé de chiffrement**, une fois : `openssl rand -base64 48 > ~/.eeo-backup.key && chmod 600 ~/.eeo-backup.key`,
+   puis `EEO_BACKUP_KEY_FILE=/home/<compte>/.eeo-backup.key` dans le `.env`. Copier ce fichier HORS du serveur chez la
+   responsable (coffre ou clé USB chiffrée) : sans lui, aucune sauvegarde chiffrée ne se relit. Base, fichiers et
+   `.env` sont alors chiffrés (`*.enc`) ; chaque sauvegarde est consignée dans `backup_runs` (identifiant de la clé,
+   jamais la clé). Sans clé, la sauvegarde est faite en clair et consignée en échec `NOT_ENCRYPTED`.
 1. Essai à la main : `bash ~/eeo/tools/deploy/backup.sh ~/eeo` (dernière ligne : « Sauvegarde terminée »).
 2. Tâche planifiée (panneau Hostinger, **Avancé → Tâches Cron**), chaque nuit, par exemple à 2 h 30 :
 
@@ -241,9 +251,24 @@ la racine web, avec ses empreintes ; les sauvegardes plus anciennes que `EEO_BAC
    bash ~/eeo/tools/deploy/restore-check.sh ~/eeo-backups/eeo-backup-<date> <base>_restore ~/eeo
    ```
 
-   Le script refuse la base de l'application, vérifie les empreintes, restaure, compare le schéma à la baseline
-   (`eagle:verify-schema`) et affiche le nombre de lignes de quelques tables. Supprimer la base jetable ensuite et
-   consigner l'exercice (date, sauvegarde, résultat).
+   Le script refuse la base de l'application, vérifie les empreintes, déchiffre, restaure, compare le schéma à la
+   baseline (`eagle:verify-schema`), puis lance `php artisan eeo:restore:verify` : diagnostics d'intégrité, séquences
+   jamais remises à zéro, pièces numérotées, empreintes d'audit, fichiers privés restaurés, postes à synchroniser,
+   reçus perdus par rapport à la base vivante et durée constatée. Consigner l'exercice dans `restore_tests`
+   (`eeo:restore:verify <base>_restore --files=… --backup-run=<id> --tested-by=<identifiant> --record`), noter le
+   résultat dans `docs/evidence/restore-rehearsal.md`, puis supprimer la base jetable. Procédure complète en cas de
+   perte du serveur : `docs/runbooks/server-restore.md`.
+
+## 8. Tâches planifiées (cron unique)
+
+Une seule entrée cron suffit ; Laravel lance lui-même les tâches dues (aujourd'hui : production et expiration des
+exports, `eeo:exports:process`). Dans le panneau Hostinger (« Tâches cron ») ou par `crontab -e` :
+
+```bash
+* * * * * cd /home/<compte>/<dossier-de-l-application> && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Sans ce cron, un export demandé reste « demandé » : rien n'est perdu, il est produit dès que le cron tourne.
 
 ## Mise à jour vers une nouvelle version
 
@@ -281,7 +306,7 @@ Hostinger. Avant chaque mise à jour : une sauvegarde à la main.
   le logo et le régime fiscal ne sont pas validés (procédure de bascule).
 - Le contrôle « examen payé ou dérogation » est **désactivé par défaut** (`EEO_EXAM_FEE_CONTROL=off`) : l'écran dit
   « Paiement de l'examen non contrôlé ».
-- Agenda, rapports, atelier, communication : pas encore livrés.
+- Atelier et communication : pas encore livrés. Le module `offline` reste fermé tant que la preuve hors ligne n'est pas faite.
 - Les icônes de l'application sont provisoires.
 - La seule tâche planifiée est la sauvegarde (étape 7).
 - Sécurité : HTTPS obligatoire, mot de passe de la gérante fort et conservé hors serveur, `.env` en `chmod 600`,

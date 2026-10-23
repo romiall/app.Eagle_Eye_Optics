@@ -7,7 +7,8 @@ Validation : inspection d'IndexedDB et du cache, tests de déchiffrement refusé
 AT45 ; exigences EE016, EE042. Références : fichier 19 (« Préparation du poste », « Conservation et
 incidents locaux »), fichier 23 (« Compartiments », « Tables locales », « Chiffrement »), fichier 09.
 
-**Statut : conception version 2, avant implémentation.** La version 1 a été relue par trois angles
+**Statut : conception version 2 ; implémentation O01, O02, O03 et O04 CODÉE le 2026-10-23, NON EXÉCUTÉE** (vérification
+de fin de phase à venir ; voir « Implémentation (O01, O02) » en fin de fichier). La version 1 a été relue par trois angles
 (cryptographie, exploitation hors ligne, compartiments et conformité) puis chaque constat important
 a été soumis à un sceptique : 73 constats retenus (4 bloquants, 42 majeurs, 27 mineurs). Cette version
 tranche chacun : adopté (D), renvoyé à une tâche précise (R) ou écarté (E), avec sa raison (section
@@ -311,3 +312,242 @@ contiennent de texte clair.
    financière entière. Pour L0, hypothèse : l'accueil n'encaisse pas d'espèces.
 4. **Écart de format** : `vaultId` à la place de `device_id` dans l'AAD (D3), à consigner au registre
    des décisions.
+
+## Implémentation (O01, O02) — codée le 2026-10-23, non exécutée
+
+Rien n'a été exécuté (consigne du demandeur : vérification transversale en fin de phase). Les tests existent comme
+fichiers ; la passe de vérification les lancera.
+
+### Fichiers
+
+| Partie | Fichiers |
+| --- | --- |
+| Primitives (D3 à D9, D25) | `resources/frontend/offline/crypto/{bytes,aad,aead,kdf,secrets,selftest}.ts` |
+| JCS et JWS ES256 (O02) | `resources/frontend/offline/signing/{jcs,jws}.ts` ; serveur `app/Offline/{Jcs,CompactJws}.php` ; vecteurs communs `contracts/vectors/signatures/{jcs,grant-es256}.json` (clé de TEST jetable) |
+| Compartiments (D16 à D18) | contrat partagé `contracts/compartments.json` ; `resources/frontend/offline/compartments.ts` ; `app/Offline/Compartments.php` |
+| Coffre (D1, D2, D10 à D13, D19 à D23) | `resources/frontend/offline/vault/{db,errors,vault}.ts` (base `eeo-device`, version 1 coffre, version 2 `grants`) |
+| PDF chiffrés | `resources/frontend/offline/vault/documentStore.ts` (`VaultDocumentStore`, port `DocumentStore` inchangé) |
+| Stockage (D24) | `resources/frontend/offline/vault/storageHealth.ts` |
+| Enrôlement et grants (O02) | poste : `resources/frontend/offline/enrollment/enrollment.ts` ; serveur : `app/Offline/{EnrollDevice,PrepareGrant,RevokeDevice,RevokeOfflineGrant,DeviceProof,GrantClaims,ServerSigningKey,DeviceDirectory,OfflineCommands}.php`, `DeviceController`, `DevicePresenter`, commande `eeo:offline:signing-key` |
+| Façade (D26) | `resources/frontend/offline/api.ts` (seul import admis depuis `app/`, règle ESLint étendue) |
+| Application | `app/services/{vault,devices}.ts`, écran `pages/settings/DevicePreparationPage.vue` (`/parametres/poste`, module `offline`, `offline.enroll`) |
+| Tests écrits | `tests/frontend/offline/{crypto,signatures,vault}.test.ts` ; `tests/Unit/Offline/{JcsAndJwsTest,CompartmentsTest}.php` ; `tests/Feature/Offline/DevicesTest.php` |
+
+### Ce qui fonctionne (codé)
+
+- Création du coffre en deux phases avec clé de récupération ressaisie ; profils (le titulaire saisit son secret,
+  la gérante ressaisit le sien) ; déverrouillage avec tentatives limitées ; verrouillage ; inactivité et recul
+  d'horloge ; session persistée et canal entre onglets ; changement de secret ; récupération ; retrait refusé pour
+  la dernière gérante ; entités, PDF et brouillons scellés par compartiment ; journal de sécurité local.
+- Clé ES256 du poste générée dans le coffre, enveloppée par profil (jamais pour la récupération) ; preuve de
+  possession à l'enrôlement ; `device_id` lié au coffre ; clés publiques du serveur épinglées.
+- Grants : charge JCS signée en JWS ES256 par une clé du serveur conservée dans un fichier PEM privé
+  (`EEO_OFFLINE_SIGNING_KEY_PATH`, rotation qui garde les clés publiques retirées). Le poste vérifie signature, `kid`
+  épinglé, en-tête exact, charge canonique, cabinet, poste et compte AVANT d'ouvrir un compartiment : grant altéré
+  = refus (`GRANT_INVALID`) ; compartiments ouverts = enveloppes ∩ grant ; grant expiré ou absent = lecture seule ;
+  horloge antérieure à l'émission ou à la dernière heure du serveur = `clock-suspect`.
+- Serveur : enrôlement, émission (un nouveau grant du même profil révoque les précédents), révocation d'un poste
+  (REVOKED ou LOST, tous ses grants) et d'un grant, lectures ; module `offline` fermé par défaut, réauthentification.
+
+### Écarts et décisions à confirmer
+
+1. Les permissions et compartiments d'un profil ne sont pas scellés dans `profile_access` : l'autorité vient des
+   enveloppes détenues (contrainte cryptographique) et du grant signé (autorité du serveur). Écart à D16/« Tables
+   locales », plus simple et sans perte de sécurité.
+2. `kid` d'un poste = empreinte RFC 7638 de sa clé publique (le contrat planifié disait un ULID).
+3. Catalogue figé : l'empreinte `CatalogSnapshot` est signée dans le grant ; le snapshot lui-même sera conservé en
+   fichier privé avec la préparation complète (`PrepareDevice`, O03).
+4. Validité des grants : 72 h par défaut, plafond 168 h (fichier 19, à confirmer avec la politique du cabinet).
+5. Bibliothèque JWS serveur ajoutée : `firebase/php-jwt` ^7 (signature JWA R||S et conversions DER par la
+   bibliothèque, exigence du fichier 23).
+6. Non fait dans cette passe : écran de verrouillage qui remplace la coquille et route publique de déverrouillage
+   avant la connexion (D14, D27 : avec O04, quand une commande pourra s'écrire hors ligne), annuaire administratif
+   en mémoire, identité d'action unique (`app/actor.ts`), preuves Playwright du coffre (`tests/e2e/vault.spec.ts`),
+   rotation des clés de compartiment (R-rotation, non planifiée).
+
+### Pour O03 à O05
+
+`Vault.signJws` (signature des commandes du journal), `assertSession` en transaction, registre des types
+(`ENTITY_COMPARTMENTS`), `grants()` et `SessionInfo.authority` pour refuser une émission sans grant valide ; côté
+serveur `GrantSnapshot::fromRow` lit les grants émis ici, et `DeviceProof`/`CompactJws` vérifieront les signatures
+des commandes poussées.
+
+## Implémentation (O03, O04) — codée le 2026-10-23, non exécutée
+
+Rien n'a été exécuté (consigne du demandeur) ; les tests existent comme fichiers.
+
+### O03 — plages, propriétaires et quotas (serveur et poste)
+
+| Partie | Fichiers |
+| --- | --- |
+| Préparation (`PrepareDevice`, `POST /devices/{id}/prepare`, réauthentification) | `app/Offline/PrepareResources.php` |
+| Clôture après reprise complète (`ReleaseDevice`, `POST /devices/{id}/release`) | `app/Offline/ReleaseResources.php` |
+| Lecture (`GET /devices/{id}/preparation`) et format des numéros | `app/Offline/{DeviceResources,NumberFormats}.php`, `DeviceController::{prepare,preparation,release}` |
+| Catalogue figé remis au poste | `CatalogSnapshot::content()` (même tableau que l'empreinte signée dans le grant ; jamais de coût d'achat) |
+| Poste | `resources/frontend/offline/allocations/allocations.ts` (`storePreparation`, `nextNumber`, `localAvailableUnits`…), `app/services/{devices,vault}.ts` (`prepareThisDeviceResources`, `refreshThisDevicePreparation`) |
+| Tests écrits | `tests/Feature/Offline/{PrepareResources,ReleaseResources}Test.php`, `tests/Concurrency/OfflineAllocationConcurrencyTest.php` (base `eeo_conc_offline_test`), `tests/Support/OfflineResourceFixtures.php`, `tests/frontend/offline/allocations.test.ts` |
+
+- **Plages** prises sous le verrou de chaque séquence (rang 40) : début = plus haut numéro connu (séquence centrale,
+  numéros consommés, plages déjà réservées) + 1 ; la séquence centrale monte à la fin de la plage, donc un numéro central
+  est toujours hors de toute plage. Séries L0 : patient, facture, reçu, avoir, remboursement ; année du fuseau du
+  cabinet, en cours ou suivante (préparation avant le franchissement), jamais passée ; taille ≤ `eeo.offline.range_max_size`.
+- **Grant** : chaque ressource est rattachée au grant ACTIF d'un profil préparé qui détient la permission de la
+  consommer (patient : `patient.create` ; facture : `invoice.issue` ; reçu et propriété : `payment.collect` ; avoir :
+  `credit_note.issue` ; remboursement : `refund.execute` ; quota : `invoice.issue`). Un profil sans grant actif : 422.
+- **Propriété** d'une facture ÉMISE : une ligne `invoice_write_owners` ACTIVE, époque supérieure aux précédentes ; tant
+  qu'elle est active, la route directe refuse paiement, avoir et remboursement (`writeOwnerRequired`).
+- **Quotas** : `offline_allocated` des positions et lots augmente (disponible central baisse, physique inchangé).
+- **Une seule caisse hors-ligne principale** (`eeo.offline.single_financial_device`, vrai par défaut) : 409
+  `FINANCIAL_DEVICE_ELSEWHERE` tant qu'un autre poste détient une ressource financière ; un second poste peut recevoir
+  une plage de dossiers patients (accueil).
+- **Clôture** : refus 409 `SYNC_INCOMPLETE` si la séquence et l'empreinte annoncées ne sont pas le préfixe finalisé du
+  serveur (`enrolled_devices.last_accepted_*`) ou si une commande reçue n'est pas finalisée ; poste perdu ou remplacé :
+  409 (procédure documentée). Sinon : numéros inutilisés inscrits `UNUSED` (jamais recyclés), reliquats de quota rendus,
+  propriétés closes (`final_device_sequence`). Une expiration de grant ne libère jamais rien.
+- **Poste** : la préparation est fusionnée en une transaction ; un curseur local ne recule jamais ; ce que le serveur ne
+  rend plus passe CLOSED (jamais supprimé) ; les réserves et sorties locales d'un quota sont conservées.
+
+### O04 — commit local et journal commun du poste
+
+| Partie | Fichiers |
+| --- | --- |
+| Moteur local | `resources/frontend/offline/LocalCommandBus.ts` |
+| Cœur, empreinte, contrat des commandes | `resources/frontend/offline/command-journal/core.ts` (lit `contracts/commands/index.json`) |
+| Journal pour O05 (file, signé, ACK) | `resources/frontend/offline/command-journal/journal.ts` |
+| Verrou entre onglets (accélérateur) | `resources/frontend/offline/locks/deviceLock.ts` (Web Locks, absent = sans) |
+| Primitives du coffre | `Vault::{commandContext,sessionGrant,sealEntityRow,sealCommandPayload,openCommandPayload,commitLocal,localTables,writeAllocations}` ; but d'AAD `command` |
+| Base locale version 3 | `allocations`, `command_journal` (index uniques `deviceSequence`, `idempotencyKey`), `command_status`, `aggregate_heads` |
+| Lectures fusionnées F10 | `resources/frontend/offline/projections/localRecords.ts` (`localFacts`, `localHeads` avec l'état de leur commande) |
+| Application | `app/services/localEngine.ts` (`deviceLocalEngine`, fourni sous `LOCAL_ENGINE_KEY` par `app/bootstrap.ts`) |
+| Tests écrits | `tests/frontend/offline/local-command-bus.test.ts`, `tests/frontend/offline/support/preparedDevice.ts`, `tests/frontend/services/local-engine.test.ts` |
+
+- **Trois phases** (contrat 23) : lectures (tête, ressources, projection), calcul et Web Crypto HORS transaction (numéro
+  au curseur, réserves sous quota, cœur JCS, `event_hash`, JWS ES256 du poste, charge scellée, projection et fait
+  scellés), puis UNE transaction qui revérifie session, idempotence, tête du journal, version de la projection, curseur
+  de plage et quotas, et écrit tout ou rien. Un CAS obsolète recalcule (trois tentatives, puis `LOCAL_COMMIT_CONTENDED`).
+- **Journal commun** append-only, ordonné par `deviceSequence`, chaîné par `previous_event_hash` ; métadonnées de routage
+  en clair, charge scellée dans le compartiment de la commande. État `LOCAL` → `SENT` → ACK (O05) ; seul un ACK FINAL
+  (ACCEPTED, REJECTED) sort une commande de la file active, sans jamais la supprimer ; un ACK final n'est jamais rétrogradé.
+- **Idempotence locale** : une clé déjà committée rend la commande existante (même intention, empreinte JCS de la
+  charge avant numérotation) ; une autre charge sous la même clé : `IDEMPOTENCY_PAYLOAD_MISMATCH`.
+- **Propriété** : une commande financière sur une facture exige qu'elle soit créée sur ce poste ou attribuée (O03) ;
+  sinon `WRITE_OWNER_REQUIRED` et le répartiteur garde la route directe. L'émission locale importe sa propriété (époque
+  1) dans la même transaction et réserve sous quota les articles STOCKÉS du brouillon (catalogue figé).
+- **Versions** : la projection locale garde un compteur par nature (entité, brouillon, grand livre, état) ; une facture
+  créée ici : brouillon 1 puis +1, figé à l'émission ; grand livre 1 à l'émission puis +1 par fait.
+- **Répartiteur** : `deviceLocalEngine.handles` est faux tant que le module `offline` est fermé, le coffre fermé ou le
+  grant invalide : le comportement en ligne actuel est inchangé. « Enregistré sur ce poste » (`saved-local`) n'est rendu
+  qu'après le commit réel.
+
+### Écarts et décisions à confirmer (O03, O04)
+
+1. **Ordre des verrous des commandes O02** : `EnrollDevice`, `IssueOfflineGrant`, `RevokeDevice`, `RevokeOfflineGrant`
+   verrouillaient le compte (15) ou le poste (20) APRÈS l'idempotence (30), ce que `TransactionLocks` refuse
+   (`LockOrderViolation`) : ces lignes sont désormais lues sous le verrou exclusif du cabinet, qui sérialise déjà ces
+   écritures (`DeviceDirectory::underClinicLock`). Même règle pour `PrepareDevice` et `ReleaseDevice`.
+2. **Ressources du poste en clair** dans `allocations` (identifiants opaques, bornes de numéros, quantités, factures) :
+   le commit atomique compare et avance le curseur dans la transaction, sans Web Crypto ; aucune donnée personnelle. Le
+   catalogue figé est, lui, scellé (`catalog_snapshot`, administratif). À confirmer (la fiche demandait « stockage
+   chiffré »).
+3. **`kid` du JWS des commandes** = empreinte RFC 7638 de la clé du poste (décision O02) ; `contracts/sync/signed-command.json`
+   aligné par O05 (motif base64url de 43 caractères).
+4. **Grant des préparations** : `PrepareDevice` exige des grants déjà émis (`IssueOfflineGrant`) et rend les grants
+   actifs ; il n'en émet pas lui-même.
+5. **Version du grand livre locale** : `ledger_version` = 1 après l'émission puis +1 par fait, déduit de
+   `InvoiceLedger` ; à recouper avec la projection serveur en vérification.
+6. **Module `offline` en production** : la synchronisation existe depuis O05 (codée, non exécutée) ; ne pas ouvrir le
+   module en production avant la vérification de fin de lot et la preuve G1.
+7. **Pas d'écran** de préparation des ressources ni de tableau du journal dans cette passe (services prêts :
+   `prepareThisDeviceResources`, `refreshThisDevicePreparation`, `journal()` de la façade).
+
+### Reste à faire
+
+O06 (mise à jour PWA et schéma local), O07 (export et restauration du poste), G1 (preuve de la tranche urgente),
+écran de verrouillage et route publique de déverrouillage (D14, D27), identité d'action unique. Voir aussi « Reste à
+faire après O05 » ci-dessous.
+
+## Implémentation (O05) — push, pull, ACK et conflits durables — codée le 2026-10-23, non exécutée
+
+Rien n'a été exécuté (consigne du demandeur) : ni PHPUnit, ni Vitest, ni Playwright, ni vue-tsc, ni ESLint. Les
+générateurs de contrats ont été lancés (`build_resources.py`, `build_openapi.py`, `contracts:types`).
+
+| Partie | Fichiers |
+| --- | --- |
+| Routes (module `offline`) | `routes/api.php` : `POST /sync/push`, `GET /sync/pull?device_id&cursor`, `GET /sync/conflicts` (`approval.decide`), `POST /sync/conflicts/{id}/resolution` (`approval.decide`, réauthentification) ; `app/Http/Controllers/Api/V1/SyncController.php` |
+| Vérification d'origine | `app/Offline/{SignedCommands,VerifiedCommand}.php` (JCS, ES256, kid RFC 7638) |
+| Inbox et application ordonnée | `app/Offline/{PushCommands,SyncDrain,SyncDependencies,SyncPayloads,SyncAcks}.php` |
+| ACK dans la transaction de l'effet | `app/Application/Effects/{SyncAcknowledgements,SyncOrderViolation}.php`, crochet dans `CommandBus::execute` |
+| Références du cœur signé | `app/Domain/Shared/SyncReferences.php`, `CommandContext::sync(..., references:)`, `CommandContext::pieceInstant()` |
+| Numéros pré-alloués | `app/Domain/Shared/DeviceNumbers.php` ; `NumberUsages::record(..., allocation, poste)` |
+| Actions ouvertes à la source SYNC | `CreatePatient`, `CreateInvoiceDraft`, `UpdateDraft`, `IssueInvoice` (numéro du poste, propriété importée, réserves sous quota), `RegisterPayment` (reçu du poste, facture détenue par CE poste), `OpenCashSession` ; `UpdatePatient` l'était déjà |
+| Pull | `app/Offline/{PullChanges,PullCursor,PullProjections}.php`, projection DANS la transaction de `ChangeFeed::page(..., $project)` |
+| Conflits | `app/Offline/{ResolveConflict,ConflictDirectory}.php` (`ResolveSyncConflict`, en ligne, gérante) |
+| Contrats | `contracts/sync/signed-command.json` (kid = empreinte), `push-response.json`, `schemas/error.json` (codes), `ConflictResolutionRequest` (+ `expected_version`), `Conflict` enrichi, opérations `implemented` |
+| Poste | `resources/frontend/offline/sync/{transport,push,pull,engine,applicable}.ts`, `CommandJournal::{fromSequence,statuses}`, base locale v4 (`pull_cursors`), `Vault::{syncStatus,noteSyncStatus}`, façade `sync()` |
+| Application | `app/services/{syncTransport,deviceSync,syncConflicts}.ts`, `SYNC_STATE_KEY` fourni (`bootstrap.ts`), échanges automatiques (`main.ts`), échange après chaque commit local (`localEngine.ts`) |
+| Écrans | `pages/settings/DevicePreparationPage.vue` (4. numéros réservés, relire les ressources ; 5. synchronisation, pièces à revoir), `pages/manager/SyncConflicts.vue` (`/parametres/conflits-synchronisation`), carte des Paramètres ; `PaymentForm.vue` (« Encaissement enregistré sur ce poste »), `InvoiceDetails.vue` (encaissement possible sur le poste propriétaire) |
+| Tests écrits | `tests/Feature/Offline/{SyncPushTest,SyncPullTest}.php`, `tests/Unit/Offline/SignedCommandsTest.php`, `tests/Concurrency/SyncConcurrencyTest.php` (+ scénario `sync-push`), `tests/Support/SyncFixtures.php`, `tests/frontend/offline/sync.test.ts`, `tests/e2e/offline-sync.spec.ts` (module `offline` et clé de test ajoutés à `prepare-env.mjs`) |
+
+- **Vérification avant tout stockage** : `event_hash` recalculé sur le JCS du cœur REÇU (objets JSON conservés, un
+  objet vide reste `{}`), JWS ES256 de la clé enrôlée (`alg` imposé, `none` refusé, `kid` = empreinte RFC 7638),
+  charge signée exacte, cabinet et poste du lot, commande du journal ; lot contigu et chaîné, ancré sur le rang
+  précédent déjà reçu. Sinon 422 `SYNC_INTEGRITY_FAILED` (rang absent : 409 `SYNC_SEQUENCE_GAP`, même `command_id`
+  autre empreinte : 409 `IDEMPOTENCY_PAYLOAD_MISMATCH`) et RIEN n'est stocké.
+- **Inbox immuable** : `sync_commands` (charge et quotas rechiffrés par le serveur, `Crypt`/`APP_KEY`, clé
+  `eeo.offline.sync_key_id`), résultat `RECEIVED`, heure de PREMIÈRE réception conservée.
+- **Application** : rang par rang à partir du préfixe finalisé, chacun dans SA transaction, par le chemin central
+  (source SYNC, clé d'idempotence = `command_id`, autorisation historique du grant). L'ACK `ACCEPTED` et le préfixe
+  `last_accepted_*` sont écrits DANS la transaction de l'effet : un crash après commit et avant la réponse rend
+  `ALREADY_ACCEPTED` au renvoi, jamais un second fait. Arrêt au premier non finalisé (les suivants restent `RECEIVED`,
+  sans ACK dans la réponse).
+- **Pièce liée absente** : `WAITING_DEPENDENCY` avec les dépendances (dossier, visite, consultation, facture,
+  rendez-vous, session de caisse) ; dépendance qu'une commande REJETÉE devait créer : conflit `DEPENDENCY_REJECTED`.
+- **Conflit durable** : `sync_conflicts` OPEN, instantanés chiffrés (commande d'origine ; refus et état central),
+  `CONFLICT_REQUIRES_REVIEW`, audit `sync.conflict_opened`. Décision de la gérante : ACCEPT_LOCAL (rejouée, seul un
+  verdict « en revue » de l'autorisation historique est levé), KEEP_CENTRAL / REJECT / CORRECT (REJECTED, le préfixe
+  avance, N+1 reprend aussitôt) ; audit `sync.conflict_resolved` ; jamais de réécriture du cœur, de l'empreinte ni de
+  la signature.
+- **Pull** : grant ACTIF du compte sur ce poste ; compartiments = grant ∩ droits actuels (jamais CLINICAL sans droit
+  clinique), PUBLIC pour tous ; curseur signé (HMAC dérivé d'`APP_KEY`) lié au poste, au compte et aux compartiments,
+  qui avance sur les entrées filtrées ; un compartiment ouvert depuis relance la lecture depuis le début.
+- **Poste** : push depuis la plus ancienne non finalisée, arrêt à la première commande d'un autre profil, « envoyée »
+  AVANT l'envoi, ACK enregistrés sans jamais rétrograder un final ni rien supprimer ; renvoi depuis le rang demandé
+  après `SYNC_SEQUENCE_GAP` ; pull page par page, page et curseur dans UNE transaction ; tête locale recalée sur le
+  serveur seulement si toutes ses commandes sont finalisées. États : « Enregistré sur ce poste » ≠ « Consolidé sur le
+  serveur » (ACK final seulement).
+
+### Décisions à confirmer (O05)
+
+1. **`kid` des commandes** aligné sur l'empreinte RFC 7638 de la clé du poste (décision O02) : le contrat
+   `signed-command.json` déclarait un ULID.
+2. **Commandes enregistrables sur le poste** limitées à celles que le serveur sait appliquer depuis un poste
+   (`offline/sync/applicable.ts`) : patient (création, modification), brouillon, émission, encaissement, ouverture de
+   caisse. Visite (domaine de l'agenda), consultation, prescriptions, clôture de caisse, avoir, remboursement,
+   contre-écriture, remise, retour, stock, rendez-vous et approbations restent EN LIGNE (refus `ACTION_FORBIDDEN`
+   inchangé côté serveur pour un poste).
+3. **Date des pièces de poste** : facture, reçu et ouverture de caisse sont datés de l'instant où le poste a agi
+   (`occurred_at_local`, jugé plausible par l'autorisation historique) ; le contrôle de rétroactivité d'un
+   encaissement se réfère à cet instant.
+4. **Quotas déclarés hors colonnes** : `stock_allocation_ids` (absent de `sync_commands`) est conservé dans
+   l'enveloppe chiffrée de la charge pour reconstituer le cœur.
+5. **Compte qui pousse** : préparé sur ce poste (un grant de ce poste lui a été émis) ou gérante (`offline.enroll`) ;
+   chaque commande reste jugée par SON grant. Poste perdu ou remplacé : 403.
+6. **Commandes en attente derrière un non finalisé** : sans ACK dans la réponse (le contrat d'ACK n'a pas
+   `RECEIVED`) ; le poste les garde « envoyées » et les renvoie.
+7. **Projections du pull** : patient, visite, facture et solde, paiement, reçu, avoir, remboursement, session de caisse,
+   catalogue (sans coût d'achat) et taxes ; les entités CLINIQUES et les autres agrégats sont publiés sans contenu
+   (identifiant et version) : le poste relit leur contenu en ligne.
+8. **Reçu imprimé dont l'encaissement est rejeté** : son numéro de plage n'est pas inscrit comme consommé ; il le
+   sera `UNUSED` à la clôture de la plage. À trancher avec le cabinet (inscription « annulé » plutôt).
+9. **Codes d'erreur ajoutés** au contrat : `SYNC_INTEGRITY_FAILED`, `SYNC_SEQUENCE_GAP`, `NUMBER_RANGE_INVALID`,
+   `DEPENDENCY_REJECTED`, `PAYLOAD_TOO_LARGE`, et `SYNC_INCOMPLETE`, `FINANCIAL_DEVICE_ELSEWHERE` (émis par O03 mais
+   absents du catalogue).
+
+### Reste à faire après O05
+
+O06 (mise à jour PWA et schéma local), O07 (export et restauration du poste), G1 (preuve de la tranche urgente :
+patient, facture, deux paiements, PDF et ACK rejouable sur poste réel). Plus : dépôt des PDF locaux après l'ACK de leur
+pièce (D01, compteurs `documentsToUpload` à zéro tant qu'il n'est pas branché), lecture des projections du pull par
+les écrans hors ligne (fiche, facture), numéro de reçu affiché à l'encaissement hors ligne, `GET /devices/{id}/health`,
+écran de verrouillage et route publique de déverrouillage (D14, D27), réserves sous quota testées de bout en bout,
+ouverture du module `offline` en production seulement après G1.

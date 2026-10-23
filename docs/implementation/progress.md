@@ -138,6 +138,44 @@ vue-tsc, ESLint, Prettier ; build ; Playwright complet (patients, file du jour, 
 documents, facturation) ; rendu des PDF de démonstration (golden) relu ; corrections, puis seconde
 passe si nécessaire ; commit, push et CI.
 
+## Lot 2 — codé en parallèle, vérification en fin de lot (2026-10-23)
+
+Même règle que la phase 1 : chaque chantier est codé jusqu'au bout sans exécution, puis une vérification
+transversale unique. Consigne du demandeur du 2026-10-23 : la session principale ne reste jamais inactive ;
+toute aide destinée à la cliente est intégrée à l'interface (jamais un document Markdown).
+
+| Chantier | Tâches | État |
+| --- | --- | --- |
+| Corrections financières à l'écran, autorisation depuis la facture, annulation d'une visite | B07, B08 (écrans), P03 | Codé, non exécuté |
+| Coffre chiffré et enrôlement des postes | O01, O02 | Codé, non exécuté (module `offline` fermé) |
+| Statistiques du dossier patient | R02 | Codé, non exécuté (`reports.md`) |
+| Aide intégrée par profil | hors backlog (consigne du demandeur) | Codé, non exécuté |
+| Ordonnances externes à l'écran | C04 (A13) | Codé, non exécuté |
+| Agenda interne et suivis | S01, S02 | Codé, non exécuté (agenda jour/semaine, configuration, arrivée depuis un rendez-vous, patients à rappeler, aucun envoi externe) |
+| Remises au patient et retours, sorties exceptionnelles | I01, I02 | Codé, non exécuté |
+| Plages, quotas, commit local et journal du poste | O03, O04 | Codé, non exécuté (corrige aussi l'ordre des verrous d'O02) |
+| Identité visuelle professionnelle et logo de la marque | hors backlog (demande du demandeur) | Codé, non exécuté (charte, icônes SVG, en-tête mobile) |
+| Import contrôlé du catalogue et stock d'ouverture par fichier | X01 (partie catalogue et stock) | Codé, non exécuté |
+| Créances papier | X01 (partie créances) | Codé, non exécuté (série `LEGACY_BALANCE`, justificatif scanné, hors chiffre d'affaires) |
+| Originaux PDF conservés sur le serveur, logo sur les documents | D01 | Codé, non exécuté |
+| Push, pull, ACK et conflits | O05 | En codage |
+| Exports contrôlés | X02 | Codé, non exécuté (`operations.md`, tâche planifiée `eeo:exports:process`) |
+| Sauvegardes chiffrées, restauration vérifiée et réconciliation | X03 | Codé, non exécuté (`operations.md`, runbook `docs/runbooks/server-restore.md`) ; exercice réel sur l'hébergement à faire |
+| Seconde passe visuelle des écrans (hors ventes, caisse, stock, hors-ligne) | hors backlog (demande du demandeur) | En codage (workflow) |
+| Fusion manuelle de deux fiches patient et comparaison de deux examens | L1D08 | Codé, non exécuté (liens vers la comparaison à ajouter après la passe visuelle) |
+| Devis versionnés et conversion en facture | L1D07 | Codé, non exécuté (fork I) |
+| Remises au patient et retours, sorties exceptionnelles | I01, I02 (fin) | Codé, non exécuté (fork H) |
+| Dépenses, mouvements de caisse, catégories et revue d'écart | L1D05 | Codé, non exécuté (`billing.md`) |
+| Fournisseurs et réceptions, inventaires, seuils et péremption | L1D01, L1D02, L1D03 | En codage (fork J) |
+
+Règle de mise en service : le module `offline` ne s'ouvre pas en production avant O05 vérifié (sans lui, une
+commande enregistrée sur un poste n'atteint jamais le serveur).
+
+Logo : le demandeur a fourni le logo vectoriel de la marque (« logo EEOM », Illustrator) ; la marque complète
+(aigle et nom) et l'aigle seul en sont extraits sans le cadre ni les coordonnées
+(`resources/frontend/assets/brand/`), icônes de l'application régénérées depuis l'aigle. Dépendance ajoutée
+par O02 : `firebase/php-jwt` ^7 (signature des grants, exigée par le fichier 23).
+
 ## Environnement de développement (cloud)
 
 PHP 8.3.6 (sans bcmath/gmp/pcov), Composer 2.8.12, Node 22.22.0, npm 10.9.4, Chromium Playwright dans `/opt/pw-browsers`. MySQL 8.4.9 par Docker (`mirror.gcr.io/library/mysql:8.4.9`, conteneur `eeo-mysql`, base isolée `eeo_test`). Reprise après redémarrage du conteneur de session : relancer `dockerd`, puis le conteneur MySQL. Détails : `startup.md`.

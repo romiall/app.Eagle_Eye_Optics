@@ -263,3 +263,21 @@ Identité du cabinet sur les documents cliniques : `GET /api/v1/clinic/document-
 `clinical.read`) et `clinicFromIdentity()` de `documents/data/clinic.ts` remplacent `clinicFromSummary()` (nom seul)
 pour une ordonnance ou une fiche de consultation ; le branchement dans `app/services/clinicalDocuments.ts` reste à
 faire par le chantier de l'impression clinique.
+
+## Ordonnances externes à l'écran (2026-10-23)
+
+Le serveur acceptait déjà `POST /prescriptions/external` (A13, `CreatePrescription` d'origine `EXTERNAL`,
+prescripteur et date d'origine obligatoires, aucune consultation) mais aucun écran ne permettait de la saisir.
+
+- Lecture : `GET /api/v1/patients/{id}/prescriptions` (`GetPatientPrescriptions`, module `consultations`,
+  `clinical.read`, même limiteur que les lectures de dossier) : toutes les versions des prescriptions du
+  patient, internes et externes, de la plus récente à la plus ancienne ; patient d'un autre cabinet = 404 ;
+  lecture tracée une fois par 10 minutes (`patient.prescriptions_viewed`, cible `patient_records`).
+- Écran : onglet « Prescriptions » du dossier patient (visible seulement avec `clinical.read` et le module
+  ouvert), `pages/patients/{PatientPrescriptionsPage,ExternalPrescriptions}.vue`. Même éditeur et mêmes règles
+  que la prescription d'une consultation : `usePrescriptionEditor` accepte une source
+  `{ kind: 'external', patientId }` (création par `/prescriptions/external`, nouvelle version par
+  `/prescriptions/{id}/revisions`, brouillon par `PATCH`, validation inchangée) ; rien à recopier de la
+  réfraction ; pas d'impression proposée (l'original papier existe).
+- Tests écrits : `tests/Feature/Clinical/PatientPrescriptionsTest.php`, `tests/e2e/external-prescription.spec.ts`.
+

@@ -360,7 +360,7 @@ Contrôle actif (`billed`) :
 
 ## Contre-écriture et avoir (B07)
 
-État : **codé, non exécuté** ; serveur seulement (`pages/sales/Corrections.vue` non créé : écran à venir).
+État : **codé, non exécuté** ; écrans et lectures : section « Corrections à l'écran et lectures des pièces liées ».
 
 `ReversePaymentHandler` (`POST /payments/{id}/reversals`, `payment.reverse`, réauthentification) : ligne
 `payment_reversals` append-only liée au paiement, motif obligatoire (erreur comptable), cumul ≤ paiement
@@ -384,7 +384,7 @@ contre-écriture ; réduction de la vente → avoir ; retour physique → `Regis
 
 ## Remboursement d'un crédit (B08)
 
-État : **codé, non exécuté** ; serveur seulement (`RefundDialog.vue`, `documents/refunds/` non créés).
+État : **codé, non exécuté** ; écrans et lectures : section « Corrections à l'écran et lectures des pièces liées ».
 
 `RefundCreditHandler` (`POST /invoices/{id}/refunds`, `refund.execute`, réauthentification) : lié à un avoir émis de la
 facture ; montant ≤ crédit à rembourser de la facture (`assertRefund`, 422 `details.refundable_credit`) ET ≤ part de
@@ -401,8 +401,8 @@ remboursements concurrents sont sérialisés (le second : `VERSION_CONFLICT`). A
 avec le seed actuel, la caisse DEMANDE et la gérante exécute (directement, ou en reprenant l'approbation) ; une
 dérogation nominative ouvre l'exécution par la caisse après approbation. (2) Un avoir ne libère pas la réserve de stock
 des quantités créditées non remises : la remise (S01) devra plafonner par « quantité facturée non créditée ».
-(3) Pas de lecture `GET /credit-notes/{id}` ni `GET /refunds/{id}` (source du moteur de documents D01 pour
-`credit_note.v1`, `refund.v1`) : les modèles PDF de ces pièces restent à écrire, leur document reste `PENDING`.
+(3) Lectures `GET /credit-notes/{id}` et `GET /refunds/{id}` et PDF de ces pièces : ajoutés (section « Corrections
+à l'écran… ») ; le document serveur reste `PENDING` tant que le dépôt du PDF n'existe pas.
 (4) Durée de validité des approbations (60 min) et qui autorise hors-ligne (Q07) : à confirmer avec la gérante.
 
 **Tests écrits (non exécutés).** `tests/Feature/Access/ApprovalsTest.php`, `tests/Feature/Billing/ExamFeeQueueTest.php`,
@@ -583,3 +583,319 @@ module fermé, jour civil Douala 23 h 30 UTC, contrats) ; Vitest `tests/frontend
 et mises à jour de `support.ts` (`issued_by_name`), `invoice-payment.test.ts` (`received_by*`), `draft-totals.test.ts`,
 `entry-points.test.ts` (route `caisse-du-jour`), `cash-page.test.ts` (liste et clôture par la gérante) ; Playwright
 `tests/e2e/billing.spec.ts` (filtre du jour, caisse du jour, abandon).
+
+## Corrections à l'écran et lectures des pièces liées (B07, B08, EN LIGNE)
+
+État : **codé, non exécuté** (2026-10-23, FORK A). Complète B07 et B08 côté écran et ajoute les lectures que le moteur
+de documents attendait (point ouvert (3) de B06–B08).
+
+**Lectures serveur.**
+
+| Route | Rôle | Droit |
+| --- | --- | --- |
+| `GET /api/v1/invoices/{id}` | rend aussi `reversals` (contre-écritures : paiement, montant, motif, instant, auteur et son nom ACTUEL), et pour chaque avoir `reason` et `refunded_amount` (part déjà remboursée), pour chaque remboursement `credit_note_id` | `invoice.read` |
+| `GET /api/v1/credit-notes/{id}` | avoir (`CreditNote`) : lignes d'origine créditées, part déjà remboursée, snapshot figé (`credit-note.json`, source du PDF), état du document, nom ACTUEL de l'émetteur | `invoice.read` |
+| `GET /api/v1/refunds/{id}` | remboursement (`Refund`) : avoir lié, mode, référence, session, snapshot figé (`refund.json`, source du PDF), état du document, nom ACTUEL de l'auteur | `invoice.read` |
+
+Les nouveaux champs de `Invoice` (`reversals`, `credit_notes[].reason`, `credit_notes[].refunded_amount`,
+`refunds[].credit_note_id`) sont **facultatifs dans le contrat** (les fixtures et types antérieurs restent valides) ;
+le serveur les rend toujours. Code : `InvoiceReader::{detail,creditNote,refund}`, `InvoicePresenter::{creditNote,refund}`,
+`CorrectionDocumentController` (lecture seule ; les écritures restent dans `CorrectionController`). Fixtures
+`contracts/fixtures/resources/{credit-note,refund}.valid.json`. Opérations `GetCreditNote`, `GetRefund` (IMPLEMENTED).
+
+**Écrans** (`pages/sales/CorrectionsPanel.vue`, monté dans la fiche d'une facture émise) :
+
+- liste des contre-écritures (motif, auteur), des avoirs (part déjà remboursée, « PDF de l'avoir ») et des
+  remboursements (« PDF du remboursement ») ; PDF produits sur le poste depuis les snapshots figés
+  (`salesDocuments.{creditNoteDocument,refundDocument}`, modèles `credit_note.v1`, `refund.v1` enregistrés comme alias
+  dans le registre et `contracts/compatibility.json`) ;
+- « Contre-passer le paiement … » (`ReversalForm.vue`) : au plus la part encore contre-passable, motif obligatoire ;
+  « Émettre un avoir » (`CreditNoteForm.vue`) : montant par ligne d'origine (et quantité facultative), au plus la ligne
+  et la part créditable de la facture ; « Rembourser » (`RefundForm.vue`) : au plus la part de l'avoir non remboursée ET
+  le crédit disponible, espèces avec session de caisse ouverte, référence pour mobile money et virement ;
+- règles pures `domain/billing/corrections.ts` (montants entiers, aucun calcul flottant) ; envoi commun
+  `pages/sales/useCorrection.ts` : 423 → `PasswordConfirmDialog` puis reprise avec la MÊME clé ; `approval_id` neuf
+  au départ (exécution directe par la gérante, qui détient la permission et `approval.decide`) ; sur
+  `APPROVAL_REQUIRED_OR_EXPIRED`, « Demander l'autorisation » (`ApprovalRequestDialog`, contenu exact de la commande)
+  et l'opération se renvoie sous l'identifiant de la demande après l'accord ;
+- un compte SANS la permission de l'opération (la caisse avec le seed actuel) voit le même formulaire en mode
+  « demande seulement » : le bouton devient « Demander l'autorisation », rien n'est exécuté ; la gérante exécute
+  ensuite (directement). Un remboursement demandé n'exige pas de session de caisse : c'est l'exécution qui l'exige.
+
+**Autorisation depuis le brouillon** (`InvoiceEditor.vue`) : sur un refus `APPROVAL_REQUIRED_OR_EXPIRED` d'un
+enregistrement, l'écran propose « Demander une autorisation » avec `draftLineRightsSubject(facture, patient, lignes
+envoyées)` ; une fois accordée, réenregistrer le brouillon SANS modifier les lignes (même charge, même clé) : le serveur
+retrouve l'autorisation par son contenu et la consomme.
+
+**Points ouverts.** Une approbation accordée à la caisse n'est pas reprise par la gérante depuis l'écran (elle exécute
+directement : la demande reste visible dans « Approbations » ; reprise de l'identifiant à ajouter si la cliente la
+veut) ; pas de liste des avoirs du cabinet (seulement par facture) ; dépôt du PDF sur le serveur (`PENDING` reste) avec
+le coffre (O01–O05).
+
+**Tests écrits (non exécutés).** PHPUnit `tests/Feature/Billing/CorrectionReadsTest.php` (contre-écriture, avoir et
+remboursement réels par les routes, lectures, contrats, droits, cabinet, module) et matrice
+`BillingRoutesGateTest` complétée ; Vitest `tests/frontend/billing/{corrections,corrections-panel}.test.ts`,
+`tests/frontend/documents/registry.test.ts` (14 modèles déclarés) ; Playwright `tests/e2e/billing.spec.ts`
+(contre-écriture, avoir puis remboursement par la gérante, rechargement, reçu d'origine intact).
+
+## Import contrôlé du catalogue (X01, 2026-10-23)
+
+- Écran : « Importer le catalogue » (`/ventes/catalogue/import`, lien « Importer un fichier CSV » du catalogue),
+  `pages/manager/Imports.vue`. Modèle téléchargeable (en-têtes français, deux lignes d'EXEMPLE à remplacer),
+  fichier lu SUR LE POSTE (`domain/billing/catalogImport.ts` : séparateur `;`, `,` ou tabulation détecté,
+  guillemets RFC 4180, BOM UTF-8, en-têtes sans casse ni accents, catégorie et unité par nom ou code, oui/non,
+  montants FCFA entiers « 50 000 », taxe par le CODE d'une règle fiscale du cabinet), 500 lignes au plus.
+- Serveur : `POST /api/v1/imports/catalog` (module `sales`, `catalog.manage`, réauthentification récente, 423 sinon).
+  `dry_run = true` : rapport (`ImportReport`) sans aucune écriture ni commande ; `false` : commande centrale
+  `ImportCatalog` (en ligne seulement) qui revérifie tout sous le verrou du cabinet et crée TOUTES les lignes dans
+  une transaction, ou AUCUNE (422, champs `rows.<index>.<champ>`, message préfixé par la ligne du fichier) ;
+  même clé d'idempotence = même import rejoué. Règles : exactement celles d'un article saisi à l'écran
+  (`CatalogItemInput`) ; référence unique dans le fichier et absente du catalogue, comparée comme la base
+  (casse et accents ignorés, ponctuation conservée). Audit `catalog.item_created` par article (origine import,
+  ligne du fichier, jamais le coût d'achat) et changement publié.
+- Tests écrits : `tests/Feature/Billing/CatalogImportTest.php`, `tests/frontend/billing/catalog-import.test.ts`.
+- Stock d'ouverture par fichier : sur l'écran « Stock », « Remplir depuis un fichier CSV » remplit le
+  formulaire de stock initial existant (`domain/inventory/openingImport.ts` : reference, quantite, emplacement par
+  code ou nom, lot, peremption, cout_unitaire ; modèle téléchargeable) ; rien n'est envoyé par la lecture, la
+  gérante relit et enregistre par le circuit habituel (`RegisterOpeningStock`, motif, approbation directe,
+  réauthentification). À la moindre erreur du fichier, le formulaire n'est pas modifié.
+- Créances papier : voir la section suivante.
+
+## Reprise des créances papier (X01, 2026-10-23, codé, non exécuté)
+
+Une vente du carnet papier dont il reste un dû est reprise comme une pièce ÉMISE d'origine `LEGACY_BALANCE` dont le
+total est le SEUL reste dû : la vente d'origine et l'acompte déjà versé restent dans le carnet. Ni chiffre
+d'affaires du jour, ni encaissement ou reçu pour l'ancien acompte, ni ligne d'article, ni mouvement de stock. Le
+reste dû s'encaisse ensuite depuis la pièce par `RegisterPayment` (un reçu par encaissement). EN LIGNE seulement.
+
+- Justificatif : `POST /api/v1/legacy-balances/evidence` (module `sales`, `finance.global.read`, réauthentification,
+  corps BRUT `application/pdf`, `image/jpeg` ou `image/png`, `X-Content-Sha256` facultatif, clé d'idempotence).
+  Le type est reconnu aux premiers octets (`DocumentFiles::inspectEvidence` : `%PDF-`, `FF D8 FF`, signature PNG ;
+  un GIF annoncé JPEG est refusé), taille bornée par `eeo.documents.max_bytes` (5 Mo), fichier vide refusé.
+  Rangé sur le disque privé à une adresse dérivée de l'empreinte (`evidence/{cabinet}/{sha256}.{ext}`, même scan =
+  même fichier), ligne `stored_files` classée `FINANCIAL` par la commande centrale `StoreLegacyEvidence` (audit
+  `legacy_balance.evidence_stored`, sans le contenu). Réponse `LegacyEvidenceResponse` (201).
+- Reprise : `POST /api/v1/imports/legacy-balances` (mêmes droits et middleware), corps `LegacyBalanceImportRequest`
+  (`dry_run`, `evidence_file_id`, 1 à 500 `rows` : `line`, `patient_id` OU `patient_record_number`,
+  `paper_reference`, `original_total`, `already_paid`, `original_invoice_on` facultative). La saisie d'une seule
+  créance est un lot d'une ligne. `dry_run = true` : rapport `ImportReport` sans écriture (contrôleur, sans
+  commande) ; `false` : commande `ImportLegacyBalances` (en ligne seulement) qui revérifie tout sous le verrou du
+  cabinet et crée TOUTES les pièces dans une transaction, ou AUCUNE (422, champs `rows.<index>.<champ>`, message
+  préfixé par la ligne du fichier, aucun numéro consommé). Même clé = même reprise rejouée.
+- Règles (`LegacyBalances/LegacyBalanceImport::check`, jumelles `LegacyBalance::openingBalance` /
+  `legacyOpeningBalance`) : patient existant du cabinet et non fusionné ; montants FCFA entiers, total positif,
+  déjà réglé ≤ total, reste dû > 0 (une pièce papier entièrement réglée n'est pas reprise) ; date de pièce
+  facultative et jamais dans le futur (fuseau du cabinet) ; référence papier de 1 à 100 caractères, unique dans le
+  fichier et jamais déjà reprise, comparée sans casse ni accents (ponctuation conservée) ; justificatif obligatoire,
+  `FINANCIAL`, non archivé, du cabinet.
+- Écriture : numéros alloués d'abord (série `LEGACY_BALANCE`, préfixe `EEO_NUMBER_PREFIX_LEGACY_BALANCE`, `TEST-REP`
+  en développement, distincte des factures du jour, sans trou), puis verrous des patients (rang 45) ; par ligne :
+  usage de numéro, facture `ISSUED` (instantanés patient, cabinet et taxe `NO_TAX_CONFIGURED`, `legacy_reference`,
+  `legacy_opening_balance` = total), ligne `legacy_balance_imports` (total d'origine, déjà réglé, reste dû,
+  justificatif et son empreinte, validée par la gérante), audit `legacy_balance.imported`, changement publié
+  (`invoices`, compartiment financier). Aucun événement sortant (pas de consommateur « vente »).
+- Caisse du jour : `CashDayReport` ne compte plus que les pièces `NATIVE` dans « factures émises » ;
+  `vw_revenue_events` ne voyait déjà que `NATIVE`. Le reste dû repris figure dans `vw_invoice_balances`.
+- Fichiers privés : l'écriture et la lecture du disque privé sont passées de `DocumentFiles` (domaine) à
+  `App\Support\Files\PrivateFiles` (aucun effet externe dans `app/Domain`, garde `CentralPathGuardTest`) ;
+  `DocumentController` l'utilise aussi.
+- Écran : section « Créances papier » en bas de « Importer le catalogue » (`pages/manager/LegacyBalances.vue`,
+  visible avec `finance.global.read`) : 1. scan déposé ; 2. « Une créance » (patient par la recherche, référence,
+  total, déjà réglé, date facultative, « Reste dû repris : 50 000 FCFA ») ou « Un fichier CSV »
+  (`domain/billing/legacyImport.ts` : `reference_papier`, `dossier`, `total_origine`, `deja_paye` vide = 0,
+  `date_piece`, modèle téléchargeable aux lignes FICTIVES) ; 3. « Vérifier sur le serveur » puis « Reprendre »
+  (clé stable par intention, mot de passe redemandé au besoin, même clé renvoyée), liens « Ouvrir la pièce N et
+  encaisser le reste dû ». Aide intégrée : rubrique « Créances du carnet papier ».
+- Tests écrits (non exécutés) : `tests/Feature/Billing/LegacyBalancesTest.php`,
+  `tests/Concurrency/LegacyBalancesConcurrencyTest.php` (deux reprises simultanées de la même référence),
+  `tests/frontend/billing/legacy-import.test.ts`, `tests/e2e/legacy-balances.spec.ts` ; fixtures
+  `contracts/fixtures/resources/legacy-*.json`.
+- Hypothèses à confirmer avec la cliente : colonnes du carnet (référence, numéro de dossier, total, déjà réglé,
+  date) ; un seul scan par lot (une page de carnet peut couvrir plusieurs créances) ; patient retrouvé par son
+  numéro de dossier (les patients du carnet doivent être enregistrés d'abord) ; droit `finance.global.read` pour
+  reprendre ; préfixe définitif de la série ; pas de PDF de la pièce de reprise elle-même.
+- Reste : affecter une créance reprise à la caisse hors-ligne avant de l'encaisser hors-ligne (O03/O05).
+
+## Remise au patient (I01, 2026-10-23, codé, non exécuté)
+
+Remise partielle ou totale d'une facture ÉMISE, EN LIGNE (`ConfirmDelivery`, commande du catalogue F06 ; la source
+d'un poste reste refusée par `CentralOnly` jusqu'au jugement des quotas, O05). Code :
+`app/Domain/Inventory/Handlers/ConfirmDeliveryHandler.php`, `ReservationService::consumeForDelivery`,
+`Rules/DeliveryRules.php`, `DeliveryReader.php`, `app/Http/Controllers/Api/V1/DeliveryController.php`.
+
+- Routes (module `sales`) : `GET /api/v1/invoices/{id}/deliveries` (`invoice.read`, ressource
+  `InvoiceDeliveriesResponse` : par ligne facturé, remis, retourné, reste à remettre, réserve ouverte, remettable ;
+  remises confirmées avec lot et nom ACTUEL de qui a remis ; retours ; reste dû à l'instant) et
+  `POST /api/v1/invoices/{id}/deliveries` (`delivery.confirm` : caisse et gérante seedées ; `expected_version` null ;
+  clé d'idempotence ; réponse `DeliveryResponse` 201, rejouée telle quelle par la même clé).
+- Règles : chaque ligne vise une ligne de CETTE facture portant un article du catalogue (une ligne libre ne se remet
+  pas) ; cumul des remises confirmées ≤ quantité facturée (422, `details.remaining`) ; quantité entière pour un
+  article vendu à l'unité ; heure de remise du jour (ni future au-delà de la dérive admise, ni d'un jour antérieur,
+  jamais avant l'émission). Article `STOCKED` : la quantité est prise sur les réserves ACTIVES de la ligne posées à
+  l'émission (FEFO, lots sans date ensuite ; jamais au-delà de la part ouverte : 409 `STOCK_UNAVAILABLE`,
+  `details.available`) ; une réserve désignée (`reservation_id`, `stock_lot_id`, `stock_position_id`) restreint le
+  choix. Une ligne couverte par deux lots donne deux lignes de remise (la première garde l'identifiant de la commande,
+  les suivantes un identifiant serveur). Article `NONE` ou `MADE_TO_ORDER` : ligne de remise sans réserve, lot ni
+  mouvement (un identifiant de réserve ou de mouvement fourni est refusé).
+- Stock (`consumeForDelivery`, positions 80, lots 81, quotas 82, tout contrôlé avant la première écriture) : réserve
+  CENTRALE → `on_hand` et `reserved` de la position et du lot baissent (le disponible central ne bouge pas) ; réserve
+  SOUS QUOTA d'un poste (quota ACTIVE/CLOSING) → `on_hand` et `offline_allocated` baissent, `consumed_quantity` du
+  quota monte (cohérent avec `ReleaseResources` qui rend `alloué − consommé − restitué`) ; réserve d'un quota CLOS →
+  sortie sur le disponible central contrôlé. Lot vendable et non expiré au jour LOCAL de la remise
+  (`LotRules::assertDeliverable`, 422 `LOT_EXPIRED`, `details.expires_on`) ; un lot qui expire le jour même reste
+  remis ce jour-là. Réserve `CONSUMED` quand consommé + libéré = réservé. Un mouvement `SALE_DELIVERY` négatif par
+  ligne de remise (`delivery_line_id`, coût unitaire du lot s'il est connu, sinon null).
+- Facture avec un reste dû (> 0 à l'instant) : approbation exacte dans `credit_delivery_approval_id`, nature
+  `CREDIT_DELIVERY` (action `delivery.confirm`, cible `invoices` ; contenu : facture, reste dû, quantités remises par
+  ligne d'origine, additionnées et triées), consommée une fois (rang 90, après le stock), ou exécution directe de la
+  gérante sous cet identifiant ; sinon 422 `APPROVAL_REQUIRED_OR_EXPIRED` (`details.amount_due`). Un encaissement
+  entre la demande et la remise change le reste dû, donc l'empreinte : nouvelle demande. Facture sans reste dû : aucun
+  identifiant n'est consommé (celui fourni est ignoré, la remise porte `null`).
+- Écritures dans l'ordre des triggers : remise `DRAFT`, lignes, mouvements, puis UNE mise à jour → `CONFIRMED`
+  (heure, auteur, approbation, instantané patient `delivery-patient.json` relu dans `patient_records`). La facture,
+  son solde et ses reçus ne changent pas. Audit `delivery.confirmed` (lignes, mouvements, remise complète ou non,
+  reste dû, mode d'approbation, modes de stock), événement `DeliveryConfirmed`, changements publiés `deliveries`
+  (créé) et `stock_positions` (versions écrites), compartiment financier.
+- Verrous : cabinet, idempotence, propriété de facture (50 : facture détenue par un poste → 409
+  `WRITE_OWNER_REQUIRED`, la remise se fait sur ce poste), facture (60), positions (80), lots (81), quotas (82),
+  approbation (90). Deux postes qui remettent le dernier article d'une même vente sont sérialisés : le second reçoit
+  le reste actualisé (422, `remaining` 0).
+- Écran : fiche facture émise, section « Remise au patient » (`pages/sales/DeliveriesPanel.vue`,
+  `DeliveryForm.vue`) : reste à remettre par ligne, « Remettre au patient » (quantité proposée = le reste, une ligne
+  laissée vide n'est pas remise), « Confirmer la remise », historique « Remises enregistrées » (date, qui, lot),
+  refus du serveur affichés sur la ligne ; facture avec un reste à encaisser : avertissement « Remise avant règlement
+  complet », la caisse DEMANDE l'autorisation (« Demander l'autorisation de remise », `creditDeliverySubject`), la
+  gérante exécute directement. Section absente quand la lecture répond 404. Règles d'écran :
+  `domain/inventory/delivery.ts` ; lecture : `app/services/deliveries.ts` ; envoi : `pages/stock/useStockCommand.ts`.
+  Aide intégrée : rubrique « Remettre les articles au patient ».
+
+## Retours physiques, casse et ajustements (I02, 2026-10-23, codé, non exécuté)
+
+- Retour : `POST /api/v1/deliveries/{id}/physical-returns` (module `stock`, `stock.adjust` — gérante seedée —,
+  réauthentification ; `RegisterPhysicalReturnHandler`). La ligne de remise doit appartenir à la remise de l'adresse
+  (contrôleur) et être confirmée ; cumul des retours ≤ quantité remise (422, `details.returnable`) ; `approved_by` =
+  l'auteur (contrôle et acceptation par la personne qui enregistre) ; motif obligatoire ; heure ni future ni avant la
+  remise. Destination : seul un article `SELLABLE` accepté (`accepted_for_restock`) écrit un mouvement
+  `PATIENT_RETURN` positif dans la position et le lot d'origine et remonte leur `on_hand` (jamais dans un lot expiré
+  ou en quarantaine au jour local, ni pour un article sans stock) ; sinon le retour est tracé sans mouvement
+  (`stock_movement_id` doit alors être null). AUCUN avoir n'est créé ; un avoir ÉMIS de la même facture peut être
+  relié (`credit_note_id`). Verrous : facture de la remise (60), position (80), lot (81). Audit
+  `stock.physical_return_registered` (`credit_note_created: false`), changements `physical_returns` et
+  `stock_positions`.
+- Casse et ajustement : `POST /api/v1/stock/movements` (module `stock`, `stock.adjust`, réauthentification ;
+  `RegisterStockMovementHandler`). `BREAKAGE` négatif, `ADJUSTMENT` signé non nul ; article `STOCKED` ; lot
+  obligatoire dès que la position a des lots (position et lot bougent ensemble) ; quantité entière pour un article
+  vendu à l'unité ; un retrait ≤ disponible central (physique − réserves − quotas : 409 `STOCK_UNAVAILABLE`,
+  `details.available`) — la marchandise réservée pour une vente ou confiée à un poste ne se retire jamais
+  (`StockCounters`). Approbation exacte obligatoire (`approval_id`), nature `STOCK_MOVEMENT` (action
+  `stock.adjust`, cible `stock_positions` ; contenu : position, article, lot, `movement_kind`, quantité signée
+  canonique), ou exécution directe de la gérante. Le stock initial (`stock.adjust`/`stock_movements`) reste hors du
+  registre des demandes (`ApprovalKind::fromStored` rend null). Motif obligatoire, coût unitaire connu ou null.
+  Audit `stock.movement_registered`, changement `stock_positions`.
+- Écrans : « Enregistrer un retour » sur chaque ligne remise de la section « Remise au patient »
+  (`pages/sales/PhysicalReturnForm.vue` : quantité, état constaté, « Remettre en stock vendable », avoir à relier,
+  motif ; mot de passe redemandé au besoin) ; « Stock » → « Casse ou ajustement » (`/stock/mouvement`,
+  `pages/stock/MovementForm.vue` : article, emplacement, lot, nature, sens, quantité au plus le disponible affiché,
+  motif ; la gérante exécute, un autre compte autorisé demande l'autorisation). Aide intégrée : rubrique « Retours,
+  casse et ajustements de stock ».
+
+## Contrats, tests et points ouverts (I01, I02)
+
+- Contrats : `build_commands.py` (sujets `CreditDeliverySubject`, `StockMovementSubject`), `build_resources.py`
+  (`InvoiceDeliveries`, natures d'approbation), `build_openapi.py` (`ListInvoiceDeliveries`, `ConfirmDelivery`,
+  `RegisterPhysicalReturn`, `RegisterStockMovement` implémentées), régénérés et remis en LF ; fixtures
+  `request-approval.credit-delivery*.json`, `request-approval.stock-movement*.json`, `invoice-deliveries.*.json`.
+- Tests écrits (non exécutés) : `tests/Feature/Billing/DeliveryTest.php`, `PhysicalReturnTest.php`,
+  `StockMovementTest.php`, `tests/Unit/Billing/DeliveryRulesTest.php`, `tests/Concurrency/DeliveryConcurrencyTest.php`
+  (dernier article remis par deux postes, rejeu simultané), `tests/frontend/domain/delivery-rules.test.ts`,
+  `tests/frontend/billing/deliveries-panel.test.ts`, `tests/e2e/deliveries.spec.ts` (facture émise → remise
+  partielle → remise du reste → retour) ; aide `tests/Support/DeliveryFixtures.php`.
+- À trancher à la vérification de fin de lot : nombre de routes attendu par `tests/frontend/bootstrap.test.ts`
+  (route `stock-movement` ajoutée) ; entrée « Stock » de la navigation toujours `delivered: false` (I01) ; remise sous
+  quota d'un poste à brancher sur la synchronisation (O05 : ConfirmDelivery depuis un poste, réserves désignées par le
+  poste).
+- Hypothèses à confirmer avec la cliente : remise d'une facture avec un reste à encaisser seulement sur autorisation
+  de la gérante (fichier 03) ; un lot expiré après l'émission bloque la remise (changer de lot = avoir puis nouvelle
+  vente, pas d'échange de lot à l'écran) ; un avoir émis ne libère pas la réserve ni n'interdit la remise (la
+  cohérence avoir/remise reste une décision humaine) ; retour accepté seulement par un compte `stock.adjust`.
+
+## Devis versionnés et conversion en facture (L1D07, 2026-10-23, codé, non exécuté)
+
+Module `sales`, EN LIGNE seulement (commandes du bus central, sources `Direct`, corps validés par
+`schemas/requests/http.json`). Un devis n'est ni une créance, ni un encaissement, ni une réserve de stock : il
+n'entre pas dans la caisse du jour ni dans les rapports (`CashDayReport` ne lit que les factures émises et les
+encaissements). Code : `app/Domain/Billing/{Quotes,QuoteReader}.php`, `app/Domain/Billing/Quotes/Handlers/*`,
+`app/Http/Controllers/Api/V1/QuoteController.php`, `app/Http/Resources/QuotePresenter.php` ; écrans
+`pages/sales/{Quotes,QuoteCreatePage,QuotePage,QuoteEditor,QuoteRevisions,QuoteConvertPanel}.vue`, domaine
+`domain/billing/quote.ts`, lectures `app/services/quotes.ts`, PDF `documents/quotes/fromRevision.ts` (modèle
+`templates/financial/quote.ts`, version serveur `quote.v1`).
+
+| Route | Commande | Droit | Effet |
+|---|---|---|---|
+| `GET /quotes`, `GET /quotes/{id}` | — | `invoice.read` | liste (filtres état, dont EXPIRED calculé, et patient), détail avec révisions figées et provenance |
+| `POST /quotes` | `CreateQuoteDraft` | `invoice.create` | brouillon : patient OU prospect (`prospect_contacts`, origine MANUAL, nom et téléphone) |
+| `PATCH /quotes/{id}` | `UpdateQuoteDraft` | `invoice.create` | lignes et validité d'un brouillon ; créateur ou gérante |
+| `POST /quotes/{id}/issue` | `IssueQuote` | `invoice.create` | numéro série `QUOTE` (`TEST-DEV-AAAA-NNNNNN`), révision 1 immuable, document PENDING |
+| `POST /quotes/{id}/revisions` | `ReviseQuote` | `invoice.create` | révision N+1 avec motif, numéro inchangé, anciennes révisions et documents intacts |
+| `POST /quotes/{id}/decision` | `RecordQuoteDecision` | `invoice.create` | ACCEPTED (émis et valable) ou DECLINED ; aucune facture, aucun paiement |
+| `POST /quotes/{id}/conversions` | `ConvertQuote` | `invoice.create` | BROUILLON de facture (`invoices.quote_id`) depuis une révision choisie |
+
+Décisions :
+
+- Aucune permission « devis » n'existe au référentiel : les écritures exigent `invoice.create`, les lectures
+  `invoice.read` (gérante et caisse avec le seed). Le profil restreint `exam_fee.collect` n'établit pas de devis.
+- Les lignes passent par `DraftLines` (mêmes règles qu'un brouillon de facture) avec les droits de l'auteur ; un
+  dépassement est refusé en 422 `APPROVAL_REQUIRED_OR_EXPIRED` (pas de demande d'approbation sur un devis : la
+  gérante l'établit elle-même). À l'émission et à la conversion, les lignes sont recalculées en `DraftPolicy::trusted()`
+  (écrites sous les droits de leur auteur, comme l'émission d'une facture).
+- Révision 1 : motif enregistré « Émission du devis » (colonne obligatoire). Les révisions sont dans `quote_revisions`
+  (immuable, garde du schéma) ; `quote_lines` porte les lignes ACTUELLES. Chaque révision a son document
+  (`generated_documents`, `quote_id`, `revision_no`, source `quote:<id>`) : réimpression identique d'une ancienne
+  révision depuis son snapshot.
+- Validité obligatoire à l'émission et à la révision, au plus tôt le jour du cabinet. L'expiration n'est jamais écrite :
+  `effective_status` vaut EXPIRED à la lecture ; un devis expiré ne s'accepte ni ne se convertit, une révision le ravive.
+- Conversion : `prices_confirmed` = true obligatoire (contrat) et `price_basis` explicite (`QUOTE` : prix et remises de
+  la révision ; `CATALOG` : prix actuel sans remise, une ligne hors catalogue garde le prix du devis) ; l'écran montre
+  l'écart ligne par ligne (prix actuels relus par la recherche du catalogue) et l'audit consigne le nombre d'écarts.
+  Même clé d'idempotence : même réponse ; autre clé sur un devis converti : 409 avec `details.invoice_id` ; un
+  brouillon issu du devis puis abandonné rouvre la conversion. Pour un prospect, `patient_id` désigne le dossier qui
+  reçoit la facture et le prospect le rejoint (`prospect_contacts.patient_id`).
+- Verrous : séquence (40), dossier patient (45), devis (55, rang ajouté à `LockRank`), facture (60).
+- Préfixe `EEO_NUMBER_PREFIX_QUOTE` (défaut `TEST-DEV`) à choisir avec la gérante (Q03).
+
+À confirmer par la cliente : usage réel des devis en L1 (« activé si retenu »), mentions légales du devis, durée de
+validité habituelle (aucune n'est proposée par défaut), préfixe définitif, base de prix par défaut à la conversion.
+
+Reste : abandon d'un brouillon de devis (aucun statut ABANDONED au schéma), aperçu PDF d'un brouillon, envoi du devis
+au client (L2, messages réels interdits en développement), lien « Établir un devis » depuis la fiche patient.
+
+Tests écrits (non exécutés) : `tests/Feature/Billing/QuotesTest.php`, matrice des droits dans
+`BillingRoutesGateTest`, `tests/Unit/Billing/BillingNumbersTest.php` (série QUOTE), `tests/frontend/billing/quote.test.ts`,
+`tests/e2e/quotes.spec.ts`, fixtures `contracts/fixtures/resources/{quote,convert-quote}.*.json`.
+
+## Dépenses, mouvements de caisse et revue d'écart (L1D05)
+
+Code : `app/Domain/Cash/CashMovements.php`, `Handlers/{RecordCashMovement,SaveExpenseCategory,ReviewCashVariance}Handler.php`,
+`app/Http/Controllers/Api/V1/CashMovementController.php`, approbation `CASH_MOVEMENT` (`ApprovalKind`, `ApprovalSubject`,
+`ApprovalTargets`) ; écrans `pages/cash/{Expenses,ExpenseCategories,VarianceReview}.vue`, règles `domain/cash/movements.ts`.
+État : codé le 2026-10-23, non exécuté (vérification de fin de lot). Tests écrits : `tests/Feature/Billing/CashMovementsTest.php`,
+`tests/frontend/domain/cash-movements.test.ts`.
+
+- Natures : dépense catégorisée, retrait (versement, coffre), dépôt, correction de l'ouverture (correction historique,
+  signe libre, PAS une sortie réelle). Montant signé : entrée positive, sortie négative ; jamais un paiement (ni facture,
+  ni reçu, ni chiffre d'affaires) ; il entre dans les espèces théoriques (`CashClosing::theoretical`).
+- Session OUVERTE seulement : une session clôturée est figée (409 `CLOSED`, trigger `tr_cash_movements_insert_session`) ;
+  une sortie ne dépasse jamais les espèces théoriques (422, `details.available`).
+- Autorisation : caissière dans sa session avec l'approbation exacte de la gérante (session, nature, montant signé,
+  catégorie), consommée une fois ; gérante en exécution directe (approbation écrite décidée et consommée). Mouvement
+  immuable, audité (`cash.movement_recorded`).
+- Catégories : créées par la gérante, code unique figé, désactivation sans suppression ; aucune préconfigurée.
+- Revue d'écart : la gérante accepte ou conteste (note obligatoire) l'écart d'une session clôturée, une fois, mot de
+  passe confirmé ; fait d'audit `cash.variance_reviewed`, la clôture n'est pas réécrite.
+
+| Point | Décision / état |
+| --- | --- |
+| Mouvement depuis la caisse hors-ligne | Refusé (en ligne seulement) jusqu'à O05 vérifié. |
+| Justificatif scanné d'une dépense | Référence texte seulement (`reference`) : aucune colonne de fichier dans `cash_movements`. |
+| Export de gestion des dépenses | L1D09. |
+| À confirmer avec la cliente | Liste des catégories ; plafond éventuel d'une dépense sans approbation ; qui peut enregistrer un dépôt. |

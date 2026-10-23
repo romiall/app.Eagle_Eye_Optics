@@ -207,24 +207,32 @@
    "notes": "Livré au commit bf4e165, première revue (6 majeurs) traitée au commit 36e380b (CI run 26), seconde revue pass=false (14 majeurs, 26 mineurs) : majeurs de base traités au commit 8892e22 avec test (session expirée, compte épinglé, solde, lectures vides, accessibilité), reste reporté avec motif et tâche destinataire (tableau de local-reads.md : réauthentification B06, contrôle serveur de l'acteur, CreatePrescription C04, etc.). Vitest 853 (29 fichiers), 14 mutations ciblées tuées. CI GitHub verte : run 39702365074 sur 85717e4 (PHP, Frontend, Playwright). Aucune écriture Dexie depuis un écran ; le moteur du poste (O04) et le hors-ligne restent à faire."
   },
   "O01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/vault.md"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Coffre IndexedDB chiffré (AES-GCM, PBKDF2, compartiments), VaultDocumentStore ; module offline fermé ; écran de verrouillage non fait."
   },
   "O02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/vault.md"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Enrôlement des postes, grants signés ES256/JCS (firebase/php-jwt), révocation, rotation de clé ; vérification locale des grants."
   },
   "O03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/vault.md"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : PrepareDevice/ReleaseDevice (plages sans chevauchement, propriété d'émission, quotas), ressources du poste."
   },
   "O04": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/vault.md"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : LocalCommandBus (commit local atomique, CAS, idempotence), journal commun append-only, moteur local branché derrière le module offline fermé."
   },
   "P01": {
    "status": "IN_REVIEW",
@@ -310,9 +318,11 @@
    "notes": "Encaissement acompte/solde, reçu unique par encaissement, BilledExamFeeControl activable (EEO_EXAM_FEE_CONTROL=off par défaut). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "O05": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/vault.md"
+   ],
+   "notes": "Codage en cours le 2026-10-23 (push, pull, ACK, conflits durables)."
   },
   "D01": {
    "status": "IN_REVIEW",
@@ -322,7 +332,7 @@
     "tools/dev/phase-check.sh",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Moteur PDF local jsPDF (modèle → plan → PDF/SVG reproductible), reçu, facture, devis, avoir, remboursement, relevé de caisse ; DocumentStore VOLATIL (coffre O01–O05 à brancher) ; polices standard (écart fichier 11 documenté). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Moteur PDF local jsPDF (modèle → plan → PDF/SVG reproductible), reçu, facture, devis, avoir, remboursement, relevé de caisse ; DocumentStore VOLATIL (coffre O01–O05 à brancher) ; polices standard (écart fichier 11 documenté). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait). Lot 2 (codé, non exécuté) : dépôt des originaux sur le serveur (StoreDocumentContent, stockage privé, READY immuable) et téléchargement sous Policy."
   },
   "G1": {
    "status": "NOT_STARTED",
@@ -344,7 +354,7 @@
     "docs/implementation/billing.md",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Serveur codé et vérifié (contre-écriture, avoir) ; ÉCRANS et modèles PDF de l'avoir à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écrans de contre-écriture et d'avoir, PDF de l'avoir, lectures des pièces liées (GET /credit-notes/{id}) ; serveur vérifié au lot 1."
   },
   "B08": {
    "status": "IN_PROGRESS",
@@ -352,17 +362,17 @@
     "docs/implementation/billing.md",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Serveur codé et vérifié (remboursement) ; ÉCRANS à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écran de remboursement, PDF du remboursement (GET /refunds/{id}) ; serveur vérifié au lot 1."
   },
   "I01": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Codage en cours le 2026-10-23 (remises sous réserve et quota)."
   },
   "I02": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Codage en cours le 2026-10-23 (retours physiques, sorties exceptionnelles)."
   },
   "O06": {
    "status": "NOT_STARTED",
@@ -386,9 +396,10 @@
     "resources/frontend/pages/today/",
     "tests/frontend/visits/",
     "tests/e2e/today.spec.ts",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39762595087"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39762595087",
+    "docs/implementation/patients.md"
    ],
-   "notes": "Arrivée (RegisterVisit) et file du jour livrées en ligne, premier jalon SANS contrôle du paiement de l'examen (statuts d'attente jamais écrits, marqueur « non contrôlé »). Reste : démarrage de l'examen (avec C01), annulation d'une visite (commande absente du contrat), contrôle examen payé ou dérogation (B04, B06), hors-ligne. Mise à jour 2026-10-22 : démarrage de l'examen livré avec C01 ; contrôle examen (B04/B06) codé, non exécuté, désactivé par défaut."
+   "notes": "Arrivée (RegisterVisit) et file du jour livrées en ligne, premier jalon SANS contrôle du paiement de l'examen (statuts d'attente jamais écrits, marqueur « non contrôlé »). Reste : démarrage de l'examen (avec C01), annulation d'une visite (commande absente du contrat), contrôle examen payé ou dérogation (B04, B06), hors-ligne. Mise à jour 2026-10-22 : démarrage de l'examen livré avec C01 ; contrôle examen (B04/B06) codé, non exécuté, désactivé par défaut. Lot 2 : annulation d'une visite (CancelVisit), codée non exécutée."
   },
   "C01": {
    "status": "IN_REVIEW",
@@ -438,7 +449,7 @@
     "tools/dev/phase-check.sh",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Prescription optique versionnée et validée (generated_documents PENDING, optical_prescription.v1), rubrique MEDICATIONS, lettre d'orientation ; impression locale. Transcription d'ordonnance externe sans écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Prescription optique versionnée et validée (generated_documents PENDING, optical_prescription.v1), rubrique MEDICATIONS, lettre d'orientation ; impression locale. Transcription d'ordonnance externe sans écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait). Lot 2 : ordonnances externes à l'écran (onglet Prescriptions du patient), codé non exécuté."
   },
   "P04": {
    "status": "NOT_STARTED",
@@ -446,14 +457,14 @@
    "notes": ""
   },
   "S01": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : agenda interne (ressources, horaires, exceptions, prestations, rendez-vous, arrivée depuis un rendez-vous), module agenda."
   },
   "S02": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : contrôles recommandés, tâches de contact internes (une par source et échéance), aucun envoi externe (L2)."
   },
   "R01": {
    "status": "IN_PROGRESS",
@@ -467,24 +478,34 @@
    "status": "IN_PROGRESS",
    "evidence": [
     "docs/implementation/patients.md",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
+    "docs/implementation/reports.md"
    ],
-   "notes": "Activité du patient vérifiée ; statistiques DP non commencées. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Statistiques DP : activité (statistics.activity) et examens (statistics.clinical) séparés, module reports ; activité du patient vérifiée au lot 1."
   },
   "X01": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/billing.md"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : import contrôlé du catalogue (aperçu sans écriture, tout ou rien, ImportCatalog) et stock d'ouverture par fichier (remplit le formulaire RegisterOpeningStock). Reste : créances papier LEGACY_BALANCE (justificatif scanné, dépôt de fichiers)."
   },
   "X02": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/operations.md",
+    "tools/deploy/backup.sh"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : exports contrôlés (RequestExport réauthentifié, archive ZIP privée par la tâche planifiée eeo:exports:process, dictionnaire, manifeste, 48 h, aucun secret) ; sauvegarde quotidienne par tools/deploy/backup.sh (Fork 1). Reste : backup_runs, copie chiffrée des exports."
   },
   "X03": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/operations.md",
+    "docs/runbooks/server-restore.md",
+    "docs/evidence/restore-rehearsal.md"
+   ],
+   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : sauvegarde chiffrée et journal backup_runs (backup.sh, eeo:backup:record), restauration sur base jetable et contrôles (restore-check.sh, eeo:restore:verify : intégrité, séquences, numéros, audit, fichiers, postes à réconcilier, perte et durée), restore_tests via --record. Reste : exercice réel sur l'hébergement (RTO/RPO constatés) et vérification de fin de lot."
   },
   "U01": {
    "status": "NOT_STARTED",
@@ -511,19 +532,19 @@
    "notes": ""
   },
   "L1D01": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "En codage (fork J) le 2026-10-23."
   },
   "L1D02": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "En codage (fork J) le 2026-10-23."
   },
   "L1D03": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "En codage (fork J) le 2026-10-23."
   },
   "L1D04": {
    "status": "NOT_STARTED",
@@ -531,9 +552,11 @@
    "notes": ""
   },
   "L1D05": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/billing.md"
+   ],
+   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : mouvements de caisse hors vente (dépense catégorisée, dépôt, retrait, correction d'ouverture) avec approbation exacte CASH_MOVEMENT ou exécution directe de la gérante, refus après clôture, catégories, revue d'écart auditée. Vérification de fin de lot."
   },
   "L1D06": {
    "status": "NOT_STARTED",
@@ -541,14 +564,16 @@
    "notes": ""
   },
   "L1D07": {
-   "status": "NOT_STARTED",
-   "evidence": [],
-   "notes": ""
+   "status": "IN_PROGRESS",
+   "evidence": [
+    "docs/implementation/billing.md"
+   ],
+   "notes": "Codé le 2026-10-23 (fork I), NON EXÉCUTÉ : devis versionnés, émission numérotée, révisions immuables, conversion idempotente en brouillon de facture, hors CA. Non codé : abandon d'un brouillon (pas de statut). Vérification de fin de lot."
   },
   "L1D08": {
-   "status": "NOT_STARTED",
+   "status": "IN_PROGRESS",
    "evidence": [],
-   "notes": ""
+   "notes": "Codé le 2026-10-23, non exécuté : fusion manuelle (aperçu, garde-fous, aucune réécriture, activité réunie) et comparaison de deux examens (pages/clinical/Compare.vue, visitCompare.ts). Reste : liens d'entrée vers la comparaison après la passe visuelle ; vérification de fin de lot."
   },
   "L1D09": {
    "status": "NOT_STARTED",
