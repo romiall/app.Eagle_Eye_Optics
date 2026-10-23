@@ -91,6 +91,9 @@ final class CashDayReport
             $issuedRow = DB::table('invoices')
                 ->where('clinic_id', $clinicId)
                 ->where('status', 'ISSUED')
+                // Une reprise de créance papier (LEGACY_BALANCE) n'est pas une vente du jour : son reste dû compte dans
+                // les restes à encaisser, jamais dans le chiffre d'affaires émis.
+                ->where('origin', 'NATIVE')
                 ->where('issued_at', '>=', $day->start)
                 ->where('issued_at', '<', $day->end)
                 ->selectRaw('COUNT(*) AS invoices, COALESCE(SUM(total_gross), 0) AS total')

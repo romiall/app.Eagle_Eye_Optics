@@ -31,6 +31,14 @@ final class PendingDocuments
     /** Reçu de remboursement (B08). */
     public const REFUND_TEMPLATE = 'refund.v1';
 
+    /** Devis (L1D07) : un document par révision figée (révision 1 à l'émission, puis une par correction). */
+    public const QUOTE_TEMPLATE = 'quote.v1';
+
+    public static function quoteSourceKey(string $quoteId): string
+    {
+        return 'quote:'.$quoteId;
+    }
+
     public static function invoiceSourceKey(string $invoiceId): string
     {
         return 'invoice:'.$invoiceId;
@@ -77,9 +85,17 @@ final class PendingDocuments
     }
 
     /**
+     * Document d'UNE révision de devis : la révision antérieure garde le sien, réimprimable à l'identique.
+     */
+    public static function forQuoteRevision(CommandContext $context, string $documentId, string $quoteId, int $revisionNo, CarbonImmutable $at): void
+    {
+        self::insert($context, $documentId, 'QUOTE', ['quote_id' => $quoteId], self::quoteSourceKey($quoteId), self::QUOTE_TEMPLATE, $at, $revisionNo);
+    }
+
+    /**
      * @param  array<string, string>  $source  la colonne de la pièce (une seule : ck_generated_documents_01)
      */
-    private static function insert(CommandContext $context, string $documentId, string $type, array $source, string $sourceKey, string $template, CarbonImmutable $at): void
+    private static function insert(CommandContext $context, string $documentId, string $type, array $source, string $sourceKey, string $template, CarbonImmutable $at, int $revisionNo = 1): void
     {
         $now = $at->utc()->format('Y-m-d H:i:s.u');
 
@@ -88,7 +104,7 @@ final class PendingDocuments
             'clinic_id' => $context->clinicId,
             'document_type' => $type,
             'source_key' => $sourceKey,
-            'revision_no' => 1,
+            'revision_no' => $revisionNo,
             'template_version' => $template,
             'file_id' => null,
             'sha256' => null,

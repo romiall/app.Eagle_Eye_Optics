@@ -12,7 +12,7 @@ use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Access\Approvals\ExactApprovals;
-use App\Domain\Billing\Guards\CentralOnly;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\InvoiceDrafts;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Rules\DraftLines;
@@ -35,6 +35,8 @@ use Illuminate\Support\Facades\DB;
  * (`APPROVAL_REQUIRED_OR_EXPIRED`, champ par champ), jamais accepté puis corrigé. Le patient et la visite sont
  * contrôlés : même cabinet, fiche ni archivée ni fusionnée, visite du même patient.
  *
+ * Commande d'un poste synchronisée (O05) : même action, le brouillon garde son poste d'origine (`source_device_id`).
+ *
  * Verrous (contrat 23) : cabinet, idempotence, dossier patient (45), visite (46), facture (60).
  */
 final class CreateInvoiceDraftHandler implements CommandHandler
@@ -50,7 +52,7 @@ final class CreateInvoiceDraftHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        CentralOnly::assert($context, 'La création d\'un brouillon de facture');
+        AuthoredSource::assert($context, 'La création d\'un brouillon de facture');
 
         $payload = $command->payload;
         $invoiceId = (string) $payload['invoice_id'];
@@ -133,7 +135,7 @@ final class CreateInvoiceDraftHandler implements CommandHandler
             'legacy_opening_balance' => null,
             'source_invoice_id' => null,
             'created_by' => $context->actorId,
-            'source_device_id' => null,
+            'source_device_id' => $context->deviceId,
             'version' => 1,
             'created_at' => $now,
             'updated_at' => $now,

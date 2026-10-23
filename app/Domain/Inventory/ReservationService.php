@@ -33,7 +33,8 @@ use stdClass;
  * Atomique : toutes les lignes sont planifiées AVANT la première écriture ; la dernière vente impossible d'un
  * article refuse la facture entière, sans réserve partielle. Idempotente : une ligne déjà réservée n'est jamais
  * réservée deux fois ; sa réserve est rendue telle quelle (même quantité, sinon défaut de programmation).
- * Aucune quantité n'est jamais décrémentée du physique ici : seule la remise sort l'article.
+ * La réserve ne décrémente jamais le physique : seule la remise sort l'article (`consumeForDelivery`, I01), en
+ * consommant la réserve sans jamais soustraire deux fois la même quantité.
  *
  * Aucun appel externe, aucune transaction propre.
  */
@@ -311,6 +312,190 @@ final class ReservationService
         $this->moveReserved($clinicId, 'stock_lots', $lots, $lotDelta, -1, $now);
 
         return count($rows);
+    }
+
+    /**
+     * Consomme des réserves à la REMISE au patient (ConfirmDelivery, I01) : la quantité remise sort du physique et de la
+     * réserve dans la même transaction, jamais deux fois du disponible.
+     *
+     *  - réserve CENTRALE : `on_hand` et `reserved` de la position et du lot baissent de la quantité remise (le
+     *    disponible central ne bouge pas : la quantité en était déjà retirée par la réserve) ;
+     *  - réserve SOUS QUOTA d'un poste (quota ACTIVE ou CLOSING) : `on_hand` et `offline_allocated` de la position et
+     *    du lot baissent, `consumed_quantity` du quota monte ; la réserve était dans le quota, déjà hors du central ;
+     *  - réserve d'un quota CLOS (reliquat déjà rendu au central à la clôture) : la sortie est prise sur le disponible
+     *    central contrôlé, `on_hand` seul baisse (jamais au-delà du disponible).
+     *
+     * Chaque réserve garde sa part ouverte ≥ 0 (`consumed_quantity` monte ; CONSUMED quand consommé + libéré = réservé).
+     * Lot vendable et non expiré au jour LOCAL de la remise (`LotRules::assertDeliverable`). Tout est planifié et
+     * contrôlé AVANT la première écriture ; un refus ne laisse rien. Verrous : positions (80), lots (81), quotas (82),
+     * par identifiant trié ; les réserves elles-mêmes sont relues sous le verrou de la facture (rang 60) par l'appelant.
+     *
+     * @param  list<array{reservation: stdClass, quantity: FixedDecimal, invoice_line_id: string}>  $allocations
+     * @return array{positions: array<string, int>, lots: array<string, int>, quotas: array<string, int>, modes: list<string>} versions écrites, mode de chaque allocation (CENTRAL, QUOTA, CLOSED_QUOTA)
+     *
+     * @throws ReservationRefused
+     */
+    public function consumeForDelivery(string $clinicId, TransactionLocks $locks, CivilDate $localDate, array $allocations, CarbonImmutable $at): array
+    {
+        $empty = ['positions' => [], 'lots' => [], 'quotas' => [], 'modes' => []];
+        if ($allocations === []) {
+            return $empty;
+        }
+        $now = $at->utc()->format('Y-m-d H:i:s.u');
+
+        $positionIds = [];
+        $lotIds = [];
+        $quotaIds = [];
+        foreach ($allocations as $allocation) {
+            $reservation = $allocation['reservation'];
+            $positionIds[] = (string) $reservation->stock_position_id;
+            if ($reservation->stock_lot_id !== null) {
+                $lotIds[] = (string) $reservation->stock_lot_id;
+            }
+            if ($reservation->device_allocation_id !== null) {
+                $quotaIds[] = (string) $reservation->device_allocation_id;
+            }
+        }
+        $positions = $locks->stockPositions($positionIds);
+        $lots = $locks->stockLots($lotIds);
+        $quotas = $locks->stockQuotas($quotaIds);
+
+        // Compteurs courants (relus sous verrou), modifiés au fil de la planification.
+        $counters = ['stock_positions' => [], 'stock_lots' => []];
+        foreach (['stock_positions' => $positions, 'stock_lots' => $lots] as $table => $rows) {
+            foreach ($rows as $id => $row) {
+                $counters[$table][(string) $id] = [
+                    'on_hand' => Quantity::of((string) $row->on_hand),
+                    'reserved' => Quantity::of((string) $row->reserved),
+                    'offline_allocated' => Quantity::of((string) $row->offline_allocated),
+                ];
+            }
+        }
+        $quotaConsumed = [];
+        foreach ($quotas as $id => $quota) {
+            $quotaConsumed[(string) $id] = Quantity::of((string) $quota->consumed_quantity);
+        }
+        $reservationConsumed = [];
+        $modes = [];
+
+        foreach ($allocations as $allocation) {
+            $reservation = $allocation['reservation'];
+            $quantity = $allocation['quantity'];
+            $reservationId = (string) $reservation->id;
+            $positionId = (string) $reservation->stock_position_id;
+            $lotId = $reservation->stock_lot_id === null ? null : (string) $reservation->stock_lot_id;
+            try {
+                if ((string) $reservation->status !== 'ACTIVE') {
+                    throw new RuleViolation(RuleViolation::STOCK_UNAVAILABLE, 'delivery.reservation_closed', 'reservation_id', 'Cette réserve est déjà consommée ou libérée.', ['available' => '0.000']);
+                }
+                $consumed = $reservationConsumed[$reservationId] ?? Quantity::of((string) $reservation->consumed_quantity);
+                $open = Quantity::of((string) $reservation->quantity)->minus($consumed)->minus(Quantity::of((string) $reservation->released_quantity));
+                StockAvailability::assertCanTake($quantity, $open, 'delivery.reservation_insufficient');
+                if (! isset($counters['stock_positions'][$positionId])) {
+                    throw RuleViolation::invalid('stock_position_id', 'stock.position_unknown', 'Position de stock introuvable dans ce cabinet.');
+                }
+                if ($lotId !== null) {
+                    $lot = $lots[$lotId] ?? null;
+                    if ($lot === null) {
+                        throw RuleViolation::invalid('stock_lot_id', 'stock.lot_unknown', 'Lot introuvable dans ce cabinet.');
+                    }
+                    LotRules::assertDeliverable((string) $lot->status, $lot->expires_on === null ? null : CivilDate::fromString((string) $lot->expires_on), $localDate);
+                }
+
+                $quotaId = $reservation->device_allocation_id === null ? null : (string) $reservation->device_allocation_id;
+                $quota = $quotaId === null ? null : ($quotas[$quotaId] ?? null);
+                $mode = match (true) {
+                    $quotaId === null => 'CENTRAL',
+                    $quota !== null && in_array((string) $quota->status, ['ACTIVE', 'CLOSING'], true) => 'QUOTA',
+                    default => 'CLOSED_QUOTA',
+                };
+
+                $targets = [['stock_positions', $positionId]];
+                if ($lotId !== null) {
+                    $targets[] = ['stock_lots', $lotId];
+                }
+                foreach ($targets as [$table, $id]) {
+                    $row = $counters[$table][$id];
+                    $field = $table === 'stock_positions' ? 'stock_position_id' : 'stock_lot_id';
+                    if ($mode === 'CLOSED_QUOTA') {
+                        StockAvailability::assertCanTake($quantity, StockAvailability::central($row['on_hand'], $row['reserved'], $row['offline_allocated']));
+                    }
+                    $row['on_hand'] = Quantity::bounded($row['on_hand']->units - $quantity->units, 'on_hand');
+                    if ($mode === 'CENTRAL') {
+                        $row['reserved'] = Quantity::bounded($row['reserved']->units - $quantity->units, 'reserved');
+                    } elseif ($mode === 'QUOTA') {
+                        $row['offline_allocated'] = Quantity::bounded($row['offline_allocated']->units - $quantity->units, 'offline_allocated');
+                    }
+                    if ($row['on_hand']->compare($row['reserved']->plus($row['offline_allocated'])) < 0) {
+                        throw new RuleViolation(RuleViolation::STOCK_UNAVAILABLE, 'stock.physical_below_commitments', $field, 'La sortie rendrait le stock physique inférieur aux réserves et quotas.', ['available' => '0.000']);
+                    }
+                    $counters[$table][$id] = $row;
+                }
+                if ($mode === 'QUOTA') {
+                    StockAvailability::assertCanTake($quantity, StockAvailability::remainingQuota(
+                        Quantity::of((string) $quota->allocated_quantity),
+                        $quotaConsumed[$quotaId],
+                        Quantity::of((string) $quota->returned_quantity),
+                    ), 'stock.quota_exceeded');
+                    $quotaConsumed[$quotaId] = Quantity::bounded($quotaConsumed[$quotaId]->units + $quantity->units, 'consumed_quantity');
+                }
+                $reservationConsumed[$reservationId] = $consumed->plus($quantity);
+                $modes[] = $mode;
+            } catch (RuleViolation $violation) {
+                throw new ReservationRefused($violation, $allocation['invoice_line_id']);
+            }
+        }
+
+        // Écritures, une fois TOUT contrôlé : réserves, puis positions, lots et quotas.
+        $byId = [];
+        foreach ($allocations as $allocation) {
+            $byId[(string) $allocation['reservation']->id] = $allocation['reservation'];
+        }
+        foreach ($reservationConsumed as $reservationId => $consumed) {
+            $reservation = $byId[$reservationId];
+            $settled = $consumed->plus(Quantity::of((string) $reservation->released_quantity))->compare(Quantity::of((string) $reservation->quantity)) >= 0;
+            DB::table('stock_reservations')->where('clinic_id', $clinicId)->where('id', $reservationId)->update([
+                'consumed_quantity' => $consumed->canonical(),
+                'status' => $settled ? 'CONSUMED' : 'ACTIVE',
+                'version' => (int) $reservation->version + 1,
+                'updated_at' => $now,
+            ]);
+        }
+
+        $versions = $empty;
+        foreach (['stock_positions' => [$positions, 'positions'], 'stock_lots' => [$lots, 'lots']] as $table => [$rows, $key]) {
+            foreach ($counters[$table] as $id => $row) {
+                $original = $rows[$id];
+                if ($row['on_hand']->compare(Quantity::of((string) $original->on_hand)) === 0) {
+                    continue;
+                }
+                $version = (int) $original->version + 1;
+                DB::table($table)->where('clinic_id', $clinicId)->where('id', $id)->update([
+                    'on_hand' => $row['on_hand']->canonical(),
+                    'reserved' => $row['reserved']->canonical(),
+                    'offline_allocated' => $row['offline_allocated']->canonical(),
+                    'version' => $version,
+                    'updated_at' => $now,
+                ]);
+                $versions[$key][$id] = $version;
+            }
+        }
+        foreach ($quotaConsumed as $quotaId => $consumed) {
+            $quota = $quotas[$quotaId];
+            if ($consumed->compare(Quantity::of((string) $quota->consumed_quantity)) === 0) {
+                continue;
+            }
+            $version = (int) $quota->version + 1;
+            DB::table('device_stock_allocations')->where('clinic_id', $clinicId)->where('id', $quotaId)->update([
+                'consumed_quantity' => $consumed->canonical(),
+                'version' => $version,
+                'updated_at' => $now,
+            ]);
+            $versions['quotas'][$quotaId] = $version;
+        }
+        $versions['modes'] = $modes;
+
+        return $versions;
     }
 
     /**

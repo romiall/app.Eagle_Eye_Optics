@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Application\Command;
 use App\Domain\Inventory\StockAvailabilityReader;
 use App\Domain\Inventory\StockLocations;
+use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\CommandController;
 use App\Http\Resources\StockPresenter;
 use App\Models\User;
@@ -14,9 +15,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Stock (I00) : disponibilités par position et lot, et stock initial validé par la gérante. Module `stock`. La
- * réserve de stock n'a PAS de route : c'est un service interne de l'émission d'une facture. Le stock initial passe par
- * le chemin central de commandes (version de la requête = aucune, clé d'idempotence obligatoire).
+ * Stock (I00, I02) : disponibilités par position et lot, stock initial validé par la gérante, casse et ajustement
+ * approuvés. Module `stock`. La réserve de stock n'a PAS de route : c'est un service interne de l'émission d'une
+ * facture, consommé par la remise. Les écritures passent par le chemin central de commandes (version de la requête =
+ * aucune, clé d'idempotence obligatoire).
  */
 final class StockController extends CommandController
 {
@@ -61,6 +63,23 @@ final class StockController extends CommandController
             ->get();
 
         return new JsonResponse(['data' => ['movements' => array_map(static fn (\stdClass $row): array => StockPresenter::movement($row), array_values($rows->all()))]], 201);
+    }
+
+    /**
+     * Casse ou ajustement approuvé (I02) : `POST /stock/movements`, réponse durable de la commande (`StockMovement`),
+     * rejouée telle quelle par la même clé d'idempotence.
+     */
+    public function movement(Request $request): JsonResponse
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        if (! $present || $expected !== null) {
+            throw BusinessError::validation(['expected_version' => ['La version attendue vaut null pour un mouvement (champ obligatoire).']]);
+        }
+        $movementId = is_string($payload['movement_id'] ?? null) ? $payload['movement_id'] : null;
+
+        $result = $this->dispatchCommand($request, new Command('RegisterStockMovement', $payload, $movementId, null));
+
+        return new JsonResponse(['data' => $result->result], 201);
     }
 
     private function actor(Request $request): User

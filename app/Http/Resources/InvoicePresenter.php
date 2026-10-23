@@ -20,7 +20,7 @@ use stdClass;
 final class InvoicePresenter
 {
     /**
-     * @param  array{invoice: stdClass, lines: list<stdClass>, payments: list<stdClass>, credit_notes: list<stdClass>, refunds: list<stdClass>, owner: ?stdClass, document: ?stdClass, ledger: ?LedgerBalance}  $detail
+     * @param  array{invoice: stdClass, lines: list<stdClass>, payments: list<stdClass>, reversals: list<stdClass>, credit_notes: list<stdClass>, refunds: list<stdClass>, owner: ?stdClass, document: ?stdClass, ledger: ?LedgerBalance}  $detail
      * @return array<string, mixed>
      */
     public static function invoice(array $detail): array
@@ -32,6 +32,8 @@ final class InvoicePresenter
             'id' => $invoice->id,
             'patient_id' => $invoice->patient_id,
             'visit_id' => $invoice->visit_id,
+            // Provenance (L1D07) : le devis dont ce brouillon est né, null sinon.
+            'quote_id' => $invoice->quote_id ?? null,
             'number' => $invoice->number,
             'status' => $invoice->status,
             'issued_at' => self::nullableInstant($invoice->issued_at),
@@ -48,12 +50,25 @@ final class InvoicePresenter
             'balance' => Settlement::balanceArray((string) $invoice->status, (int) $invoice->total_gross, $ledger),
             'lines' => array_map(self::line(...), $detail['lines']),
             'payments' => array_map(self::payment(...), $detail['payments']),
+            // Contre-écritures (B07) : pièces liées, le paiement et son reçu restent tels qu'émis.
+            'reversals' => array_map(static fn (stdClass $reversal): array => [
+                'id' => $reversal->id,
+                'payment_id' => $reversal->payment_id,
+                'amount' => (int) $reversal->amount,
+                'reason' => $reversal->reason,
+                'recorded_at' => self::instant((string) $reversal->recorded_at),
+                'recorded_by' => $reversal->created_by,
+                'recorded_by_name' => isset($reversal->recorded_by_name) && is_string($reversal->recorded_by_name) ? $reversal->recorded_by_name : null,
+            ], $detail['reversals']),
             'credit_notes' => array_map(static fn (stdClass $note): array => [
                 'id' => $note->id,
                 'number' => $note->number,
                 'status' => $note->status,
                 'amount_gross' => (int) $note->amount_gross,
                 'issued_at' => self::nullableInstant($note->issued_at),
+                'reason' => $note->reason,
+                // Part de l'avoir déjà remboursée (B08) : le reste est remboursable, au plus le crédit de la facture.
+                'refunded_amount' => (int) ($note->refunded_amount ?? 0),
             ], $detail['credit_notes']),
             'refunds' => array_map(static fn (stdClass $refund): array => [
                 'id' => $refund->id,
@@ -61,6 +76,7 @@ final class InvoicePresenter
                 'amount' => (int) $refund->amount,
                 'method' => $refund->method,
                 'effective_at' => self::instant((string) $refund->effective_at),
+                'credit_note_id' => $refund->credit_note_id,
             ], $detail['refunds']),
             'write_owner' => $detail['owner'] === null ? null : [
                 'device_id' => $detail['owner']->device_id,
@@ -118,6 +134,72 @@ final class InvoicePresenter
             'issued_by' => $receipt->issued_by,
             'snapshot' => self::snapshot($receipt->snapshot),
             'document' => $document === null ? null : self::documentState($document),
+        ];
+    }
+
+    /**
+     * Avoir (`CreditNote`, B07) : pièce liée à la facture, lignes d'origine créditées, snapshot figé à l'émission
+     * (source de son document) et état du document. Le nom de l'émetteur est son nom ACTUEL.
+     *
+     * @param  array{credit_note: stdClass, lines: list<stdClass>, document: ?stdClass}  $detail
+     * @return array<string, mixed>
+     */
+    public static function creditNote(array $detail): array
+    {
+        $note = $detail['credit_note'];
+
+        return [
+            'id' => $note->id,
+            'invoice_id' => $note->invoice_id,
+            'number' => $note->number,
+            'status' => $note->status,
+            'amount_gross' => (int) $note->amount_gross,
+            'reason' => $note->reason,
+            'approval_id' => $note->approval_id,
+            'issued_at' => self::nullableInstant($note->issued_at),
+            'issued_by' => $note->issued_by,
+            'issued_by_name' => isset($note->issued_by_name) && is_string($note->issued_by_name) ? $note->issued_by_name : null,
+            'refunded_amount' => (int) ($note->refunded_amount ?? 0),
+            'lines' => array_map(static fn (stdClass $line): array => [
+                'id' => $line->id,
+                'invoice_line_id' => $line->invoice_line_id,
+                'description_snapshot' => $line->description_snapshot,
+                'quantity' => $line->quantity === null ? null : (string) $line->quantity,
+                'amount_gross' => (int) $line->amount_gross,
+                'tax_amount' => $line->tax_amount === null ? null : (int) $line->tax_amount,
+                'reason' => $line->reason,
+            ], $detail['lines']),
+            'snapshot' => self::snapshot($note->snapshot),
+            'document' => $detail['document'] === null ? null : self::documentState($detail['document']),
+        ];
+    }
+
+    /**
+     * Remboursement (`Refund`, B08) : sortie d'argent liée à un avoir, snapshot figé (source de son document) et état
+     * du document. Le nom de l'auteur est son nom ACTUEL.
+     *
+     * @param  array{refund: stdClass, document: ?stdClass}  $detail
+     * @return array<string, mixed>
+     */
+    public static function refund(array $detail): array
+    {
+        $refund = $detail['refund'];
+
+        return [
+            'id' => $refund->id,
+            'invoice_id' => $refund->invoice_id,
+            'credit_note_id' => $refund->credit_note_id,
+            'number' => $refund->number,
+            'amount' => (int) $refund->amount,
+            'method' => $refund->method,
+            'reference' => $refund->reference,
+            'approval_id' => $refund->approval_id,
+            'effective_at' => self::instant((string) $refund->effective_at),
+            'cash_session_id' => $refund->cash_session_id,
+            'created_by' => $refund->created_by,
+            'created_by_name' => isset($refund->created_by_name) && is_string($refund->created_by_name) ? $refund->created_by_name : null,
+            'snapshot' => self::snapshot($refund->snapshot),
+            'document' => $detail['document'] === null ? null : self::documentState($detail['document']),
         ];
     }
 

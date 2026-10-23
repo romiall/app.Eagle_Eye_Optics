@@ -323,24 +323,30 @@ final class CashSessionTest extends TestCase
     // Chemin central
     // ------------------------------------------------------------------------------------------------------------
 
-    public function test_une_source_hors_ligne_est_refusee(): void
+    /**
+     * L'ouverture est ouverte aux postes synchronisés (O05) : une tâche du serveur, sans caissière, est refusée avant toute
+     * lecture ; la clôture reste réservée à la route directe, donc un poste est refusé aussi.
+     */
+    public function test_une_source_sans_auteur_ou_hors_ligne_est_refusee(): void
     {
         $session = $this->openedSession($this->cashier);
+        $sessions = DB::table('cash_sessions')->count();
         $job = CommandContext::job($this->clinicId, 'test', 'corr-test', CarbonImmutable::now('UTC'));
 
         $attempts = [
-            [OpenCashSessionHandler::class, new Command('OpenCashSession', ['cash_session_id' => Ulid::generate(), 'cash_register_id' => $this->registerId, 'opening_amount' => 0, 'opened_at' => self::NOW], null)],
-            [CloseCashSessionHandler::class, new Command('CloseCashSession', ['cash_session_id' => $session, 'closed_at' => self::NOW, 'counted_amount' => 0, 'expected_amount' => 0, 'variance' => 0, 'variance_reason' => null], $session)],
+            [OpenCashSessionHandler::class, new Command('OpenCashSession', ['cash_session_id' => Ulid::generate(), 'cash_register_id' => $this->registerId, 'opening_amount' => 0, 'opened_at' => self::NOW], null), 'auteur identifié'],
+            [CloseCashSessionHandler::class, new Command('CloseCashSession', ['cash_session_id' => $session, 'closed_at' => self::NOW, 'counted_amount' => 0, 'expected_amount' => 0, 'variance' => 0, 'variance_reason' => null], $session), 'hors-ligne'],
         ];
-        foreach ($attempts as [$handler, $command]) {
+        foreach ($attempts as [$handler, $command, $fragment]) {
             try {
                 $this->app->make($handler)->handle($command, $job, new TransactionLocks($this->clinicId), null);
-                $this->fail('Une source autre que la route directe devait être refusée.');
+                $this->fail('Une source autre que la route directe ou un poste devait être refusée.');
             } catch (BusinessError $error) {
                 $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
-                $this->assertStringContainsString('hors-ligne', $error->getMessage());
+                $this->assertStringContainsString($fragment, $error->getMessage());
             }
         }
+        $this->assertSame($sessions, DB::table('cash_sessions')->count());
         $this->assertNull(DB::table('cash_sessions')->where('id', $session)->value('closed_at'));
     }
 

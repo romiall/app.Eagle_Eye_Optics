@@ -16,7 +16,7 @@ use App\Domain\Billing\Catalog\CatalogSnapshot;
 use App\Domain\Billing\Catalog\TaxRegime;
 use App\Domain\Billing\Documents\PendingDocuments;
 use App\Domain\Billing\ExamFeeScope;
-use App\Domain\Billing\Guards\CentralOnly;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\InvoiceDrafts;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Numbering\BillingNumbers;
@@ -32,8 +32,12 @@ use App\Domain\Inventory\ReservationRequest;
 use App\Domain\Inventory\ReservationService;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
+use App\Domain\Shared\CommandSource;
+use App\Domain\Shared\DeviceNumbers;
 use App\Domain\Shared\RuleViolation;
+use App\Domain\Shared\ValueObjects\FixedDecimal;
 use App\Domain\Shared\ValueObjects\Instant;
+use App\Domain\Shared\ValueObjects\Quantity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +55,11 @@ use Illuminate\Support\Facades\DB;
  * des projections des faits financiers qui suivront, jamais des colonnes de cette ligne.
  *
  * Route directe : le serveur attribue le numéro central, choisit positions et lots de la réserve, et n'attribue aucun
- * propriétaire de facture (aucun poste n'écrit cette facture). `total_gross` du client est une valeur À VÉRIFIER :
+ * propriétaire de facture (aucun poste n'écrit cette facture). Commande d'un poste synchronisée (O05 ; contrat 23,
+ * « Création locale de facture ») : le numéro est celui de la plage du poste, vérifié puis enregistré tel quel
+ * (`DeviceNumbers`) ; la propriété d'écriture du poste est importée (époque suivante, initialement 1) dans la même
+ * transaction ; les réserves sont celles que le poste a prises SOUS ses quotas, contrôlées ligne par ligne
+ * (`reserveUnderQuota`) ; la date de la pièce est l'instant où le poste l'a émise. `total_gross` du client est une valeur À VÉRIFIER :
  * le serveur recalcule et refuse l'écart. `issued_at` du client doit être plausible (pas dans le futur au-delà de la
  * tolérance d'horloge) ; la date de la pièce est celle du serveur, relue APRÈS le verrou du cabinet (l'année du
  * numéro est celle de l'émission, au fuseau du cabinet).
@@ -79,22 +87,34 @@ final class IssueInvoiceHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        CentralOnly::assert($context, 'L\'émission d\'une facture');
-
+        AuthoredSource::assert($context, 'L\'émission d\'une facture');
+        $sync = $context->source === CommandSource::Sync;
         $payload = $command->payload;
         $invoiceId = (string) $payload['invoice_id'];
         $usageId = (string) $payload['number_usage_id'];
         $documentId = (string) $payload['document_id'];
         $at = CarbonImmutable::now('UTC');
+        // Instant de la pièce : celui du serveur, ou celui où le poste a émis la facture (commande synchronisée).
+        $pieceAt = $context->pieceInstant($at);
         $clinic = $locks->clinic();
         $timezone = (string) $clinic->timezone;
 
         $errors = new FieldErrors;
-        if (($payload['write_owner_id'] ?? null) !== null) {
-            $errors->add('write_owner_id', 'Par la route directe, aucun poste ne détient la facture : laissez ce champ vide.');
-        }
-        if (($payload['reservations'] ?? []) !== []) {
-            $errors->add('reservations', 'Par la route directe, le serveur choisit les positions et les lots : laissez cette liste vide.');
+        $ownerId = null;
+        if ($sync) {
+            $ownerId = $payload['write_owner_id'] ?? null;
+            if (! is_string($ownerId)) {
+                $errors->add('write_owner_id', 'Une émission sur un poste importe sa propriété de facture : identifiant attendu.');
+            } elseif (DB::table('invoice_write_owners')->where('id', $ownerId)->exists()) {
+                $errors->add('write_owner_id', 'Cet identifiant de propriété de facture est déjà utilisé.');
+            }
+        } else {
+            if (($payload['write_owner_id'] ?? null) !== null) {
+                $errors->add('write_owner_id', 'Par la route directe, aucun poste ne détient la facture : laissez ce champ vide.');
+            }
+            if (($payload['reservations'] ?? []) !== []) {
+                $errors->add('reservations', 'Par la route directe, le serveur choisit les positions et les lots : laissez cette liste vide.');
+            }
         }
         if (NumberUsages::isTaken($usageId)) {
             $errors->add('number_usage_id', 'Cet identifiant d\'usage de numéro est déjà utilisé.');
@@ -113,8 +133,15 @@ final class IssueInvoiceHandler implements CommandHandler
         }
         $errors->throwIfAny();
 
-        // 1. Numéro définitif : séquence (rang 40). Un échec plus loin annule la séquence avec la transaction.
-        $number = BillingNumbers::allocate($locks, $context, BillingNumbers::INVOICE, $timezone, $at);
+        // 1. Numéro définitif : séquence (rang 40), ou numéro de la plage du poste. Un échec plus loin annule tout.
+        $allocationId = null;
+        if ($sync) {
+            $consumed = DeviceNumbers::consume($context, BillingNumbers::INVOICE, $payload['number'] ?? null, BillingNumbers::render(...));
+            $number = ['value' => $consumed['value'], 'rendered' => $consumed['rendered'], 'year' => $consumed['year']];
+            $allocationId = $consumed['allocation_id'];
+        } else {
+            $number = BillingNumbers::allocate($locks, $context, BillingNumbers::INVOICE, $timezone, $at);
+        }
 
         // 2. Patient (45), propriété (50) et facture (60), dans l'ordre du contrat. Lecture préalable sans verrou
         //    pour connaître le patient : le cabinet est verrouillé, rien ne peut changer entre les deux lectures.
@@ -127,11 +154,19 @@ final class IssueInvoiceHandler implements CommandHandler
         if ($patient === null) {
             throw BusinessError::notFound('Patient introuvable dans ce cabinet.');
         }
-        foreach ($locks->invoiceOwners($invoiceId) as $owner) {
-            if (in_array((string) $owner->status, ['ACTIVE', 'CLOSING'], true)) {
-                $name = DB::table('enrolled_devices')->where('clinic_id', $context->clinicId)->where('id', $owner->device_id)->value('name');
-                throw BillingErrors::writeOwnerRequired(is_string($name) ? $name : 'poste');
+        $owners = $locks->invoiceOwners($invoiceId);
+        $ownedHere = false;
+        foreach ($owners as $owner) {
+            if (! in_array((string) $owner->status, ['ACTIVE', 'CLOSING'], true)) {
+                continue;
             }
+            if ($sync && (string) $owner->device_id === $context->deviceId) {
+                $ownedHere = true;
+
+                continue;
+            }
+            $name = DB::table('enrolled_devices')->where('clinic_id', $context->clinicId)->where('id', $owner->device_id)->value('name');
+            throw BillingErrors::writeOwnerRequired(is_string($name) ? $name : 'poste');
         }
         $invoice = $locks->invoice($invoiceId);
         if ($invoice === null) {
@@ -195,21 +230,42 @@ final class IssueInvoiceHandler implements CommandHandler
                 $requests[] = new ReservationRequest($line->id, $line->catalogItemId, $line->quantity, $line->requiresExpiry);
             }
         }
-        $localDate = Instant::fromEpochMilliseconds((int) $at->format('Uv'))->civilDate($timezone);
+        $localDate = Instant::fromEpochMilliseconds((int) $pieceAt->format('Uv'))->civilDate($timezone);
         try {
-            $reserved = $this->reservations->reserveCentral($context->clinicId, $locks, $localDate, $requests, $at);
+            $reserved = $sync
+                ? $this->reservations->reserveUnderQuota($context->clinicId, $locks, (string) $context->deviceId, $localDate, $this->deviceReservations($context, $lines, $payload['reservations'] ?? [], $lineIndex), $at)
+                : $this->reservations->reserveCentral($context->clinicId, $locks, $localDate, $requests, $at);
         } catch (ReservationRefused $refusal) {
             throw $refusal->toBusinessError('lines.'.($lineIndex[$refusal->invoiceLineId] ?? 0).'.quantity');
         }
 
-        // 5. Pièces enfants, puis le parent passe à ISSUED.
-        NumberUsages::record($context, $usageId, BillingNumbers::INVOICE, $number, 'invoices', $invoiceId, $at);
+        // 5. Pièces enfants (propriété importée d'un poste comprise), puis le parent passe à ISSUED.
+        NumberUsages::record($context, $usageId, BillingNumbers::INVOICE, $number, 'invoices', $invoiceId, $at, $allocationId, $context->deviceId);
         $nowDb = $at->format('Y-m-d H:i:s.u');
+        $issuedDb = $pieceAt->format('Y-m-d H:i:s.u');
         $catalog = CatalogSnapshot::of($context->clinicId);
+        $importedOwner = null;
+        if ($sync && ! $ownedHere && is_string($ownerId)) {
+            $epoch = 1 + array_reduce($owners, static fn (int $carry, object $owner): int => max($carry, (int) $owner->epoch), 0);
+            DB::table('invoice_write_owners')->insert([
+                'id' => $ownerId,
+                'clinic_id' => $context->clinicId,
+                'invoice_id' => $invoiceId,
+                'device_id' => (string) $context->deviceId,
+                'epoch' => $epoch,
+                'status' => 'ACTIVE',
+                'granted_at' => $nowDb,
+                'closed_at' => null,
+                'final_device_sequence' => null,
+                'created_at' => $nowDb,
+                'updated_at' => $nowDb,
+            ]);
+            $importedOwner = ['owner_id' => $ownerId, 'epoch' => $epoch];
+        }
 
         DB::table('invoices')->where('clinic_id', $context->clinicId)->where('id', $invoiceId)->update([
             'number' => $number['rendered'],
-            'issued_at' => $nowDb,
+            'issued_at' => $issuedDb,
             'issued_by' => $context->actorId,
             'number_usage_id' => $usageId,
             'status' => 'ISSUED',
@@ -224,7 +280,11 @@ final class IssueInvoiceHandler implements CommandHandler
         $ledger = LedgerBalance::of($total, [], [], [], []);
         $draftVersion = (int) $invoice->version;
         $publicationVersion = InvoiceLedger::publicationVersion($draftVersion, $ledger->ledgerVersion);
-        $issuedAt = $at->format('Y-m-d\TH:i:s.v\Z');
+        $issuedAt = $pieceAt->format('Y-m-d\TH:i:s.v\Z');
+        $changes = [new ChangeRecord('invoices', $invoiceId, $publicationVersion, ChangeVisibility::Financial, ChangeKind::Updated)];
+        if ($importedOwner !== null) {
+            $changes[] = new ChangeRecord('invoice_write_owners', $importedOwner['owner_id'], 1, ChangeVisibility::Manager, ChangeKind::Created);
+        }
 
         return new CommandOutcome(
             result: [
@@ -249,6 +309,8 @@ final class IssueInvoiceHandler implements CommandHandler
                 'catalog_snapshot_sha256' => $catalog['sha256'],
                 'client_catalog_snapshot_sha256' => (string) $payload['catalog_snapshot_sha256'],
                 'client_issued_at' => (string) $payload['issued_at'],
+                'source_device_id' => $context->deviceId,
+                'write_owner' => $importedOwner,
             ])],
             events: [new OutboxEvent('InvoiceIssued', 1, 'invoices', $invoiceId, $publicationVersion, [
                 'invoice_id' => $invoiceId,
@@ -257,10 +319,74 @@ final class IssueInvoiceHandler implements CommandHandler
                 'issued_at' => $issuedAt,
                 'total_gross' => $total,
                 'currency' => (string) $invoice->currency,
-                'source_device_id' => null,
+                'source_device_id' => $context->deviceId,
             ])],
-            changes: [new ChangeRecord('invoices', $invoiceId, $publicationVersion, ChangeVisibility::Financial, ChangeKind::Updated)],
+            changes: $changes,
         );
+    }
+
+    /**
+     * Réserves prises par le poste SOUS ses quotas (commande synchronisée) : chaque entrée désigne une ligne d'article
+     * STOCKÉ de cette facture et son article ; les quantités d'une ligne couvrent exactement la ligne ; les quotas
+     * employés sont exactement ceux que le cœur signé déclare (`stock_allocation_ids`). Le contrôle des quotas, positions
+     * et lots (cohérence, disponible, péremption) est celui de `reserveUnderQuota`.
+     *
+     * @param  list<DraftLine>  $lines
+     * @param  array<string, int>  $lineIndex
+     * @return list<array{reservation_id: string, request: ReservationRequest, device_allocation_id: string, stock_position_id: string, stock_lot_id: ?string}>
+     */
+    private function deviceReservations(CommandContext $context, array $lines, mixed $entries, array $lineIndex): array
+    {
+        $stocked = [];
+        foreach ($lines as $line) {
+            if ($line->stocked && $line->catalogItemId !== null) {
+                $stocked[$line->id] = $line;
+            }
+        }
+
+        $errors = new FieldErrors;
+        $planned = [];
+        $covered = [];
+        $quotaIds = [];
+        foreach (is_array($entries) ? array_values($entries) : [] as $index => $entry) {
+            $entry = is_array($entry) ? $entry : [];
+            $line = is_string($entry['invoice_line_id'] ?? null) ? ($stocked[$entry['invoice_line_id']] ?? null) : null;
+            if ($line === null || ($entry['item_id'] ?? null) !== $line->catalogItemId) {
+                $errors->add('reservations.'.$index.'.invoice_line_id', 'Cette réserve ne correspond à aucune ligne d\'article stocké de la facture.');
+
+                continue;
+            }
+            try {
+                $quantity = Quantity::of((string) ($entry['quantity'] ?? ''), 'reservations.'.$index.'.quantity');
+            } catch (RuleViolation $violation) {
+                $errors->addViolation('', $violation);
+
+                continue;
+            }
+            $quotaId = (string) ($entry['device_allocation_id'] ?? '');
+            $quotaIds[] = $quotaId;
+            $covered[$line->id] = ($covered[$line->id] ?? FixedDecimal::fromUnits(0, 3))->plus($quantity);
+            $planned[] = [
+                'reservation_id' => (string) ($entry['reservation_id'] ?? ''),
+                'request' => new ReservationRequest($line->id, (string) $line->catalogItemId, $quantity, $line->requiresExpiry),
+                'device_allocation_id' => $quotaId,
+                'stock_position_id' => (string) ($entry['stock_position_id'] ?? ''),
+                'stock_lot_id' => is_string($entry['stock_lot_id'] ?? null) ? $entry['stock_lot_id'] : null,
+            ];
+        }
+        foreach ($stocked as $lineId => $line) {
+            if (! isset($covered[$lineId]) || $covered[$lineId]->compare($line->quantity) !== 0) {
+                $errors->add('lines.'.($lineIndex[$lineId] ?? 0).'.quantity', 'Les réserves du poste ne couvrent pas exactement la quantité de cette ligne.');
+            }
+        }
+        $used = array_values(array_unique($quotaIds));
+        sort($used, SORT_STRING);
+        if ($used !== ($context->syncReferences->stockAllocationIds ?? [])) {
+            $errors->add('reservations', 'Les quotas employés ne sont pas ceux que déclare la commande signée du poste.');
+        }
+        $errors->throwIfAny();
+
+        return $planned;
     }
 
     /**

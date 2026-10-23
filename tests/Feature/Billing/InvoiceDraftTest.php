@@ -10,13 +10,13 @@ use App\Domain\Billing\Handlers\CreateInvoiceDraftHandler;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\Ulid;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Support\BillingFixtures;
 use Tests\Support\Commands\RecordingProbe;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\RefusedSources;
 use Tests\TestCase;
 
 /**
@@ -29,6 +29,7 @@ final class InvoiceDraftTest extends TestCase
 {
     use BillingFixtures;
     use MigratedDatabase;
+    use RefusedSources;
 
     protected function setUp(): void
     {
@@ -339,19 +340,24 @@ final class InvoiceDraftTest extends TestCase
         $this->assertSame(0, DB::table('invoices')->where('clinic_id', $this->clinicId)->count());
     }
 
-    public function test_un_poste_hors_ligne_est_refuse_tant_que_les_plages_ne_sont_pas_preparees(): void
+    /**
+     * Le brouillon est ouvert aux postes synchronisés (O05, il garde son poste d'origine) : seule une tâche du serveur,
+     * sans auteur, est refusée, avant toute lecture, tout verrou et toute écriture.
+     */
+    public function test_une_tache_du_serveur_sans_auteur_est_refusee(): void
     {
         $payload = $this->draftBody([$this->line($this->item['exam'])]);
         unset($payload['expected_version']);
-        $context = CommandContext::job($this->clinicId, 'test', 'corr-test', CarbonImmutable::now('UTC'));
+        $locks = new TransactionLocks($this->clinicId);
 
         try {
-            $this->app->make(CreateInvoiceDraftHandler::class)->handle(new Command('CreateInvoiceDraft', $payload, $payload['invoice_id']), $context, new TransactionLocks($this->clinicId), null);
-            $this->fail('Une source autre que la route directe devait être refusée.');
+            $this->app->make(CreateInvoiceDraftHandler::class)->handle(new Command('CreateInvoiceDraft', $payload, $payload['invoice_id']), $this->jobContext(), $locks, null);
+            $this->fail('Une tâche du serveur devait être refusée.');
         } catch (BusinessError $error) {
             $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
-            $this->assertStringContainsString('hors-ligne', $error->getMessage());
+            $this->assertStringContainsString('auteur identifié', $error->getMessage());
         }
+        $this->assertSame([], $locks->acquired());
         $this->assertSame(0, DB::table('invoices')->where('clinic_id', $this->clinicId)->count());
     }
 

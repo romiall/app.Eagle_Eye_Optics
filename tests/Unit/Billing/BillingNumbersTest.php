@@ -47,6 +47,7 @@ final class BillingNumbersTest extends TestCase
 
     public function test_une_serie_inconnue_ou_sans_prefixe_est_refusee(): void
     {
+        // LEGACY_BALANCE (reprise des créances papier, X01) est une série financière : sans préfixe, elle est refusée.
         foreach (['PATIENT', 'QUOTE', 'WORKSHOP', 'LEGACY_BALANCE'] as $series) {
             try {
                 BillingNumbers::render($series, 2026, 1);
@@ -59,6 +60,21 @@ final class BillingNumbersTest extends TestCase
         config(['eeo.numbering.prefixes.RECEIPT' => '  ']);
         $this->expectException(LogicException::class);
         BillingNumbers::render(BillingNumbers::RECEIPT, 2026, 1);
+    }
+
+    public function test_les_devis_ont_leur_propre_serie_distincte_des_factures(): void
+    {
+        config(['eeo.numbering.prefixes.QUOTE' => 'TEST-DEV']);
+
+        $this->assertSame('TEST-DEV-2026-000001', BillingNumbers::render(BillingNumbers::QUOTE, 2026, 1));
+        $this->assertNotSame(BillingNumbers::render(BillingNumbers::INVOICE, 2026, 1), BillingNumbers::render(BillingNumbers::QUOTE, 2026, 1));
+    }
+
+    public function test_la_reprise_des_creances_papier_a_sa_propre_serie(): void
+    {
+        config(['eeo.numbering.prefixes.LEGACY_BALANCE' => 'TEST-REP']);
+
+        $this->assertSame('TEST-REP-2026-000001', BillingNumbers::render(BillingNumbers::LEGACY_BALANCE, 2026, 1));
     }
 
     public function test_un_prefixe_trop_long_est_refuse_plutot_que_de_depasser_la_colonne(): void

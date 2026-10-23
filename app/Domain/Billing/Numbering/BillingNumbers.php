@@ -14,7 +14,9 @@ use LogicException;
  * Format PROPOSÉ par le fichier 03 : `<préfixe>-AAAA-NNNNNN` (série par cabinet et par année civile du fuseau du
  * cabinet, six chiffres au moins, jamais tronqué au-delà). Les préfixes (`eeo.numbering.prefixes`) sont ceux des
  * séries papier à choisir avec la gérante AVANT la bascule (Q03, Q05) : tant qu'ils ne le sont pas, ils valent
- * `TEST-FAC`, `TEST-REC`, `TEST-AV`, `TEST-RMB`, donc tout numéro émis est visiblement un numéro de TEST. Un
+ * `TEST-FAC`, `TEST-REC`, `TEST-AV`, `TEST-RMB`, `TEST-REP` (reprise de créance papier) et `TEST-DEV` (devis), donc
+ * tout numéro émis
+ * est visiblement un numéro de TEST. Un
  * préfixe vide ou une série inconnue est refusé : aucun format n'est inventé en silence.
  *
  * Le numéro est pris dans `document_sequences` sous le verrou exclusif du cabinet puis celui de la série (rang 40),
@@ -32,8 +34,17 @@ final class BillingNumbers
 
     public const REFUND = 'REFUND';
 
-    /** Séries des pièces financières. */
-    public const SERIES = [self::INVOICE, self::RECEIPT, self::CREDIT_NOTE, self::REFUND];
+    /** Reprise d'une créance papier (X01) : pièce `LEGACY_BALANCE`, série distincte des factures du jour. */
+    public const LEGACY_BALANCE = 'LEGACY_BALANCE';
+
+    /**
+     * Devis (L1D07) : série distincte, jamais un numéro de facture. Un devis n'est ni une créance ni un encaissement ;
+     * il est numéroté par la même mécanique (sans trou, sous verrou) parce qu'il se remet au client.
+     */
+    public const QUOTE = 'QUOTE';
+
+    /** Séries numérotées par ce service : pièces financières et devis. */
+    public const SERIES = [self::INVOICE, self::RECEIPT, self::CREDIT_NOTE, self::REFUND, self::LEGACY_BALANCE, self::QUOTE];
 
     /** Longueur maximale d'un numéro rendu (`document_number_usages.rendered_number` VARCHAR(64)). */
     private const MAX_LENGTH = 64;

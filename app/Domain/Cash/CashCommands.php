@@ -5,6 +5,9 @@ namespace App\Domain\Cash;
 use App\Application\CommandDefinition;
 use App\Domain\Cash\Handlers\CloseCashSessionHandler;
 use App\Domain\Cash\Handlers\OpenCashSessionHandler;
+use App\Domain\Cash\Handlers\RecordCashMovementHandler;
+use App\Domain\Cash\Handlers\ReviewCashVarianceHandler;
+use App\Domain\Cash\Handlers\SaveExpenseCategoryHandler;
 use App\Domain\Shared\CommandSource;
 
 /**
@@ -38,6 +41,32 @@ final class CashCommands
                 'commands/CloseCashSession.v1.json',
                 true,
                 'commands/CloseCashSession.v1.json#/$defs/DirectRequest',
+            ),
+            // Dépenses et mouvements hors vente, catégories, revue d'écart (L1D05) : en ligne seulement, corps de la
+            // route directe validé contre sa requête HTTP.
+            new CommandDefinition(
+                RecordCashMovementHandler::COMMAND,
+                RecordCashMovementHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/RecordCashMovementRequest',
+            ),
+            new CommandDefinition(
+                SaveExpenseCategoryHandler::COMMAND,
+                SaveExpenseCategoryHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ExpenseCategoryRequest',
+            ),
+            new CommandDefinition(
+                ReviewCashVarianceHandler::COMMAND,
+                ReviewCashVarianceHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/CashVarianceReviewRequest',
             ),
         ];
     }

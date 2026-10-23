@@ -5,6 +5,7 @@ namespace App\Domain\Billing;
 use App\Application\CommandDefinition;
 use App\Domain\Billing\Catalog\Handlers\CreateCatalogItemHandler;
 use App\Domain\Billing\Catalog\Handlers\CreateTaxRuleHandler;
+use App\Domain\Billing\Catalog\Handlers\ImportCatalogHandler;
 use App\Domain\Billing\Catalog\Handlers\UpdateCatalogItemHandler;
 use App\Domain\Billing\Catalog\Handlers\UpdateTaxRuleHandler;
 use App\Domain\Billing\Handlers\AbandonInvoiceDraftHandler;
@@ -15,6 +16,14 @@ use App\Domain\Billing\Handlers\RefundCreditHandler;
 use App\Domain\Billing\Handlers\RegisterPaymentHandler;
 use App\Domain\Billing\Handlers\ReversePaymentHandler;
 use App\Domain\Billing\Handlers\UpdateDraftHandler;
+use App\Domain\Billing\LegacyBalances\Handlers\ImportLegacyBalancesHandler;
+use App\Domain\Billing\LegacyBalances\Handlers\StoreLegacyEvidenceHandler;
+use App\Domain\Billing\Quotes\Handlers\ConvertQuoteHandler;
+use App\Domain\Billing\Quotes\Handlers\CreateQuoteDraftHandler;
+use App\Domain\Billing\Quotes\Handlers\IssueQuoteHandler;
+use App\Domain\Billing\Quotes\Handlers\RecordQuoteDecisionHandler;
+use App\Domain\Billing\Quotes\Handlers\ReviseQuoteHandler;
+use App\Domain\Billing\Quotes\Handlers\UpdateQuoteDraftHandler;
 use App\Domain\Shared\CommandSource;
 
 /**
@@ -117,6 +126,32 @@ final class BillingCommands
                 true,
                 'schemas/requests/http.json#/$defs/CatalogItemRequest',
             ),
+            // Import contrôlé du catalogue (X01) : toutes les lignes ou aucune, en ligne seulement.
+            new CommandDefinition(
+                ImportCatalogHandler::COMMAND,
+                ImportCatalogHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/CatalogImportRequest',
+            ),
+            // Reprise des créances papier (X01) : justificatif scanné, puis toutes les créances ou aucune, en ligne seulement.
+            new CommandDefinition(
+                StoreLegacyEvidenceHandler::COMMAND,
+                StoreLegacyEvidenceHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/StoreLegacyEvidenceCommand',
+            ),
+            new CommandDefinition(
+                ImportLegacyBalancesHandler::COMMAND,
+                ImportLegacyBalancesHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/LegacyBalanceImportRequest',
+            ),
             new CommandDefinition(
                 CreateTaxRuleHandler::COMMAND,
                 CreateTaxRuleHandler::class,
@@ -141,6 +176,56 @@ final class BillingCommands
                 null,
                 true,
                 'schemas/requests/http.json#/$defs/AbandonInvoiceDraftRequest',
+            ),
+            // Devis versionnés et conversion en brouillon de facture (L1D07) : en ligne seulement, hors du journal d'un
+            // poste ; un devis n'est ni une créance ni un encaissement.
+            new CommandDefinition(
+                CreateQuoteDraftHandler::COMMAND,
+                CreateQuoteDraftHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/CreateQuoteDraftRequest',
+            ),
+            new CommandDefinition(
+                UpdateQuoteDraftHandler::COMMAND,
+                UpdateQuoteDraftHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/UpdateQuoteDraftRequest',
+            ),
+            new CommandDefinition(
+                IssueQuoteHandler::COMMAND,
+                IssueQuoteHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/IssueQuoteRequest',
+            ),
+            new CommandDefinition(
+                ReviseQuoteHandler::COMMAND,
+                ReviseQuoteHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ReviseQuoteRequest',
+            ),
+            new CommandDefinition(
+                RecordQuoteDecisionHandler::COMMAND,
+                RecordQuoteDecisionHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/QuoteDecisionRequest',
+            ),
+            new CommandDefinition(
+                ConvertQuoteHandler::COMMAND,
+                ConvertQuoteHandler::class,
+                $onlineOnly,
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/ConvertQuoteRequest',
             ),
         ];
     }

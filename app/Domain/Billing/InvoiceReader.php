@@ -12,8 +12,9 @@ use stdClass;
 
 /**
  * Lecture des factures du cabinet (B02, B03, B04) : la ligne `invoices`, ses lignes, ses encaissements avec leur
- * reçu, ses avoirs, ses remboursements, le poste qui la détient et son document, et le solde PROJETÉ depuis ces
- * faits (jamais une colonne). Toujours limitée au cabinet ; un identifiant d'un autre cabinet est « introuvable ».
+ * reçu, ses contre-écritures, ses avoirs, ses remboursements, le poste qui la détient et son document, et le solde
+ * PROJETÉ depuis ces faits (jamais une colonne). Toujours limitée au cabinet ; un identifiant d'un autre cabinet est
+ * « introuvable ».
  *
  * Le présentateur (`InvoicePresenter`) met en forme ce que ce lecteur rend, au format du contrat
  * (`schemas/resources/billing.json`).
@@ -32,7 +33,7 @@ final class InvoiceReader
     /**
      * Facture complète : lignes, faits financiers, propriétaire, document et solde projeté.
      *
-     * @return array{invoice: stdClass, lines: list<stdClass>, payments: list<stdClass>, credit_notes: list<stdClass>, refunds: list<stdClass>, owner: ?stdClass, document: ?stdClass, ledger: ?LedgerBalance}
+     * @return array{invoice: stdClass, lines: list<stdClass>, payments: list<stdClass>, reversals: list<stdClass>, credit_notes: list<stdClass>, refunds: list<stdClass>, owner: ?stdClass, document: ?stdClass, ledger: ?LedgerBalance}
      */
     public function detail(stdClass $invoice): array
     {
@@ -72,8 +73,33 @@ final class InvoiceReader
             $payment->reversed_amount = $reversed[(string) $payment->id] ?? 0;
         }
 
+        // Contre-écritures (B07) : pièces liées aux paiements de cette facture, jamais une modification du paiement ; nom
+        // ACTUEL du compte qui les a enregistrées.
+        $reversals = array_values(DB::table('payment_reversals')
+            ->join('payments', static function ($join): void {
+                $join->on('payments.clinic_id', '=', 'payment_reversals.clinic_id')->on('payments.id', '=', 'payment_reversals.payment_id');
+            })
+            ->leftJoin('users as recorders', static function ($join): void {
+                $join->on('recorders.clinic_id', '=', 'payment_reversals.clinic_id')->on('recorders.id', '=', 'payment_reversals.created_by');
+            })
+            ->where('payment_reversals.clinic_id', $clinicId)
+            ->where('payments.invoice_id', $invoiceId)
+            ->orderBy('payment_reversals.recorded_at')
+            ->orderBy('payment_reversals.id')
+            ->get(['payment_reversals.*', 'recorders.display_name as recorded_by_name'])
+            ->all());
+
         $creditNotes = array_values(DB::table('credit_notes')->where('clinic_id', $clinicId)->where('invoice_id', $invoiceId)->orderBy('created_at')->orderBy('id')->get()->all());
         $refunds = array_values(DB::table('refunds')->where('clinic_id', $clinicId)->where('invoice_id', $invoiceId)->orderBy('effective_at')->orderBy('id')->get()->all());
+        // Part de chaque avoir déjà remboursée (B08 : un remboursement est lié à un avoir et ne le dépasse jamais).
+        $refundedByNote = [];
+        foreach ($refunds as $refund) {
+            $note = (string) $refund->credit_note_id;
+            $refundedByNote[$note] = ($refundedByNote[$note] ?? 0) + (int) $refund->amount;
+        }
+        foreach ($creditNotes as $note) {
+            $note->refunded_amount = $refundedByNote[(string) $note->id] ?? 0;
+        }
 
         $owner = DB::table('invoice_write_owners')
             ->where('clinic_id', $clinicId)
@@ -99,6 +125,7 @@ final class InvoiceReader
             'invoice' => $invoice,
             'lines' => $lines,
             'payments' => $payments,
+            'reversals' => $reversals,
             'credit_notes' => $creditNotes,
             'refunds' => $refunds,
             'owner' => $owner instanceof stdClass ? $owner : null,
@@ -207,6 +234,77 @@ final class InvoiceReader
         }
 
         return $ledgers;
+    }
+
+    /**
+     * Avoir du cabinet (B07) avec ses lignes, le nom ACTUEL de son émetteur et l'état de son document ; null s'il n'existe
+     * pas dans ce cabinet. Le snapshot figé à l'émission reste la source de son PDF.
+     *
+     * @return array{credit_note: stdClass, lines: list<stdClass>, document: ?stdClass}|null
+     */
+    public function creditNote(string $clinicId, string $creditNoteId): ?array
+    {
+        $note = DB::table('credit_notes')->where('clinic_id', $clinicId)->where('id', $creditNoteId)->first();
+        if (! $note instanceof stdClass) {
+            return null;
+        }
+        $issuerName = $note->issued_by === null ? null : DB::table('users')
+            ->where('clinic_id', $clinicId)
+            ->where('id', (string) $note->issued_by)
+            ->value('display_name');
+        $note->issued_by_name = is_string($issuerName) ? $issuerName : null;
+        $note->refunded_amount = (int) DB::table('refunds')
+            ->where('clinic_id', $clinicId)
+            ->where('credit_note_id', $creditNoteId)
+            ->sum('amount');
+
+        $lines = array_values(DB::table('credit_note_lines')
+            ->leftJoin('invoice_lines', static function ($join): void {
+                $join->on('invoice_lines.clinic_id', '=', 'credit_note_lines.clinic_id')->on('invoice_lines.id', '=', 'credit_note_lines.invoice_line_id');
+            })
+            ->where('credit_note_lines.clinic_id', $clinicId)
+            ->where('credit_note_lines.credit_note_id', $creditNoteId)
+            ->orderBy('invoice_lines.position')
+            ->orderBy('credit_note_lines.id')
+            ->get(['credit_note_lines.*', 'invoice_lines.description_snapshot as description_snapshot'])
+            ->all());
+        $document = DB::table('generated_documents')
+            ->where('clinic_id', $clinicId)
+            ->where('credit_note_id', $creditNoteId)
+            ->where('document_type', 'CREDIT_NOTE')
+            ->orderByDesc('revision_no')
+            ->orderByDesc('created_at')
+            ->first();
+
+        return ['credit_note' => $note, 'lines' => $lines, 'document' => $document instanceof stdClass ? $document : null];
+    }
+
+    /**
+     * Remboursement du cabinet (B08) avec le nom ACTUEL de son auteur et l'état de son document ; null s'il n'existe pas
+     * dans ce cabinet. Le snapshot figé reste la source de son PDF.
+     *
+     * @return array{refund: stdClass, document: ?stdClass}|null
+     */
+    public function refund(string $clinicId, string $refundId): ?array
+    {
+        $refund = DB::table('refunds')->where('clinic_id', $clinicId)->where('id', $refundId)->first();
+        if (! $refund instanceof stdClass) {
+            return null;
+        }
+        $creatorName = DB::table('users')
+            ->where('clinic_id', $clinicId)
+            ->where('id', (string) $refund->created_by)
+            ->value('display_name');
+        $refund->created_by_name = is_string($creatorName) ? $creatorName : null;
+        $document = DB::table('generated_documents')
+            ->where('clinic_id', $clinicId)
+            ->where('refund_id', $refundId)
+            ->where('document_type', 'REFUND')
+            ->orderByDesc('revision_no')
+            ->orderByDesc('created_at')
+            ->first();
+
+        return ['refund' => $refund, 'document' => $document instanceof stdClass ? $document : null];
     }
 
     public function receipt(string $clinicId, string $receiptId): ?stdClass

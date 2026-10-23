@@ -18,6 +18,7 @@ use RuntimeException;
 use Tests\Support\BillingFixtures;
 use Tests\Support\Commands\RecordingProbe;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\RefusedSources;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,7 @@ final class IssueInvoiceTest extends TestCase
 {
     use BillingFixtures;
     use MigratedDatabase;
+    use RefusedSources;
 
     protected function setUp(): void
     {
@@ -481,25 +483,38 @@ final class IssueInvoiceTest extends TestCase
         $this->write('POST', '/api/v1/invoices/'.$id.'/issue', $this->issueBody($id, $version, $total), $this->manager)->assertNotFound();
     }
 
-    public function test_un_poste_hors_ligne_est_refuse_tant_que_les_plages_et_les_quotas_ne_sont_pas_prepares(): void
+    /**
+     * L'émission est ouverte aux postes synchronisés (O05) : une tâche du serveur, sans auteur, est refusée avant toute
+     * lecture ; un poste dont le cœur signé ne désigne aucune plage de numéros est refusé, la facture reste un brouillon.
+     */
+    public function test_une_source_sans_auteur_ou_sans_plage_de_numeros_est_refusee(): void
     {
         [$id, $total, $version] = $this->draft();
         $payload = $this->issueBody($id, $version, $total);
         unset($payload['expected_version']);
+        $payload['write_owner_id'] = Ulid::generate();
+        $payload['number'] = 'TEST-FAC-2026-000001';
 
-        try {
-            $this->app->make(IssueInvoiceHandler::class)->handle(
-                new Command('IssueInvoice', $payload, $id, $version),
-                CommandContext::job($this->clinicId, 'test', 'corr-test', CarbonImmutable::now('UTC')),
-                new TransactionLocks($this->clinicId),
-                null,
-            );
-            $this->fail('Une source autre que la route directe devait être refusée.');
-        } catch (BusinessError $error) {
-            $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
-            $this->assertStringContainsString('hors-ligne', $error->getMessage());
+        $attempts = [
+            ['ACTION_FORBIDDEN', 'auteur identifié', $this->jobContext()],
+            ['NUMBER_RANGE_INVALID', 'aucune plage', $this->syncContextWithoutRange($this->cashier)],
+        ];
+        foreach ($attempts as [$code, $fragment, $context]) {
+            try {
+                $this->app->make(IssueInvoiceHandler::class)->handle(
+                    new Command('IssueInvoice', $payload, $id, $version),
+                    $context,
+                    new TransactionLocks($this->clinicId),
+                    null,
+                );
+                $this->fail('Une source sans auteur ou sans plage de numéros devait être refusée.');
+            } catch (BusinessError $error) {
+                $this->assertSame($code, $error->errorCode);
+                $this->assertStringContainsString($fragment, $error->getMessage());
+            }
         }
         $this->assertSame('DRAFT', DB::table('invoices')->where('id', $id)->value('status'));
+        $this->assertSame(0, DB::table('document_number_usages')->where('document_type', 'INVOICE')->count());
     }
 
     public function test_les_verrous_sont_pris_dans_l_ordre_du_contrat(): void

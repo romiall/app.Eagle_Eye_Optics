@@ -15,7 +15,7 @@ use App\Domain\Billing\BillingErrors;
 use App\Domain\Billing\Documents\PendingDocuments;
 use App\Domain\Billing\ExamFeeScope;
 use App\Domain\Billing\ExamFeeVisits;
-use App\Domain\Billing\Guards\CentralOnly;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Numbering\BillingNumbers;
 use App\Domain\Billing\Numbering\NumberUsages;
@@ -25,6 +25,8 @@ use App\Domain\Billing\Rules\Settlement;
 use App\Domain\Billing\Snapshots\InvoiceSnapshots;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
+use App\Domain\Shared\CommandSource;
+use App\Domain\Shared\DeviceNumbers;
 use App\Domain\Shared\RuleViolation;
 use App\Domain\Shared\ValueObjects\Instant;
 use App\Domain\Shared\ValueObjects\Text;
@@ -53,7 +55,10 @@ use LogicException;
  * session. La référence est obligatoire pour mobile money et virement (paramétrable). Un encaissement daté d'un jour
  * civil antérieur exige un motif, conservé dans l'audit.
  *
- * Route directe : numéro de reçu central, jamais renuméroté ensuite. Profil « frais d'examen » : seules les factures
+ * Route directe : numéro de reçu central, jamais renuméroté ensuite. Commande d'un poste synchronisée (O05) : le numéro
+ * du reçu est celui de la plage du poste, enregistré tel quel (`DeviceNumbers`) ; la facture doit être détenue par CE
+ * poste (propriété active) ; la date du reçu et le contrôle de rétroactivité suivent l'instant où le poste a encaissé ;
+ * le paiement garde le poste et la commande d'origine (`source_device_id`, `sync_command_id`). Profil « frais d'examen » : seules les factures
  * de frais d'examen. Contrôle du paiement de l'examen actif (`EEO_EXAM_FEE_CONTROL=billed`) : la visite de la facture
  * passe « prête pour l'examen » quand sa facture de frais est réglée (`ExamFeeVisits`, P03). Verrous : cabinet,
  * idempotence, séquence RECEIPT (40), visite de la facture (46, contrôle actif seulement), propriété de facture (50),
@@ -72,7 +77,8 @@ final class RegisterPaymentHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        CentralOnly::assert($context, 'L\'encaissement');
+        AuthoredSource::assert($context, 'L\'encaissement');
+        $sync = $context->source === CommandSource::Sync;
         if ($idempotencyId === null || $context->actorId === null) {
             throw new LogicException('Un encaissement exige une clé d\'idempotence et un auteur identifié.');
         }
@@ -87,6 +93,8 @@ final class RegisterPaymentHandler implements CommandHandler
         $method = (string) $payload['method'];
         $sessionId = is_string($payload['cash_session_id'] ?? null) ? $payload['cash_session_id'] : null;
         $at = CarbonImmutable::now('UTC');
+        // Instant de la pièce : celui du serveur, ou celui où le poste a encaissé (commande synchronisée).
+        $pieceAt = $context->pieceInstant($at);
         $clinic = $locks->clinic();
         $timezone = (string) $clinic->timezone;
         $errors = new FieldErrors;
@@ -121,7 +129,7 @@ final class RegisterPaymentHandler implements CommandHandler
         $retroactiveReason = null;
         try {
             $effective = Instant::parse((string) $payload['effective_at'], 'effective_at');
-            $now = Instant::fromEpochMilliseconds((int) $at->format('Uv'));
+            $now = Instant::fromEpochMilliseconds((int) $pieceAt->format('Uv'));
             if ($effective !== null) {
                 PaymentRules::assertNotInFuture($effective, $now, (int) config('eeo.offline.max_clock_skew_seconds', 300));
                 $retroactiveReason = Text::optional(is_string($payload['retroactive_reason'] ?? null) ? $payload['retroactive_reason'] : null, 1000, 'retroactive_reason');
@@ -137,14 +145,31 @@ final class RegisterPaymentHandler implements CommandHandler
             throw new LogicException('Date effective absente sans erreur de validation.');
         }
 
-        // 1. Numéro de reçu (séquence, rang 40), puis propriété (50) et facture (60).
-        $number = BillingNumbers::allocate($locks, $context, BillingNumbers::RECEIPT, $timezone, $at);
+        // 1. Numéro de reçu (séquence, rang 40, ou plage du poste), puis propriété (50) et facture (60).
+        $allocationId = null;
+        if ($sync) {
+            $consumed = DeviceNumbers::consume($context, BillingNumbers::RECEIPT, $payload['receipt_number'] ?? null, BillingNumbers::render(...));
+            $number = ['value' => $consumed['value'], 'rendered' => $consumed['rendered'], 'year' => $consumed['year']];
+            $allocationId = $consumed['allocation_id'];
+        } else {
+            $number = BillingNumbers::allocate($locks, $context, BillingNumbers::RECEIPT, $timezone, $at);
+        }
         $visit = $this->visits->lockForInvoice($locks, $context->clinicId, $invoiceId);
+        $ownedHere = false;
         foreach ($locks->invoiceOwners($invoiceId) as $owner) {
-            if (in_array((string) $owner->status, ['ACTIVE', 'CLOSING'], true)) {
-                $name = DB::table('enrolled_devices')->where('clinic_id', $context->clinicId)->where('id', $owner->device_id)->value('name');
-                throw BillingErrors::writeOwnerRequired(is_string($name) ? $name : 'poste');
+            if (! in_array((string) $owner->status, ['ACTIVE', 'CLOSING'], true)) {
+                continue;
             }
+            if ($sync && (string) $owner->device_id === $context->deviceId) {
+                $ownedHere = true;
+
+                continue;
+            }
+            $name = DB::table('enrolled_devices')->where('clinic_id', $context->clinicId)->where('id', $owner->device_id)->value('name');
+            throw BillingErrors::writeOwnerRequired(is_string($name) ? $name : 'poste');
+        }
+        if ($sync && ! $ownedHere) {
+            throw new BusinessError('WRITE_OWNER_REQUIRED', 'Ce poste ne détient pas cette facture : un encaissement hors-ligne exige que la facture lui ait été attribuée ou qu\'il l\'ait émise.', 409);
         }
         $invoice = $locks->invoice($invoiceId);
         if ($invoice === null) {
@@ -202,15 +227,15 @@ final class RegisterPaymentHandler implements CommandHandler
             'cash_session_id' => $sessionId,
             'received_by' => $context->actorId,
             'idempotency_id' => $idempotencyId,
-            'source_device_id' => null,
-            'sync_command_id' => null,
+            'source_device_id' => $context->deviceId,
+            'sync_command_id' => $context->syncReferences?->commandId,
             'created_at' => $nowDb,
             'updated_at' => $nowDb,
         ]);
-        NumberUsages::record($context, $usageId, BillingNumbers::RECEIPT, $number, 'receipts', $receiptId, $at);
+        NumberUsages::record($context, $usageId, BillingNumbers::RECEIPT, $number, 'receipts', $receiptId, $at, $allocationId, $context->deviceId);
 
         $after = InvoiceLedger::load($context->clinicId, $invoiceId, (int) $invoice->total_gross);
-        $issuedAt = $at->format('Y-m-d\TH:i:s.v\Z');
+        $issuedAt = $pieceAt->format('Y-m-d\TH:i:s.v\Z');
         $effectiveAt = $effective->toString();
         $snapshot = [
             'receipt_id' => $receiptId,
@@ -246,7 +271,7 @@ final class RegisterPaymentHandler implements CommandHandler
             'invoice_id' => $invoiceId,
             'number' => $number['rendered'],
             'number_usage_id' => $usageId,
-            'issued_at' => $nowDb,
+            'issued_at' => $pieceAt->format('Y-m-d H:i:s.u'),
             'issued_by' => $context->actorId,
             'snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
             'created_at' => $nowDb,
@@ -292,6 +317,7 @@ final class RegisterPaymentHandler implements CommandHandler
                 'balance_after' => $after->signedBalance(),
                 'cash_session_id' => $sessionId,
                 'receipt_kind' => PaymentRules::receiptKind($after->signedBalance()),
+                'source_device_id' => $context->deviceId,
             ])],
             events: [new OutboxEvent('PaymentConfirmed', 1, 'invoices', $invoiceId, $publicationVersion, [
                 'payment_id' => $paymentId,

@@ -10,13 +10,13 @@ use App\Domain\Billing\Handlers\RegisterPaymentHandler;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\Ulid;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Support\BillingFixtures;
 use Tests\Support\Commands\RecordingProbe;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\RefusedSources;
 use Tests\TestCase;
 
 /**
@@ -29,6 +29,7 @@ final class RegisterPaymentTest extends TestCase
 {
     use BillingFixtures;
     use MigratedDatabase;
+    use RefusedSources;
 
     protected function setUp(): void
     {
@@ -477,25 +478,37 @@ final class RegisterPaymentTest extends TestCase
         $this->pay($id, 1, 1000, 'MTN_MOMO', [], $this->manager)->assertNotFound();
     }
 
-    public function test_une_source_hors_ligne_est_refusee_tant_que_les_plages_et_les_quotas_ne_sont_pas_prepares(): void
+    /**
+     * L'encaissement est ouvert aux postes synchronisés (O05) : une tâche du serveur, sans auteur, est refusée avant toute
+     * lecture ; un poste dont le cœur signé ne désigne aucune plage de numéros est refusé sans reçu ni écriture.
+     */
+    public function test_une_source_sans_auteur_ou_sans_plage_de_numeros_est_refusee(): void
     {
         $id = $this->invoiceOf(80000);
         $payload = $this->paymentBody($id, 1, 1000);
         unset($payload['expected_version']);
+        $payload['receipt_number'] = 'TEST-REC-2026-000001';
 
-        try {
-            $this->app->make(RegisterPaymentHandler::class)->handle(
-                new Command('RegisterPayment', $payload, $id, 1),
-                CommandContext::job($this->clinicId, 'test', 'corr-test', CarbonImmutable::now('UTC')),
-                new TransactionLocks($this->clinicId),
-                Ulid::generate(),
-            );
-            $this->fail('Une source autre que la route directe devait être refusée.');
-        } catch (BusinessError $error) {
-            $this->assertSame('ACTION_FORBIDDEN', $error->errorCode);
-            $this->assertStringContainsString('hors-ligne', $error->getMessage());
+        $attempts = [
+            ['ACTION_FORBIDDEN', 'auteur identifié', $this->jobContext()],
+            ['NUMBER_RANGE_INVALID', 'aucune plage', $this->syncContextWithoutRange($this->cashier)],
+        ];
+        foreach ($attempts as [$code, $fragment, $context]) {
+            try {
+                $this->app->make(RegisterPaymentHandler::class)->handle(
+                    new Command('RegisterPayment', $payload, $id, 1),
+                    $context,
+                    new TransactionLocks($this->clinicId),
+                    Ulid::generate(),
+                );
+                $this->fail('Une source sans auteur ou sans plage de numéros devait être refusée.');
+            } catch (BusinessError $error) {
+                $this->assertSame($code, $error->errorCode);
+                $this->assertStringContainsString($fragment, $error->getMessage());
+            }
         }
         $this->assertSame(0, DB::table('payments')->count());
+        $this->assertSame(0, DB::table('receipts')->count());
     }
 
     public function test_les_verrous_sont_pris_dans_l_ordre_du_contrat(): void

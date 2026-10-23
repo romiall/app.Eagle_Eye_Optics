@@ -54,14 +54,30 @@ final class BillingRoutesGateTest extends TestCase
             'GET invoices/{id}' => ['GET', 'invoices/{id}', $invoices],
             'PATCH invoices/{id}' => ['PATCH', 'invoices/{id}', $invoices],
             'POST invoices/{id}/abandon' => ['POST', 'invoices/{id}/abandon', $invoices],
+            // Devis (L1D07) : lecture invoice.read, écritures invoice.create (gérante et caisse avec le seed).
+            'GET quotes' => ['GET', 'quotes', $invoices],
+            'POST quotes' => ['POST', 'quotes', $invoices],
+            'GET quotes/{id}' => ['GET', 'quotes/{id}', $invoices],
+            'PATCH quotes/{id}' => ['PATCH', 'quotes/{id}', $invoices],
+            'POST quotes/{id}/issue' => ['POST', 'quotes/{id}/issue', $invoices],
+            'POST quotes/{id}/revisions' => ['POST', 'quotes/{id}/revisions', $invoices],
+            'POST quotes/{id}/decision' => ['POST', 'quotes/{id}/decision', $invoices],
+            'POST quotes/{id}/conversions' => ['POST', 'quotes/{id}/conversions', $invoices],
             'POST invoices/{id}/issue' => ['POST', 'invoices/{id}/issue', $invoices],
             'POST invoices/{id}/payments' => ['POST', 'invoices/{id}/payments', $invoices],
             'GET receipts/{id}' => ['GET', 'receipts/{id}', $invoices],
+            // Remise au patient (I01) : l'historique suit invoice.read, la remise exige delivery.confirm (gérante et caisse
+            // avec le seed) ; le retour physique (I02) exige stock.adjust et la réauthentification, gérante seule.
+            'GET invoices/{id}/deliveries' => ['GET', 'invoices/{id}/deliveries', $invoices],
+            'POST invoices/{id}/deliveries' => ['POST', 'invoices/{id}/deliveries', $invoices],
+            'POST deliveries/{id}/physical-returns' => ['POST', 'deliveries/{id}/physical-returns', ['manager']],
             // Corrections (B07, B08) : permission propre à chaque opération, gérante seule avec le seed ; réauthentification
             // en plus (la porte des droits passe avant : 423 pour la gérante, 403 pour les autres).
             'POST payments/{id}/reversals' => ['POST', 'payments/{id}/reversals', ['manager']],
             'POST invoices/{id}/credit-notes' => ['POST', 'invoices/{id}/credit-notes', ['manager']],
             'POST invoices/{id}/refunds' => ['POST', 'invoices/{id}/refunds', ['manager']],
+            'GET credit-notes/{id}' => ['GET', 'credit-notes/{id}', $invoices],
+            'GET refunds/{id}' => ['GET', 'refunds/{id}', $invoices],
             'GET cash-registers' => ['GET', 'cash-registers', $cash],
             'GET cash-sessions/current' => ['GET', 'cash-sessions/current', $cash],
             // Liste des sessions du cabinet : gérante seule (`cash.manage`) ; le rapport d'une session suit la porte de
@@ -70,9 +86,15 @@ final class BillingRoutesGateTest extends TestCase
             'POST cash-sessions' => ['POST', 'cash-sessions', $cash],
             'POST cash-sessions/{id}/close' => ['POST', 'cash-sessions/{id}/close', $cash],
             'GET cash-sessions/{id}/report' => ['GET', 'cash-sessions/{id}/report', $cash],
+            // Dépenses et mouvements hors vente (L1D05) : la session de la caissière (cash.own_session) ; la revue de l'écart
+            // d'une session clôturée exige cash.manage et la réauthentification, gérante seule.
+            'GET cash-sessions/{id}/movements' => ['GET', 'cash-sessions/{id}/movements', $cash],
+            'POST cash-sessions/{id}/movements' => ['POST', 'cash-sessions/{id}/movements', $cash],
+            'POST cash-sessions/{id}/variance-review' => ['POST', 'cash-sessions/{id}/variance-review', ['manager']],
             'GET stock/availability' => ['GET', 'stock/availability', ['manager', 'clinician', 'cashier']],
             'GET stock/locations' => ['GET', 'stock/locations', ['manager', 'clinician', 'cashier']],
             'POST stock/opening' => ['POST', 'stock/opening', ['manager']],
+            'POST stock/movements' => ['POST', 'stock/movements', ['manager']],
         ];
     }
 
@@ -124,7 +146,10 @@ final class BillingRoutesGateTest extends TestCase
 
     public function test_chaque_route_des_ventes_et_du_stock_porte_son_module_et_une_permission(): void
     {
-        $prefixes = ['api.catalog.', 'api.tax-rules.', 'api.invoices.', 'api.receipts.', 'api.payments.', 'api.cash-registers.', 'api.cash-sessions.', 'api.stock.'];
+        $prefixes = [
+            'api.catalog.', 'api.tax-rules.', 'api.invoices.', 'api.quotes.', 'api.receipts.', 'api.payments.', 'api.credit-notes.', 'api.refunds.',
+            'api.cash-registers.', 'api.cash-sessions.', 'api.deliveries.', 'api.stock.',
+        ];
         $checked = 0;
 
         foreach (Route::getRoutes()->getRoutes() as $route) {
@@ -134,7 +159,8 @@ final class BillingRoutesGateTest extends TestCase
                 continue;
             }
             $middleware = array_map('strval', $route->gatherMiddleware());
-            $module = str_starts_with($name, 'api.stock.') ? 'module:stock' : 'module:sales';
+            // Le retour physique d'une remise (I02) appartient au stock, comme les mouvements ; le reste aux ventes.
+            $module = str_starts_with($name, 'api.stock.') || str_starts_with($name, 'api.deliveries.') ? 'module:stock' : 'module:sales';
 
             $this->assertContains($module, $middleware, $name.' doit être derrière son module');
             $this->assertNotEmpty(

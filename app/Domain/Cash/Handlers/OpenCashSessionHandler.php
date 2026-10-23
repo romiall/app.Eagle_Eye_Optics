@@ -10,7 +10,7 @@ use App\Application\Effects\ChangeKind;
 use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
-use App\Domain\Billing\Guards\CentralOnly;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\Rules\FieldErrors;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
@@ -28,6 +28,8 @@ use Illuminate\Support\Facades\DB;
  *
  * Tout encaissement EN ESPÈCES exige ensuite une session ouverte (`RegisterPayment`) ; les autres modes
  * n'en dépendent pas. La date d'ouverture est celle du serveur ; l'instant du client doit seulement être plausible.
+ * Commande d'un poste synchronisée (O05) : la session a été ouverte sur le poste, avant ses encaissements hors-ligne ;
+ * sa date d'ouverture est l'instant où le poste l'a ouverte (jugé plausible par l'autorisation historique).
  * Verrous : cabinet, idempotence, session de caisse (70).
  */
 final class OpenCashSessionHandler implements CommandHandler
@@ -41,16 +43,14 @@ final class OpenCashSessionHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        CentralOnly::assert($context, 'L\'ouverture d\'une session de caisse');
-        if ($context->actorId === null) {
-            throw new \LogicException('Une session de caisse a toujours une caissière identifiée.');
-        }
+        AuthoredSource::assert($context, 'L\'ouverture d\'une session de caisse');
 
         $payload = $command->payload;
         $sessionId = (string) $payload['cash_session_id'];
         $registerId = (string) $payload['cash_register_id'];
         $opening = (int) $payload['opening_amount'];
         $at = CarbonImmutable::now('UTC');
+        $openedAt = $context->pieceInstant($at);
         $errors = new FieldErrors;
 
         try {
@@ -91,7 +91,7 @@ final class OpenCashSessionHandler implements CommandHandler
             'clinic_id' => $context->clinicId,
             'cash_register_id' => $registerId,
             'cashier_id' => $context->actorId,
-            'opened_at' => $now,
+            'opened_at' => $openedAt->format('Y-m-d H:i:s.u'),
             'opening_amount' => $opening,
             'closed_at' => null,
             'counted_amount' => null,
@@ -107,7 +107,7 @@ final class OpenCashSessionHandler implements CommandHandler
             result: [
                 'cash_session_id' => $sessionId,
                 'cash_register_id' => $registerId,
-                'opened_at' => $at->format('Y-m-d\TH:i:s.v\Z'),
+                'opened_at' => $openedAt->format('Y-m-d\TH:i:s.v\Z'),
                 'opening_amount' => $opening,
             ],
             resultType: 'cash_sessions',

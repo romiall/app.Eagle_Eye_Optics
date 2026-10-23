@@ -14,7 +14,7 @@ use App\Domain\Access\Approvals\ApprovalSubject;
 use App\Domain\Access\Approvals\ExactApprovals;
 use App\Domain\Billing\BillingErrors;
 use App\Domain\Billing\Guards\ActorRights;
-use App\Domain\Billing\Guards\CentralOnly;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Billing\InvoiceDrafts;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Rules\DraftLines;
@@ -50,7 +50,7 @@ final class UpdateDraftHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        CentralOnly::assert($context, 'La modification d\'un brouillon de facture');
+        AuthoredSource::assert($context, 'La modification d\'un brouillon de facture');
 
         $payload = $command->payload;
         $invoiceId = (string) $payload['invoice_id'];

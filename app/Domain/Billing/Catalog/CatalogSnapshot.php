@@ -23,6 +23,20 @@ final class CatalogSnapshot
      */
     public static function of(string $clinicId): array
     {
+        $content = self::content($clinicId);
+        $sha = CanonicalJson::hash($content);
+
+        return ['catalog_version' => self::version($sha), 'sha256' => $sha, 'items' => count($content['items']), 'tax_rules' => count($content['tax_rules'])];
+    }
+
+    /**
+     * Contenu figé remis à un poste préparé (O03) : ce que le poste applique hors-ligne, vérifiable par son empreinte
+     * signée dans le grant (`CanonicalJson::hash` du même tableau). Jamais de coût d'achat.
+     *
+     * @return array{items: list<array<string, mixed>>, tax_rules: list<array<string, mixed>>}
+     */
+    public static function content(string $clinicId): array
+    {
         $items = DB::table('catalog_items')
             ->where('clinic_id', $clinicId)
             ->orderBy('id')
@@ -57,8 +71,11 @@ final class CatalogSnapshot
             ])
             ->all();
 
-        $sha = CanonicalJson::hash(['items' => $items, 'tax_rules' => $rules]);
+        return ['items' => array_values($items), 'tax_rules' => array_values($rules)];
+    }
 
-        return ['catalog_version' => 'catalogue-'.substr($sha, 0, 12), 'sha256' => $sha, 'items' => count($items), 'tax_rules' => count($rules)];
+    public static function version(string $sha): string
+    {
+        return 'catalogue-'.substr($sha, 0, 12);
     }
 }
