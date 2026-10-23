@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Application\Command;
+use App\Domain\Patients\MergePatients;
 use App\Domain\Patients\PatientSearch;
 use App\Domain\Shared\BusinessError;
 use App\Http\Controllers\CommandController;
 use App\Http\Resources\PatientPresenter;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,16 @@ final class PatientController extends CommandController
 
     public function show(Request $request, string $id): JsonResponse
     {
-        return new JsonResponse(['data' => PatientPresenter::patient($this->find($this->actor($request), $id))]);
+        $actor = $this->actor($request);
+        $row = $this->find($actor, $id);
+        // Fiches fusionnées dans celle-ci (L1D08) : numéro et date, pour retrouver une pièce émise sous l'ancien numéro.
+        $merged = array_map(static fn (array $entry): array => [
+            'patient_id' => $entry['patient_id'],
+            'record_number' => $entry['record_number'],
+            'merged_at' => CarbonImmutable::parse($entry['merged_at'], 'UTC')->format('Y-m-d\TH:i:s.v\Z'),
+        ], MergePatients::absorbed((string) $actor->clinic_id, $id));
+
+        return new JsonResponse(['data' => PatientPresenter::patient($row) + ['merged_records' => $merged]]);
     }
 
     public function store(Request $request): JsonResponse

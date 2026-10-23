@@ -62,6 +62,14 @@ final class ClinicalReadAudit
         $this->once($actor, $clinicId, 'consultation.prescriptions_viewed', 'consultations', $consultationId);
     }
 
+    /**
+     * Lecture de la liste des prescriptions d'un patient (ordonnances externes comprises) : cible le dossier patient.
+     */
+    public function patientPrescriptionsListed(User $actor, string $clinicId, string $patientId): void
+    {
+        $this->once($actor, $clinicId, 'patient.prescriptions_viewed', 'patient_records', $patientId);
+    }
+
     private function once(User $actor, string $clinicId, string $action, string $targetType, string $targetId): void
     {
         $since = CarbonImmutable::now('UTC')->subMinutes(self::INTERVAL_MINUTES)->format('Y-m-d H:i:s.u');

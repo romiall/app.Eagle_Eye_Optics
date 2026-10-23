@@ -11,6 +11,7 @@ use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Billing\BilledExamFeeControl;
+use App\Domain\Communication\ContactTasks;
 use App\Domain\Patients\Rules\VisitStatus;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
@@ -62,14 +63,19 @@ final class RegisterVisitHandler implements CommandHandler
         }
 
         $appointmentId = $payload['appointment_id'] ?? null;
+        $appointment = null;
         if ($appointmentId !== null) {
-            $appointment = DB::table('appointments')->where('clinic_id', $context->clinicId)->where('id', $appointmentId)->first();
+            // Rendez-vous lu sous verrou (rang « rendez-vous », après le dossier patient) : l'arrivée le fait passer
+            // « arrivé » dans la même transaction (S01).
+            $appointment = $locks->appointment((string) $appointmentId);
             if ($appointment === null) {
                 $errors['appointment_id'] = ['Rendez-vous introuvable dans ce cabinet.'];
             } elseif ($appointment->patient_id !== $patientId) {
                 $errors['appointment_id'] = ['Ce rendez-vous concerne un autre patient.'];
             } elseif (in_array($appointment->status, ['CANCELLED', 'NO_SHOW'], true)) {
                 $errors['appointment_id'] = ['Ce rendez-vous est annulé ou manqué.'];
+            } elseif (DB::table('visits')->where('clinic_id', $context->clinicId)->where('appointment_id', $appointmentId)->where('status', '<>', 'CANCELLED')->exists()) {
+                $errors['appointment_id'] = ['L\'arrivée de ce rendez-vous est déjà enregistrée.'];
             }
         }
 
@@ -114,12 +120,29 @@ final class RegisterVisitHandler implements CommandHandler
             'updated_at' => $now,
         ]);
 
+        $changes = [new ChangeRecord('visits', $visitId, 1, ChangeVisibility::Administrative, ChangeKind::Created)];
+        if ($appointment !== null && in_array((string) $appointment->status, ['PENDING_CONFIRMATION', 'CONFIRMED'], true)) {
+            // Arrivée d'un rendez-vous (S01) : le rendez-vous passe « arrivé », ses rappels ouverts sont clos.
+            $appointmentVersion = (int) $appointment->version + 1;
+            DB::table('appointments')->where('clinic_id', $context->clinicId)->where('id', $appointment->id)->update([
+                'status' => 'ARRIVED',
+                'version' => $appointmentVersion,
+                'updated_at' => $now,
+            ]);
+            $changes[] = new ChangeRecord('appointments', (string) $appointment->id, $appointmentVersion, ChangeVisibility::Administrative, ChangeKind::Updated);
+            $changes = [...$changes, ...app(ContactTasks::class)->closeOpen($context->clinicId, 'appointment_id', (string) $appointment->id, 'CANCELLED', $context->now->utc())];
+        }
+
         return new CommandOutcome(
             result: ['visit_id' => $visitId, 'version' => 1],
             resultType: 'visits',
             resultId: $visitId,
-            audit: [new AuditEntry('visit.registered', 'visits', $visitId, null, ['reason' => (string) $payload['reason'], 'patient_id' => $patientId])],
-            changes: [new ChangeRecord('visits', $visitId, 1, ChangeVisibility::Administrative, ChangeKind::Created)],
+            audit: [new AuditEntry('visit.registered', 'visits', $visitId, null, [
+                'reason' => (string) $payload['reason'],
+                'patient_id' => $patientId,
+                'appointment_id' => $appointmentId,
+            ])],
+            changes: $changes,
         );
     }
 }

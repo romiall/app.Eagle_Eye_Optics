@@ -6,6 +6,7 @@ use App\Application\Locking\TransactionLocks;
 use App\Domain\Billing\BilledExamFeeControl;
 use App\Domain\Billing\InvoiceLedger;
 use App\Domain\Billing\Rules\LedgerBalance;
+use App\Domain\Cash\CashMovements;
 use App\Domain\Patients\Rules\VisitStatus;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
@@ -47,6 +48,83 @@ final class ApprovalTargets
             case ApprovalKind::Refund:
                 $this->refund($locks, $context, (string) $content['invoice_id'], (string) $content['credit_note_id'], (int) $content['amount']);
                 break;
+            case ApprovalKind::CreditDelivery:
+                $this->creditDelivery($locks, $context, (string) $content['invoice_id'], (int) $content['amount_due'], $lines);
+                break;
+            case ApprovalKind::StockMovement:
+                $this->stockMovement($context, (string) $content['position_id'], (string) $content['item_id'], is_string($content['lot_id'] ?? null) ? $content['lot_id'] : null);
+                break;
+            case ApprovalKind::CashMovement:
+                $this->cashMovement($locks, $context, (string) $content['cash_session_id'], (string) $content['movement_kind'], (int) $content['signed_amount'], is_string($content['expense_category_id'] ?? null) ? $content['expense_category_id'] : null);
+                break;
+        }
+    }
+
+    /**
+     * Remise d'une facture non soldée : facture émise, reste dû à l'instant identique à celui de la demande, lignes de
+     * cette facture. Les quantités et le stock sont rejugés à la remise (ConfirmDelivery).
+     *
+     * @param  array<int, mixed>  $lines
+     */
+    private function creditDelivery(TransactionLocks $locks, CommandContext $context, string $invoiceId, int $amountDue, array $lines): void
+    {
+        $invoice = $locks->invoice($invoiceId);
+        if ($invoice === null) {
+            throw BusinessError::validation(['subject.invoice_id' => ['Facture introuvable dans ce cabinet.']]);
+        }
+        if ((string) $invoice->status !== 'ISSUED') {
+            throw BusinessError::stateRefused('Seule une facture émise se remet au patient.', (string) $invoice->status);
+        }
+        if ($lines === []) {
+            throw BusinessError::validation(['subject.lines' => ['La remise à approuver porte au moins une ligne.']]);
+        }
+        $known = DB::table('invoice_lines')->where('clinic_id', $context->clinicId)->where('invoice_id', $invoiceId)->pluck('id')->map(static fn (mixed $id): string => (string) $id)->all();
+        foreach (array_values($lines) as $index => $line) {
+            if (! is_array($line) || ! in_array((string) ($line['invoice_line_id'] ?? ''), $known, true)) {
+                throw BusinessError::validation(['subject.lines.'.$index.'.invoice_line_id' => ['Cette ligne n\'appartient pas à la facture.']]);
+            }
+        }
+        $due = InvoiceLedger::load($context->clinicId, $invoiceId, (int) $invoice->total_gross)->amountDue();
+        if ($due <= 0) {
+            throw BusinessError::stateRefused('Cette facture n\'a plus de reste à encaisser : sa remise n\'exige aucune approbation.', 'SETTLED');
+        }
+        if ($due !== $amountDue) {
+            throw new BusinessError('VALIDATION_FAILED', 'Le reste dû a changé depuis votre affichage : actualisez avant de demander l\'approbation.', 422, ['subject.amount_due' => ['Reste dû actuel : '.$due.' FCFA.']], null, [], ['amount_due' => $due]);
+        }
+    }
+
+    /**
+     * Mouvement de caisse : session OUVERTE du cabinet (une session clôturée est figée), nature et signe cohérents,
+     * catégorie active pour une dépense. Le montant disponible est rejugé au mouvement (RecordCashMovement).
+     */
+    private function cashMovement(TransactionLocks $locks, CommandContext $context, string $sessionId, string $kind, int $signedAmount, ?string $categoryId): void
+    {
+        try {
+            CashMovements::assertShape($kind, $signedAmount, $categoryId, 'subject.');
+        } catch (RuleViolation $violation) {
+            throw BusinessError::validation([$violation->field => [$violation->getMessage()]]);
+        }
+        $session = $locks->cashSession($sessionId);
+        if ($session === null) {
+            throw BusinessError::validation(['subject.cash_session_id' => ['Session de caisse introuvable dans ce cabinet.']]);
+        }
+        if ($session->closed_at !== null) {
+            throw BusinessError::stateRefused('Cette session de caisse est clôturée : elle est figée, aucun mouvement ne s\'y ajoute.', 'CLOSED');
+        }
+        if ($categoryId !== null && ! CashMovements::activeCategory($context->clinicId, $categoryId)) {
+            throw BusinessError::validation(['subject.expense_category_id' => ['Catégorie de dépense introuvable ou désactivée.']]);
+        }
+    }
+
+    /** Casse ou ajustement : position du cabinet, article et lot cohérents. La quantité est rejugée au mouvement. */
+    private function stockMovement(CommandContext $context, string $positionId, string $itemId, ?string $lotId): void
+    {
+        $position = DB::table('stock_positions')->where('clinic_id', $context->clinicId)->where('id', $positionId)->first(['item_id']);
+        if ($position === null || (string) $position->item_id !== $itemId) {
+            throw BusinessError::validation(['subject.position_id' => ['Position de stock introuvable pour cet article.']]);
+        }
+        if ($lotId !== null && ! DB::table('stock_lots')->where('clinic_id', $context->clinicId)->where('id', $lotId)->where('stock_position_id', $positionId)->exists()) {
+            throw BusinessError::validation(['subject.lot_id' => ['Ce lot n\'appartient pas à cette position de stock.']]);
         }
     }
 

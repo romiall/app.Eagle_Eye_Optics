@@ -8,7 +8,6 @@ use App\Application\CommandBusProbe;
 use App\Application\Locking\TransactionLocks;
 use App\Domain\Patients\Handlers\CreatePatientHandler;
 use App\Domain\Shared\BusinessError;
-use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\Ulid;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -18,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\AccessFixtures;
 use Tests\Support\Commands\RecordingProbe;
 use Tests\Support\MigratedDatabase;
+use Tests\Support\RefusedSources;
 use Tests\Support\ValidatesContracts;
 use Tests\TestCase;
 
@@ -30,6 +30,7 @@ final class PatientCommandsTest extends TestCase
 {
     use AccessFixtures;
     use MigratedDatabase;
+    use RefusedSources;
     use ValidatesContracts;
 
     private string $clinicId;
@@ -538,17 +539,31 @@ final class PatientCommandsTest extends TestCase
         $this->createPatient($this->body())->assertCreated()->assertJsonPath('data.record_number', 'EE-2026-0003');
     }
 
-    public function test_une_source_autre_que_la_route_directe_est_refusee_tant_que_les_plages_n_existent_pas(): void
+    /**
+     * La création est ouverte aux postes synchronisés (O05) : une tâche du serveur, sans auteur, est refusée avant toute
+     * lecture ; un poste dont le cœur signé ne désigne aucune plage de numéros est refusé sans fiche ni numéro consommé.
+     */
+    public function test_une_source_sans_auteur_ou_sans_plage_de_numeros_est_refusee(): void
     {
-        $this->expectException(BusinessError::class);
-        $this->expectExceptionMessage('plages de numéros');
-
         $payload = $this->body();
         unset($payload['expected_version']);
         $payload['record_number'] = 'EE-2026-0001';
-        $context = CommandContext::job($this->clinicId, 'test', 'corr-test', CarbonImmutable::now('UTC'));
 
-        $this->app->make(CreatePatientHandler::class)
-            ->handle(new Command('CreatePatient', $payload), $context, new TransactionLocks($this->clinicId), null);
+        $attempts = [
+            ['ACTION_FORBIDDEN', 'auteur identifié', $this->jobContext()],
+            ['NUMBER_RANGE_INVALID', 'aucune plage', $this->syncContextWithoutRange($this->reception)],
+        ];
+        foreach ($attempts as [$code, $fragment, $context]) {
+            try {
+                $this->app->make(CreatePatientHandler::class)
+                    ->handle(new Command('CreatePatient', $payload), $context, new TransactionLocks($this->clinicId), null);
+                $this->fail('Une source sans auteur ou sans plage de numéros devait être refusée.');
+            } catch (BusinessError $error) {
+                $this->assertSame($code, $error->errorCode);
+                $this->assertStringContainsString($fragment, $error->getMessage());
+            }
+        }
+        $this->assertSame(0, DB::table('patient_records')->where('clinic_id', $this->clinicId)->count());
+        $this->assertSame(0, DB::table('document_number_usages')->where('clinic_id', $this->clinicId)->where('document_type', 'PATIENT')->count());
     }
 }

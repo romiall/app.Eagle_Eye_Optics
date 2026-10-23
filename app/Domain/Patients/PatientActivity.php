@@ -98,8 +98,10 @@ final class PatientActivity
         $filter = $this->section($section, $visible);
         $pageNumber = $this->page($page);
         $selected = $filter === null ? $visible : [$filter];
+        // Fiche conservée d'une fusion (L1D08) : son activité réunit celle des fiches absorbées, sans rien réécrire.
+        $patientIds = MergePatients::lineage($clinicId, $patientId);
 
-        $totals = $this->totals($clinicId, $patientId, $visible);
+        $totals = $this->totals($clinicId, $patientIds, $visible);
         $total = 0;
         foreach ($selected as $code) {
             $total += $totals[$code];
@@ -107,7 +109,7 @@ final class PatientActivity
 
         // Aucune section retenue : le total est nul, aucune requête.
         $rows = $total === 0 ? [] : DB::query()
-            ->fromSub($this->union($clinicId, $patientId, $selected), 'activity')
+            ->fromSub($this->union($clinicId, $patientIds, $selected), 'activity')
             ->select(['item_type', 'item_id', 'occurred_at'])
             ->orderByDesc('occurred_at')
             ->orderBy('sort_rank')
@@ -118,7 +120,7 @@ final class PatientActivity
             ->all();
 
         return new PatientActivityPage(
-            $this->details($clinicId, $patientId, $rows),
+            $this->details($clinicId, $patientIds, $rows),
             $totals,
             $filter,
             $pageNumber,
@@ -130,10 +132,11 @@ final class PatientActivity
     /**
      * Nombre d'éléments de chaque section visible (zéro pour une section vide), en une requête.
      *
+     * @param  list<string>  $patientIds  la fiche et les fiches qui y ont été fusionnées
      * @param  list<string>  $visible
      * @return array<string, int>
      */
-    private function totals(string $clinicId, string $patientId, array $visible): array
+    private function totals(string $clinicId, array $patientIds, array $visible): array
     {
         $totals = array_fill_keys($visible, 0);
         if ($visible === []) {
@@ -141,7 +144,7 @@ final class PatientActivity
         }
 
         $counts = DB::query()
-            ->fromSub($this->union($clinicId, $patientId, $visible), 'activity')
+            ->fromSub($this->union($clinicId, $patientIds, $visible), 'activity')
             ->select('section_code')
             ->selectRaw('COUNT(*) AS total')
             ->groupBy('section_code')
@@ -160,13 +163,14 @@ final class PatientActivity
      * UNION ALL des sections demandées. Chaque partie rend les mêmes colonnes : section_code, item_type, item_id,
      * occurred_at, sort_rank. Un nouveau constructeur à chaque appel (unionAll modifie la première requête).
      *
+     * @param  list<string>  $patientIds  la fiche et les fiches qui y ont été fusionnées
      * @param  list<string>  $sections
      */
-    private function union(string $clinicId, string $patientId, array $sections): Builder
+    private function union(string $clinicId, array $patientIds, array $sections): Builder
     {
         $parts = [];
         foreach ($sections as $code) {
-            array_push($parts, ...$this->parts($clinicId, $patientId, $code));
+            array_push($parts, ...$this->parts($clinicId, $patientIds, $code));
         }
         $union = array_shift($parts);
         if ($union === null) {
@@ -180,34 +184,35 @@ final class PatientActivity
     }
 
     /**
+     * @param  list<string>  $patientIds  la fiche et les fiches qui y ont été fusionnées
      * @return list<Builder>
      */
-    private function parts(string $clinicId, string $patientId, string $section): array
+    private function parts(string $clinicId, array $patientIds, string $section): array
     {
         return match ($section) {
             self::VISITS => [
                 DB::table('visits')
                     ->where('visits.clinic_id', $clinicId)
-                    ->where('visits.patient_id', $patientId)
+                    ->whereIn('visits.patient_id', $patientIds)
                     ->selectRaw(self::columns(self::VISITS, self::VISIT, 'visits.id', 'visits.occurred_at')),
             ],
             self::EXAMS => [
                 DB::table('consultations')
                     ->where('consultations.clinic_id', $clinicId)
-                    ->where('consultations.patient_id', $patientId)
+                    ->whereIn('consultations.patient_id', $patientIds)
                     ->selectRaw(self::columns(self::EXAMS, self::CONSULTATION, 'consultations.id', 'consultations.effective_at')),
             ],
             self::PRESCRIPTIONS => [
                 // Chaque version d'une série est une entrée : une nouvelle version ne remplace pas la précédente.
                 DB::table('optical_prescriptions')
                     ->where('optical_prescriptions.clinic_id', $clinicId)
-                    ->where('optical_prescriptions.patient_id', $patientId)
+                    ->whereIn('optical_prescriptions.patient_id', $patientIds)
                     ->selectRaw(self::columns(self::PRESCRIPTIONS, self::PRESCRIPTION, 'optical_prescriptions.id', 'COALESCE(optical_prescriptions.validated_at, optical_prescriptions.created_at)')),
                 // Ordonnance de médicaments : les lignes de la rubrique « médicaments » d'une consultation. Elle n'a ni
                 // table ni numéro propres : l'entrée porte l'identifiant et la date de la consultation.
                 DB::table('consultations')
                     ->where('consultations.clinic_id', $clinicId)
-                    ->where('consultations.patient_id', $patientId)
+                    ->whereIn('consultations.patient_id', $patientIds)
                     ->whereExists(static function (Builder $query): void {
                         $query->selectRaw('1')
                             ->from('medication_orders')
@@ -219,24 +224,24 @@ final class PatientActivity
             self::FINANCIAL => [
                 DB::table('invoices')
                     ->where('invoices.clinic_id', $clinicId)
-                    ->where('invoices.patient_id', $patientId)
+                    ->whereIn('invoices.patient_id', $patientIds)
                     ->where('invoices.status', 'ISSUED')
                     ->selectRaw(self::columns(self::FINANCIAL, self::INVOICE, 'invoices.id', 'invoices.issued_at')),
                 DB::table('receipts')
                     ->join('invoices', self::invoiceOf('receipts'))
                     ->where('receipts.clinic_id', $clinicId)
-                    ->where('invoices.patient_id', $patientId)
+                    ->whereIn('invoices.patient_id', $patientIds)
                     ->selectRaw(self::columns(self::FINANCIAL, self::RECEIPT, 'receipts.id', 'receipts.issued_at')),
                 DB::table('credit_notes')
                     ->join('invoices', self::invoiceOf('credit_notes'))
                     ->where('credit_notes.clinic_id', $clinicId)
-                    ->where('invoices.patient_id', $patientId)
+                    ->whereIn('invoices.patient_id', $patientIds)
                     ->where('credit_notes.status', 'ISSUED')
                     ->selectRaw(self::columns(self::FINANCIAL, self::CREDIT_NOTE, 'credit_notes.id', 'credit_notes.issued_at')),
                 DB::table('refunds')
                     ->join('invoices', self::invoiceOf('refunds'))
                     ->where('refunds.clinic_id', $clinicId)
-                    ->where('invoices.patient_id', $patientId)
+                    ->whereIn('invoices.patient_id', $patientIds)
                     ->selectRaw(self::columns(self::FINANCIAL, self::REFUND, 'refunds.id', 'refunds.effective_at')),
             ],
             default => throw new LogicException('Section inconnue : '.$section),
@@ -273,10 +278,11 @@ final class PatientActivity
      * Détails des éléments de la page, dans l'ordre de la page. Un élément dont la ligne a disparu entre les deux
      * lectures (brouillon de prescription supprimé) est omis plutôt que rendu incomplet.
      *
+     * @param  list<string>  $patientIds  la fiche et les fiches qui y ont été fusionnées
      * @param  array<int, stdClass>  $rows
      * @return list<array{type: string, occurred_at: string, row: stdClass}>
      */
-    private function details(string $clinicId, string $patientId, array $rows): array
+    private function details(string $clinicId, array $patientIds, array $rows): array
     {
         $ids = [];
         foreach ($rows as $row) {
@@ -285,7 +291,7 @@ final class PatientActivity
 
         $loaded = [];
         foreach ($ids as $type => $list) {
-            $loaded[$type] = $this->load($clinicId, $patientId, $type, $list);
+            $loaded[$type] = $this->load($clinicId, $patientIds, $type, $list);
         }
 
         $items = [];
@@ -301,15 +307,16 @@ final class PatientActivity
     }
 
     /**
+     * @param  list<string>  $patientIds  la fiche et les fiches qui y ont été fusionnées
      * @param  list<string>  $ids
      * @return array<string, stdClass>
      */
-    private function load(string $clinicId, string $patientId, string $type, array $ids): array
+    private function load(string $clinicId, array $patientIds, string $type, array $ids): array
     {
         $query = match ($type) {
             self::VISIT => DB::table('visits')
                 ->where('visits.clinic_id', $clinicId)
-                ->where('visits.patient_id', $patientId)
+                ->whereIn('visits.patient_id', $patientIds)
                 ->whereIn('visits.id', $ids)
                 ->select(['visits.id', 'visits.reason', 'visits.status']),
             self::CONSULTATION => DB::table('consultations')
@@ -317,12 +324,12 @@ final class PatientActivity
                     $join->on('users.clinic_id', '=', 'consultations.clinic_id')->on('users.id', '=', 'consultations.clinician_id');
                 })
                 ->where('consultations.clinic_id', $clinicId)
-                ->where('consultations.patient_id', $patientId)
+                ->whereIn('consultations.patient_id', $patientIds)
                 ->whereIn('consultations.id', $ids)
                 ->select(['consultations.id', 'consultations.status', 'users.display_name as clinician_name']),
             self::PRESCRIPTION => DB::table('optical_prescriptions')
                 ->where('optical_prescriptions.clinic_id', $clinicId)
-                ->where('optical_prescriptions.patient_id', $patientId)
+                ->whereIn('optical_prescriptions.patient_id', $patientIds)
                 ->whereIn('optical_prescriptions.id', $ids)
                 ->select([
                     'optical_prescriptions.id', 'optical_prescriptions.origin', 'optical_prescriptions.status',
@@ -331,7 +338,7 @@ final class PatientActivity
                 ]),
             self::MEDICATION_ORDER => DB::table('consultations')
                 ->where('consultations.clinic_id', $clinicId)
-                ->where('consultations.patient_id', $patientId)
+                ->whereIn('consultations.patient_id', $patientIds)
                 ->whereIn('consultations.id', $ids)
                 ->select(['consultations.id', 'consultations.status']),
             self::INVOICE => DB::table('invoices')
@@ -339,7 +346,7 @@ final class PatientActivity
                     $join->on('balances.clinic_id', '=', 'invoices.clinic_id')->on('balances.invoice_id', '=', 'invoices.id');
                 })
                 ->where('invoices.clinic_id', $clinicId)
-                ->where('invoices.patient_id', $patientId)
+                ->whereIn('invoices.patient_id', $patientIds)
                 ->whereIn('invoices.id', $ids)
                 ->select([
                     'invoices.id', 'invoices.number', 'invoices.origin', 'invoices.total_gross',
@@ -352,7 +359,7 @@ final class PatientActivity
                     $join->on('payments.clinic_id', '=', 'receipts.clinic_id')->on('payments.id', '=', 'receipts.payment_id');
                 })
                 ->where('receipts.clinic_id', $clinicId)
-                ->where('invoices.patient_id', $patientId)
+                ->whereIn('invoices.patient_id', $patientIds)
                 ->whereIn('receipts.id', $ids)
                 ->select([
                     'receipts.id', 'receipts.number', 'receipts.invoice_id', 'invoices.number as invoice_number',
@@ -367,7 +374,7 @@ final class PatientActivity
             self::CREDIT_NOTE => DB::table('credit_notes')
                 ->join('invoices', self::invoiceOf('credit_notes'))
                 ->where('credit_notes.clinic_id', $clinicId)
-                ->where('invoices.patient_id', $patientId)
+                ->whereIn('invoices.patient_id', $patientIds)
                 ->whereIn('credit_notes.id', $ids)
                 ->select([
                     'credit_notes.id', 'credit_notes.number', 'credit_notes.amount_gross', 'credit_notes.invoice_id',
@@ -376,7 +383,7 @@ final class PatientActivity
             self::REFUND => DB::table('refunds')
                 ->join('invoices', self::invoiceOf('refunds'))
                 ->where('refunds.clinic_id', $clinicId)
-                ->where('invoices.patient_id', $patientId)
+                ->whereIn('invoices.patient_id', $patientIds)
                 ->whereIn('refunds.id', $ids)
                 ->select([
                     'refunds.id', 'refunds.number', 'refunds.amount', 'refunds.method', 'refunds.invoice_id',

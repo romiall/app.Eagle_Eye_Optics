@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Prescriptions optiques (C04) : brouillon, nouvelle version, validation. Données CLINIQUES, réservées aux comptes qui
@@ -42,6 +43,20 @@ final class PrescriptionController extends CommandController
         }
         $list = $this->prescriptions->listForConsultation($clinicId, $id);
         $this->audit->prescriptionsListed($actor, $clinicId, $id);
+
+        return new JsonResponse(['data' => array_map(PrescriptionPresenter::prescription(...), $list)]);
+    }
+
+    /** Prescriptions d'un patient (internes et externes), pour l'écran « Prescriptions » du dossier patient. */
+    public function patientIndex(Request $request, string $id): JsonResponse
+    {
+        $actor = $this->actor($request);
+        $clinicId = (string) $actor->clinic_id;
+        if (! DB::table('patient_records')->where('clinic_id', $clinicId)->where('id', $id)->exists()) {
+            throw BusinessError::notFound();
+        }
+        $list = $this->prescriptions->listForPatient($clinicId, $id);
+        $this->audit->patientPrescriptionsListed($actor, $clinicId, $id);
 
         return new JsonResponse(['data' => array_map(PrescriptionPresenter::prescription(...), $list)]);
     }

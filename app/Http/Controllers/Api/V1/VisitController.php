@@ -69,6 +69,34 @@ final class VisitController extends CommandController
         return BilledExamFeeControl::isActive() ? $this->examFee->queueMarker($row, CarbonImmutable::now('UTC')) : null;
     }
 
+    /**
+     * `POST /visits/{id}/cancel` : annule une visite avant l'examen (version attendue, motif obligatoire) et rend la
+     * visite relue, au format de la file du jour.
+     */
+    public function cancel(Request $request, string $id): JsonResponse
+    {
+        [$payload, $expected, $present] = $this->directBody($request);
+        $errors = [];
+        if (($payload['visit_id'] ?? null) !== $id) {
+            $errors['visit_id'] = ["L'identifiant de la visite du corps doit être celui de l'adresse."];
+        }
+        if (! $present) {
+            $errors['expected_version'] = ['Champ obligatoire absent (version de la visite).'];
+        }
+        if ($errors !== []) {
+            throw BusinessError::validation($errors);
+        }
+
+        $this->dispatchCommand($request, new Command('CancelVisit', $payload, $id, $expected));
+
+        $row = VisitQueue::find($this->actor($request)->clinic_id, $id);
+        if ($row === null) {
+            throw BusinessError::notFound();
+        }
+
+        return new JsonResponse(['data' => VisitPresenter::visit($row, $this->actor($request)->can('clinical.read'))]);
+    }
+
     private function actor(Request $request): User
     {
         $user = $request->user();

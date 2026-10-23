@@ -31,6 +31,7 @@ final readonly class CommandContext
         public ?CarbonImmutable $occurredAtLocal = null,
         public ?CarbonImmutable $lastServerTime = null,
         public ?CarbonImmutable $receivedAt = null,
+        public ?SyncReferences $syncReferences = null,
     ) {}
 
     /**
@@ -60,6 +61,9 @@ final readonly class CommandContext
      *
      * Les clés d'idempotence sont propres à l'appareil (la clé est l'identifiant de la commande) ; l'empreinte
      * comparée au rejeu lie en plus l'auteur et le grant (Command::fingerprint).
+     *
+     * `references` (O05) : place de la commande dans le journal du poste, plage de numéros et quotas de son cœur
+     * signé ; avec elles, le chemin central enregistre l'ACK et le préfixe finalisé dans la transaction de l'effet.
      */
     public static function sync(
         string $clinicId,
@@ -72,6 +76,7 @@ final readonly class CommandContext
         CarbonImmutable $lastServerTime,
         CarbonImmutable $receivedAt,
         ?CarbonImmutable $now = null,
+        ?SyncReferences $references = null,
     ): self {
         return new self(
             clinicId: $clinicId,
@@ -86,7 +91,17 @@ final readonly class CommandContext
             occurredAtLocal: $occurredAtLocal,
             lastServerTime: $lastServerTime,
             receivedAt: $receivedAt,
+            syncReferences: $references,
         );
+    }
+
+    /**
+     * Instant de la PIÈCE : celui où le poste a agi pour une commande synchronisée (le reçu ou la facture a été imprimé à
+     * ce moment, jugé plausible par l'autorisation historique), sinon l'instant du serveur donné.
+     */
+    public function pieceInstant(CarbonImmutable $serverInstant): CarbonImmutable
+    {
+        return $this->source === CommandSource::Sync && $this->occurredAtLocal !== null ? $this->occurredAtLocal->utc() : $serverInstant;
     }
 
     /**

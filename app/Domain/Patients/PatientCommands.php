@@ -3,7 +3,9 @@
 namespace App\Domain\Patients;
 
 use App\Application\CommandDefinition;
+use App\Domain\Patients\Handlers\CancelVisitHandler;
 use App\Domain\Patients\Handlers\CreatePatientHandler;
+use App\Domain\Patients\Handlers\MergePatientsHandler;
 use App\Domain\Patients\Handlers\RegisterVisitHandler;
 use App\Domain\Patients\Handlers\UpdatePatientHandler;
 use App\Domain\Shared\CommandSource;
@@ -45,6 +47,26 @@ final class PatientCommands
                 'commands/UpdatePatient.v1.json',
                 true,
                 'commands/UpdatePatient.v1.json#/$defs/DirectRequest',
+            ),
+            // Annulation d'une visite avant l'examen (P03) : en ligne seulement, hors du journal d'un poste ; corps de
+            // la route directe validé contre sa requête HTTP (aucune charge de poste au catalogue F06).
+            new CommandDefinition(
+                CancelVisitHandler::COMMAND,
+                CancelVisitHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/CancelVisitRequest',
+            ),
+            // Fusion manuelle de deux fiches (L1D08), par la gérante après revue : en ligne seulement, corps de la
+            // route directe validé contre sa requête HTTP.
+            new CommandDefinition(
+                MergePatientsHandler::COMMAND,
+                MergePatientsHandler::class,
+                [CommandSource::Direct],
+                null,
+                true,
+                'schemas/requests/http.json#/$defs/MergePatientsRequest',
             ),
         ];
     }

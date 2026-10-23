@@ -4,6 +4,7 @@ namespace App\Domain\Access\Approvals;
 
 use App\Domain\Shared\CanonicalJson;
 use App\Domain\Shared\RuleViolation;
+use App\Domain\Shared\ValueObjects\FixedDecimal;
 use App\Domain\Shared\ValueObjects\Quantity;
 
 /**
@@ -20,7 +21,10 @@ use App\Domain\Shared\ValueObjects\Quantity;
  *    tant que l'écran reste ouvert) ;
  *  - contre-écriture : facture, paiement, montant ;
  *  - avoir : facture, montant total et lignes (ligne d'origine, quantité, montant), triées ;
- *  - remboursement : facture, avoir, montant, mode.
+ *  - remboursement : facture, avoir, montant, mode ;
+ *  - remise à crédit : facture, reste dû au moment de la remise et lignes remises (ligne d'origine, quantité), triées ;
+ *    un encaissement entre la demande et la remise change le reste dû, donc l'empreinte (nouvelle demande) ;
+ *  - casse ou ajustement : position, article, lot, nature et quantité signée.
  *
  * Fonctions pures : aucune lecture en base. Les quantités sont ramenées à leur forme canonique (« 1 » = « 1.000 »).
  */
@@ -123,6 +127,66 @@ final readonly class ApprovalSubject
     }
 
     /**
+     * @param  list<mixed>  $lines  lignes remises (ligne d'origine, quantité) ; même tolérance que `draftLineRights`
+     *                              pour un contenu relu de l'audit. Deux lignes d'une même ligne d'origine sont additionnées.
+     */
+    public static function creditDelivery(string $invoiceId, int $amountDue, array $lines): self
+    {
+        $byLine = [];
+        foreach ($lines as $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+            $lineId = is_string($line['invoice_line_id'] ?? null) ? $line['invoice_line_id'] : '';
+            $parsed = null;
+            try {
+                $parsed = Quantity::parse(is_string($line['quantity'] ?? null) ? $line['quantity'] : null);
+            } catch (RuleViolation) {
+                $parsed = null;
+            }
+            if ($parsed === null || (array_key_exists($lineId, $byLine) && $byLine[$lineId] === null)) {
+                // Contenu non reproductible : la ligne reste vide, l'empreinte ne correspondra à aucune remise.
+                $byLine[$lineId] = null;
+
+                continue;
+            }
+            $byLine[$lineId] = isset($byLine[$lineId]) ? $byLine[$lineId]->plus($parsed) : $parsed;
+        }
+        ksort($byLine, SORT_STRING);
+        $normalized = [];
+        foreach ($byLine as $lineId => $quantity) {
+            $normalized[] = ['invoice_line_id' => (string) $lineId, 'quantity' => $quantity?->canonical() ?? ''];
+        }
+
+        return new self(ApprovalKind::CreditDelivery, $invoiceId, ['invoice_id' => $invoiceId, 'amount_due' => $amountDue, 'lines' => $normalized]);
+    }
+
+    public static function stockMovement(string $positionId, string $itemId, ?string $lotId, string $kind, string $signedQuantity): self
+    {
+        return new self(ApprovalKind::StockMovement, $positionId, [
+            'position_id' => $positionId,
+            'item_id' => $itemId,
+            'lot_id' => $lotId,
+            'movement_kind' => $kind,
+            'signed_quantity' => self::signedQuantity($signedQuantity),
+        ]);
+    }
+
+    /**
+     * Mouvement d'espèces hors vente : session, nature, montant SIGNÉ (entrée positive, sortie négative) et catégorie
+     * de dépense exacts. Le motif et la référence du justificatif ne sont pas dans l'empreinte (motif de la demande).
+     */
+    public static function cashMovement(string $sessionId, string $kind, int $signedAmount, ?string $categoryId): self
+    {
+        return new self(ApprovalKind::CashMovement, $sessionId, [
+            'cash_session_id' => $sessionId,
+            'movement_kind' => $kind,
+            'signed_amount' => $signedAmount,
+            'expense_category_id' => $categoryId,
+        ]);
+    }
+
+    /**
      * Contenu d'une DEMANDE (`RequestApproval.subject`, déjà validé par le schéma du contrat). Une nature inconnue ou un
      * champ manquant est un refus de saisie, jamais une approbation « générale ».
      *
@@ -149,6 +213,22 @@ final readonly class ApprovalSubject
 
             return $value;
         };
+        $nullableString = static function (string $field) use ($subject): ?string {
+            $value = $subject[$field] ?? null;
+            if ($value !== null && (! is_string($value) || $value === '')) {
+                throw RuleViolation::invalid('subject.'.$field, 'approval.subject_field_invalid', 'Identifiant attendu, ou null.');
+            }
+
+            return $value;
+        };
+        $signedInteger = static function (string $field) use ($subject): int {
+            $value = $subject[$field] ?? null;
+            if (! is_int($value) || $value === 0) {
+                throw RuleViolation::invalid('subject.'.$field, 'approval.subject_amount_required', 'Montant signé non nul attendu.');
+            }
+
+            return $value;
+        };
         $list = static function (string $field) use ($subject): array {
             $value = $subject[$field] ?? null;
             if (! is_array($value) || ! array_is_list($value)) {
@@ -164,6 +244,9 @@ final readonly class ApprovalSubject
             ApprovalKind::PaymentReversal => self::paymentReversal($string('invoice_id'), $string('payment_id'), $integer('amount')),
             ApprovalKind::CreditNote => self::creditNote($string('invoice_id'), $integer('amount_gross'), $list('lines')),
             ApprovalKind::Refund => self::refund($string('invoice_id'), $string('credit_note_id'), $integer('amount'), $string('method')),
+            ApprovalKind::CreditDelivery => self::creditDelivery($string('invoice_id'), $integer('amount_due'), $list('lines')),
+            ApprovalKind::StockMovement => self::stockMovement($string('position_id'), $string('item_id'), $nullableString('lot_id'), $string('movement_kind'), $string('signed_quantity')),
+            ApprovalKind::CashMovement => self::cashMovement($string('cash_session_id'), $string('movement_kind'), $signedInteger('signed_amount'), $nullableString('expense_category_id')),
             null => throw RuleViolation::invalid('subject.kind', 'approval.kind_unknown', 'Nature d\'opération à approuver inconnue.'),
         };
     }
@@ -184,6 +267,16 @@ final readonly class ApprovalSubject
         }
 
         return hash_equals($payloadHash, $subject->hash()) ? $subject->toArray() : null;
+    }
+
+    /** Quantité signée d'un mouvement ramenée à sa forme canonique (« -1 » = « -1.000 »). */
+    private static function signedQuantity(string $value): string
+    {
+        try {
+            return FixedDecimal::parse($value, Quantity::SCALE, Quantity::INTEGER_DIGITS, true, 'signed_quantity')?->canonical() ?? $value;
+        } catch (RuleViolation) {
+            return $value;
+        }
     }
 
     private static function quantity(mixed $value): string

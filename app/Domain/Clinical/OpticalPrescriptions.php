@@ -69,6 +69,25 @@ final class OpticalPrescriptions
     }
 
     /**
+     * Toutes les prescriptions d'un patient (internes et ordonnances externes transcrites), de la plus récente à la
+     * plus ancienne : l'ordonnance externe n'a pas de consultation, elle se retrouve par le dossier du patient.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listForPatient(string $clinicId, string $patientId): array
+    {
+        $rows = DB::table('optical_prescriptions')
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patientId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('version_no')
+            ->orderByDesc('id')
+            ->get();
+
+        return array_values($rows->map(fn (stdClass $row): array => $this->shape($row))->all());
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function shape(stdClass $row): array

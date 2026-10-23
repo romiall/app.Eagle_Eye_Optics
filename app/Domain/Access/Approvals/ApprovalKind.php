@@ -35,6 +35,21 @@ enum ApprovalKind: string
     /** Remboursement réel d'un crédit (AT14). */
     case Refund = 'REFUND';
 
+    /** Remise au patient d'une facture non soldée (I01 ; fichier 03 : « remise à crédit avec approbation »). */
+    case CreditDelivery = 'CREDIT_DELIVERY';
+
+    /**
+     * Casse ou ajustement de stock hors vente (I02 ; CHECK `ck_stock_movements_06`). Cible : la position de stock (le
+     * stock initial, exécuté directement par la gérante, vise `stock_movements` et reste hors de ce registre).
+     */
+    case StockMovement = 'STOCK_MOVEMENT';
+
+    /**
+     * Mouvement d'espèces hors vente d'une session de caisse ouverte : dépense, dépôt, retrait ou correction de
+     * l'ouverture (L1D05 ; fichier 03 : « Les sorties de caisse réelles […] sont enregistrées et autorisées »).
+     */
+    case CashMovement = 'CASH_MOVEMENT';
+
     public function actionCode(): string
     {
         return match ($this) {
@@ -43,6 +58,9 @@ enum ApprovalKind: string
             self::PaymentReversal => 'payment.reverse',
             self::CreditNote => 'credit_note.issue',
             self::Refund => 'refund.execute',
+            self::CreditDelivery => 'delivery.confirm',
+            self::StockMovement => 'stock.adjust',
+            self::CashMovement => 'cash.manage',
         };
     }
 
@@ -51,7 +69,9 @@ enum ApprovalKind: string
         return match ($this) {
             self::ExamFeeWaiver => 'visits',
             self::PaymentReversal => 'payments',
-            self::DraftLineRights, self::CreditNote, self::Refund => 'invoices',
+            self::DraftLineRights, self::CreditNote, self::Refund, self::CreditDelivery => 'invoices',
+            self::StockMovement => 'stock_positions',
+            self::CashMovement => 'cash_sessions',
         };
     }
 
@@ -63,6 +83,9 @@ enum ApprovalKind: string
             self::PaymentReversal => 'Contre-écriture d\'un paiement',
             self::CreditNote => 'Avoir sur une facture émise',
             self::Refund => 'Remboursement d\'un crédit',
+            self::CreditDelivery => 'Remise avant règlement complet',
+            self::StockMovement => 'Casse ou ajustement de stock',
+            self::CashMovement => 'Mouvement de caisse hors vente',
         };
     }
 

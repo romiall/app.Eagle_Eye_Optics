@@ -11,10 +11,12 @@ use App\Application\Effects\ChangeRecord;
 use App\Application\Effects\ChangeVisibility;
 use App\Application\Effects\OutboxEvent;
 use App\Application\Locking\TransactionLocks;
+use App\Domain\Billing\Guards\AuthoredSource;
 use App\Domain\Patients\Rules\PatientIdentity;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Domain\Shared\CommandSource;
+use App\Domain\Shared\DeviceNumbers;
 use App\Domain\Shared\DocumentNumbers;
 use App\Domain\Shared\ValueObjects\CivilDate;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +28,9 @@ use Illuminate\Support\Facades\DB;
  * création ; le signalement des ressemblances est fait par l'écran avant l'enregistrement (aucune fusion
  * automatique).
  *
- * Sur la route directe le serveur numérote (`record_number` est null dans la requête). Un numéro venant d'un
- * poste hors-ligne vient de sa plage réservée (O03) : tant que les plages n'existent pas, la commande d'un
- * poste est refusée explicitement plutôt que d'attribuer un numéro hors de toute autorisation.
+ * Sur la route directe le serveur numérote (`record_number` est null dans la requête). Une commande de poste
+ * synchronisée (O05) porte le numéro que le poste a pris dans SA plage réservée (O03) : il est vérifié puis
+ * enregistré tel quel (`DeviceNumbers`), jamais renuméroté ; l'identité est validée à la date où le poste a agi.
  */
 final class CreatePatientHandler implements CommandHandler
 {
@@ -41,16 +43,14 @@ final class CreatePatientHandler implements CommandHandler
 
     public function handle(Command $command, CommandContext $context, TransactionLocks $locks, ?string $idempotencyId): CommandOutcome
     {
-        if ($context->source !== CommandSource::Direct) {
-            throw BusinessError::forbidden('La création d\'un patient depuis un poste hors-ligne n\'est pas encore ouverte : les plages de numéros ne sont pas préparées.');
-        }
-
+        AuthoredSource::assert($context, 'La création d\'un patient');
+        $sync = $context->source === CommandSource::Sync;
         $payload = $command->payload;
         $patientId = (string) $payload['patient_id'];
         $usageId = (string) $payload['record_number_usage_id'];
 
         $timezone = (string) $locks->clinic()->timezone;
-        $local = $context->now->setTimezone($timezone);
+        $local = $context->pieceInstant($context->now)->setTimezone($timezone);
         $today = CivilDate::of((int) $local->format('Y'), (int) $local->format('n'), (int) $local->format('j'));
         $columns = PatientIdentity::columns($payload, $today);
 
@@ -66,20 +66,28 @@ final class CreatePatientHandler implements CommandHandler
             throw BusinessError::validation($errors);
         }
 
-        $number = DocumentNumbers::allocateCentral($locks, $context, DocumentNumbers::PATIENT, $timezone);
+        // Numéro : central sur la route directe ; celui de la plage du poste pour une commande synchronisée.
+        $allocationId = null;
+        if ($sync) {
+            $consumed = DeviceNumbers::consume($context, DocumentNumbers::PATIENT, $payload['record_number'] ?? null, DocumentNumbers::render(...));
+            $number = ['value' => $consumed['value'], 'rendered' => $consumed['rendered'], 'year' => $consumed['year']];
+            $allocationId = $consumed['allocation_id'];
+        } else {
+            $number = DocumentNumbers::allocateCentral($locks, $context, DocumentNumbers::PATIENT, $timezone);
+        }
         $now = $context->now->utc()->format('Y-m-d H:i:s.u');
 
         DB::table('document_number_usages')->insert([
             'id' => $usageId,
             'clinic_id' => $context->clinicId,
-            'allocation_id' => null,
+            'allocation_id' => $allocationId,
             'document_type' => DocumentNumbers::PATIENT,
             'document_year' => $number['year'],
             'number_value' => $number['value'],
             'rendered_number' => $number['rendered'],
             'entity_type' => 'patient_records',
             'entity_id' => $patientId,
-            'source_device_id' => null,
+            'source_device_id' => $context->deviceId,
             'actor_id' => $context->actorId,
             'consumed_at' => $now,
             'status' => 'USED',
@@ -109,7 +117,7 @@ final class CreatePatientHandler implements CommandHandler
                 'patient_id' => $patientId,
                 'record_number' => $number['rendered'],
                 'legacy_record' => (bool) ($payload['legacy_record'] ?? false),
-                'source_device_id' => null,
+                'source_device_id' => $context->deviceId,
             ])],
             changes: [new ChangeRecord('patient_records', $patientId, 1, ChangeVisibility::Administrative, ChangeKind::Created)],
         );
