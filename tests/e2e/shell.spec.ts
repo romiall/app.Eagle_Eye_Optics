@@ -36,18 +36,51 @@ test.describe('coquille de l’application (F09)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       'Bonjour Gérante (démonstration)',
     )
-    // La gérante a toutes les permissions ; seuls les modules « patients » (P01, P02) et « today »
-    // (P03) sont ouverts par l'environnement de test (EEO_ENABLED_MODULES) : ni autre module, ni
-    // message « aucun module livré ».
+    // La gérante a toutes les permissions ; l'environnement de test ouvre « patients », « today »,
+    // « consultations », « sales », « stock » et « settings » (EEO_ENABLED_MODULES de prepare-env.mjs). Seul ce
+    // qui est livré ET ouvert apparaît (docs/implementation/modules.md) : actions d'accueil du dossier patient,
+    // raccourcis de travail par activité, puis le changement de son mot de passe ; ni message « aucun module
+    // livré », ni module futur.
     await expect(page.getByText('Aucun module métier livré pour l’instant')).toHaveCount(0)
     await expect(page.getByRole('main').getByRole('link')).toHaveText([
       'Nouveau patient',
       'Rechercher',
       'Consultations du jour',
+      'Paramètres',
+      'Enregistrer une arrivée',
+      'Mes examens en cours',
+      'Examens du jour',
+      'Caisse',
+      'Nouvelle facture',
+      'Factures',
+      'Personnel',
+      'Cabinet et documents',
+      'Catalogue',
+      'Changer mon mot de passe',
     ])
     await expect(
       page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link'),
-    ).toHaveText(['Accueil', 'Aujourd’hui', 'Patients'])
+    ).toHaveText([
+      'Accueil',
+      'Aujourd’hui',
+      'Patients',
+      'Consultations',
+      'Ventes et caisse',
+      'Paramètres',
+    ])
+    // Modules et actions non livrés : jamais présentés, même ouverts par l'exploitant (le stock l'est ici, son
+    // entrée de menu attend I01).
+    for (const future of [
+      'Agenda',
+      'Rendez-vous',
+      'Stock',
+      'Atelier',
+      'Communication',
+      'Rapports',
+      'Statistiques',
+    ]) {
+      await expect(page.getByRole('link', { name: future, exact: true }), future).toHaveCount(0)
+    }
     const banner = page.getByRole('banner')
     await expect(banner.getByRole('link', { name: /Gestion des patients/ })).toHaveAttribute(
       'href',
@@ -168,8 +201,9 @@ test.describe('coquille de l’application (F09)', () => {
     page,
   }) => {
     await signInThroughForm(page, 'MANAGER')
-    // Le stock n'est pas livré (I01) ; les écrans patient, eux, le sont (P01, P02).
-    await page.goto('/stock')
+    // L'atelier n'est pas livré (L1D04) : son adresse n'ouvre aucun écran. (Le stock, lui, a un écran
+    // d'ouverture livré avec I00 et ouvert dans cet environnement : ce n'est plus une URL non livrée.)
+    await page.goto('/atelier')
 
     await expect(page.getByRole('heading', { level: 1, name: 'Page introuvable' })).toBeVisible()
     await page.getByRole('link', { name: 'Retour à l’accueil' }).click()

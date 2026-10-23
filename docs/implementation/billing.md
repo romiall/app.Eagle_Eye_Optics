@@ -156,7 +156,10 @@ refus : poste propriétaire, facture non émise, **montant au-delà du reste dû
 périmée (`VERSION_CONFLICT` avec `current_version` et `amount_due`). Espèces : session ouverte de l'auteur, antérieure
 à l'encaissement ; autres modes : aucune session. Référence obligatoire pour `MTN_MOMO`, `ORANGE_MONEY`,
 `BANK_TRANSFER` (paramétrable). Un encaissement daté d'un jour civil antérieur exige un motif, conservé dans l'audit.
-L'encaissement est un fait constaté par un opérateur : aucune vérification d'opérateur télécom en L0.
+L'encaissement est un fait constaté par un opérateur : aucune vérification d'opérateur télécom en L0. À l'écran,
+tant que la session de caisse du compte n'est pas lue (lecture en cours ou sans réponse exploitable), rien n'est
+conclu : « Lecture de la session de caisse… » ou « Session de caisse non vérifiée » (avec relecture), jamais « Caisse
+non ouverte », et aucun encaissement en espèces n'est envoyé.
 
 **Caisse (B05).** Une session ouverte par caisse ET par caissière ; fond ≥ 0 ; dates du serveur. À la clôture,
 l'attendu est recalculé sous verrou (fond + espèces encaissées − contre-écritures − remboursements espèces +
@@ -496,7 +499,8 @@ Tests écrits (non exécutés) : Vitest `tests/frontend/billing/` — `draft-tot
 charges, émission), `payment-rules.test.ts` (encaissement, caisse, catalogue = référentiel SQL, règles fiscales, stock
 initial), `cash-page.test.ts`, `invoice-draft.test.ts` (patient présélectionné, visite, remise refusée, 409, émission,
 stock insuffisant, gérante), `invoice-payment.test.ts` (acompte puis solde, deux reçus, double clic, réponse perdue,
-relecture qui constate, AT12, espèces sans caisse, référence, droits, serveur muet), `entry-points.test.ts` (routes,
+relecture qui constate, AT12, espèces sans caisse, session de caisse en lecture ou illisible, référence, droits,
+serveur muet), `entry-points.test.ts` (routes,
 navigation, boutons « Créer une facture », services, routes versionnées, 423 puis reprise, catalogue) et
 `support.ts`. Fichiers partagés : `tests/frontend/bootstrap.test.ts` (23 routes),
 `tests/frontend/shell/navigation.test.ts` (`sales:B02` livré). Playwright `tests/e2e/billing.spec.ts` (caisse,

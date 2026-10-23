@@ -41,17 +41,28 @@ import { salesFailureView, unconfirmed } from './failureView'
 import { formatMoney, paymentMethodLabel } from './format'
 import { useSalesSettings } from './useSalesSettings'
 
-const props = defineProps<{
-  invoice: Invoice
-  /** Session de caisse ouverte du compte (espèces), ou null (aucune, ou non lue). */
-  cashSessionId: string | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    invoice: Invoice
+    /** Session de caisse ouverte du compte (espèces), ou null (aucune, ou pas encore lue). */
+    cashSessionId: string | null
+    /**
+     * Lecture de cette session : `ready` (le serveur a répondu, `cashSessionId` fait foi), `loading` (en cours)
+     * ou `unavailable` (pas de réponse exploitable). Tant qu'elle n'est pas lue, rien n'est conclu : ni « caisse
+     * non ouverte », ni encaissement en espèces envoyé sans session.
+     */
+    cashSessionRead?: 'ready' | 'loading' | 'unavailable'
+  }>(),
+  { cashSessionRead: 'ready' },
+)
 
 const emit = defineEmits<{
   /** Encaissement confirmé par le serveur (réponse ou relecture) : le reçu est à afficher. */
   recorded: [receipt: { receiptId: string; receiptNumber: string | null }]
   /** La facture a changé (reste dû, version) : l'écran la relit. */
   stale: []
+  /** La session de caisse n'a pas pu être lue : l'écran la relit. */
+  recheckCash: []
 }>()
 
 const FIELD_IDS = {
@@ -88,7 +99,11 @@ const failure = computed(() =>
   mutation.state.value === 'conflict' ? null : salesFailureView(mutation.state.value),
 )
 const canOpenCash = computed(() => canOnScreen('cash.own_session'))
-const cashBlocked = computed(() => method.value === 'CASH' && props.cashSessionId === null)
+const cashMissing = computed(() => method.value === 'CASH' && props.cashSessionId === null)
+/** Espèces sans session, constaté par le serveur. */
+const cashBlocked = computed(() => cashMissing.value && props.cashSessionRead === 'ready')
+/** Espèces alors que la session du compte n'est pas encore lue : ni refus, ni envoi. */
+const cashUnknown = computed(() => cashMissing.value && props.cashSessionRead !== 'ready')
 
 const dirty = computed(
   () =>
@@ -109,6 +124,12 @@ function dropError(...fields: (keyof PaymentErrors)[]): void {
 watch(amount, () => dropError('amount'), { flush: 'sync' })
 watch(methodValue, () => dropError('method', 'cashSession', 'reference'), { flush: 'sync' })
 watch(reference, () => dropError('reference'), { flush: 'sync' })
+watch(
+  () => props.cashSessionId,
+  (id) => {
+    if (id !== null) dropError('cashSession')
+  },
+)
 
 /** Relecture de la facture : le paiement de la tentative envoyée y figure → encaissement constaté. */
 watch(
@@ -229,7 +250,7 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
 }
 
 async function submit(): Promise<void> {
-  if (locked.value) return
+  if (locked.value || cashUnknown.value) return
   errors.value = {}
   general.value = null
   const committed = amountField.value?.commit() ?? true
@@ -392,6 +413,22 @@ defineExpose({ reset })
         </template>
       </StateMessage>
     </div>
+    <StateMessage
+      v-else-if="cashUnknown && props.cashSessionRead === 'loading'"
+      state="loading"
+      title="Lecture de la session de caisse…"
+    >
+      L’encaissement en espèces attend la réponse du serveur sur la session de caisse de ce compte.
+    </StateMessage>
+    <StateMessage v-else-if="cashUnknown" state="offline" title="Session de caisse non vérifiée">
+      La session de caisse de ce compte n’a pas pu être lue : rien n’est conclu, l’encaissement en
+      espèces attend cette lecture.
+      <template #action>
+        <AppButton variant="secondary" @click="emit('recheckCash')"
+          >Relire la session de caisse</AppButton
+        >
+      </template>
+    </StateMessage>
 
     <p class="text-sm text-muted">
       L’encaissement est un fait constaté par vous : aucun opérateur de paiement n’est interrogé. Un
@@ -401,7 +438,7 @@ defineExpose({ reset })
     <AppButton
       type="submit"
       :pending="sending"
-      :disabled="locked"
+      :disabled="locked || cashUnknown"
       pending-label="Encaissement en cours…"
       >Encaisser{{ amount === null ? '' : ` ${formatMoney(amount)}` }}</AppButton
     >

@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante (2026-10-22, soir) : **phase 1** (fonctions de base de la cliente) codée en parallèle SANS exécution, puis vérification transversale unique (section « Phase 1 »). F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
+- Tâche courante (2026-10-23) : **phase 1** (fonctions de base de la cliente) codée puis vérifiée en fin de phase, tout vert en local (section « Phase 1 ») ; CI, puis mise en ligne sur Hostinger. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -119,7 +119,20 @@ l'activité (la matrice 09 la limite à la facture sélectionnée) ; motif oblig
 d'examen rétrospective ; `MEDICATION_ORDER`, `REFERRAL_LETTER` et `CASH_SESSION_REPORT` absents de
 `generated_documents.document_type` (générés localement seulement).
 
-**Vérification de fin de phase (prévue).** Régénération des contrats en LF et contrôle `--check` ;
+**Vérification de fin de phase (faite le 2026-10-23).** Première passe : contrats, Pint, Prettier et
+build verts ; PHPStan 43 erreurs, PHPUnit bloqué par une erreur fatale de test puis 32 échecs sur 2096,
+vue-tsc 24, ESLint 4, Vitest 13 échecs sur 2289. Corrections réparties par domaine (deux agents) :
+32 des 34 échecs PHPUnit venaient des tests (heure de clôture future, ordre des clés JSON, session de
+test héritée, matrice de routes incomplète, décisions remplacées), PHPStan corrigé dans le code ; côté
+écrans, vrais défauts corrigés (espaces perdus à l'affichage, message de décision effacé, refus du mot
+de passe actuel masqué, calcul flottant). Seconde passe avec Playwright : tout vert sauf 9 parcours
+sur 47 ; un vrai défaut corrigé (l'encaissement concluait « Caisse non ouverte » avant la réponse du
+serveur), les autres venaient des tests. Résultat final local : **tout vert, Playwright 47/47**.
+Tâches passées en IN_REVIEW (jamais DONE : hors-ligne et CI à prouver). Restent hors de cette
+phase : écrans d'avoir et de remboursement (B07, B08), hors-ligne (O01–O07), statistiques DP,
+annulation d'une visite, exécution réelle sur Hostinger.
+
+**Plan de vérification de fin de phase (tel que prévu).** Régénération des contrats en LF et contrôle `--check` ;
 PHPUnit complet sur MySQL 8.4.9 (Feature, Unit, Concurrency) ; Pint, PHPStan ; Vitest complet ;
 vue-tsc, ESLint, Prettier ; build ; Playwright complet (patients, file du jour, consultation,
 documents, facturation) ; rendu des PDF de démonstration (golden) relu ; corrections, puis seconde

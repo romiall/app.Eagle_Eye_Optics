@@ -50,6 +50,14 @@ async function registerArrival(page: Page, lastName: string, phone: string): Pro
   await page.getByLabel('Note administrative (facultative)').fill('Vient pour un examen')
   await page.getByRole('button', { name: 'Enregistrer l’arrivée' }).click()
   await expect(page).toHaveURL(/\/aujourdhui$/)
+  // La file relue sur le serveur montre l'arrivée : aucune lecture n'est encore en cours quand le test change
+  // ensuite de compte (une réponse tardive reposerait le cookie de session effacé).
+  await expect(
+    page
+      .getByRole('main')
+      .getByRole('link', { name: new RegExp(lastName) })
+      .first(),
+  ).toBeVisible()
 }
 
 async function horizontalOverflow(page: Page): Promise<number> {

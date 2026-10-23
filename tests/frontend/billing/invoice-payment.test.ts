@@ -350,6 +350,64 @@ describe('refus du serveur', () => {
     unmount()
   })
 
+  it('espèces pendant la lecture de la session de caisse : rien n’est conclu, puis l’encaissement part', async () => {
+    const { api } = server()
+    let answer: (response: Response) => void = () => undefined
+    api.on(
+      'GET',
+      /^\/api\/v1\/cash-sessions\/current$/,
+      () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve
+        }),
+    )
+    const { root, unmount } = await openApp(PAGE)
+
+    await typeInto(root, 'encaissement-montant', '30000')
+    await selectInto(root, 'encaissement-mode', 'CASH')
+    // Session pas encore lue : ni « caisse non ouverte », ni envoi.
+    expect(textOf(root)).toContain('Lecture de la session de caisse')
+    expect(textOf(root)).not.toContain('Caisse non ouverte')
+    expect(buttonByName(root, /^Encaisser 30 000/)?.disabled).toBe(true)
+    await submitPayment(root)
+    expect(callsTo(api, 'POST', /payments$/)).toHaveLength(0)
+    expect(textOf(root)).not.toContain('Caisse non ouverte')
+
+    answer(json(200, { data: openSession() }))
+    await settle()
+    expect(textOf(root)).not.toContain('Lecture de la session de caisse')
+    await submitPayment(root)
+    const [payment] = callsTo(api, 'POST', /payments$/)
+    expect(payment?.body).toMatchObject({ method: 'CASH', cash_session_id: SESSION_ID })
+
+    unmount()
+  })
+
+  it('session de caisse illisible : « non vérifiée », jamais « non ouverte », et relecture', async () => {
+    const { api } = server()
+    api.on('GET', /^\/api\/v1\/cash-sessions\/current$/, () =>
+      apiError(500, 'INTERNAL_ERROR', 'Erreur interne.'),
+    )
+    const { root, unmount } = await openApp(PAGE)
+
+    await typeInto(root, 'encaissement-montant', '30000')
+    await selectInto(root, 'encaissement-mode', 'CASH')
+    expect(textOf(root)).toContain('Session de caisse non vérifiée')
+    expect(textOf(root)).not.toContain('Caisse non ouverte')
+    await submitPayment(root)
+    expect(callsTo(api, 'POST', /payments$/)).toHaveLength(0)
+
+    api.on('GET', /^\/api\/v1\/cash-sessions\/current$/, () => json(200, { data: null }))
+    const reads = callsTo(api, 'GET', /cash-sessions\/current$/).length
+    await click(buttonByName(root, 'Relire la session de caisse'))
+    await settle()
+    expect(callsTo(api, 'GET', /cash-sessions\/current$/).length).toBe(reads + 1)
+    // Le serveur a répondu « aucune session » : c'est maintenant constaté.
+    expect(textOf(root)).toContain('Caisse non ouverte')
+
+    unmount()
+  })
+
   it('mobile money : la référence est obligatoire', async () => {
     const { api } = server()
     const { root, unmount } = await openApp(PAGE)

@@ -47,6 +47,18 @@ const sortedLines = computed(() =>
   [...props.invoice.lines].sort((left, right) => left.position - right.position),
 )
 const cashSessionId = computed(() => cash.data.value?.id ?? null)
+/** Lecture de la session de caisse : tant que le serveur n'a pas répondu, le formulaire ne conclut rien. */
+const cashSessionRead = computed(() =>
+  cash.state.value === 'ready'
+    ? 'ready'
+    : cash.state.value === 'loading'
+      ? 'loading'
+      : 'unavailable',
+)
+
+function recheckCash(): void {
+  void cash.reload()
+}
 
 /** Reçu à mettre en avant (dernier encaissement de cet écran). */
 const lastReceiptId = ref<string | null>(null)
@@ -228,8 +240,10 @@ async function previewInvoice(): Promise<void> {
         :key="paymentGeneration"
         :invoice="props.invoice"
         :cash-session-id="cashSessionId"
+        :cash-session-read="cashSessionRead"
         @recorded="onRecorded"
         @stale="emit('reload')"
+        @recheck-cash="recheckCash"
       />
       <AppButton v-else variant="primary" @click="newPayment">Nouvel encaissement</AppButton>
     </template>

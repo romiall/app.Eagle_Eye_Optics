@@ -52,8 +52,11 @@ test.describe('paramètres et personnel (F09) sur la vraie application', () => {
     await page.getByRole('button', { name: 'Créer le compte' }).click()
 
     // La création est une opération sensible : le mot de passe de la gérante est demandé, puis elle reprend.
-    const dialog = page.getByRole('dialog')
-    if (await dialog.isVisible().catch(() => false)) {
+    // La demande arrive avec la réponse du serveur : attendre l'une des deux issues avant de décider.
+    const dialog = page.getByRole('dialog', { name: 'Confirmer votre mot de passe' })
+    const created = page.getByText('Compte créé sur le serveur')
+    await expect(dialog.or(created).first()).toBeVisible()
+    if (await dialog.isVisible()) {
       await dialog.getByLabel('Mot de passe').fill(manager.password)
       await dialog.getByRole('button', { name: 'Confirmer et reprendre' }).click()
     }
@@ -63,13 +66,18 @@ test.describe('paramètres et personnel (F09) sur la vraie application', () => {
 
     await page.getByRole('button', { name: 'J’ai noté, ouvrir le compte' }).click()
     await expect(page.getByText(`Compte « Caisse Parcours E2E » créé.`)).toBeVisible()
+    // Fiche lue sur le serveur (titre au nom du compte) : aucune lecture en cours ne reposera le cookie de
+    // session après le changement de compte ci-dessous.
+    await expect(page.getByRole('heading', { level: 1, name: 'Caisse Parcours E2E' })).toBeVisible()
     expect(await page.getByRole('main').innerText()).not.toContain(initial)
 
     // Premier jour : la personne se connecte avec le mot de passe initial et le change.
     await switchAccount(page, context, login, initial)
     await page.getByRole('link', { name: 'Changer mon mot de passe' }).click()
     await page.getByLabel('Mot de passe actuel').fill(initial)
-    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('NouveauSecretE2E2026')
+    await page
+      .getByLabel('Nouveau mot de passe (obligatoire)', { exact: true })
+      .fill('NouveauSecretE2E2026')
     await page.getByLabel('Confirmation du nouveau mot de passe').fill('NouveauSecretE2E2026')
     await page.getByRole('button', { name: 'Changer le mot de passe' }).click()
     await expect(page.getByText('Mot de passe changé sur le serveur')).toBeVisible()

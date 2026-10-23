@@ -137,10 +137,10 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
     await context.clearCookies()
     await signIn(page, 'CLINICIAN')
     await page.goto('/documents/apercu')
-    const clinicalOptions = await page
-      .getByLabel('Document à afficher')
-      .locator('option')
-      .allTextContents()
+    // Attendre l'écran (session relue, liste rendue) avant de lire les choix : `allTextContents` n'attend rien.
+    const clinicalSelect = page.getByLabel('Document à afficher')
+    await expect(clinicalSelect).toBeVisible({ timeout: 30_000 })
+    const clinicalOptions = await clinicalSelect.locator('option').allTextContents()
 
     expect(clinicalOptions.some((label) => label.startsWith('Prescription optique'))).toBe(true)
     expect(clinicalOptions.some((label) => label.startsWith('Reçu'))).toBe(false)

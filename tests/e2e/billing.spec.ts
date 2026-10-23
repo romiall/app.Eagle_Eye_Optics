@@ -22,6 +22,10 @@ async function signIn(page: Page, role: string): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: /^Bonjour / })).toBeVisible()
 }
 
+/**
+ * Crée la fiche par l'accueil. Chaque fichier e2e a ses propres téléphones : la base est partagée par toute
+ * l'exécution, et un téléphone déjà connu ouvre (à raison) l'alerte de doublon possible.
+ */
 async function createPatient(browser: Browser, lastName: string, phone: string): Promise<string> {
   const context = await browser.newContext()
   const page = await context.newPage()
@@ -51,12 +55,14 @@ async function ensureCashOpen(page: Page): Promise<void> {
     await page.getByLabel('Fond de caisse').fill('10 000')
     await page.getByRole('button', { name: 'Ouvrir la caisse' }).click()
   }
-  await expect(main.getByText(/^Session ouverte/)).toBeVisible()
+  // Nom accessible du titre (espaces normalisés) : le texte brut du titre commence par une espace du gabarit.
+  await expect(main.getByRole('heading', { level: 2, name: /^Session ouverte/ })).toBeVisible()
   await expect(main).toContainText('Espèces attendues dans le tiroir')
 }
 
 async function addCatalogLine(page: Page, search: string, name: RegExp): Promise<void> {
-  await page.getByLabel('Ajouter un article du catalogue').fill(search)
+  // La liste des résultats porte le même nom que le champ (listbox étiquetée) : viser le champ par son rôle.
+  await page.getByRole('combobox', { name: 'Ajouter un article du catalogue' }).fill(search)
   await page.getByRole('option', { name }).click()
 }
 
@@ -68,7 +74,9 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
   test('ouvrir la caisse, facturer, émettre, encaisser deux fois, deux reçus, recharger', async ({
     browser,
   }) => {
-    const patientPath = await createPatient(browser, 'Facture Parcours', '+237 600 00 02 22')
+    // Parcours long (deux comptes, émission, deux encaissements, rechargement) sur un poste de test parfois lent.
+    test.setTimeout(180_000)
+    const patientPath = await createPatient(browser, 'Facture Parcours', '+237 600 00 05 55')
 
     const context = await browser.newContext()
     const page = await context.newPage()
@@ -103,6 +111,8 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
 
     // Acompte en espèces (session ouverte).
     await page.getByLabel('Montant encaissé').fill('20 000')
+    // Le montant est validé en quittant le champ (comme au clavier ou à la souris) : le bouton le dit ensuite.
+    await page.getByLabel('Montant encaissé').blur()
     await page.getByLabel('Mode de règlement').selectOption({ label: 'Espèces' })
     await page.getByRole('button', { name: /^Encaisser \d/ }).click()
     await expect(main).toContainText('Encaissement enregistré sur le serveur')
@@ -142,7 +152,7 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     browser,
   }) => {
     test.setTimeout(180_000)
-    const patientPath = await createPatient(browser, 'Jour Parcours', '+237 600 00 04 44')
+    const patientPath = await createPatient(browser, 'Jour Parcours', '+237 600 00 06 66')
 
     const context = await browser.newContext()
     const page = await context.newPage()

@@ -158,7 +158,8 @@ isolée. Les comptes de démonstration sont fictifs. Le test vérifie :
 - 360 px, 683 px (1366 px à 200 % de zoom), tablette 768 px et ordinateur 1366 × 768 : aucun
   défilement horizontal, contrôles d'au moins 44 px, en-tête dans la largeur, texte de 16 px ;
 - « Hors ligne » puis « En ligne » quand le réseau est coupé puis rétabli ;
-- une URL métier non livrée (`/patients`) mène à « Page introuvable ».
+- une URL métier non livrée (`/atelier`) mène à « Page introuvable » (le menu et l'accueil ne montrent que les
+  modules livrés, ouverts par `EEO_ENABLED_MODULES` et autorisés : voir `modules.md`).
 
 ## Hors de F09
 
