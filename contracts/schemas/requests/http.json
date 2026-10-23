@@ -378,6 +378,183 @@
         }
       }
     },
+    "MarkAppointmentNoShowRequest": {
+      "description": "Absence constatée après l'heure du rendez-vous (statut NO_SHOW), jamais avant.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "SchedulingResourceRequest": {
+      "description": "Création (expected_version null) ou modification d'une ressource de l'agenda (gérante).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "resource_id",
+        "name",
+        "professional_user_id",
+        "slot_duration_minutes",
+        "active"
+      ],
+      "properties": {
+        "expected_version": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "professional_user_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "slot_duration_minutes": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 480
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OpeningHoursRequest": {
+      "description": "Remplace les créneaux hebdomadaires d'une ressource (version de la ressource attendue).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "hours"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "hours": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "weekday",
+              "opens_at",
+              "closes_at"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "weekday": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 7
+              },
+              "opens_at": {
+                "$ref": "../../schemas/common.json#/$defs/LocalTime"
+              },
+              "closes_at": {
+                "$ref": "../../schemas/common.json#/$defs/LocalTime"
+              }
+            }
+          },
+          "maxItems": 50
+        }
+      }
+    },
+    "ResourceExceptionRequest": {
+      "description": "Fermeture ou ouverture exceptionnelle datée, motif obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "exception_id",
+        "starts_at",
+        "ends_at",
+        "is_available",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "exception_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "is_available": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "AppointmentServiceRequest": {
+      "description": "Création (expected_version null) ou modification d'une prestation réservable (gérante).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "service_id",
+        "name",
+        "duration_minutes",
+        "active"
+      ],
+      "properties": {
+        "expected_version": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 480
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
     "CatalogItemRequest": {
       "description": "Création (expected_version null) ou modification d'un article par la gérante (catalog.manage). Les prix réels sont fournis par le cabinet : seules des données fictives sont utilisées en développement.",
       "type": "object",
@@ -507,6 +684,352 @@
         }
       }
     },
+    "CatalogImportRequest": {
+      "description": "Import contrôlé du catalogue (X01) : lignes du fichier CSV lues sur le poste (numéro de ligne du fichier), revérifiées par le serveur avec les règles d'un article saisi à l'écran. dry_run = true : aperçu sans aucune écriture ; false : toutes les lignes sont créées dans une seule transaction, ou aucune.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dry_run",
+        "rows"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line",
+              "reference",
+              "category_code",
+              "name",
+              "brand",
+              "model",
+              "unit_code",
+              "quantity_integer_only",
+              "sale_price",
+              "purchase_cost",
+              "tax_rule_id",
+              "stock_mode",
+              "requires_expiry",
+              "low_stock_threshold",
+              "expiry_alert_days",
+              "active",
+              "public_visibility"
+            ],
+            "properties": {
+              "line": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "category_code": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Code"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "brand": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 120
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "model": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 120
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unit_code": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Code"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity_integer_only": {
+                "type": "boolean"
+              },
+              "sale_price": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "purchase_cost": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tax_rule_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "stock_mode": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/enums.json#/$defs/catalog_items.stock_mode"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "requires_expiry": {
+                "type": "boolean"
+              },
+              "low_stock_threshold": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Quantity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expiry_alert_days": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3650
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "public_visibility": {
+                "type": "boolean"
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "StoreDocumentContentCommand": {
+      "description": "Charge INTERNE de la commande StoreDocumentContent, construite par le serveur après contrôle des octets PDF reçus (POST /documents/{id}/content, corps application/pdf) : jamais envoyée par un poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "sha256",
+        "size_bytes",
+        "private_path"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "document_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "private_path": {
+          "type": "string",
+          "pattern": "^documents/[0-9A-HJKMNP-TV-Z]{26}/[0-9A-HJKMNP-TV-Z]{26}-[0-9a-f]{16}\\.pdf$"
+        }
+      }
+    },
+    "LegacyBalanceImportRequest": {
+      "description": "Reprise des créances papier (X01) : une créance (saisie) ou un fichier CSV lu sur le poste. Le patient est désigné par sa fiche (patient_id) OU son numéro de dossier ; dry_run = true : aperçu sans écriture ; false : toutes les créances reprises dans une transaction, ou aucune (justificatif scanné evidence_file_id obligatoire).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dry_run",
+        "evidence_file_id",
+        "rows"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "evidence_file_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line",
+              "patient_id",
+              "patient_record_number",
+              "paper_reference",
+              "original_total",
+              "already_paid",
+              "original_invoice_on"
+            ],
+            "properties": {
+              "line": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "patient_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "patient_record_number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 32
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "paper_reference": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "original_total": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "already_paid": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "original_invoice_on": {
+                "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+              }
+            }
+          },
+          "maxItems": 500
+        }
+      }
+    },
+    "StoreLegacyEvidenceCommand": {
+      "description": "Charge INTERNE de la commande StoreLegacyEvidence, construite par le serveur après contrôle des octets reçus (POST /legacy-balances/evidence) : jamais envoyée par un poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size_bytes",
+        "mime_type",
+        "private_path"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "private_path": {
+          "type": "string",
+          "pattern": "^evidence/[0-9A-HJKMNP-TV-Z]{26}/[0-9a-f]{64}[.](?:pdf|jpg|png)$"
+        }
+      }
+    },
     "TaxRuleRequest": {
       "description": "Règle fiscale saisie par la gérante ; validate = true enregistre la validation (réauthentification). Aucune taxe n'est préconfigurée.",
       "type": "object",
@@ -570,6 +1093,360 @@
         }
       }
     },
+    "CreateQuoteDraftRequest": {
+      "description": "Brouillon de devis (L1D07) : un patient (patient_id) OU un prospect saisi (nom, téléphone), jamais les deux ; validité facultative (au plus tôt aujourd'hui) ; lignes soumises aux droits de l'auteur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "patient_id",
+        "prospect",
+        "valid_until",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "phone"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                "phone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "description": "Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "position",
+              "catalog_item_id",
+              "description",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "catalog_item_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "UpdateQuoteDraftRequest": {
+      "description": "Modification d'un brouillon de devis (remplacement complet des lignes) : créateur ou gérante.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "valid_until",
+        "lines"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "description": "Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "position",
+              "catalog_item_id",
+              "description",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "catalog_item_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              }
+            }
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "IssueQuoteRequest": {
+      "description": "Émission : numéro de la série QUOTE, révision 1 figée ; total_gross est vérifié par le serveur (422 avec details.expected_total sinon) ; validité obligatoire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "total_gross"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "ReviseQuoteRequest": {
+      "description": "Révision d'un devis émis, accepté ou refusé : nouvelle révision figée avec motif ; les précédentes restent intactes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "reason",
+        "valid_until",
+        "lines",
+        "total_gross"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "description": "Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "line_id",
+              "position",
+              "catalog_item_id",
+              "description",
+              "quantity",
+              "unit_price_gross",
+              "discount_gross"
+            ],
+            "properties": {
+              "line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "catalog_item_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "unit_price_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              },
+              "discount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+              }
+            }
+          },
+          "maxItems": 200
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "QuoteDecisionRequest": {
+      "description": "Réponse du client : ACCEPTED (devis émis encore valable) ou DECLINED ; aucune facture ni paiement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "decision",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "DECLINED"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConvertQuoteRequest": {
+      "description": "Conversion d'une révision choisie en BROUILLON de facture (invoices.quote_id) : prix confirmés explicitement (QUOTE : prix et remises de la révision ; CATALOG : prix actuel du catalogue, sans remise) ; patient_id obligatoire pour un prospect. Ni émission, ni paiement, ni réserve.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "quote_id",
+        "revision_no",
+        "invoice_id",
+        "patient_id",
+        "price_basis",
+        "prices_confirmed"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "quote_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "price_basis": {
+          "type": "string",
+          "enum": [
+            "QUOTE",
+            "CATALOG"
+          ]
+        },
+        "prices_confirmed": {
+          "const": true
+        }
+      }
+    },
     "AbandonInvoiceDraftRequest": {
       "description": "Abandon d'un brouillon de facture (fichier 03) : version de brouillon attendue, motif facultatif (conservé dans l'audit). Aucun numéro, aucune réserve, aucun document à annuler.",
       "type": "object",
@@ -597,6 +1474,195 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "MergePatientsRequest": {
+      "description": "Fusion manuelle de deux fiches d'un même patient (L1D08), par la gérante après revue : version attendue de la fiche ABSORBÉE, motif obligatoire (5 à 1000 caractères).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "source_patient_id",
+        "survivor_patient_id",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "source_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "survivor_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1000
+        }
+      }
+    },
+    "RecordCashMovementRequest": {
+      "description": "Mouvement d'espèces hors vente d'une session OUVERTE (L1D05) : entrée positive, sortie négative ; catégorie obligatoire pour une dépense et seulement pour elle ; approval_id = approbation exacte CASH_MOVEMENT accordée, ou identifiant neuf pour l'exécution directe de la gérante.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "movement_id",
+        "cash_session_id",
+        "movement_kind",
+        "signed_amount",
+        "expense_category_id",
+        "reason",
+        "reference",
+        "approval_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "movement_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_session_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "movement_kind": {
+          "$ref": "../../schemas/enums.json#/$defs/cash_movements.kind"
+        },
+        "signed_amount": {
+          "type": "integer",
+          "minimum": -1000000000000,
+          "maximum": 1000000000000,
+          "not": {
+            "const": 0
+          }
+        },
+        "expense_category_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        }
+      }
+    },
+    "ExpenseCategoryRequest": {
+      "description": "Création (identifiant neuf, code obligatoire) ou modification (nom, activation ; le code ne change pas) d'une catégorie de dépenses par la gérante.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "category_id",
+        "code",
+        "name",
+        "active"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "category_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CashVarianceReviewRequest": {
+      "description": "Revue par la gérante de l'écart d'une session clôturée : acceptée ou contestée (note obligatoire), une seule fois.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "cash_session_id",
+        "decision",
+        "note"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "cash_session_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "DISPUTED"
+          ]
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CancelVisitRequest": {
+      "description": "Annulation d'une visite avant l'examen (P03) : version de la visite attendue, motif obligatoire (information d'accueil seulement, conservé dans l'audit). Refusée si l'examen a démarré ou si une facture non abandonnée est liée à la visite.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "visit_id",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
         }
       }
     },
@@ -695,16 +1761,22 @@
       }
     },
     "EnrollDeviceRequest": {
+      "description": "Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).",
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "expected_version",
         "device_code",
         "name",
         "public_key_jwk",
         "responsible_user_id",
-        "app_version"
+        "app_version",
+        "proof"
       ],
       "properties": {
+        "expected_version": {
+          "type": "null"
+        },
         "device_code": {
           "type": "string",
           "minLength": 1,
@@ -725,21 +1797,98 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 64
+        },
+        "proof": {
+          "$ref": "../../schemas/common.json#/$defs/CompactJws"
+        }
+      }
+    },
+    "IssueOfflineGrantRequest": {
+      "description": "Grant signé d'un profil sur ce poste (O02) : permissions effectives figées, catalogue et règles ; durée par défaut eeo.offline.grant_hours (72 h).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "user_id"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "user_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "valid_hours": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 168
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RevokeDeviceRequest": {
+      "description": "Révocation d'un poste (retiré ou perdu) et de tous ses grants actifs ; connue du poste à sa prochaine connexion.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "REVOKED",
+            "LOST"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "RevokeOfflineGrantRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
         }
       }
     },
     "PrepareDeviceRequest": {
-      "description": "Préparation en ligne (gérante) : profils à préparer, plages demandées, quotas et créances à attribuer à ce poste.",
+      "description": "Préparation en ligne (gérante, O03) : profils préparés (grant actif exigé), plages demandées (année en cours par défaut, ou la suivante avant le franchissement), quotas et factures émises à attribuer à ce poste.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "profiles",
-        "number_ranges",
-        "stock_quotas",
-        "invoice_ids",
-        "known_catalog_version"
+        "expected_version",
+        "profiles"
       ],
       "properties": {
+        "expected_version": {
+          "type": "null"
+        },
         "profiles": {
           "type": "array",
           "minItems": 1,
@@ -766,9 +1915,22 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5000
+              },
+              "document_year": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 2000,
+                    "maximum": 9999
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
-          }
+          },
+          "maxItems": 10
         },
         "stock_quotas": {
           "type": "array",
@@ -792,14 +1954,16 @@
                 "$ref": "../../schemas/common.json#/$defs/Quantity"
               }
             }
-          }
+          },
+          "maxItems": 200
         },
         "invoice_ids": {
           "type": "array",
           "minItems": 0,
           "items": {
             "$ref": "../../schemas/common.json#/$defs/Ulid"
-          }
+          },
+          "maxItems": 500
         },
         "known_catalog_version": {
           "anyOf": [
@@ -816,14 +1980,69 @@
       }
     },
     "ReleaseDeviceRequest": {
+      "description": "Clôture après reprise complète (O03) : séquence et empreinte égales au préfixe finalisé du serveur, sinon 409.",
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "expected_version",
         "last_device_sequence",
         "last_event_hash",
         "reason"
       ],
       "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "last_device_sequence": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "last_event_hash": {
+          "$ref": "../../schemas/common.json#/$defs/NullableSha256Hex"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "ReplaceDeviceRequest": {
+      "description": "Remplacement d'un poste par un poste NEUF déjà enrôlé et actif (O07) ; aucun droit de l'ancien poste n'est cloné.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "replacement_device_id",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
+        "replacement_device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000
+        }
+      }
+    },
+    "ReconcileReplacementRequest": {
+      "description": "Réconciliation d'un poste remplacé (O07) : séquence et empreinte du manifeste de l'export, égales au préfixe finalisé du serveur, sinon 409 SYNC_INCOMPLETE.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "last_device_sequence",
+        "last_event_hash",
+        "reason"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "null"
+        },
         "last_device_sequence": {
           "$ref": "../../schemas/common.json#/$defs/Counter"
         },
@@ -842,11 +2061,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "expected_version",
         "decision",
         "reason",
         "correction_command_id"
       ],
       "properties": {
+        "expected_version": {
+          "type": "null"
+        },
         "decision": {
           "type": "string",
           "enum": [
@@ -873,6 +2096,9 @@
         "export_type"
       ],
       "properties": {
+        "expected_version": {
+          "type": "null"
+        },
         "export_type": {
           "$ref": "../../schemas/enums.json#/$defs/export_requests.export_type"
         },

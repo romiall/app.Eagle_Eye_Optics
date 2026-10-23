@@ -34,6 +34,7 @@
       }
     },
     "EnrolledDevice": {
+      "description": "Poste enrôlé (O02) : clé PUBLIQUE ES256 seulement ; kid = empreinte RFC 7638 de cette clé.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -41,10 +42,14 @@
         "device_code",
         "name",
         "kid",
+        "public_key_jwk",
         "status",
         "enrolled_at",
         "responsible_user_id",
-        "app_version"
+        "responsible_name",
+        "app_version",
+        "last_sync_at",
+        "active_grants"
       ],
       "properties": {
         "device_id": {
@@ -61,7 +66,11 @@
           "maxLength": 180
         },
         "kid": {
-          "$ref": "../../schemas/common.json#/$defs/Ulid"
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "public_key_jwk": {
+          "$ref": "#/$defs/PublicJwk"
         },
         "status": {
           "$ref": "../../schemas/enums.json#/$defs/enrolled_devices.status"
@@ -72,10 +81,29 @@
         "responsible_user_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
+        "responsible_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "app_version": {
           "type": "string",
           "minLength": 1,
           "maxLength": 64
+        },
+        "last_sync_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "active_grants": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -91,26 +119,62 @@
         }
       }
     },
+    "EnrolledDeviceList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/EnrolledDevice"
+          }
+        }
+      }
+    },
     "OfflineGrant": {
+      "description": "Grant hors-ligne SIGNÉ (O02) : JWS compact ES256, en-tête {alg, kid, typ=eeo-offline-grant+jws} et charge JCS {catalog_sha256, catalog_version, clinic_id, compartments, device_id, grant_id, issued_at, permissions, rules_version, user_id, v=1, valid_until}. Immuable : une révocation s'ajoute (revoked_at), state est calculé à la lecture.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "grant_id",
+        "device_id",
         "user_id",
+        "user_name",
         "permissions_snapshot",
         "compartments",
         "rules_version",
         "catalog_version",
         "issued_at",
         "valid_until",
+        "revoked_at",
+        "state",
         "signed_payload"
       ],
       "properties": {
         "grant_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
         "user_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "user_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "permissions_snapshot": {
           "type": "array",
@@ -148,25 +212,130 @@
         "valid_until": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
         },
+        "revoked_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "EXPIRED",
+            "REVOKED"
+          ]
+        },
         "signed_payload": {
           "$ref": "../../schemas/common.json#/$defs/CompactJws"
         }
       }
     },
+    "OfflineGrantResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/OfflineGrant"
+        }
+      }
+    },
+    "OfflineGrantList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/OfflineGrant"
+          }
+        }
+      }
+    },
+    "SigningKeySet": {
+      "description": "Clés PUBLIQUES du serveur qui signent les grants (courante puis retirées), à épingler par le poste.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "grant_type",
+        "keys"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "ES256"
+        },
+        "grant_type": {
+          "const": "eeo-offline-grant+jws"
+        },
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kid",
+              "status",
+              "jwk"
+            ],
+            "properties": {
+              "kid": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "CURRENT",
+                  "RETIRED"
+                ]
+              },
+              "jwk": {
+                "$ref": "#/$defs/PublicJwk"
+              }
+            }
+          }
+        }
+      }
+    },
+    "SigningKeySetResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/SigningKeySet"
+        }
+      }
+    },
     "NumberAllocation": {
+      "description": "Plage de numéros pré-allouée à ce poste (O03), disjointe de toute autre et de la séquence centrale ; le poste rend le numéro consommé <prefix>-AAAA-<valeur complétée à gauche sur width chiffres>, comme le serveur.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "allocation_id",
+        "grant_id",
         "document_type",
         "document_year",
         "range_start",
         "range_end",
         "last_consumed_value",
-        "status"
+        "status",
+        "prefix",
+        "width"
       ],
       "properties": {
         "allocation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "grant_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
         "document_type": {
@@ -195,14 +364,26 @@
         },
         "status": {
           "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.status"
+        },
+        "prefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
         }
       }
     },
     "StockQuota": {
+      "description": "Quota de stock du poste (O03) : retiré du disponible central, jamais du physique ; disponible local = alloué − consommé − rendu − réservé localement.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "allocation_id",
+        "item_id",
         "stock_position_id",
         "stock_lot_id",
         "allocated_quantity",
@@ -212,6 +393,9 @@
       ],
       "properties": {
         "allocation_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "item_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
         "stock_position_id": {
@@ -239,7 +423,7 @@
       }
     },
     "Preparation": {
-      "description": "Préparation du poste (fichier 19) : grants signés par profil, plages de numéros, quotas, factures attribuées, catalogue versionné.",
+      "description": "Préparation du poste (fichier 19, O03) : grants actifs par profil, plages de numéros ACTIVES et leur format, quotas, factures dont le poste est propriétaire, catalogue figé (contenu dont l'empreinte JCS est signée dans le grant ; jamais de coût d'achat), heure du serveur et préfixe finalisé du journal du poste.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -260,27 +444,47 @@
         },
         "grants": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "items": {
+            "description": "Grant hors-ligne SIGNÉ (O02) : JWS compact ES256, en-tête {alg, kid, typ=eeo-offline-grant+jws} et charge JCS {catalog_sha256, catalog_version, clinic_id, compartments, device_id, grant_id, issued_at, permissions, rules_version, user_id, v=1, valid_until}. Immuable : une révocation s'ajoute (revoked_at), state est calculé à la lecture.",
             "type": "object",
             "additionalProperties": false,
             "required": [
               "grant_id",
+              "device_id",
               "user_id",
+              "user_name",
               "permissions_snapshot",
               "compartments",
               "rules_version",
               "catalog_version",
               "issued_at",
               "valid_until",
+              "revoked_at",
+              "state",
               "signed_payload"
             ],
             "properties": {
               "grant_id": {
                 "$ref": "../../schemas/common.json#/$defs/Ulid"
               },
+              "device_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
               "user_id": {
                 "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "user_name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "permissions_snapshot": {
                 "type": "array",
@@ -318,6 +522,17 @@
               "valid_until": {
                 "$ref": "../../schemas/common.json#/$defs/Instant"
               },
+              "revoked_at": {
+                "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "ACTIVE",
+                  "EXPIRED",
+                  "REVOKED"
+                ]
+              },
               "signed_payload": {
                 "$ref": "../../schemas/common.json#/$defs/CompactJws"
               }
@@ -328,19 +543,26 @@
           "type": "array",
           "minItems": 0,
           "items": {
+            "description": "Plage de numéros pré-allouée à ce poste (O03), disjointe de toute autre et de la séquence centrale ; le poste rend le numéro consommé <prefix>-AAAA-<valeur complétée à gauche sur width chiffres>, comme le serveur.",
             "type": "object",
             "additionalProperties": false,
             "required": [
               "allocation_id",
+              "grant_id",
               "document_type",
               "document_year",
               "range_start",
               "range_end",
               "last_consumed_value",
-              "status"
+              "status",
+              "prefix",
+              "width"
             ],
             "properties": {
               "allocation_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "grant_id": {
                 "$ref": "../../schemas/common.json#/$defs/Ulid"
               },
               "document_type": {
@@ -369,6 +591,16 @@
               },
               "status": {
                 "$ref": "../../schemas/enums.json#/$defs/document_number_allocations.status"
+              },
+              "prefix": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
               }
             }
           }
@@ -377,10 +609,12 @@
           "type": "array",
           "minItems": 0,
           "items": {
+            "description": "Quota de stock du poste (O03) : retiré du disponible central, jamais du physique ; disponible local = alloué − consommé − rendu − réservé localement.",
             "type": "object",
             "additionalProperties": false,
             "required": [
               "allocation_id",
+              "item_id",
               "stock_position_id",
               "stock_lot_id",
               "allocated_quantity",
@@ -390,6 +624,9 @@
             ],
             "properties": {
               "allocation_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "item_id": {
                 "$ref": "../../schemas/common.json#/$defs/Ulid"
               },
               "stock_position_id": {
@@ -424,10 +661,14 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "owner_id",
               "invoice_id",
               "epoch"
             ],
             "properties": {
+              "owner_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
               "invoice_id": {
                 "$ref": "../../schemas/common.json#/$defs/Ulid"
               },
@@ -444,7 +685,7 @@
           "required": [
             "catalog_version",
             "snapshot_sha256",
-            "file_id"
+            "snapshot"
           ],
           "properties": {
             "catalog_version": {
@@ -455,8 +696,140 @@
             "snapshot_sha256": {
               "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
             },
-            "file_id": {
-              "$ref": "../../schemas/common.json#/$defs/Ulid"
+            "snapshot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "items",
+                "tax_rules"
+              ],
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "reference",
+                      "category_code",
+                      "name",
+                      "unit_code",
+                      "quantity_integer_only",
+                      "sale_price",
+                      "tax_rule_id",
+                      "stock_mode",
+                      "requires_expiry",
+                      "active",
+                      "version"
+                    ],
+                    "properties": {
+                      "id": {
+                        "$ref": "../../schemas/common.json#/$defs/Ulid"
+                      },
+                      "reference": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "category_code": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                      },
+                      "unit_code": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "quantity_integer_only": {
+                        "type": "boolean"
+                      },
+                      "sale_price": {
+                        "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                      },
+                      "tax_rule_id": {
+                        "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                      },
+                      "stock_mode": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "requires_expiry": {
+                        "type": "boolean"
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                },
+                "tax_rules": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "code",
+                      "rate_percent",
+                      "active",
+                      "validated_at",
+                      "version"
+                    ],
+                    "properties": {
+                      "id": {
+                        "$ref": "../../schemas/common.json#/$defs/Ulid"
+                      },
+                      "code": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "rate_percent": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^(0|[1-9][0-9]{0,2})(\\.[0-9]{1,4})?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "validated_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -540,6 +913,85 @@
         }
       }
     },
+    "Replacement": {
+      "description": "Remplacement d'un poste (O07) : ancien poste REPLACED, ses grants révoqués (aucun droit transféré), ses plages, quotas et propriétés passés CLOSING jusqu'à la reprise de son journal exporté.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "replacement_device_id",
+        "status",
+        "revoked_grants",
+        "closing_number_allocations",
+        "closing_stock_allocations",
+        "closing_write_owners",
+        "replaced_at"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "replacement_device_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "status": {
+          "const": "REPLACED"
+        },
+        "revoked_grants": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "closing_number_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "closing_stock_allocations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "closing_write_owners": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "../../schemas/common.json#/$defs/Ulid"
+          }
+        },
+        "replaced_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "ReplacementResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Replacement"
+        }
+      }
+    },
+    "CompatibilityResponse": {
+      "description": "Déclaration de compatibilité de la release du serveur (O06), telle que publiée dans contracts/compatibility.json.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "../compatibility.json"
+        }
+      }
+    },
     "DeviceHealth": {
       "type": "object",
       "additionalProperties": false,
@@ -616,7 +1068,14 @@
         "created_at",
         "resolution",
         "resolved_by",
-        "resolved_at"
+        "resolved_at",
+        "command_name",
+        "device_sequence",
+        "device_name",
+        "actor_name",
+        "reason",
+        "decision",
+        "resolved_by_name"
       ],
       "properties": {
         "id": {
@@ -655,6 +1114,64 @@
         },
         "resolved_at": {
           "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "command_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "device_sequence": {
+          "$ref": "../../schemas/common.json#/$defs/Counter"
+        },
+        "device_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "actor_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "ACCEPT_LOCAL",
+                "KEEP_CENTRAL",
+                "REJECT",
+                "CORRECT"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -829,6 +1346,22 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/ExportRequest"
+        }
+      }
+    },
+    "ExportRequestList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ExportRequest"
+          }
         }
       }
     },

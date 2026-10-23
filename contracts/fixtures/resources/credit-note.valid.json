@@ -1,0 +1,86 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/CreditNoteResponse",
+  "valid": true,
+  "description": "Avoir émis lié à une ligne de la facture, en partie remboursé, snapshot figé et PDF en attente",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W3003A",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "number": "TEST-AV-2026-000001",
+      "status": "ISSUED",
+      "amount_gross": 20000,
+      "reason": "Remise commerciale accordée après émission",
+      "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3003B",
+      "issued_at": "2026-10-14T10:00:00.000Z",
+      "issued_by": "01J9ZXK4M2Q8R7S6T5V4W30004",
+      "issued_by_name": "Gérante (démonstration)",
+      "refunded_amount": 5000,
+      "lines": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W3003C",
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30027",
+          "description_snapshot": "Monture fictive",
+          "quantity": null,
+          "amount_gross": 20000,
+          "tax_amount": null,
+          "reason": null
+        }
+      ],
+      "snapshot": {
+        "credit_note_id": "01J9ZXK4M2Q8R7S6T5V4W3003A",
+        "number": "TEST-AV-2026-000001",
+        "issued_at": "2026-10-14T10:00:00.000Z",
+        "invoice": {
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "number": "TEST-FAC-000001",
+          "issued_at": "2026-10-14T09:30:00.000Z",
+          "total_gross": 80000
+        },
+        "patient": {
+          "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+          "record_number": "TEST-P-000001",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie Marie"
+        },
+        "lines": [
+          {
+            "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30027",
+            "description": "Monture fictive",
+            "quantity": null,
+            "amount_gross": 20000,
+            "tax_amount": null
+          }
+        ],
+        "amount_gross": 20000,
+        "reason": "Remise commerciale accordée après émission",
+        "issued_by": {
+          "user_id": "01J9ZXK4M2Q8R7S6T5V4W30004",
+          "display_name": "Gérante (démonstration)"
+        },
+        "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3003B",
+        "tax": {
+          "regime": "NO_TAX_CONFIGURED",
+          "rules": []
+        },
+        "clinic": {
+          "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+          "name": "CABINET DE DÉMONSTRATION — DONNÉES FICTIVES",
+          "address": null,
+          "phone": null,
+          "email": null,
+          "tax_identifier": null,
+          "professional_mentions": null,
+          "document_settings": null,
+          "currency": "XAF",
+          "timezone": "Africa/Douala",
+          "test_document": true
+        },
+        "template_version": "credit_note.v1"
+      },
+      "document": {
+        "document_id": "01J9ZXK4M2Q8R7S6T5V4W3003D",
+        "document_status": "PENDING"
+      }
+    }
+  }
+}

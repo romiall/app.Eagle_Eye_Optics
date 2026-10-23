@@ -1,0 +1,20 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/LegacyBalanceImportRequest",
+  "valid": false,
+  "description": "Un montant en FCFA est entier : un total à virgule est refusé par le contrat",
+  "data": {
+    "dry_run": true,
+    "evidence_file_id": null,
+    "rows": [
+      {
+        "line": 2,
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3PA01",
+        "patient_record_number": null,
+        "paper_reference": "CARNET-2025-0142",
+        "original_total": 80000.5,
+        "already_paid": 0,
+        "original_invoice_on": null
+      }
+    ]
+  }
+}

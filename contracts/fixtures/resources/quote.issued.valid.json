@@ -1,0 +1,138 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/QuoteResponse",
+  "valid": true,
+  "description": "Devis émis (révision 1 figée, document en attente) pour un patient : ni créance ni encaissement, données fictives",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W30040",
+      "number": "TEST-DEV-2026-000001",
+      "status": "ISSUED",
+      "effective_status": "ISSUED",
+      "valid_until": "2026-11-21",
+      "total_gross": 55000,
+      "recipient": {
+        "kind": "PATIENT",
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+        "prospect_contact_id": null,
+        "record_number": "EE-2026-0001",
+        "last_name": "Patient Fictif",
+        "first_names": "Test",
+        "phone": null
+      },
+      "issued_at": "2026-10-22T09:30:00.000Z",
+      "created_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+      "created_by_name": "Caisse (démonstration)",
+      "version": 2,
+      "current_revision": 1,
+      "lines": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30041",
+          "position": 1,
+          "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+          "description_snapshot": "Monture fictive",
+          "unit_code": "UNIT",
+          "quantity": "1.000",
+          "unit_price_gross": 40000,
+          "discount_gross": 0,
+          "line_total_gross": 40000
+        },
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30042",
+          "position": 2,
+          "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+          "description_snapshot": "Examen de vue (fictif)",
+          "unit_code": "SERVICE",
+          "quantity": "1.000",
+          "unit_price_gross": 15000,
+          "discount_gross": 0,
+          "line_total_gross": 15000
+        }
+      ],
+      "revisions": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30043",
+          "revision_no": 1,
+          "recorded_at": "2026-10-22T09:30:00.000Z",
+          "authored_by": "01J9ZXK4M2Q8R7S6T5V4W30005",
+          "authored_by_name": "Caisse (démonstration)",
+          "reason": "Émission du devis",
+          "snapshot": {
+            "quote_id": "01J9ZXK4M2Q8R7S6T5V4W30040",
+            "number": "TEST-DEV-2026-000001",
+            "revision_no": 1,
+            "recorded_at": "2026-10-22T09:30:00.000Z",
+            "issued_at": "2026-10-22T09:30:00.000Z",
+            "valid_until": "2026-11-21",
+            "recipient": {
+              "kind": "PATIENT",
+              "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+              "prospect_contact_id": null,
+              "record_number": "EE-2026-0001",
+              "last_name": "Patient Fictif",
+              "first_names": "Test",
+              "phone": null
+            },
+            "lines": [
+              {
+                "line_id": "01J9ZXK4M2Q8R7S6T5V4W30041",
+                "position": 1,
+                "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001X",
+                "reference": "FR-001",
+                "description": "Monture fictive",
+                "unit_code": "UNIT",
+                "quantity": "1.000",
+                "unit_price_gross": 40000,
+                "discount_gross": 0,
+                "line_total_gross": 40000,
+                "tax_code": "NO_TAX_CONFIGURED",
+                "tax_rate_percent": null,
+                "tax_amount": null
+              },
+              {
+                "line_id": "01J9ZXK4M2Q8R7S6T5V4W30042",
+                "position": 2,
+                "catalog_item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+                "reference": "EX-001",
+                "description": "Examen de vue (fictif)",
+                "unit_code": "SERVICE",
+                "quantity": "1.000",
+                "unit_price_gross": 15000,
+                "discount_gross": 0,
+                "line_total_gross": 15000,
+                "tax_code": "NO_TAX_CONFIGURED",
+                "tax_rate_percent": null,
+                "tax_amount": null
+              }
+            ],
+            "total_gross": 55000,
+            "currency": "XAF",
+            "tax": { "regime": "NO_TAX_CONFIGURED", "rules": [] },
+            "clinic": {
+              "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30000",
+              "name": "Cabinet de démonstration",
+              "address": null,
+              "phone": null,
+              "email": null,
+              "tax_identifier": null,
+              "professional_mentions": null,
+              "document_settings": null,
+              "currency": "XAF",
+              "timezone": "Africa/Douala",
+              "test_document": true
+            },
+            "authored_by": {
+              "user_id": "01J9ZXK4M2Q8R7S6T5V4W30005",
+              "display_name": "Caisse (démonstration)"
+            },
+            "reason": "Émission du devis",
+            "template_version": "quote.v1"
+          },
+          "document": { "document_id": "01J9ZXK4M2Q8R7S6T5V4W30044", "document_status": "PENDING" }
+        }
+      ],
+      "invoices": [],
+      "created_at": "2026-10-22T09:00:00.000Z",
+      "updated_at": "2026-10-22T09:30:00.000Z"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceDeliveriesResponse",
+  "valid": false,
+  "description": "Aucun statut « payé » n'existe : une remise expose le reste dû calculé, jamais un statut de paiement inventé",
+  "data": {
+    "data": {
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "invoice_number": "TEST-FAC-2026-000001",
+      "invoice_status": "PAID",
+      "amount_due": 0,
+      "lines": [],
+      "deliveries": [],
+      "returns": []
+    }
+  }
+}

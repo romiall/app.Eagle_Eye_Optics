@@ -809,6 +809,103 @@ paths:
         FINANCIAL: "FINANCIAL (invoice.read, module sales)"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "R02"
+  /v1/patients/{id}/merge-preview:
+    get:
+      operationId: "PreviewPatientMerge"
+      summary: "Aperçu de la fusion d'une fiche dans une autre"
+      tags:
+        - "Patients"
+      description: "Module patients. {id} est la fiche ABSORBÉE. Lecture seule : identités côte à côte, éléments rattachés (comptes filtrés par les droits du compte), garde-fous (visite ou examen en cours, brouillon de facture, rendez-vous à venir, fiche déjà fusionnée, fiche conservée archivée ou fusionnée). Jamais de fusion automatique."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+        - name: "into"
+          in: "query"
+          required: false
+          description: "Identifiant de la fiche conservée."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/patients.json#/$defs/PatientMergePreviewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "patient.merge"
+        - "patient.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D08"
+  /v1/patients/{id}/merge:
+    post:
+      operationId: "MergePatients"
+      summary: "Fusionner une fiche dans une autre (gérante, après revue)"
+      tags:
+        - "Patients"
+      description: "Module patients, en ligne seulement, mot de passe confirmé récemment (423 sinon). {id} est la fiche absorbée (identique à source_patient_id, 422 sinon) ; version attendue = sa version (409 VERSION_CONFLICT). Un garde-fou de l'aperçu : 409 STATE_TRANSITION_REFUSED avec details.current_status. Aucune réécriture de l'historique : visites, consultations, prescriptions et pièces gardent leur fiche d'origine et leurs snapshots ; la fiche absorbée est marquée fusionnée (merged_into_patient_id), disparaît de la recherche et refuse toute nouvelle arrivée, facture ou rendez-vous ; l'activité de la fiche conservée inclut celle des fiches absorbées. Fusion immuable (patient_merges) et auditée (patient.merged)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/MergePatientsRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/patients.json#/$defs/PatientMergeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "patient.merge"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D08"
   /v1/visits:
     post:
       operationId: "RegisterVisit"
@@ -892,6 +989,55 @@ paths:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "P03"
+  /v1/visits/{id}/cancel:
+    post:
+      operationId: "CancelVisit"
+      summary: "Annuler une visite avant l'examen"
+      tags:
+        - "Patients"
+      description: "Module today, en ligne seulement. Version attendue = version de la visite (409 VERSION_CONFLICT avec current_version). Seulement avant l'examen (ARRIVED, AWAITING_EXAM_FEE, READY_FOR_EXAM) ; examen démarré, visite close ou déjà annulée, ou facture non abandonnée liée à la visite : 409 STATE_TRANSITION_REFUSED avec details.current_status. Motif obligatoire (3 à 500 caractères), conservé dans l'audit. La visite reste dans la file, marquée annulée ; rien n'est supprimé. L'identifiant du corps doit être celui de l'adresse."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CancelVisitRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/patients.json#/$defs/VisitResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "visit.register"
+      x-reauthentication: false
+      x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "P03"
   /v1/visits/{id}/consultations:
@@ -1333,6 +1479,43 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreatePrescription"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "C04"
+  /v1/patients/{id}/prescriptions:
+    get:
+      operationId: "GetPatientPrescriptions"
+      summary: "Prescriptions optiques d'un patient"
+      tags:
+        - "Clinique"
+      description: "Module consultations. Toutes les versions des prescriptions du patient, internes et ordonnances externes transcrites (sans consultation), de la plus récente à la plus ancienne ; lecture tracée une fois par 10 minutes (patient.prescriptions_viewed)."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/clinical.json#/$defs/PrescriptionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "clinical.read"
+      x-reauthentication: false
+      x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "C04"
   /v1/prescriptions/external:
@@ -2209,6 +2392,381 @@ paths:
       x-idempotency: "required"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B02"
+  /v1/quotes:
+    get:
+      operationId: "ListQuotes"
+      summary: "Devis par état ou patient"
+      tags:
+        - "Ventes"
+      description: "Module sales. 25 devis par page, les plus récents d'abord, avec le destinataire (identité de base) et la dernière révision."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          description: "DRAFT, ISSUED, ACCEPTED, DECLINED, EXPIRED ou CONVERTED (EXPIRED : émis ou accepté dont la validité est passée au jour du cabinet ; ISSUED et ACCEPTED : encore valables)."
+          schema:
+            type: "string"
+        - name: "patient_id"
+          in: "query"
+          required: false
+          description: "Filtre patient."
+          schema:
+            type: "string"
+        - name: "page"
+          in: "query"
+          required: false
+          description: "Page (pagination, 1 par défaut)."
+          schema:
+            type: "integer"
+            minimum: 1
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuotePage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+    post:
+      operationId: "CreateQuoteDraft"
+      summary: "Créer un brouillon de devis"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Un patient OU un prospect (nom, téléphone). Lignes soumises aux droits de l'auteur comme un brouillon de facture : dépassement refusé en 422 APPROVAL_REQUIRED_OR_EXPIRED. Aucun numéro, aucun effet sur le stock. Corps : expected_version null et présent."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CreateQuoteDraftRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}:
+    get:
+      operationId: "GetQuote"
+      summary: "Devis, lignes actuelles, révisions figées et provenance"
+      tags:
+        - "Ventes"
+      description: "Module sales. Chaque révision rend son snapshot figé (source de son document) et l'état de son document."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+    patch:
+      operationId: "UpdateQuoteDraft"
+      summary: "Modifier le brouillon de devis (version attendue)"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Créateur ou gérante (403 sinon). Devis émis : 409 STATE_TRANSITION_REFUSED (il se corrige par une révision)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/UpdateQuoteDraftRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}/issue:
+    post:
+      operationId: "IssueQuote"
+      summary: "Émettre le devis (numéro QUOTE, révision 1 figée)"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Numéro de la série QUOTE sans trou, révision 1 IMMUABLE et document PENDING dans la même transaction. Validité obligatoire, au plus tôt aujourd'hui. Ni créance, ni réserve de stock, ni chiffre d'affaires."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/IssueQuoteRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}/revisions:
+    post:
+      operationId: "ReviseQuote"
+      summary: "Réviser un devis émis (nouvelle révision figée)"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Devis émis, accepté ou refusé (même expiré) : révision N+1 avec motif, numéro inchangé, révisions antérieures et leurs documents intacts. Brouillon ou devis converti : 409 STATE_TRANSITION_REFUSED."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ReviseQuoteRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}/decision:
+    post:
+      operationId: "RecordQuoteDecision"
+      summary: "Enregistrer la réponse du client (accepté, refusé)"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. ACCEPTED : devis émis et encore valable (expiré : 409 avec current_status EXPIRED). DECLINED : devis émis ou accepté. Une acceptation ne crée ni facture ni paiement."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/QuoteDecisionRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/QuoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
+  /v1/quotes/{id}/conversions:
+    post:
+      operationId: "ConvertQuote"
+      summary: "Convertir une révision en brouillon de facture"
+      tags:
+        - "Ventes"
+      description: "Module sales, en ligne seulement. Rend le BROUILLON de facture créé (quote_id = ce devis) : ni numéro, ni créance, ni réserve, ni paiement. Prix confirmés explicitement (price_basis QUOTE ou CATALOG, prices_confirmed vrai). Devis déjà converti : 409 STATE_TRANSITION_REFUSED avec details.invoice_id (le brouillon existant) ; la même clé d'idempotence rejoue la même réponse. Brouillon, refusé ou expiré : 409."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ConvertQuoteRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/InvoiceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "invoice.create"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D07"
   /v1/sales/settings:
     get:
       operationId: "GetSalesSettings"
@@ -2433,6 +2991,80 @@ paths:
       x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "RefundCredit"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B08"
+  /v1/credit-notes/{id}:
+    get:
+      operationId: "GetCreditNote"
+      summary: "Avoir (pièce liée, snapshot figé)"
+      tags:
+        - "Ventes"
+      description: "Module sales. Lignes d'origine créditées, part déjà remboursée, snapshot figé (credit-note.json) : source du document de l'avoir, produit sur le poste. Un avoir d'un autre cabinet : 404."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CreditNoteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "B07"
+  /v1/refunds/{id}:
+    get:
+      operationId: "GetRefund"
+      summary: "Remboursement (pièce liée à un avoir, snapshot figé)"
+      tags:
+        - "Ventes"
+      description: "Module sales. Snapshot figé (refund.json, bénéficiaire = identité figée de la facture) : source du document du remboursement, produit sur le poste. Un remboursement d'un autre cabinet : 404."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/RefundResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B08"
   /v1/approvals:
@@ -2851,6 +3483,208 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "B05"
+  /v1/cash-sessions/{id}/movements:
+    get:
+      operationId: "ListCashMovements"
+      summary: "Mouvements hors vente d'une session"
+      tags:
+        - "Caisse"
+      description: "Module sales. Sa propre session ; celle d'une autre caissière seulement avec cash.manage (403 sinon). Mouvements du plus ancien au plus récent, et revue de l'écart si la gérante l'a faite."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashSessionMovementsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+    post:
+      operationId: "RecordCashMovement"
+      summary: "Dépense, dépôt, retrait ou correction d'ouverture"
+      tags:
+        - "Caisse"
+      description: "Module sales, en ligne seulement. Session ouverte (clôturée : 409 STATE_TRANSITION_REFUSED, current_status CLOSED). Une caissière dans SA session avec l'approbation exacte CASH_MOVEMENT de la gérante (422 APPROVAL_REQUIRED_OR_EXPIRED sinon) ; la gérante l'exécute directement. Une sortie ne dépasse jamais les espèces théoriques du tiroir (422, details.available). Jamais un paiement : ni facture, ni reçu, ni chiffre d'affaires."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RecordCashMovementRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashMovementResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+  /v1/cash-sessions/{id}/variance-review:
+    post:
+      operationId: "ReviewCashVariance"
+      summary: "Revue de l'écart d'une session clôturée (gérante)"
+      tags:
+        - "Caisse"
+      description: "Module sales. Session clôturée avec un écart non nul, revue une seule fois (409 sinon, current_status OPEN, NO_VARIANCE ou REVIEWED). Contestation : note obligatoire. Fait d'audit (cash.variance_reviewed) : la session figée n'est pas réécrite."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/CashVarianceReviewRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/CashVarianceReviewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "cash.manage"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+  /v1/expense-categories:
+    get:
+      operationId: "ListExpenseCategories"
+      summary: "Catégories de dépenses"
+      tags:
+        - "Caisse"
+      description: "Module sales. Actives seulement sans cash.manage ; toutes (actives d'abord) pour la gérante."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/ExpenseCategoryList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "cash.own_session"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
+    post:
+      operationId: "SaveExpenseCategory"
+      summary: "Créer ou modifier une catégorie de dépenses (gérante)"
+      tags:
+        - "Caisse"
+      description: "Module sales. Code unique dans le cabinet, figé après la création ; une catégorie se désactive, jamais ne se supprime."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ExpenseCategoryRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/ExpenseCategoryResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "cash.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "L1D05"
   /v1/reports/cash-day:
     get:
       operationId: "GetCashDayReport"
@@ -3027,6 +3861,7 @@ paths:
       summary: "Mouvement hors vente motivé et approuvé"
       tags:
         - "Stock"
+      description: "Module stock, réauthentification récente. Casse (BREAKAGE, quantité négative) ou ajustement (ADJUSTMENT, quantité signée non nulle) d'un article géré en stock ; lot obligatoire dès que la position a des lots ; quantité entière pour un article vendu à l'unité. Un retrait ne dépasse jamais le disponible central (physique − réserves − quotas des postes : 409 STOCK_UNAVAILABLE, details.available). Approbation exacte (position, article, lot, nature, quantité signée) consommée une fois, ou exécution directe de la gérante sous cet approval_id ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED. Motif obligatoire, coût unitaire connu ou null. Corps avec expected_version null."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3049,25 +3884,66 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
       x-permission:
         - "stock.adjust"
-      x-reauthentication: false
+      x-reauthentication: true
       x-idempotency: "required"
       x-offline-command: "RegisterStockMovement"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I02"
   /v1/invoices/{id}/deliveries:
+    get:
+      operationId: "ListInvoiceDeliveries"
+      summary: "Reste à remettre, remises et retours d'une facture"
+      tags:
+        - "Ventes"
+      description: "Module sales. Par ligne : quantité facturée, remise, retournée, reste à remettre, réserve ouverte et remettable maintenant ; historique des remises confirmées (lot, nom ACTUEL de qui a remis) et des retours physiques ; reste dû à l'instant (null pour un brouillon). Projection recalculée à chaque lecture ; aucun coût d'achat. Une facture d'un autre cabinet : 404."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/InvoiceDeliveriesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "invoice.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "I01"
     post:
       operationId: "ConfirmDelivery"
       summary: "Confirmer une remise liée à la vente"
       tags:
-        - "Stock"
+        - "Ventes"
+      description: "Module sales. Facture émise (409 STATE_TRANSITION_REFUSED sinon) ; remise partielle ou totale : cumul des remises de chaque ligne ≤ quantité facturée (422, details.remaining). Article en stock : prise sur les réserves ouvertes de la ligne posées à l'émission (409 STOCK_UNAVAILABLE, details.available), lot vendable non expiré au jour local (422 LOT_EXPIRED) ; un mouvement SALE_DELIVERY négatif par ligne de remise, physique et réserve baissent ensemble (rien n'est soustrait deux fois) ; une réserve sur deux lots donne deux lignes de remise. Positions, lots, réserves et mouvement : null par la route directe (le serveur choisit, FEFO) ou désignés. Article sans stock : ligne sans réserve ni mouvement. Facture non soldée : approbation exacte (facture, reste dû, lignes) ou exécution directe de la gérante dans credit_delivery_approval_id ; sinon 422 APPROVAL_REQUIRED_OR_EXPIRED (details.amount_due). Heure de remise du jour (ni future, ni d'un jour antérieur). Facture détenue par un poste : 409 WRITE_OWNER_REQUIRED. Corps avec expected_version null ; un rejeu de la même clé rend la réponse d'origine, jamais une seconde sortie."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3096,6 +3972,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -3107,7 +3985,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "ConfirmDelivery"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "I01"
   /v1/deliveries/{id}/physical-returns:
     post:
@@ -3115,6 +3993,7 @@ paths:
       summary: "Enregistrer un retour physique inspecté"
       tags:
         - "Stock"
+      description: "Module stock, réauthentification récente. Ligne de remise de CETTE remise (adresse), cumul des retours ≤ quantité remise (422, details.returnable). approved_by = l'auteur (contrôle et acceptation par la personne qui enregistre). Seul un article SELLABLE accepté pour la remise en stock écrit un mouvement PATIENT_RETURN positif dans la position et le lot d'origine (jamais un lot expiré ou en quarantaine) ; sinon le retour est tracé sans mouvement. Aucun avoir n'est créé ; un avoir émis de la même facture peut être relié (credit_note_id). Corps avec expected_version null."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3143,6 +4022,80 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "stock.adjust"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-offline-command: "RegisterPhysicalReturn"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "I02"
+  /v1/agenda/configuration:
+    get:
+      operationId: "GetAgendaConfiguration"
+      summary: "Configuration de l'agenda"
+      tags:
+        - "Agenda et suivi"
+      description: "Module agenda. Ressources (avec leurs créneaux hebdomadaires), prestations et exceptions des 90 prochains jours."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/AgendaConfigurationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "agenda.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/resources:
+    post:
+      operationId: "CreateSchedulingResource"
+      summary: "Créer une ressource de l'agenda"
+      tags:
+        - "Agenda et suivi"
+      description: "Gérante (faute de droit dédié au référentiel, la configuration suit users.manage). En ligne seulement."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SchedulingResourceRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/SchedulingResourceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -3150,18 +4103,290 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationFailed"
       x-permission:
-        - "stock.adjust"
+        - "users.manage"
       x-reauthentication: false
       x-idempotency: "required"
-      x-offline-command: "RegisterPhysicalReturn"
-      x-implementation-status: "PLANNED"
-      x-backlog-task: "I02"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/resources/{id}:
+    patch:
+      operationId: "UpdateSchedulingResource"
+      summary: "Modifier une ressource de l'agenda"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/SchedulingResourceRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/SchedulingResourceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "users.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/resources/{id}/opening-hours:
+    post:
+      operationId: "ReplaceOpeningHours"
+      summary: "Remplacer les créneaux hebdomadaires d'une ressource"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/OpeningHoursRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/SchedulingResourceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "users.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/resources/{id}/exceptions:
+    post:
+      operationId: "AddResourceException"
+      summary: "Ajouter une fermeture ou une ouverture exceptionnelle"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ResourceExceptionRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/ResourceExceptionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "users.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/services:
+    post:
+      operationId: "CreateAppointmentService"
+      summary: "Créer une prestation réservable"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AppointmentServiceRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/AppointmentServiceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "users.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/services/{id}:
+    patch:
+      operationId: "UpdateAppointmentService"
+      summary: "Modifier une prestation réservable"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/AppointmentServiceRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/AppointmentServiceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "users.manage"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/agenda/slots:
+    get:
+      operationId: "ListAvailableSlots"
+      summary: "Créneaux libres d'un jour"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "date"
+          in: "query"
+          required: false
+          description: "Date civile AAAA-MM-JJ (fuseau du cabinet)."
+          schema:
+            type: "string"
+        - name: "resource_id"
+          in: "query"
+          required: false
+          description: "Ressource."
+          schema:
+            type: "string"
+        - name: "service_id"
+          in: "query"
+          required: false
+          description: "Prestation (durée)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/AvailableSlotsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
   /v1/follow-ups:
     post:
       operationId: "CreateFollowUp"
       summary: "Programmer un contrôle recommandé"
       tags:
         - "Agenda et suivi"
+      description: "Depuis une consultation (clinical.read exigé aussi : le motif est clinique). Date calculée depuis l'origine choisie, ou saisie avec motif ; aucune décision médicale automatique. Crée la tâche de rappel interne si le rappel est activé."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3195,7 +4420,55 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreateFollowUp"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S02"
+    get:
+      operationId: "ListFollowUps"
+      summary: "Patients à revoir"
+      tags:
+        - "Agenda et suivi"
+      description: "Motif, notes et motif de date manuelle à null sans clinical.read."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "from"
+          in: "query"
+          required: false
+          description: "Date civile de début (date recommandée)."
+          schema:
+            type: "string"
+        - name: "to"
+          in: "query"
+          required: false
+          description: "Date civile de fin."
+          schema:
+            type: "string"
+        - name: "consultation_id"
+          in: "query"
+          required: false
+          description: "Contrôles d'une consultation (au lieu d'une période)."
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/FollowUpPlanList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.read"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S02"
   /v1/appointments:
     post:
@@ -3203,6 +4476,7 @@ paths:
       summary: "Créer un rendez-vous interne"
       tags:
         - "Agenda et suivi"
+      description: "Créneau revérifié SOUS verrou (horaires, exceptions, indisponibilités, autres rendez-vous) : un créneau concurrent est refusé (409 SLOT_UNAVAILABLE). En ligne : confirmé à la réponse du serveur seulement."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3236,7 +4510,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "CreateAppointment"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S01"
     get:
       operationId: "ListAppointments"
@@ -3249,40 +4523,47 @@ paths:
         - name: "from"
           in: "query"
           required: false
-          description: "Instant UTC de début."
+          description: "Date civile de début (fuseau du cabinet)."
           schema:
             type: "string"
         - name: "to"
           in: "query"
           required: false
-          description: "Instant UTC de fin."
+          description: "Date civile de fin (31 jours au plus)."
           schema:
             type: "string"
-        - name: "page"
+        - name: "resource_id"
           in: "query"
           required: false
-          description: "Page (pagination, 1 par défaut)."
+          description: "Filtre facultatif par ressource."
           schema:
-            type: "integer"
-            minimum: 1
+            type: "string"
+        - name: "patient_id"
+          in: "query"
+          required: false
+          description: "Filtre facultatif par patient."
+          schema:
+            type: "string"
       responses:
         "200":
           description: "Succès."
           content:
             application/json:
               schema:
-                $ref: "./schemas/resources/scheduling.json#/$defs/AppointmentPage"
+                $ref: "./schemas/resources/scheduling.json#/$defs/AppointmentList"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S01"
   /v1/appointments/{id}/reschedule:
     post:
@@ -3290,7 +4571,7 @@ paths:
       summary: "Déplacer un rendez-vous (réservation concurrente contrôlée)"
       tags:
         - "Agenda et suivi"
-      description: "En ligne seulement : les autres calendriers sont inconnus hors-ligne (fichier 19)."
+      description: "En ligne seulement : les autres calendriers sont inconnus hors-ligne (fichier 19). Les rappels internes sont recalculés, la programmation précédente reste dans l'audit."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3329,7 +4610,7 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S01"
   /v1/appointments/{id}/cancel:
     post:
@@ -3375,7 +4656,53 @@ paths:
         - "agenda.write"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "S01"
+  /v1/appointments/{id}/no-show:
+    post:
+      operationId: "MarkAppointmentNoShow"
+      summary: "Constater l'absence à un rendez-vous"
+      tags:
+        - "Agenda et suivi"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/MarkAppointmentNoShowRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/scheduling.json#/$defs/AppointmentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+      x-permission:
+        - "agenda.write"
+      x-reauthentication: false
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S01"
   /v1/contact-tasks:
     get:
@@ -3389,34 +4716,29 @@ paths:
         - name: "due_date"
           in: "query"
           required: false
-          description: "Date civile AAAA-MM-JJ."
+          description: "Date civile AAAA-MM-JJ (aujourd'hui par défaut)."
           schema:
             type: "string"
-        - name: "page"
-          in: "query"
-          required: false
-          description: "Page (pagination, 1 par défaut)."
-          schema:
-            type: "integer"
-            minimum: 1
       responses:
         "200":
           description: "Succès."
           content:
             application/json:
               schema:
-                $ref: "./schemas/resources/scheduling.json#/$defs/ContactTaskPage"
+                $ref: "./schemas/resources/scheduling.json#/$defs/ContactTaskList"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "agenda.read"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S02"
   /v1/contact-tasks/{id}/attempts:
     post:
@@ -3463,7 +4785,7 @@ paths:
       x-reauthentication: false
       x-idempotency: "required"
       x-offline-command: "RecordContactAttempt"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "S02"
   /v1/reports/activity:
     get:
@@ -3471,6 +4793,7 @@ paths:
       summary: "Activité administrative"
       tags:
         - "Rapports"
+      description: "Module reports. Période de jours civils du cabinet (AAAA-MM-JJ, bornes incluses, 366 jours au plus)."
       security:
         - sessionCookie: []
       parameters:
@@ -3499,11 +4822,13 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "statistics.activity"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "R02"
   /v1/reports/clinical:
     get:
@@ -3511,6 +4836,7 @@ paths:
       summary: "Statistiques cliniques agrégées"
       tags:
         - "Rapports"
+      description: "Module reports. Période de jours civils du cabinet (AAAA-MM-JJ, bornes incluses, 366 jours au plus)."
       security:
         - sessionCookie: []
       parameters:
@@ -3539,11 +4865,13 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-permission:
         - "statistics.clinical"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "R02"
   /v1/reports/financial:
     get:
@@ -3683,7 +5011,7 @@ paths:
         - "clinical.export"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "D01"
   /v1/documents/{id}/content:
     post:
@@ -3721,10 +5049,10 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-        "413":
-          $ref: "#/components/responses/PayloadTooLarge"
         "419":
           $ref: "#/components/responses/SessionExpired"
         "422":
@@ -3735,7 +5063,7 @@ paths:
         - "clinical.complete"
       x-reauthentication: false
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "D01"
   /v1/devices/enroll:
     post:
@@ -3743,6 +5071,7 @@ paths:
       summary: "Enrôler un poste (clé publique ES256)"
       tags:
         - "Postes et synchronisation"
+      description: "Module offline, en ligne seulement. Clé publique ES256 et preuve de possession vérifiée (signature, empreinte, cabinet, code, fraîcheur 10 min). Code de poste ou clé déjà enrôlés, responsable inactif, preuve refusée : 422 par champ. Aucun droit hors-ligne accordé ici."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3777,14 +5106,297 @@ paths:
         - "offline.enroll"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/devices:
+    get:
+      operationId: "ListDevices"
+      summary: "Postes enrôlés du cabinet"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. Postes du cabinet, du plus récent au plus ancien ; clé publique, statut, responsable, grants actifs."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/EnrolledDeviceList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/devices/{id}:
+    get:
+      operationId: "GetDevice"
+      summary: "Poste enrôlé"
+      tags:
+        - "Postes et synchronisation"
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/EnrolledDeviceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/devices/{id}/grants:
+    get:
+      operationId: "ListDeviceGrants"
+      summary: "Grants signés du poste"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. Du plus récent au plus ancien ; state ACTIVE, EXPIRED ou REVOKED calculé à la lecture ; jeton signé inclus."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/OfflineGrantList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+    post:
+      operationId: "IssueOfflineGrant"
+      summary: "Émettre le grant signé d'un profil sur ce poste"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline, en ligne seulement. Fige permissions effectives, compartiments, règles et empreinte du catalogue ; JWS ES256 de la clé du serveur. Un nouveau grant du même profil sur ce poste révoque les précédents encore actifs. Poste inactif ou clé du serveur absente : 409."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/IssueOfflineGrantRequest"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/OfflineGrantResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/devices/{id}/revoke:
+    post:
+      operationId: "RevokeDevice"
+      summary: "Révoquer un poste et ses grants"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. REVOKED ou LOST avec motif ; tous les grants actifs du poste sont révoqués ; connue du poste à sa prochaine connexion."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RevokeDeviceRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/EnrolledDeviceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/offline-grants/{id}/revoke:
+    post:
+      operationId: "RevokeOfflineGrant"
+      summary: "Révoquer un grant"
+      tags:
+        - "Postes et synchronisation"
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/RevokeOfflineGrantRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/OfflineGrantResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O02"
+  /v1/offline/signing-keys:
+    get:
+      operationId: "GetOfflineSigningKeys"
+      summary: "Clés publiques qui signent les grants"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. Clé courante puis clés retirées (rotation), jamais de donnée privée ; 409 SIGNING_KEY_MISSING tant que la clé n'est pas installée."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/SigningKeySetResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O02"
   /v1/devices/{id}/prepare:
     post:
       operationId: "PrepareDevice"
-      summary: "Préparer le poste : grants, plages, quotas, catalogue"
+      summary: "Préparer le poste : plages, quotas, factures, catalogue"
       tags:
         - "Postes et synchronisation"
+      description: "Module offline, en ligne seulement, sous verrous (séquences, propriété de facture, positions et lots). Plages disjointes prises après le plus haut numéro connu (la séquence centrale monte à leur fin), propriété d'écriture des factures émises, quotas retirés du disponible central. Une seule caisse hors-ligne principale : 409 FINANCIAL_DEVICE_ELSEWHERE. Rend la préparation complète du poste."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3813,6 +5425,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -3825,14 +5439,52 @@ paths:
         - "offline.enroll"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O03"
+  /v1/devices/{id}/preparation:
+    get:
+      operationId: "GetDevicePreparation"
+      summary: "Préparation actuelle du poste"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. Grants actifs, plages et quotas ACTIFS, factures attribuées, catalogue figé, préfixe finalisé du journal."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/PreparationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O03"
   /v1/devices/{id}/release:
     post:
       operationId: "ReleaseDevice"
-      summary: "Clôturer les droits du poste après vérification"
+      summary: "Clôturer les droits du poste après reprise complète"
       tags:
         - "Postes et synchronisation"
+      description: "Module offline. Refus 409 SYNC_INCOMPLETE si la séquence/empreinte annoncées ne sont pas le préfixe finalisé du serveur ou si une commande reçue n'est pas finalisée ; poste perdu : 409. Numéros inutilisés inscrits UNUSED (jamais recyclés), reliquats de quota rendus au central."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3861,6 +5513,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -3873,7 +5527,7 @@ paths:
         - "offline.enroll"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O03"
   /v1/devices/{id}/health:
     get:
@@ -3909,13 +5563,193 @@ paths:
       x-idempotency: "none"
       x-implementation-status: "PLANNED"
       x-backlog-task: "O05"
+  /v1/devices/{id}/replace:
+    post:
+      operationId: "ReplaceDevice"
+      summary: "Remplacer un poste par un poste neuf (sans cloner ses droits)"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. L'ancien poste passe REPLACED (replaced_by_device_id), tous ses grants actifs sont révoqués, ses plages, quotas et propriétés de facture actifs passent CLOSING. Le poste de remplacement doit être enrôlé, actif et distinct (422). Déjà remplacé : 409."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ReplaceDeviceRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ReplacementResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O07"
+  /v1/devices/{id}/recovered-push:
+    post:
+      operationId: "PushRecoveredCommands"
+      summary: "Reprendre le journal exporté d'un poste remplacé"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline, gérante. Mêmes vérifications que POST /sync/push (empreinte JCS, JWS ES256 de la clé enrôlée de l'ANCIEN poste, lot contigu et chaîné) ; device_id du lot = {id} (422) ; poste non remplacé : 409. Les commandes sont appliquées normalement avec leurs identifiants et numéros d'origine (jamais renumérotés) ; le rejeu rend ALREADY_ACCEPTED."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./sync/push-request.json"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./sync/push-response.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O07"
+  /v1/devices/{id}/reconcile-replacement:
+    post:
+      operationId: "ReconcileReplacement"
+      summary: "Clôturer les ressources d'un poste remplacé après reprise"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline. Poste REPLACED seulement (409 sinon) ; séquence et empreinte du manifeste égales au préfixe finalisé, aucune commande reçue au-delà (409 SYNC_INCOMPLETE). Propriétés CLOSED, reliquats de quota rendus, plages CLOSED avec numéros inutilisés UNUSED (jamais recyclés)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: "id"
+          in: "path"
+          required: true
+          description: "Identifiant ULID de la ressource."
+          schema:
+            $ref: "./schemas/common.json#/$defs/Ulid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas/requests/http.json#/$defs/ReconcileReplacementRequest"
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ReleaseResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "offline.enroll"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O07"
+  /v1/sync/compatibility:
+    get:
+      operationId: "GetSyncCompatibility"
+      summary: "Versions reprises par la release du serveur"
+      tags:
+        - "Postes et synchronisation"
+      description: "Module offline, tout compte connecté. Déclaration contracts/compatibility.json : le poste compare ses commandes en attente (schéma, règles, format du coffre, schéma local) avant d'accepter une mise à jour."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/CompatibilityResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "O06"
   /v1/sync/push:
     post:
       operationId: "PushCommands"
       summary: "Transmettre un lot ordonné de commandes signées"
       tags:
         - "Postes et synchronisation"
-      description: "Session du profil ouvert ; chaque commande est autorisée par son grant et sa permission ; ACK par commande, timeout = rejouer les mêmes identifiants. Idempotence portée par command_id et event_hash."
+      description: "Module offline. Session d'un compte préparé sur ce poste (grant de ce poste) ou de la gérante (offline.enroll) ; poste perdu ou remplacé : 403. Chaque commande est vérifiée avant stockage (event_hash = SHA-256 du JCS du cœur, JWS ES256 de la clé enrôlée, kid = empreinte RFC 7638, lot contigu et chaîné) : sinon 422 SYNC_INTEGRITY_FAILED et rien n'est stocké ; même command_id avec une autre empreinte : 409 IDEMPOTENCY_PAYLOAD_MISMATCH ; rang précédent jamais reçu : 409 SYNC_SEQUENCE_GAP (details.expected_sequence) ; lot trop gros : 413 PAYLOAD_TOO_LARGE. Chaque commande est ensuite appliquée dans l'ordre, dans sa transaction, par le chemin central (source SYNC, autorisation historique de son grant, numéro de sa plage jamais renuméroté) ; l'application s'arrête au premier non finalisé. ACK par commande ; timeout = rejouer les mêmes identifiants (ALREADY_ACCEPTED, aucun second fait)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -3936,6 +5770,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "413":
@@ -3946,7 +5782,7 @@ paths:
           $ref: "#/components/responses/ValidationFailed"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O05"
   /v1/sync/pull:
     get:
@@ -3954,10 +5790,16 @@ paths:
       summary: "Changements autorisés depuis un curseur opaque signé"
       tags:
         - "Postes et synchronisation"
-      description: "Pages ordonnées par publication sous verrou du cabinet ; le client n'avance le curseur qu'après commit local de toute la page."
+      description: "Module offline. Grant ACTIF du compte sur ce poste exigé (403 GRANT_EXPIRED_OR_REVOKED). Compartiments lus = ceux du grant ∩ ceux des droits actuels (jamais CLINICAL sans droit clinique) ; PUBLIC pour tous. Pages ordonnées par publication sous verrou du cabinet, au plus 100 ; le curseur avance aussi sur les entrées filtrées et lie poste, compte et compartiments (422 si altéré ou d'un autre poste ; reprise depuis le début si les compartiments ont changé). Le client n'avance le curseur qu'après commit local de toute la page."
       security:
         - sessionCookie: []
       parameters:
+        - name: "device_id"
+          in: "query"
+          required: false
+          description: "Poste préparé qui lit (ULID, obligatoire)."
+          schema:
+            type: "string"
         - name: "cursor"
           in: "query"
           required: false
@@ -3975,11 +5817,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O05"
   /v1/sync/conflicts:
     get:
@@ -3987,9 +5833,16 @@ paths:
       summary: "Conflits de synchronisation à revoir"
       tags:
         - "Postes et synchronisation"
+      description: "Module offline. Commande d'origine (nom, poste, rang, auteur), code et motif du refus, décision et son motif ; jamais la charge (instantanés chiffrés)."
       security:
         - sessionCookie: []
       parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          description: "OPEN ou RESOLVED (tous sans filtre ; les ouverts d'abord)."
+          schema:
+            type: "string"
         - name: "page"
           in: "query"
           required: false
@@ -4014,7 +5867,7 @@ paths:
         - "approval.decide"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O05"
   /v1/sync/conflicts/{id}/resolution:
     post:
@@ -4022,6 +5875,7 @@ paths:
       summary: "Résoudre un conflit (décision motivée, jamais anonyme)"
       tags:
         - "Postes et synchronisation"
+      description: "Module offline, en ligne seulement. ACCEPT_LOCAL : appliquer la commande telle quelle après revue (rejouée par le chemin central ; seul un verdict « en revue » de l'autorisation historique est levé, tout autre refus rouvre un conflit). KEEP_CENTRAL, REJECT : commande finalisée REJECTED, le préfixe du poste avance. CORRECT : REJECTED avec la commande correctrice (nouvel identifiant). Jamais de réécriture du cœur, de l'empreinte ni de la signature ; conflit déjà résolu : 409."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -4050,6 +5904,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
         "419":
@@ -4062,7 +5918,7 @@ paths:
         - "approval.decide"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "O05"
   /v1/exports:
     post:
@@ -4070,7 +5926,7 @@ paths:
       summary: "Demander un export privé"
       tags:
         - "Restitution"
-      description: "clinical.export suffit pour l'export du dossier d'un patient (PATIENT_RECORD) ; les autres types exigent export.global."
+      description: "Module settings. clinical.export suffit pour l'export du dossier d'un patient (PATIENT_RECORD) ; les autres types exigent export.global. L'archive est produite par la tâche planifiée (eeo:exports:process), jamais dans la requête."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -4104,7 +5960,35 @@ paths:
         - "clinical.export"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "X02"
+    get:
+      operationId: "ListExports"
+      summary: "Exports du cabinet"
+      tags:
+        - "Restitution"
+      description: "Module settings. Les 50 plus récents ; export.global voit tous les exports du cabinet, un autre compte seulement les siens."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/operations.json#/$defs/ExportRequestList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+      x-permission:
+        - "export.global"
+        - "clinical.export"
+      x-reauthentication: false
+      x-idempotency: "none"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X02"
   /v1/exports/{id}:
     get:
@@ -4132,6 +6016,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
@@ -4139,7 +6025,7 @@ paths:
         - "clinical.export"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X02"
   /v1/exports/{id}/download:
     get:
@@ -4147,6 +6033,7 @@ paths:
       summary: "Télécharger un export prêt (privé, expirant)"
       tags:
         - "Restitution"
+      description: "Archive ZIP privée (CSV par table, dictionnaire, manifeste) pendant 48 h ; expirée ou pas encore prête : 409 STATE_TRANSITION_REFUSED avec details.current_status ; téléchargement tracé."
       security:
         - sessionCookie: []
       parameters:
@@ -4170,8 +6057,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "410":
-          $ref: "#/components/responses/Gone"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "419":
           $ref: "#/components/responses/SessionExpired"
       x-permission:
@@ -4179,7 +6066,7 @@ paths:
         - "clinical.export"
       x-reauthentication: false
       x-idempotency: "none"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X02"
   /v1/imports/catalog:
     post:
@@ -4187,6 +6074,7 @@ paths:
       summary: "Importer le catalogue (aperçu puis import contrôlé)"
       tags:
         - "Restitution"
+      description: "Module sales. Le fichier CSV est lu sur le poste ; le serveur revérifie chaque ligne. dry_run = true : rapport sans écriture ni commande ; false : commande ImportCatalog, toutes les lignes ou aucune (422 ligne par ligne)."
       security:
         - sessionCookie: []
           xsrfToken: []
@@ -4195,18 +6083,9 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: "object"
-              required:
-                - "file"
-                - "dry_run"
-              properties:
-                file:
-                  type: "string"
-                  contentMediaType: "text/csv"
-                dry_run:
-                  type: "boolean"
+              $ref: "./schemas/requests/http.json#/$defs/CatalogImportRequest"
       responses:
         "200":
           description: "Succès."
@@ -4228,7 +6107,57 @@ paths:
         - "catalog.manage"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
+      x-backlog-task: "X01"
+  /v1/legacy-balances/evidence:
+    post:
+      operationId: "StoreLegacyEvidence"
+      summary: "Déposer le justificatif scanné d'une créance papier"
+      tags:
+        - "Restitution"
+      description: "Module sales, gérante. Corps brut PDF, JPEG ou PNG (type reconnu aux premiers octets, jamais au seul en-tête), taille bornée (EEO_DOCUMENT_MAX_BYTES), en-tête facultatif X-Content-Sha256 vérifié ; stockage privé adressé par le contenu (le même scan = le même fichier)."
+      security:
+        - sessionCookie: []
+          xsrfToken: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema:
+              type: "string"
+              contentMediaType: "application/pdf"
+          image/jpeg:
+            schema:
+              type: "string"
+              contentMediaType: "image/jpeg"
+          image/png:
+            schema:
+              type: "string"
+              contentMediaType: "image/png"
+      responses:
+        "201":
+          description: "Succès."
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/resources/billing.json#/$defs/LegacyEvidenceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "419":
+          $ref: "#/components/responses/SessionExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "423":
+          $ref: "#/components/responses/ReauthenticationRequired"
+      x-permission:
+        - "finance.global.read"
+      x-reauthentication: true
+      x-idempotency: "required"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X01"
   /v1/imports/legacy-balances:
     post:
@@ -4245,18 +6174,9 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: "object"
-              required:
-                - "file"
-                - "dry_run"
-              properties:
-                file:
-                  type: "string"
-                  contentMediaType: "text/csv"
-                dry_run:
-                  type: "boolean"
+              $ref: "./schemas/requests/http.json#/$defs/LegacyBalanceImportRequest"
       responses:
         "200":
           description: "Succès."
@@ -4278,7 +6198,7 @@ paths:
         - "finance.global.read"
       x-reauthentication: true
       x-idempotency: "required"
-      x-implementation-status: "PLANNED"
+      x-implementation-status: "IMPLEMENTED"
       x-backlog-task: "X01"
   /public/v1/services:
     servers:

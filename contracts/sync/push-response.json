@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eeo.invalid/contracts/sync/push-response.json",
   "title": "Réponse de POST /api/v1/sync/push",
-  "description": "Un ACK par commande reçue, dans l'ordre. finalized_prefix = dernier rang du préfixe finalisé et vérifié (ACCEPTED et REJECTED décidés), qui ne saute jamais un RECEIVED, WAITING_DEPENDENCY ou CONFLICT_REQUIRES_REVIEW.",
+  "description": "Un ACK par commande du lot dont le serveur a statué, dans l'ordre ; une commande conservée derrière un rang non finalisé (RECEIVED) n'a pas encore d'ACK : le poste la garde envoyée et la renvoie. finalized_prefix = dernier rang du préfixe finalisé et vérifié (ACCEPTED et REJECTED décidés), qui ne saute jamais un RECEIVED, WAITING_DEPENDENCY ou CONFLICT_REQUIRES_REVIEW.",
   "type": "object",
   "additionalProperties": false,
   "required": ["results", "finalized_prefix", "server_time"],

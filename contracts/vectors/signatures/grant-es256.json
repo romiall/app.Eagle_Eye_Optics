@@ -1,0 +1,39 @@
+{
+  "$comment": "Vecteur croisé JWS compact ES256 (signature JWA R||S de 64 octets) produit par Web Crypto : le PHP (App\\\\Offline\\\\CompactJws) et le navigateur (offline/signing/jws.ts) doivent le vérifier, et refuser ses variantes altérées. Clé de TEST jetable, sans valeur hors des tests ; la clé du serveur vit dans un fichier privé jamais versionné.",
+  "public_jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "WG_9WoAUoa0ShCc_fOmAUC71C0AYNRNtXDy7U7qYHqg",
+    "y": "gJosBm21GGrKmI9yx3UTA4CgdzXMmgf8xGjvCV0JS7g"
+  },
+  "kid": "k15RrJVZKE_RDu9n9WQZOCoWAF4kTeSOdMaJwXVzu1s",
+  "private_pkcs8_pem_test_only": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgA3qd/dShOx8/z5Ee\nEEoMSkRGyVU9jiYtTIR9nzzcPyOhRANCAARYb/1agBShrRKEJz986YBQLvULQBg1\nE21cPLtTupgeqICaLAZttRhqypiPcsd1EwOAoHc1zJoH/MRo7wldCUu4\n-----END PRIVATE KEY-----\n",
+  "header": {
+    "alg": "ES256",
+    "kid": "k15RrJVZKE_RDu9n9WQZOCoWAF4kTeSOdMaJwXVzu1s",
+    "typ": "eeo-offline-grant+jws"
+  },
+  "claims": {
+    "catalog_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "catalog_version": "catalogue-aaaaaaaaaaaa",
+    "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W3C001",
+    "compartments": [
+      "ADMINISTRATIVE",
+      "FINANCIAL"
+    ],
+    "device_id": "01J9ZXK4M2Q8R7S6T5V4W3D001",
+    "grant_id": "01J9ZXK4M2Q8R7S6T5V4W3G001",
+    "issued_at": "2026-10-22T09:30:00.000Z",
+    "permissions": [
+      "cash.own_session",
+      "invoice.read",
+      "patient.read",
+      "payment.collect"
+    ],
+    "rules_version": "2026-10-14.1",
+    "user_id": "01J9ZXK4M2Q8R7S6T5V4W3U001",
+    "v": 1,
+    "valid_until": "2026-10-25T09:30:00.000Z"
+  },
+  "jws": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImsxNVJySlZaS0VfUkR1OW45V1FaT0NvV0FGNGtUZVNPZE1hSndYVnp1MXMiLCJ0eXAiOiJlZW8tb2ZmbGluZS1ncmFudCtqd3MifQ.eyJjYXRhbG9nX3NoYTI1NiI6ImFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEiLCJjYXRhbG9nX3ZlcnNpb24iOiJjYXRhbG9ndWUtYWFhYWFhYWFhYWFhIiwiY2xpbmljX2lkIjoiMDFKOVpYSzRNMlE4UjdTNlQ1VjRXM0MwMDEiLCJjb21wYXJ0bWVudHMiOlsiQURNSU5JU1RSQVRJVkUiLCJGSU5BTkNJQUwiXSwiZGV2aWNlX2lkIjoiMDFKOVpYSzRNMlE4UjdTNlQ1VjRXM0QwMDEiLCJncmFudF9pZCI6IjAxSjlaWEs0TTJROFI3UzZUNVY0VzNHMDAxIiwiaXNzdWVkX2F0IjoiMjAyNi0xMC0yMlQwOTozMDowMC4wMDBaIiwicGVybWlzc2lvbnMiOlsiY2FzaC5vd25fc2Vzc2lvbiIsImludm9pY2UucmVhZCIsInBhdGllbnQucmVhZCIsInBheW1lbnQuY29sbGVjdCJdLCJydWxlc192ZXJzaW9uIjoiMjAyNi0xMC0xNC4xIiwidXNlcl9pZCI6IjAxSjlaWEs0TTJROFI3UzZUNVY0VzNVMDAxIiwidiI6MSwidmFsaWRfdW50aWwiOiIyMDI2LTEwLTI1VDA5OjMwOjAwLjAwMFoifQ.f8gj3Ndmh5xLfm5YPP5DK3XmKAz056Id4M1o5s0MZzigmIUVnBRsbwUrxFsNgYfOpfuuxyfIz4x59WcVFWh_0w"
+}

@@ -1,0 +1,68 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/RefundResponse",
+  "valid": true,
+  "description": "Remboursement en espèces d'une partie d'un avoir, depuis une session ouverte : snapshot figé, PDF en attente",
+  "data": {
+    "data": {
+      "id": "01J9ZXK4M2Q8R7S6T5V4W3003E",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "credit_note_id": "01J9ZXK4M2Q8R7S6T5V4W3003A",
+      "number": "TEST-RMB-2026-000001",
+      "amount": 5000,
+      "method": "CASH",
+      "reference": null,
+      "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3003F",
+      "effective_at": "2026-10-14T11:00:00.000Z",
+      "cash_session_id": "01J9ZXK4M2Q8R7S6T5V4W3003G",
+      "created_by": "01J9ZXK4M2Q8R7S6T5V4W30004",
+      "created_by_name": "Gérante (démonstration)",
+      "snapshot": {
+        "refund_id": "01J9ZXK4M2Q8R7S6T5V4W3003E",
+        "number": "TEST-RMB-2026-000001",
+        "effective_at": "2026-10-14T11:00:00.000Z",
+        "credit_note": {
+          "credit_note_id": "01J9ZXK4M2Q8R7S6T5V4W3003A",
+          "number": "TEST-AV-2026-000001"
+        },
+        "invoice": {
+          "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+          "number": "TEST-FAC-000001",
+          "issued_at": "2026-10-14T09:30:00.000Z",
+          "total_gross": 80000
+        },
+        "beneficiary": {
+          "patient_id": "01J9ZXK4M2Q8R7S6T5V4W30001",
+          "record_number": "TEST-P-000001",
+          "last_name": "PATIENT FICTIF",
+          "first_names": "Élodie Marie"
+        },
+        "amount": 5000,
+        "currency": "XAF",
+        "method": "CASH",
+        "reference": null,
+        "created_by": {
+          "user_id": "01J9ZXK4M2Q8R7S6T5V4W30004",
+          "display_name": "Gérante (démonstration)"
+        },
+        "clinic": {
+          "clinic_id": "01J9ZXK4M2Q8R7S6T5V4W30069",
+          "name": "CABINET DE DÉMONSTRATION — DONNÉES FICTIVES",
+          "address": null,
+          "phone": null,
+          "email": null,
+          "tax_identifier": null,
+          "professional_mentions": null,
+          "document_settings": null,
+          "currency": "XAF",
+          "timezone": "Africa/Douala",
+          "test_document": true
+        },
+        "template_version": "refund.v1"
+      },
+      "document": {
+        "document_id": "01J9ZXK4M2Q8R7S6T5V4W3003H",
+        "document_status": "PENDING"
+      }
+    }
+  }
+}

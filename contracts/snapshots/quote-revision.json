@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eeo.invalid/contracts/snapshots/quote-revision.json",
+  "title": "Snapshot d'une révision de devis (quote_revisions.snapshot)",
+  "description": "Devis figé à l'émission ou à la révision (L1D07) : numéro, révision, validité, destinataire, lignes et taxe comprise, cabinet, auteur, motif ; source de son document, réimprimable à l'identique. Ni créance, ni paiement. Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "quote_id",
+    "number",
+    "revision_no",
+    "recorded_at",
+    "issued_at",
+    "valid_until",
+    "recipient",
+    "lines",
+    "total_gross",
+    "currency",
+    "tax",
+    "clinic",
+    "authored_by",
+    "reason",
+    "template_version"
+  ],
+  "properties": {
+    "quote_id": {
+      "$ref": "../schemas/common.json#/$defs/Ulid"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "revision_no": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recorded_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "issued_at": {
+      "$ref": "../schemas/common.json#/$defs/Instant"
+    },
+    "valid_until": {
+      "$ref": "../schemas/common.json#/$defs/NullableCivilDate"
+    },
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "patient_id",
+        "prospect_contact_id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "phone"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "PATIENT",
+            "PROSPECT"
+          ]
+        },
+        "patient_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../schemas/common.json#/$defs/NullableUlid"
+        },
+        "record_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line_id",
+          "position",
+          "catalog_item_id",
+          "reference",
+          "description",
+          "unit_code",
+          "quantity",
+          "unit_price_gross",
+          "discount_gross",
+          "line_total_gross",
+          "tax_code",
+          "tax_rate_percent",
+          "tax_amount"
+        ],
+        "properties": {
+          "line_id": {
+            "$ref": "../schemas/common.json#/$defs/Ulid"
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "catalog_item_id": {
+            "$ref": "../schemas/common.json#/$defs/NullableUlid"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "unit_code": {
+            "$ref": "../schemas/common.json#/$defs/Code"
+          },
+          "quantity": {
+            "$ref": "../schemas/common.json#/$defs/Quantity"
+          },
+          "unit_price_gross": {
+            "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+          },
+          "discount_gross": {
+            "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+          },
+          "line_total_gross": {
+            "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+          },
+          "tax_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "tax_rate_percent": {
+            "anyOf": [
+              {
+                "$ref": "../schemas/common.json#/$defs/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "total_gross": {
+      "$ref": "../schemas/common.json#/$defs/MoneyXaf"
+    },
+    "currency": {
+      "$ref": "../schemas/common.json#/$defs/Currency"
+    },
+    "tax": {
+      "description": "Régime fiscal figé : aucune taxe inventée ; sans règle validée, NO_TAX_CONFIGURED et liste vide.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime",
+        "rules"
+      ],
+      "properties": {
+        "regime": {
+          "type": "string",
+          "enum": [
+            "NO_TAX_CONFIGURED",
+            "VALIDATED_RULES"
+          ]
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tax_rule_id",
+              "code",
+              "label",
+              "rate_percent",
+              "validated_at",
+              "legal_note"
+            ],
+            "properties": {
+              "tax_rule_id": {
+                "$ref": "../schemas/common.json#/$defs/Ulid"
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              },
+              "rate_percent": {
+                "anyOf": [
+                  {
+                    "$ref": "../schemas/common.json#/$defs/Rate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "validated_at": {
+                "$ref": "../schemas/common.json#/$defs/NullableInstant"
+              },
+              "legal_note": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "clinic": {
+      "description": "En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clinic_id",
+        "name",
+        "address",
+        "phone",
+        "email",
+        "tax_identifier",
+        "professional_mentions",
+        "document_settings",
+        "currency",
+        "timezone",
+        "test_document"
+      ],
+      "properties": {
+        "clinic_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 254
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_identifier": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professional_mentions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_settings": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "$ref": "../schemas/common.json#/$defs/Currency"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "test_document": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authored_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "display_name"
+      ],
+      "properties": {
+        "user_id": {
+          "$ref": "../schemas/common.json#/$defs/Ulid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "template_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

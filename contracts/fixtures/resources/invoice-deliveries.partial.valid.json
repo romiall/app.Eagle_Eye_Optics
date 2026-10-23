@@ -1,0 +1,108 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/InvoiceDeliveriesResponse",
+  "valid": true,
+  "description": "Facture émise non soldée : monture remise, collyre remis en partie puis retourné en partie et remis en stock, examen sans stock",
+  "data": {
+    "data": {
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "invoice_number": "TEST-FAC-2026-000001",
+      "invoice_status": "ISSUED",
+      "amount_due": 20000,
+      "lines": [
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+          "position": 1,
+          "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+          "description": "Monture fictive",
+          "stock_mode": "STOCKED",
+          "quantity_integer_only": true,
+          "quantity": "1.000",
+          "delivered": "1.000",
+          "returned": "0.000",
+          "remaining": "0.000",
+          "reserved_open": "0.000",
+          "deliverable": false
+        },
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30050",
+          "position": 2,
+          "item_id": "01J9ZXK4M2Q8R7S6T5V4W30051",
+          "description": "Collyre fictif",
+          "stock_mode": "STOCKED",
+          "quantity_integer_only": true,
+          "quantity": "3.000",
+          "delivered": "2.000",
+          "returned": "1.000",
+          "remaining": "1.000",
+          "reserved_open": "1.000",
+          "deliverable": true
+        },
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30052",
+          "position": 3,
+          "item_id": "01J9ZXK4M2Q8R7S6T5V4W30053",
+          "description": "Examen de vue (fictif)",
+          "stock_mode": "NONE",
+          "quantity_integer_only": false,
+          "quantity": "1.000",
+          "delivered": "0.000",
+          "returned": "0.000",
+          "remaining": "1.000",
+          "reserved_open": "0.000",
+          "deliverable": true
+        }
+      ],
+      "deliveries": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30042",
+          "status": "CONFIRMED",
+          "delivered_at": "2026-10-14T09:30:00.000Z",
+          "delivered_by": "01J9ZXK4M2Q8R7S6T5V4W30054",
+          "delivered_by_name": "Caisse fictive",
+          "credit_delivery_approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004A",
+          "lines": [
+            {
+              "id": "01J9ZXK4M2Q8R7S6T5V4W30043",
+              "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+              "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+              "description": "Monture fictive",
+              "quantity": "1.000",
+              "returned": "0.000",
+              "returnable": "1.000",
+              "stock_position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+              "stock_lot_id": null,
+              "batch_number": null,
+              "expires_on": null
+            },
+            {
+              "id": "01J9ZXK4M2Q8R7S6T5V4W30055",
+              "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W30050",
+              "item_id": "01J9ZXK4M2Q8R7S6T5V4W30051",
+              "description": "Collyre fictif",
+              "quantity": "2.000",
+              "returned": "1.000",
+              "returnable": "1.000",
+              "stock_position_id": "01J9ZXK4M2Q8R7S6T5V4W30056",
+              "stock_lot_id": "01J9ZXK4M2Q8R7S6T5V4W30057",
+              "batch_number": "LOT-FICTIF-1",
+              "expires_on": "2027-03-31"
+            }
+          ]
+        }
+      ],
+      "returns": [
+        {
+          "id": "01J9ZXK4M2Q8R7S6T5V4W30058",
+          "delivery_line_id": "01J9ZXK4M2Q8R7S6T5V4W30055",
+          "item_id": "01J9ZXK4M2Q8R7S6T5V4W30051",
+          "quantity": "1.000",
+          "condition_code": "SELLABLE",
+          "accepted_for_restock": true,
+          "occurred_at": "2026-10-14T10:00:00.000Z",
+          "stock_movement_id": "01J9ZXK4M2Q8R7S6T5V4W30059",
+          "credit_note_id": null
+        }
+      ]
+    }
+  }
+}

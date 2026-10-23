@@ -1,0 +1,18 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": false,
+  "description": "Mouvement de stock de quantité nulle : aucune opération à approuver",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004D",
+    "subject": {
+      "kind": "STOCK_MOVEMENT",
+      "position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+      "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+      "lot_id": null,
+      "movement_kind": "ADJUSTMENT",
+      "signed_quantity": "0"
+    },
+    "reason": "Demande fictive",
+    "expires_at": null
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/ConvertQuoteRequest",
+  "valid": false,
+  "description": "Sans confirmation explicite des prix, la conversion est refusée par le contrat",
+  "base": "resources/convert-quote.request.valid.json",
+  "patch": [{ "op": "replace", "path": "/prices_confirmed", "value": false }]
+}

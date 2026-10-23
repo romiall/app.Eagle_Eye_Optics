@@ -4,19 +4,370 @@
   "title": "Ressources : suivi, agenda et tâches de contact",
   "description": "Agenda interne, contrôles recommandés et relances (L0 sans envoi externe). Généré par contracts/tools/build_resources.py : ne pas modifier à la main.",
   "$defs": {
+    "SchedulingPatient": {
+      "description": "Identité administrative minimale du patient d'un rendez-vous, d'un suivi ou d'une tâche.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "OpeningHour": {
+      "description": "Créneau hebdomadaire d'une ressource (1 = lundi … 7 = dimanche), heure locale du cabinet.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "weekday",
+        "opens_at",
+        "closes_at",
+        "valid_from",
+        "valid_to"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "weekday": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "opens_at": {
+          "$ref": "../../schemas/common.json#/$defs/LocalTime"
+        },
+        "closes_at": {
+          "$ref": "../../schemas/common.json#/$defs/LocalTime"
+        },
+        "valid_from": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "valid_to": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        }
+      }
+    },
+    "SchedulingResource": {
+      "description": "Professionnel ou salle réservable ; aucun horaire n'est inventé : sans créneau hebdomadaire, aucun rendez-vous n'est proposé.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "professional_user_id",
+        "professional_name",
+        "active",
+        "slot_duration_minutes",
+        "version",
+        "opening_hours"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "professional_user_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "professional_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "slot_duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "opening_hours": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/OpeningHour"
+          }
+        }
+      }
+    },
+    "SchedulingResourceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/SchedulingResource"
+        }
+      }
+    },
+    "AppointmentService": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "duration_minutes",
+        "active",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "AppointmentServiceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/AppointmentService"
+        }
+      }
+    },
+    "ResourceException": {
+      "description": "Fermeture (is_available = false) ou ouverture exceptionnelle datée d'une ressource.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "resource_id",
+        "starts_at",
+        "ends_at",
+        "is_available",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "ends_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "is_available": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "ResourceExceptionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ResourceException"
+        }
+      }
+    },
+    "AgendaConfiguration": {
+      "description": "Configuration de l'agenda (S01) : ressources, prestations, exceptions à venir (90 jours).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resources",
+        "services",
+        "exceptions"
+      ],
+      "properties": {
+        "resources": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/SchedulingResource"
+          }
+        },
+        "services": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/AppointmentService"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ResourceException"
+          }
+        }
+      }
+    },
+    "AgendaConfigurationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/AgendaConfiguration"
+        }
+      }
+    },
+    "AvailableSlots": {
+      "description": "Créneaux libres d'un jour civil du cabinet pour une ressource et une prestation, lus SOUS l'état du serveur au moment de la lecture : la réservation revérifie sous verrou.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "resource_id",
+        "service_id",
+        "duration_minutes",
+        "slots"
+      ],
+      "properties": {
+        "date": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "resource_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "service_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "starts_at",
+              "ends_at"
+            ],
+            "properties": {
+              "starts_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "ends_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              }
+            }
+          }
+        }
+      }
+    },
+    "AvailableSlotsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/AvailableSlots"
+        }
+      }
+    },
     "FollowUpPlan": {
+      "description": "Contrôle recommandé (S02), jamais une réservation implicite. reason, manual_reason et notes valent null pour un compte sans clinical.read (cloisonnement clinique) ; la date et l'identité restent lisibles par l'agenda.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
         "consultation_id",
         "patient_id",
+        "patient",
         "reason",
+        "anchor_kind",
+        "anchor_date",
+        "interval_value",
+        "interval_unit",
         "recommended_date",
         "date_origin",
+        "manual_reason",
         "reminder_enabled",
         "preferred_channel",
+        "advance_value",
+        "advance_unit",
+        "reminder_date",
+        "notes",
         "status",
+        "appointment_id",
         "version"
       ],
       "properties": {
@@ -29,8 +380,45 @@
         "patient_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
+        "patient": {
+          "$ref": "#/$defs/SchedulingPatient"
+        },
         "reason": {
-          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.reason"
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.reason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "anchor_kind": {
+          "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.anchor_kind"
+        },
+        "anchor_date": {
+          "$ref": "../../schemas/common.json#/$defs/CivilDate"
+        },
+        "interval_value": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interval_unit": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.interval_unit"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "recommended_date": {
           "$ref": "../../schemas/common.json#/$defs/CivilDate"
@@ -38,14 +426,63 @@
         "date_origin": {
           "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.date_origin"
         },
+        "manual_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "reminder_enabled": {
           "type": "boolean"
         },
         "preferred_channel": {
           "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.preferred_channel"
         },
+        "advance_value": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "advance_unit": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.advance_unit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reminder_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "status": {
           "$ref": "../../schemas/enums.json#/$defs/follow_up_plans.status"
+        },
+        "appointment_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
         "version": {
           "$ref": "../../schemas/common.json#/$defs/Version"
@@ -64,23 +501,43 @@
         }
       }
     },
+    "FollowUpPlanList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/FollowUpPlan"
+          }
+        }
+      }
+    },
     "Appointment": {
-      "description": "Rendez-vous ; un rendez-vous pris hors-ligne reste PENDING_CONFIRMATION jusqu'à validation serveur.",
+      "description": "Rendez-vous ; un rendez-vous pris hors-ligne reste PENDING_CONFIRMATION jusqu'à validation serveur. visit_id : arrivée enregistrée pour ce rendez-vous, s'il y en a une.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
         "patient_id",
+        "patient",
         "prospect_contact_id",
         "follow_up_id",
         "resource_id",
+        "resource_name",
         "service_id",
+        "service_name",
         "starts_at",
         "ends_at",
         "status",
         "source",
         "administrative_reason",
         "cancel_reason",
+        "visit_id",
         "version"
       ],
       "properties": {
@@ -89,6 +546,16 @@
         },
         "patient_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "patient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchedulingPatient"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "prospect_contact_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
@@ -99,8 +566,18 @@
         "resource_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
+        "resource_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
         "service_id": {
           "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "service_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
         },
         "starts_at": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
@@ -136,6 +613,9 @@
             }
           ]
         },
+        "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
         "version": {
           "$ref": "../../schemas/common.json#/$defs/Version"
         }
@@ -153,12 +633,12 @@
         }
       }
     },
-    "AppointmentPage": {
+    "AppointmentList": {
+      "description": "Rendez-vous d'une période de jours civils du cabinet (31 jours au plus), du plus tôt au plus tard.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "data",
-        "meta"
+        "data"
       ],
       "properties": {
         "data": {
@@ -167,28 +647,76 @@
           "items": {
             "$ref": "#/$defs/Appointment"
           }
+        }
+      }
+    },
+    "ContactAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "occurred_at",
+        "result",
+        "actor_name",
+        "administrative_note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
-        "meta": {
-          "$ref": "../../schemas/common.json#/$defs/Pagination"
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "result": {
+          "$ref": "../../schemas/enums.json#/$defs/contact_attempts.result"
+        },
+        "actor_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "administrative_note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
     "ContactTask": {
+      "description": "Tâche de contact INTERNE (L0 : aucun envoi SMS/WhatsApp réel ; le canal est la préférence du patient). Unique par source et échéance (dedupe_key) : jamais deux relances pour le même événement.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
         "patient_id",
+        "patient",
         "prospect_contact_id",
         "follow_up_id",
         "appointment_id",
         "invoice_id",
+        "source_type",
+        "source_date",
+        "source_starts_at",
         "due_at",
         "channel",
         "status",
         "next_attempt_at",
         "assigned_to",
         "administrative_notes",
+        "attempts",
         "version"
       ],
       "properties": {
@@ -197,6 +725,16 @@
         },
         "patient_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "patient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchedulingPatient"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "prospect_contact_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
@@ -209,6 +747,21 @@
         },
         "invoice_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "FOLLOW_UP",
+            "APPOINTMENT",
+            "INVOICE",
+            "WORKSHOP_ORDER"
+          ]
+        },
+        "source_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "source_starts_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
         },
         "due_at": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
@@ -236,6 +789,13 @@
             }
           ]
         },
+        "attempts": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ContactAttempt"
+          }
+        },
         "version": {
           "$ref": "../../schemas/common.json#/$defs/Version"
         }
@@ -258,6 +818,23 @@
         },
         "meta": {
           "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "ContactTaskList": {
+      "description": "Tâches de contact d'un jour civil du cabinet (échéance ou nouvelle tentative ce jour-là, ou en retard et encore ouvertes).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ContactTask"
+          }
         }
       }
     },
@@ -290,18 +867,23 @@
       }
     },
     "ActivityReport": {
-      "description": "Activité administrative (accueil, gérante) : comptages, aucune donnée clinique ni financière.",
+      "description": "Activité administrative (R02, statistics.activity) sur une période de jours civils du cabinet : visites non annulées, patients distincts, nouveaux (première visite connue au cabinet dans la période, reprise historique comprise) et anciens, sexe et tranches d'âge des patients de la période (âge au dernier jour de la période). Comptages seulement, aucune donnée clinique ni financière. appointments et follow_ups_due valent null tant que l'agenda (S01, S02) n'est pas livré.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "from",
         "to",
+        "timezone",
         "visits",
+        "visits_by_reason",
+        "patients",
         "new_patients",
+        "returning_patients",
+        "sex",
+        "age_bands",
+        "age_unknown",
         "appointments",
-        "appointments_no_show",
-        "contact_tasks_due",
-        "contact_tasks_done"
+        "follow_ups_due"
       ],
       "properties": {
         "from": {
@@ -310,7 +892,37 @@
         "to": {
           "$ref": "../../schemas/common.json#/$defs/CivilDate"
         },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
         "visits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visits_by_reason": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reason",
+              "count"
+            ],
+            "properties": {
+              "reason": {
+                "$ref": "../../schemas/enums.json#/$defs/visits.reason"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "patients": {
           "type": "integer",
           "minimum": 0
         },
@@ -318,21 +930,90 @@
           "type": "integer",
           "minimum": 0
         },
+        "returning_patients": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sex": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sex",
+              "count"
+            ],
+            "properties": {
+              "sex": {
+                "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "age_bands": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "min_age",
+              "max_age",
+              "count"
+            ],
+            "properties": {
+              "min_age": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_age": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "age_unknown": {
+          "type": "integer",
+          "minimum": 0
+        },
         "appointments": {
-          "type": "integer",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
-        "appointments_no_show": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "contact_tasks_due": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "contact_tasks_done": {
-          "type": "integer",
-          "minimum": 0
+        "follow_ups_due": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -349,15 +1030,22 @@
       }
     },
     "ClinicalReport": {
-      "description": "Statistiques cliniques agrégées (R02, statistics.clinical) : comptages seulement, aucun patient identifiable.",
+      "description": "Statistiques cliniques agrégées (R02, statistics.clinical) des consultations dont la date effective tombe dans la période : nombre de consultations, par motif (une consultation compte une fois par motif), prescriptions optiques validées, ordonnances de médicaments, orientations par niveau d'urgence, amétropies. Comptages seulement, aucun patient identifiable, aucune agrégation de mesures (jamais d'acuités d'échelles différentes).",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "from",
         "to",
+        "timezone",
+        "consultations",
         "consultations_completed",
+        "complaints",
+        "consultations_without_complaint",
         "prescriptions_validated",
+        "medication_orders",
         "referrals",
+        "referrals_by_urgency",
+        "referral_unknown",
         "ametropias"
       ],
       "properties": {
@@ -367,7 +1055,41 @@
         "to": {
           "$ref": "../../schemas/common.json#/$defs/CivilDate"
         },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "consultations": {
+          "type": "integer",
+          "minimum": 0
+        },
         "consultations_completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complaints": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "term_code",
+              "count"
+            ],
+            "properties": {
+              "term_code": {
+                "$ref": "../../schemas/common.json#/$defs/Code"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "consultations_without_complaint": {
           "type": "integer",
           "minimum": 0
         },
@@ -375,7 +1097,43 @@
           "type": "integer",
           "minimum": 0
         },
+        "medication_orders": {
+          "type": "integer",
+          "minimum": 0
+        },
         "referrals": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referrals_by_urgency": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "urgency",
+              "count"
+            ],
+            "properties": {
+              "urgency": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/enums.json#/$defs/consultations.referral_urgency"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "referral_unknown": {
           "type": "integer",
           "minimum": 0
         },

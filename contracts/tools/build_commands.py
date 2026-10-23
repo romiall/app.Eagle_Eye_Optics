@@ -281,6 +281,17 @@ APPROVAL_SUBJECTS = {
         {'description': 'Avoir lié aux lignes d\'origine (action credit_note.issue, cible invoices).'}),
     'RefundSubject': obj({'kind': kind('REFUND'), 'invoice_id': ULID, 'credit_note_id': ULID, 'amount': POSITIVE_MONEY, 'method': enum('refunds.method')},
         {'description': 'Remboursement d\'un crédit (action refund.execute, cible invoices).'}),
+    'CreditDeliverySubject': obj({'kind': kind('CREDIT_DELIVERY'), 'invoice_id': ULID, 'amount_due': POSITIVE_MONEY,
+        'lines': array(obj({'invoice_line_id': ULID, 'quantity': QUANTITY}), min_items=1, max_items=200)},
+        {'description': 'Remise au patient d\'une facture non soldée : reste dû à l\'instant de la demande et quantités remises par ligne d\'origine (une entrée par ligne, cumul de la remise) ; un encaissement intervenu entre-temps exige une nouvelle demande (action delivery.confirm, cible invoices).'}),
+    'StockMovementSubject': obj({'kind': kind('STOCK_MOVEMENT'), 'position_id': ULID, 'item_id': ULID, 'lot_id': N_ULID,
+        'movement_kind': {'type': 'string', 'enum': ['BREAKAGE', 'ADJUSTMENT']}, 'signed_quantity': NON_ZERO_SIGNED_QUANTITY},
+        {'description': 'Casse ou ajustement de stock : position, article, lot, nature et quantité signée exactes (action stock.adjust, cible stock_positions).'}),
+    'CashMovementSubject': obj({'kind': kind('CASH_MOVEMENT'), 'cash_session_id': ULID,
+        'movement_kind': {'type': 'string', 'enum': ['DEPOSIT', 'WITHDRAWAL', 'EXPENSE', 'OPENING_CORRECTION']},
+        'signed_amount': {'type': 'integer', 'minimum': -1000000000000, 'maximum': 1000000000000, 'not': {'const': 0}},
+        'expense_category_id': N_ULID},
+        {'description': 'Mouvement d\'espèces hors vente d\'une session ouverte : nature, montant signé (entrée positive, sortie négative) et catégorie de la dépense exacts (action cash.manage, cible cash_sessions).'}),
 }
 
 APPROVAL_SUBJECT = {'description': 'Contenu exact de l\'opération à approuver ; la nature (kind) fixe l\'action, la cible et les champs.',

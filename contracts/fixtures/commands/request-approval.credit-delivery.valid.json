@@ -1,0 +1,21 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": true,
+  "description": "Demande de remise d'une facture non soldée : reste dû à l'instant et quantités remises par ligne d'origine (fictif)",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004A",
+    "subject": {
+      "kind": "CREDIT_DELIVERY",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "amount_due": 20000,
+      "lines": [
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+          "quantity": "1.000"
+        }
+      ]
+    },
+    "reason": "Le patient règle le reste à la fin du mois (fictif)",
+    "expires_at": null
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "$comment": "Compartiments du coffre local (O01, docs/implementation/vault.md D16 à D18 ; fichier 23 « Compartiments »). Chaque permission du référentiel (database/02_reference_data.sql) est classée dans UNE classe ; chaque commande du journal d'un poste (contracts/commands/index.json) est scellée entière dans UN compartiment. Lu par le serveur (App\\Offline\\Compartments, grants signés) et par le poste (resources/frontend/offline/compartments.ts) ; les deux côtés sont testés contre ce fichier.",
+  "version": 1,
+  "compartments": ["ADMINISTRATIVE", "CLINICAL", "FINANCIAL", "MANAGER"],
+  "permission_classes": {
+    "ADMIN": {
+      "compartment": "ADMINISTRATIVE",
+      "permissions": [
+        "patient.read",
+        "patient.create",
+        "patient.update",
+        "patient.merge",
+        "visit.register",
+        "agenda.read",
+        "agenda.write",
+        "follow_up.write",
+        "catalog.read",
+        "stock.read",
+        "approval.request",
+        "statistics.activity",
+        "exam_fee.collect"
+      ]
+    },
+    "CLINICAL": {
+      "compartment": "CLINICAL",
+      "permissions": [
+        "clinical.read",
+        "clinical.write",
+        "clinical.complete",
+        "clinical.amend",
+        "clinical.export",
+        "statistics.clinical"
+      ]
+    },
+    "FINANCIAL": {
+      "compartment": "FINANCIAL",
+      "permissions": [
+        "invoice.read",
+        "invoice.create",
+        "invoice.issue",
+        "payment.collect",
+        "payment.reverse",
+        "credit_note.issue",
+        "refund.execute",
+        "delivery.confirm",
+        "cash.own_session",
+        "cash.manage"
+      ]
+    },
+    "MANAGER": {
+      "compartment": "MANAGER",
+      "permissions": [
+        "approval.decide",
+        "finance.global.read",
+        "finance.reconcile",
+        "catalog.manage",
+        "catalog.purchase_cost.read",
+        "stock.receive",
+        "stock.adjust",
+        "stock.inventory",
+        "stock.valuation.read",
+        "users.manage",
+        "audit.read",
+        "export.global",
+        "backup.manage",
+        "offline.enroll"
+      ]
+    },
+    "NONE": {
+      "compartment": null,
+      "permissions": [
+        "workshop.manage",
+        "communication.manage",
+        "conversation.takeover",
+        "knowledge.manage",
+        "site.publish",
+        "integration.manage"
+      ]
+    }
+  },
+  "commands": {
+    "ADMINISTRATIVE": [
+      "CreatePatient",
+      "UpdatePatient",
+      "RegisterVisit",
+      "CreateAppointment",
+      "RecordContactAttempt",
+      "RequestApproval",
+      "DecideApproval"
+    ],
+    "CLINICAL": [
+      "StartConsultation",
+      "SaveClinicalStep",
+      "CompleteConsultation",
+      "AmendConsultation",
+      "CreatePrescription",
+      "ValidatePrescription",
+      "CreateFollowUp"
+    ],
+    "FINANCIAL": [
+      "CreateInvoiceDraft",
+      "UpdateDraft",
+      "IssueInvoice",
+      "RegisterPayment",
+      "ReversePayment",
+      "IssueCreditNote",
+      "RefundCredit",
+      "OpenCashSession",
+      "CloseCashSession",
+      "ConfirmDelivery",
+      "RegisterPhysicalReturn"
+    ],
+    "MANAGER": ["RegisterStockMovement"]
+  }
+}

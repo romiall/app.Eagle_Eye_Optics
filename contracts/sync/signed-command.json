@@ -20,7 +20,11 @@
       "properties": {
         "alg": { "const": "ES256" },
         "typ": { "const": "eeo-command+jws" },
-        "kid": { "$ref": "../schemas/common.json#/$defs/Ulid" }
+        "kid": {
+          "description": "Empreinte RFC 7638 (base64url du SHA-256 de {crv, kty, x, y}) de la clé publique ENRÔLÉE du poste : même règle que la preuve de possession (O02). Alignement O05 : le contrat déclarait un ULID.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
       }
     },
     "JwsPayload": {

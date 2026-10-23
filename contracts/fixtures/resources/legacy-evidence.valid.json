@@ -1,0 +1,13 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/LegacyEvidenceResponse",
+  "valid": true,
+  "description": "Justificatif scanné (fictif) d'une créance papier, conservé en privé",
+  "data": {
+    "data": {
+      "file_id": "01J9ZXK4M2Q8R7S6T5V4W3EV01",
+      "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "mime_type": "image/jpeg",
+      "size_bytes": 182334
+    }
+  }
+}

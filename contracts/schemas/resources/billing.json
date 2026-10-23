@@ -332,6 +332,49 @@
         }
       }
     },
+    "LegacyEvidence": {
+      "description": "Justificatif scanné d'une créance papier (X01), conservé dans le stockage privé du cabinet (classement FINANCIAL) ; aucune adresse publique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "sha256",
+        "mime_type",
+        "size_bytes"
+      ],
+      "properties": {
+        "file_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "sha256": {
+          "$ref": "../../schemas/common.json#/$defs/Sha256Hex"
+        },
+        "mime_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "LegacyEvidenceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/LegacyEvidence"
+        }
+      }
+    },
     "InvoiceLine": {
       "type": "object",
       "additionalProperties": false,
@@ -612,6 +655,9 @@
           "$ref": "../../schemas/common.json#/$defs/Ulid"
         },
         "visit_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "quote_id": {
           "$ref": "../../schemas/common.json#/$defs/NullableUlid"
         },
         "number": {
@@ -916,6 +962,56 @@
             }
           }
         },
+        "reversals": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "payment_id",
+              "amount",
+              "reason",
+              "recorded_at",
+              "recorded_by",
+              "recorded_by_name"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "payment_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "amount": {
+                "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recorded_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "recorded_by": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "recorded_by_name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "credit_notes": {
           "type": "array",
           "minItems": 0,
@@ -953,6 +1049,13 @@
               },
               "issued_at": {
                 "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "refunded_amount": {
+                "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
               }
             }
           }
@@ -987,6 +1090,9 @@
               },
               "effective_at": {
                 "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "credit_note_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
               }
             }
           }
@@ -1265,6 +1371,453 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/Invoice"
+        }
+      }
+    },
+    "QuoteRecipient": {
+      "description": "Destinataire d'un devis : patient (dossier, nom, prénoms ; aucun téléphone) OU prospect (nom, téléphone). Figé à l'émission et à chaque révision ; jamais une donnée clinique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "patient_id",
+        "prospect_contact_id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "phone"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "PATIENT",
+            "PROSPECT"
+          ]
+        },
+        "patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "prospect_contact_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "record_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 32
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "QuoteLine": {
+      "description": "Ligne ACTUELLE du devis (brouillon ou dernière révision) ; les révisions antérieures sont dans leur snapshot.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "position",
+        "catalog_item_id",
+        "description_snapshot",
+        "unit_code",
+        "quantity",
+        "unit_price_gross",
+        "discount_gross",
+        "line_total_gross"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "position": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "catalog_item_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "description_snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "unit_code": {
+          "$ref": "../../schemas/common.json#/$defs/Code"
+        },
+        "quantity": {
+          "$ref": "../../schemas/common.json#/$defs/Quantity"
+        },
+        "unit_price_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "discount_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "line_total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        }
+      }
+    },
+    "QuoteRevision": {
+      "description": "Révision figée (immuable) : snapshot complet, source de son document, réimprimable à l'identique ; authored_by_name est le nom ACTUEL de l'auteur (le snapshot garde le nom figé).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision_no",
+        "recorded_at",
+        "authored_by",
+        "authored_by_name",
+        "reason",
+        "snapshot",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "revision_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recorded_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "authored_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "authored_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot": {
+          "$ref": "../../snapshots/quote-revision.json"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Quote": {
+      "description": "Devis (L1D07) : effective_status = statut à l'instant (EXPIRED pour un devis émis ou accepté dont la validité est passée, jamais écrit) ; revisions de la plus récente à la plus ancienne ; invoices = brouillons ou factures nés de sa conversion (provenance). Un devis ne compte ni dans le chiffre d'affaires ni dans l'encaissé.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "status",
+        "effective_status",
+        "valid_until",
+        "total_gross",
+        "recipient",
+        "issued_at",
+        "created_by",
+        "created_by_name",
+        "version",
+        "current_revision",
+        "lines",
+        "revisions",
+        "invoices",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/quotes.status"
+        },
+        "effective_status": {
+          "$ref": "../../schemas/enums.json#/$defs/quotes.status"
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "recipient": {
+          "$ref": "#/$defs/QuoteRecipient"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "created_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/QuoteLine"
+          }
+        },
+        "revisions": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/QuoteRevision"
+          }
+        },
+        "invoices": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "number",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "number": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/invoices.status"
+              }
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "updated_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "DRAFT"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "number": {
+                "type": "null"
+              },
+              "issued_at": {
+                "type": "null"
+              },
+              "current_revision": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "QuoteSummary": {
+      "description": "Ligne de la liste des devis : destinataire (identité de base), statut à l'instant, dernière révision.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "status",
+        "effective_status",
+        "valid_until",
+        "total_gross",
+        "recipient",
+        "issued_at",
+        "current_revision",
+        "version",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/quotes.status"
+        },
+        "effective_status": {
+          "$ref": "../../schemas/enums.json#/$defs/quotes.status"
+        },
+        "valid_until": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "total_gross": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "recipient": {
+          "$ref": "#/$defs/QuoteRecipient"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "QuoteResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Quote"
+        }
+      }
+    },
+    "QuotePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/QuoteSummary"
+          }
+        },
+        "meta": {
+          "$ref": "../../schemas/common.json#/$defs/Pagination"
         }
       }
     },
@@ -1729,6 +2282,316 @@
         }
       }
     },
+    "CreditNote": {
+      "description": "Avoir (B07) : pièce liée à la facture, lignes d'origine créditées, part déjà remboursée (refunded_amount), snapshot figé à l'émission (source de son document, produit sur le poste) ; issued_by_name est le nom ACTUEL de l'émetteur. Un avoir ne se modifie ni ne se supprime.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "invoice_id",
+        "number",
+        "status",
+        "amount_gross",
+        "reason",
+        "approval_id",
+        "issued_at",
+        "issued_by",
+        "issued_by_name",
+        "refunded_amount",
+        "lines",
+        "snapshot",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "../../schemas/enums.json#/$defs/credit_notes.status"
+        },
+        "amount_gross": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "issued_at": {
+          "$ref": "../../schemas/common.json#/$defs/NullableInstant"
+        },
+        "issued_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "issued_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "refunded_amount": {
+          "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "invoice_line_id",
+              "description_snapshot",
+              "quantity",
+              "amount_gross",
+              "tax_amount",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "invoice_line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "description_snapshot": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 500
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/Quantity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "amount_gross": {
+                "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+              },
+              "tax_amount": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "$ref": "../../snapshots/credit-note.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CreditNoteResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CreditNote"
+        }
+      }
+    },
+    "Refund": {
+      "description": "Remboursement d'un crédit (B08) : sortie d'argent liée à un avoir, snapshot figé (bénéficiaire = identité figée de la facture, source de son document) ; created_by_name est le nom ACTUEL de l'auteur. Un remboursement ne se modifie ni ne se supprime.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "invoice_id",
+        "credit_note_id",
+        "number",
+        "amount",
+        "method",
+        "reference",
+        "approval_id",
+        "effective_at",
+        "cash_session_id",
+        "created_by",
+        "created_by_name",
+        "snapshot",
+        "document"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "credit_note_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "amount": {
+          "$ref": "../../schemas/common.json#/$defs/PositiveMoneyXaf"
+        },
+        "method": {
+          "$ref": "../../schemas/enums.json#/$defs/refunds.method"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "effective_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "cash_session_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "created_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot": {
+          "$ref": "../../snapshots/refund.json"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "description": "État central du PDF : PENDING n'autorise jamais à répéter l'opération (fichier 08).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document_id",
+                "document_status"
+              ],
+              "properties": {
+                "document_id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "document_status": {
+                  "$ref": "../../schemas/enums.json#/$defs/generated_documents.status"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RefundResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Refund"
+        }
+      }
+    },
     "Approval": {
       "description": "Approbation exacte (B06) : nature, cible et empreinte du contenu ; subject = contenu exact relu dans l'audit de la demande et REVÉRIFIÉ contre payload_hash (null s'il ne la reproduit pas, ou pour une exécution directe de la gérante) ; effective_status = statut à l'instant (une demande ou un accord échus sont EXPIRED, jamais écrit) ; noms à la date de la demande et de la décision ; motif de la décision. Aucune donnée clinique.",
       "type": "object",
@@ -1768,7 +2631,10 @@
                 "DRAFT_LINE_RIGHTS",
                 "PAYMENT_REVERSAL",
                 "CREDIT_NOTE",
-                "REFUND"
+                "REFUND",
+                "CREDIT_DELIVERY",
+                "STOCK_MOVEMENT",
+                "CASH_MOVEMENT"
               ]
             },
             {
@@ -2324,6 +3190,305 @@
         }
       }
     },
+    "InvoiceDeliveries": {
+      "description": "Remises d'une facture (I01, I02) : par ligne, quantité facturée, remise, retournée, reste à remettre, réserve ouverte et remettable maintenant ; remises confirmées (lot, nom ACTUEL de qui a remis) et retours physiques ; reste dû à l'instant (null pour un brouillon : une facture non soldée se remet avec l'approbation de la gérante). Projection recalculée à chaque lecture, aucun coût d'achat.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_id",
+        "invoice_number",
+        "invoice_status",
+        "amount_due",
+        "lines",
+        "deliveries",
+        "returns"
+      ],
+      "properties": {
+        "invoice_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "invoice_status": {
+          "$ref": "../../schemas/enums.json#/$defs/invoices.status"
+        },
+        "amount_due": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/MoneyXaf"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "invoice_line_id",
+              "position",
+              "item_id",
+              "description",
+              "stock_mode",
+              "quantity_integer_only",
+              "quantity",
+              "delivered",
+              "returned",
+              "remaining",
+              "reserved_open",
+              "deliverable"
+            ],
+            "properties": {
+              "invoice_line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "item_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 500
+              },
+              "stock_mode": {
+                "anyOf": [
+                  {
+                    "$ref": "../../schemas/enums.json#/$defs/catalog_items.stock_mode"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "quantity_integer_only": {
+                "type": "boolean"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "delivered": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "returned": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "remaining": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "reserved_open": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+              },
+              "deliverable": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "deliveries": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "delivered_at",
+              "delivered_by",
+              "delivered_by_name",
+              "credit_delivery_approval_id",
+              "lines"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "status": {
+                "$ref": "../../schemas/enums.json#/$defs/deliveries.status"
+              },
+              "delivered_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "delivered_by": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "delivered_by_name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 180
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "credit_delivery_approval_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "lines": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "invoice_line_id",
+                    "item_id",
+                    "description",
+                    "quantity",
+                    "returned",
+                    "returnable",
+                    "stock_position_id",
+                    "stock_lot_id",
+                    "batch_number",
+                    "expires_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "$ref": "../../schemas/common.json#/$defs/Ulid"
+                    },
+                    "invoice_line_id": {
+                      "$ref": "../../schemas/common.json#/$defs/Ulid"
+                    },
+                    "item_id": {
+                      "$ref": "../../schemas/common.json#/$defs/Ulid"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 500
+                    },
+                    "quantity": {
+                      "$ref": "../../schemas/common.json#/$defs/Quantity"
+                    },
+                    "returned": {
+                      "type": "string",
+                      "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                      "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+                    },
+                    "returnable": {
+                      "type": "string",
+                      "pattern": "^-?(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                      "description": "DECIMAL(12,3) en chaîne exacte, zéro admis."
+                    },
+                    "stock_position_id": {
+                      "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                    },
+                    "stock_lot_id": {
+                      "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+                    },
+                    "batch_number": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 80
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "expires_on": {
+                      "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "returns": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "delivery_line_id",
+              "item_id",
+              "quantity",
+              "condition_code",
+              "accepted_for_restock",
+              "occurred_at",
+              "stock_movement_id",
+              "credit_note_id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "delivery_line_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "item_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "quantity": {
+                "$ref": "../../schemas/common.json#/$defs/Quantity"
+              },
+              "condition_code": {
+                "$ref": "../../schemas/enums.json#/$defs/physical_returns.condition_code"
+              },
+              "accepted_for_restock": {
+                "type": "boolean"
+              },
+              "occurred_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              },
+              "stock_movement_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              },
+              "credit_note_id": {
+                "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+              }
+            }
+          }
+        }
+      }
+    },
+    "InvoiceDeliveriesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/InvoiceDeliveries"
+        }
+      }
+    },
     "CashSessionEntry": {
       "description": "Session de caisse et ses libellés : noms ACTUELS de la caissière et de qui a clôturé, caisse.",
       "type": "object",
@@ -2663,6 +3828,286 @@
       "properties": {
         "data": {
           "$ref": "#/$defs/CashSessionReport"
+        }
+      }
+    },
+    "ExpenseCategory": {
+      "description": "Catégorie de dépenses du cabinet (L1D05) : pas un plan comptable réglementaire ; aucune n'est préconfigurée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "code",
+        "name",
+        "active"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ExpenseCategoryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ExpenseCategory"
+        }
+      }
+    },
+    "ExpenseCategoryList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/ExpenseCategory"
+          }
+        }
+      }
+    },
+    "CashMovement": {
+      "description": "Mouvement d'espèces hors vente (L1D05) : dépense catégorisée, dépôt, retrait ou correction de l'ouverture ; jamais un paiement (ni facture, ni reçu). approval_mode : demande accordée par la gérante, ou exécution directe de la gérante. Immuable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "cash_session_id",
+        "kind",
+        "signed_amount",
+        "reason",
+        "reference",
+        "occurred_at",
+        "expense_category",
+        "created_by",
+        "created_by_name",
+        "approval_id",
+        "approval_mode"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "cash_session_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "kind": {
+          "$ref": "../../schemas/enums.json#/$defs/cash_movements.kind"
+        },
+        "signed_amount": {
+          "$ref": "../../schemas/common.json#/$defs/SignedMoneyXaf"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "expense_category": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "code",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "../../schemas/common.json#/$defs/Ulid"
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "created_by_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "approval_mode": {
+          "type": "string",
+          "enum": [
+            "APPROVED",
+            "DIRECT"
+          ]
+        }
+      }
+    },
+    "CashMovementResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashMovement"
+        }
+      }
+    },
+    "CashVarianceReview": {
+      "description": "Revue de l'écart d'une session clôturée par la gérante : fait d'audit, la session figée n'est pas réécrite.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "note",
+        "reviewed_by",
+        "reviewed_by_name",
+        "reviewed_at"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "DISPUTED"
+          ]
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewed_by": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "reviewed_by_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "reviewed_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "CashVarianceReviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashVarianceReview"
+        }
+      }
+    },
+    "CashSessionMovements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cash_session_id",
+        "closed",
+        "movements",
+        "variance_review"
+      ],
+      "properties": {
+        "cash_session_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "movements": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/CashMovement"
+          }
+        },
+        "variance_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CashVarianceReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CashSessionMovementsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/CashSessionMovements"
         }
       }
     },

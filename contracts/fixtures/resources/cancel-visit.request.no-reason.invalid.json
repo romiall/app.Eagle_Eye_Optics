@@ -1,0 +1,10 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/CancelVisitRequest",
+  "valid": false,
+  "description": "Sans motif, une visite ne s'annule pas (motif obligatoire, au moins 3 caractères)",
+  "data": {
+    "expected_version": 1,
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W30010",
+    "reason": "ok"
+  }
+}

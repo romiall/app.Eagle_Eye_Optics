@@ -13,6 +13,7 @@
     "commands",
     "events",
     "vault_formats",
+    "local_schema_versions",
     "document_templates",
     "notes"
   ],
@@ -59,6 +60,13 @@
     "vault_formats": {
       "description": "Versions du format du coffre local reprises (définies par O01, migrations par O06).",
       "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "local_schema_versions": {
+      "description": "Versions du schéma IndexedDB du poste (base eeo-device) que cette release sait ouvrir et migrer EN AVANT, par ajouts seulement (O06) ; une base plus récente est refusée en écriture, jamais purgée.",
+      "type": "array",
+      "minItems": 1,
       "uniqueItems": true,
       "items": { "type": "integer", "minimum": 1 }
     },

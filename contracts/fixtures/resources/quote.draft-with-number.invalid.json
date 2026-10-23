@@ -1,0 +1,11 @@
+{
+  "schema": "schemas/resources/billing.json#/$defs/QuoteResponse",
+  "valid": false,
+  "description": "Un brouillon de devis ne porte ni numéro ni date d'émission",
+  "base": "resources/quote.issued.valid.json",
+  "patch": [
+    { "op": "replace", "path": "/data/status", "value": "DRAFT" },
+    { "op": "replace", "path": "/data/current_revision", "value": 0 },
+    { "op": "replace", "path": "/data/revisions", "value": [] }
+  ]
+}

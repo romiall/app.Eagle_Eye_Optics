@@ -116,6 +116,10 @@ export type NullableInstant = (Instant | null)
  */
 export type CivilDate = string
 export type NullableCivilDate = (CivilDate | null)
+/**
+ * Heure locale HH:MM du cabinet (Africa/Douala), sans date ni fuseau : créneau hebdomadaire d'un agenda.
+ */
+export type LocalTime = string
 export type ShortText = string
 /**
  * Motif obligatoire d'une opération sensible.
@@ -509,11 +513,11 @@ export type WorkshopOrdersStatus = ("ORDERED" | "RECEIVED" | "MOUNTING" | "QUALI
 /**
  * Codes du fichier 08 et compléments documentés (F05). Un nouveau code s'ajoute ici avec sa route. STATE_TRANSITION_REFUSED (409) : l'état actuel de la ressource ne permet pas l'opération (consultation déjà démarrée, visite non démarrable, consultation terminée) ; details.current_status porte ce statut.
  */
-export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
+export type ErrorCode = ("AUTH_REQUIRED" | "SESSION_CONTEXT_EXPIRED" | "SESSION_REQUIRED" | "ACTION_FORBIDDEN" | "RESOURCE_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "VERSION_CONFLICT" | "STATE_TRANSITION_REFUSED" | "PAYMENT_EXCEEDS_BALANCE" | "STOCK_UNAVAILABLE" | "IDEMPOTENCY_PAYLOAD_MISMATCH" | "SLOT_UNAVAILABLE" | "VALIDATION_FAILED" | "EXAM_PAYMENT_REQUIRED" | "APPROVAL_REQUIRED_OR_EXPIRED" | "REAUTHENTICATION_REQUIRED" | "LOT_EXPIRED" | "RATE_LIMITED" | "DEPENDENCY_UNAVAILABLE" | "CLINIC_NOT_CONFIGURED" | "CLINIC_ALREADY_SET_UP" | "LAST_MANAGER_REQUIRED" | "MANAGER_RESET_REQUIRES_CONSOLE" | "SELF_DEACTIVATION_FORBIDDEN" | "SELF_OVERRIDE_FORBIDDEN" | "SELF_RESET_FORBIDDEN" | "SELF_ROLE_CHANGE_FORBIDDEN" | "WRITE_OWNER_REQUIRED" | "NUMBER_RANGE_EXHAUSTED" | "GRANT_EXPIRED_OR_REVOKED" | "AUTHORIZATION_REVIEW_REQUIRED" | "SYNC_INTEGRITY_FAILED" | "SYNC_SEQUENCE_GAP" | "SYNC_INCOMPLETE" | "NUMBER_RANGE_INVALID" | "DEPENDENCY_REJECTED" | "FINANCIAL_DEVICE_ELSEWHERE" | "DEVICE_REPLACED" | "PAYLOAD_TOO_LARGE" | "SERVER_BUSY" | "HTTP_ERROR" | "INTERNAL_ERROR")
 /**
  * Contenu exact de l'opération à approuver ; la nature (kind) fixe l'action, la cible et les champs.
  */
-export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject)
+export type ApprovalSubject = (ExamFeeWaiverSubject | DraftLineRightsSubject | PaymentReversalSubject | CreditNoteSubject | RefundSubject | CreditDeliverySubject | StockMovementSubject | CashMovementSubject)
 /**
  * Élément de l'activité, distingué par type.
  */
@@ -579,6 +583,7 @@ SchemasCommonJsonInstant?: Instant
 SchemasCommonJsonNullableInstant?: NullableInstant
 SchemasCommonJsonCivilDate?: CivilDate
 SchemasCommonJsonNullableCivilDate?: NullableCivilDate
+SchemasCommonJsonLocalTime?: LocalTime
 SchemasCommonJsonShortText?: ShortText
 SchemasCommonJsonReason?: Reason
 SchemasCommonJsonPhone?: Phone
@@ -703,13 +708,38 @@ SchemasRequestsHttpJsonUpdateClinicSettingsRequest?: UpdateClinicSettingsRequest
 SchemasRequestsHttpJsonUpdatePrescriptionDraftRequest?: UpdatePrescriptionDraftRequest
 SchemasRequestsHttpJsonRescheduleAppointmentRequest?: RescheduleAppointmentRequest
 SchemasRequestsHttpJsonCancelAppointmentRequest?: CancelAppointmentRequest
+SchemasRequestsHttpJsonMarkAppointmentNoShowRequest?: MarkAppointmentNoShowRequest
+SchemasRequestsHttpJsonSchedulingResourceRequest?: SchedulingResourceRequest
+SchemasRequestsHttpJsonOpeningHoursRequest?: OpeningHoursRequest
+SchemasRequestsHttpJsonResourceExceptionRequest?: ResourceExceptionRequest
+SchemasRequestsHttpJsonAppointmentServiceRequest?: AppointmentServiceRequest
 SchemasRequestsHttpJsonCatalogItemRequest?: CatalogItemRequest
+SchemasRequestsHttpJsonCatalogImportRequest?: CatalogImportRequest
+SchemasRequestsHttpJsonStoreDocumentContentCommand?: StoreDocumentContentCommand
+SchemasRequestsHttpJsonLegacyBalanceImportRequest?: LegacyBalanceImportRequest
+SchemasRequestsHttpJsonStoreLegacyEvidenceCommand?: StoreLegacyEvidenceCommand
 SchemasRequestsHttpJsonTaxRuleRequest?: TaxRuleRequest
+SchemasRequestsHttpJsonCreateQuoteDraftRequest?: CreateQuoteDraftRequest
+SchemasRequestsHttpJsonUpdateQuoteDraftRequest?: UpdateQuoteDraftRequest
+SchemasRequestsHttpJsonIssueQuoteRequest?: IssueQuoteRequest
+SchemasRequestsHttpJsonReviseQuoteRequest?: ReviseQuoteRequest
+SchemasRequestsHttpJsonQuoteDecisionRequest?: QuoteDecisionRequest
+SchemasRequestsHttpJsonConvertQuoteRequest?: ConvertQuoteRequest
 SchemasRequestsHttpJsonAbandonInvoiceDraftRequest?: AbandonInvoiceDraftRequest
+SchemasRequestsHttpJsonMergePatientsRequest?: MergePatientsRequest
+SchemasRequestsHttpJsonRecordCashMovementRequest?: RecordCashMovementRequest
+SchemasRequestsHttpJsonExpenseCategoryRequest?: ExpenseCategoryRequest
+SchemasRequestsHttpJsonCashVarianceReviewRequest?: CashVarianceReviewRequest
+SchemasRequestsHttpJsonCancelVisitRequest?: CancelVisitRequest
 SchemasRequestsHttpJsonOpeningStockRequest?: OpeningStockRequest
 SchemasRequestsHttpJsonEnrollDeviceRequest?: EnrollDeviceRequest
+SchemasRequestsHttpJsonIssueOfflineGrantRequest?: IssueOfflineGrantRequest
+SchemasRequestsHttpJsonRevokeDeviceRequest?: RevokeDeviceRequest
+SchemasRequestsHttpJsonRevokeOfflineGrantRequest?: RevokeOfflineGrantRequest
 SchemasRequestsHttpJsonPrepareDeviceRequest?: PrepareDeviceRequest
 SchemasRequestsHttpJsonReleaseDeviceRequest?: ReleaseDeviceRequest
+SchemasRequestsHttpJsonReplaceDeviceRequest?: ReplaceDeviceRequest
+SchemasRequestsHttpJsonReconcileReplacementRequest?: ReconcileReplacementRequest
 SchemasRequestsHttpJsonConflictResolutionRequest?: ConflictResolutionRequest
 SchemasRequestsHttpJsonCreateExportRequest?: CreateExportRequest
 SchemasRequestsHttpJsonBookingRequest?: BookingRequest
@@ -734,6 +764,8 @@ SchemasResourcesBillingJsonTaxRuleResponse?: TaxRuleResponse
 SchemasResourcesBillingJsonTaxRuleList?: TaxRuleList
 SchemasResourcesBillingJsonImportReport?: ImportReport
 SchemasResourcesBillingJsonImportReportResponse?: ImportReportResponse
+SchemasResourcesBillingJsonLegacyEvidence?: LegacyEvidence
+SchemasResourcesBillingJsonLegacyEvidenceResponse?: LegacyEvidenceResponse
 SchemasResourcesBillingJsonInvoiceLine?: InvoiceLine
 SchemasResourcesBillingJsonInvoiceBalance?: InvoiceBalance
 SchemasResourcesBillingJsonInvoicePayment?: InvoicePayment
@@ -741,6 +773,13 @@ SchemasResourcesBillingJsonDocumentState?: DocumentState
 SchemasResourcesBillingJsonInvoice?: Invoice
 SchemasResourcesBillingJsonInvoiceSummary?: InvoiceSummary
 SchemasResourcesBillingJsonInvoiceResponse?: InvoiceResponse
+SchemasResourcesBillingJsonQuoteRecipient?: QuoteRecipient
+SchemasResourcesBillingJsonQuoteLine?: QuoteLine
+SchemasResourcesBillingJsonQuoteRevision?: QuoteRevision
+SchemasResourcesBillingJsonQuote?: Quote
+SchemasResourcesBillingJsonQuoteSummary?: QuoteSummary
+SchemasResourcesBillingJsonQuoteResponse?: QuoteResponse
+SchemasResourcesBillingJsonQuotePage?: QuotePage
 SchemasResourcesBillingJsonInvoicePage?: InvoicePage
 SchemasResourcesBillingJsonPaymentResult?: PaymentResult
 SchemasResourcesBillingJsonReversalResult?: ReversalResult
@@ -750,6 +789,10 @@ SchemasResourcesBillingJsonPaymentResultResponse?: PaymentResultResponse
 SchemasResourcesBillingJsonReversalResultResponse?: ReversalResultResponse
 SchemasResourcesBillingJsonCreditNoteResultResponse?: CreditNoteResultResponse
 SchemasResourcesBillingJsonRefundResultResponse?: RefundResultResponse
+SchemasResourcesBillingJsonCreditNote?: CreditNote
+SchemasResourcesBillingJsonCreditNoteResponse?: CreditNoteResponse
+SchemasResourcesBillingJsonRefund?: Refund
+SchemasResourcesBillingJsonRefundResponse?: RefundResponse
 SchemasResourcesBillingJsonApproval?: Approval
 SchemasResourcesBillingJsonApprovalTarget?: ApprovalTarget
 SchemasResourcesBillingJsonApprovalResponse?: ApprovalResponse
@@ -763,10 +806,21 @@ SchemasResourcesBillingJsonCashSessionResponse?: CashSessionResponse
 SchemasResourcesBillingJsonCurrentCashSessionResponse?: CurrentCashSessionResponse
 SchemasResourcesBillingJsonDelivery?: Delivery
 SchemasResourcesBillingJsonDeliveryResponse?: DeliveryResponse
+SchemasResourcesBillingJsonInvoiceDeliveries?: InvoiceDeliveries
+SchemasResourcesBillingJsonInvoiceDeliveriesResponse?: InvoiceDeliveriesResponse
 SchemasResourcesBillingJsonCashSessionEntry?: CashSessionEntry
 SchemasResourcesBillingJsonCashSessionPage?: CashSessionPage
 SchemasResourcesBillingJsonCashSessionReport?: CashSessionReport
 SchemasResourcesBillingJsonCashSessionReportResponse?: CashSessionReportResponse
+SchemasResourcesBillingJsonExpenseCategory?: ExpenseCategory
+SchemasResourcesBillingJsonExpenseCategoryResponse?: ExpenseCategoryResponse
+SchemasResourcesBillingJsonExpenseCategoryList?: ExpenseCategoryList
+SchemasResourcesBillingJsonCashMovement?: CashMovement
+SchemasResourcesBillingJsonCashMovementResponse?: CashMovementResponse
+SchemasResourcesBillingJsonCashVarianceReview?: CashVarianceReview
+SchemasResourcesBillingJsonCashVarianceReviewResponse?: CashVarianceReviewResponse
+SchemasResourcesBillingJsonCashSessionMovements?: CashSessionMovements
+SchemasResourcesBillingJsonCashSessionMovementsResponse?: CashSessionMovementsResponse
 SchemasResourcesBillingJsonCashDayReport?: CashDayReport
 SchemasResourcesBillingJsonCashDayReportResponse?: CashDayReportResponse
 SchemasResourcesBillingJsonSalesSettings?: SalesSettings
@@ -787,13 +841,21 @@ SchemasResourcesClinicalJsonPrescriptionList?: PrescriptionList
 SchemasResourcesOperationsJsonPublicJwk?: PublicJwk
 SchemasResourcesOperationsJsonEnrolledDevice?: EnrolledDevice
 SchemasResourcesOperationsJsonEnrolledDeviceResponse?: EnrolledDeviceResponse
+SchemasResourcesOperationsJsonEnrolledDeviceList?: EnrolledDeviceList
 SchemasResourcesOperationsJsonOfflineGrant?: OfflineGrant
+SchemasResourcesOperationsJsonOfflineGrantResponse?: OfflineGrantResponse
+SchemasResourcesOperationsJsonOfflineGrantList?: OfflineGrantList
+SchemasResourcesOperationsJsonSigningKeySet?: SigningKeySet
+SchemasResourcesOperationsJsonSigningKeySetResponse?: SigningKeySetResponse
 SchemasResourcesOperationsJsonNumberAllocation?: NumberAllocation
 SchemasResourcesOperationsJsonStockQuota?: StockQuota
 SchemasResourcesOperationsJsonPreparation?: Preparation
 SchemasResourcesOperationsJsonPreparationResponse?: PreparationResponse
 SchemasResourcesOperationsJsonRelease?: Release
 SchemasResourcesOperationsJsonReleaseResponse?: ReleaseResponse
+SchemasResourcesOperationsJsonReplacement?: Replacement
+SchemasResourcesOperationsJsonReplacementResponse?: ReplacementResponse
+SchemasResourcesOperationsJsonCompatibilityResponse?: CompatibilityResponse
 SchemasResourcesOperationsJsonDeviceHealth?: DeviceHealth
 SchemasResourcesOperationsJsonDeviceHealthResponse?: DeviceHealthResponse
 SchemasResourcesOperationsJsonConflict?: Conflict
@@ -803,6 +865,7 @@ SchemasResourcesOperationsJsonGeneratedDocument?: GeneratedDocument
 SchemasResourcesOperationsJsonGeneratedDocumentResponse?: GeneratedDocumentResponse
 SchemasResourcesOperationsJsonExportRequest?: ExportRequest
 SchemasResourcesOperationsJsonExportRequestResponse?: ExportRequestResponse
+SchemasResourcesOperationsJsonExportRequestList?: ExportRequestList
 SchemasResourcesOperationsJsonFinancialReport?: FinancialReport
 SchemasResourcesOperationsJsonFinancialReportResponse?: FinancialReportResponse
 SchemasResourcesOperationsJsonAuditEvent?: AuditEvent
@@ -817,6 +880,11 @@ SchemasResourcesPatientsJsonVisit?: Visit
 SchemasResourcesPatientsJsonVisitPatient?: VisitPatient
 SchemasResourcesPatientsJsonVisitResponse?: VisitResponse
 SchemasResourcesPatientsJsonVisitPage?: VisitPage
+SchemasResourcesPatientsJsonPatientMergeIdentity?: PatientMergeIdentity
+SchemasResourcesPatientsJsonPatientMergePreview?: PatientMergePreview
+SchemasResourcesPatientsJsonPatientMergePreviewResponse?: PatientMergePreviewResponse
+SchemasResourcesPatientsJsonPatientMerge?: PatientMerge
+SchemasResourcesPatientsJsonPatientMergeResponse?: PatientMergeResponse
 SchemasResourcesPatientsJsonPatientActivityVisit?: PatientActivityVisit
 SchemasResourcesPatientsJsonPatientActivityConsultation?: PatientActivityConsultation
 SchemasResourcesPatientsJsonPatientActivityPrescription?: PatientActivityPrescription
@@ -835,13 +903,28 @@ SchemasResourcesPublicJsonPublicSlot?: PublicSlot
 SchemasResourcesPublicJsonPublicSlotList?: PublicSlotList
 SchemasResourcesPublicJsonBookingReceipt?: BookingReceipt
 SchemasResourcesPublicJsonBookingReceiptResponse?: BookingReceiptResponse
+SchemasResourcesSchedulingJsonSchedulingPatient?: SchedulingPatient
+SchemasResourcesSchedulingJsonOpeningHour?: OpeningHour
+SchemasResourcesSchedulingJsonSchedulingResource?: SchedulingResource
+SchemasResourcesSchedulingJsonSchedulingResourceResponse?: SchedulingResourceResponse
+SchemasResourcesSchedulingJsonAppointmentService?: AppointmentService
+SchemasResourcesSchedulingJsonAppointmentServiceResponse?: AppointmentServiceResponse
+SchemasResourcesSchedulingJsonResourceException?: ResourceException
+SchemasResourcesSchedulingJsonResourceExceptionResponse?: ResourceExceptionResponse
+SchemasResourcesSchedulingJsonAgendaConfiguration?: AgendaConfiguration
+SchemasResourcesSchedulingJsonAgendaConfigurationResponse?: AgendaConfigurationResponse
+SchemasResourcesSchedulingJsonAvailableSlots?: AvailableSlots
+SchemasResourcesSchedulingJsonAvailableSlotsResponse?: AvailableSlotsResponse
 SchemasResourcesSchedulingJsonFollowUpPlan?: FollowUpPlan
 SchemasResourcesSchedulingJsonFollowUpPlanResponse?: FollowUpPlanResponse
+SchemasResourcesSchedulingJsonFollowUpPlanList?: FollowUpPlanList
 SchemasResourcesSchedulingJsonAppointment?: Appointment
 SchemasResourcesSchedulingJsonAppointmentResponse?: AppointmentResponse
-SchemasResourcesSchedulingJsonAppointmentPage?: AppointmentPage
+SchemasResourcesSchedulingJsonAppointmentList?: AppointmentList
+SchemasResourcesSchedulingJsonContactAttempt?: ContactAttempt
 SchemasResourcesSchedulingJsonContactTask?: ContactTask
 SchemasResourcesSchedulingJsonContactTaskPage?: ContactTaskPage
+SchemasResourcesSchedulingJsonContactTaskList?: ContactTaskList
 SchemasResourcesSchedulingJsonContactAttemptResult?: ContactAttemptResult
 SchemasResourcesSchedulingJsonContactAttemptResultResponse?: ContactAttemptResultResponse
 SchemasResourcesSchedulingJsonActivityReport?: ActivityReport
@@ -916,6 +999,9 @@ CommandsRequestApprovalV1JsonDraftLineRightsSubject?: DraftLineRightsSubject
 CommandsRequestApprovalV1JsonPaymentReversalSubject?: PaymentReversalSubject
 CommandsRequestApprovalV1JsonCreditNoteSubject?: CreditNoteSubject
 CommandsRequestApprovalV1JsonRefundSubject?: RefundSubject
+CommandsRequestApprovalV1JsonCreditDeliverySubject?: CreditDeliverySubject
+CommandsRequestApprovalV1JsonStockMovementSubject?: StockMovementSubject
+CommandsRequestApprovalV1JsonCashMovementSubject?: CashMovementSubject
 ReversePaymentPayload?: ReversePaymentPayload
 CommandsReversePaymentV1JsonDirectRequest?: ReversePaymentDirectRequest
 SaveClinicalStepPayload?: SaveClinicalStepPayload
@@ -950,6 +1036,7 @@ DeliveryPatientSnapshot?: DeliveryPatientSnapshot
 InvoiceClinicSnapshot?: InvoiceClinicSnapshot
 InvoicePatientSnapshot?: InvoicePatientSnapshot
 InvoiceTaxSnapshot?: InvoiceTaxSnapshot
+QuoteRevisionSnapshot?: QuoteRevisionSnapshot
 ReceiptSnapshot?: ReceiptSnapshot
 RefundSnapshot?: RefundSnapshot
 }
@@ -5741,6 +5828,12 @@ events: {
  */
 vault_formats: number[]
 /**
+ * Versions du schéma IndexedDB du poste (base eeo-device) que cette release sait ouvrir et migrer EN AVANT, par ajouts seulement (O06) ; une base plus récente est refusée en écriture, jamais purgée.
+ * 
+ * @minItems 1
+ */
+local_schema_versions: [number, ...(number)[]]
+/**
  * Modèles de documents disponibles pour régénérer une pièce en attente (définis par D01/D02).
  */
 document_templates: {
@@ -5850,6 +5943,60 @@ expected_version: Version
 reason: string
 }
 /**
+ * Absence constatée après l'heure du rendez-vous (statut NO_SHOW), jamais avant.
+ */
+export interface MarkAppointmentNoShowRequest {
+expected_version: Version
+}
+/**
+ * Création (expected_version null) ou modification d'une ressource de l'agenda (gérante).
+ */
+export interface SchedulingResourceRequest {
+expected_version: (Version | null)
+resource_id: Ulid
+name: string
+professional_user_id: NullableUlid
+slot_duration_minutes: number
+active: boolean
+}
+/**
+ * Remplace les créneaux hebdomadaires d'une ressource (version de la ressource attendue).
+ */
+export interface OpeningHoursRequest {
+expected_version: Version
+/**
+ * @minItems 0
+ * @maxItems 50
+ */
+hours: {
+id: Ulid
+weekday: number
+opens_at: LocalTime
+closes_at: LocalTime
+}[]
+}
+/**
+ * Fermeture ou ouverture exceptionnelle datée, motif obligatoire.
+ */
+export interface ResourceExceptionRequest {
+expected_version: null
+exception_id: Ulid
+starts_at: Instant
+ends_at: Instant
+is_available: boolean
+reason: string
+}
+/**
+ * Création (expected_version null) ou modification d'une prestation réservable (gérante).
+ */
+export interface AppointmentServiceRequest {
+expected_version: (Version | null)
+service_id: Ulid
+name: string
+duration_minutes: number
+active: boolean
+}
+/**
  * Création (expected_version null) ou modification d'un article par la gérante (catalog.manage). Les prix réels sont fournis par le cabinet : seules des données fictives sont utilisées en développement.
  */
 export interface CatalogItemRequest {
@@ -5872,6 +6019,103 @@ active: boolean
 public_visibility: boolean
 }
 /**
+ * Import contrôlé du catalogue (X01) : lignes du fichier CSV lues sur le poste (numéro de ligne du fichier), revérifiées par le serveur avec les règles d'un article saisi à l'écran. dry_run = true : aperçu sans aucune écriture ; false : toutes les lignes sont créées dans une seule transaction, ou aucune.
+ */
+export interface CatalogImportRequest {
+expected_version?: null
+dry_run: boolean
+/**
+ * @minItems 1
+ * @maxItems 500
+ */
+rows: [{
+line: number
+reference: (string | null)
+category_code: (Code | null)
+name: (string | null)
+brand: (string | null)
+model: (string | null)
+unit_code: (Code | null)
+quantity_integer_only: boolean
+sale_price: (MoneyXaf | null)
+purchase_cost: (MoneyXaf | null)
+tax_rule_id: NullableUlid
+stock_mode: (CatalogItemsStockMode | null)
+requires_expiry: boolean
+low_stock_threshold: (Quantity | null)
+expiry_alert_days: (number | null)
+active: boolean
+public_visibility: boolean
+}, ...({
+line: number
+reference: (string | null)
+category_code: (Code | null)
+name: (string | null)
+brand: (string | null)
+model: (string | null)
+unit_code: (Code | null)
+quantity_integer_only: boolean
+sale_price: (MoneyXaf | null)
+purchase_cost: (MoneyXaf | null)
+tax_rule_id: NullableUlid
+stock_mode: (CatalogItemsStockMode | null)
+requires_expiry: boolean
+low_stock_threshold: (Quantity | null)
+expiry_alert_days: (number | null)
+active: boolean
+public_visibility: boolean
+})[]]
+}
+/**
+ * Charge INTERNE de la commande StoreDocumentContent, construite par le serveur après contrôle des octets PDF reçus (POST /documents/{id}/content, corps application/pdf) : jamais envoyée par un poste.
+ */
+export interface StoreDocumentContentCommand {
+expected_version?: null
+document_id: Ulid
+sha256: Sha256Hex
+size_bytes: number
+private_path: string
+}
+/**
+ * Reprise des créances papier (X01) : une créance (saisie) ou un fichier CSV lu sur le poste. Le patient est désigné par sa fiche (patient_id) OU son numéro de dossier ; dry_run = true : aperçu sans écriture ; false : toutes les créances reprises dans une transaction, ou aucune (justificatif scanné evidence_file_id obligatoire).
+ */
+export interface LegacyBalanceImportRequest {
+expected_version?: null
+dry_run: boolean
+evidence_file_id: NullableUlid
+/**
+ * @minItems 1
+ * @maxItems 500
+ */
+rows: [{
+line: number
+patient_id: NullableUlid
+patient_record_number: (string | null)
+paper_reference: (string | null)
+original_total: (MoneyXaf | null)
+already_paid: (MoneyXaf | null)
+original_invoice_on: NullableCivilDate
+}, ...({
+line: number
+patient_id: NullableUlid
+patient_record_number: (string | null)
+paper_reference: (string | null)
+original_total: (MoneyXaf | null)
+already_paid: (MoneyXaf | null)
+original_invoice_on: NullableCivilDate
+})[]]
+}
+/**
+ * Charge INTERNE de la commande StoreLegacyEvidence, construite par le serveur après contrôle des octets reçus (POST /legacy-balances/evidence) : jamais envoyée par un poste.
+ */
+export interface StoreLegacyEvidenceCommand {
+expected_version?: null
+sha256: Sha256Hex
+size_bytes: number
+mime_type: ("application/pdf" | "image/jpeg" | "image/png")
+private_path: string
+}
+/**
  * Règle fiscale saisie par la gérante ; validate = true enregistre la validation (réauthentification). Aucune taxe n'est préconfigurée.
  */
 export interface TaxRuleRequest {
@@ -5884,12 +6128,175 @@ validate: boolean
 legal_note: (string | null)
 }
 /**
+ * Brouillon de devis (L1D07) : un patient (patient_id) OU un prospect saisi (nom, téléphone), jamais les deux ; validité facultative (au plus tôt aujourd'hui) ; lignes soumises aux droits de l'auteur.
+ */
+export interface CreateQuoteDraftRequest {
+expected_version: null
+quote_id: Ulid
+patient_id: NullableUlid
+prospect: ({
+name: string
+phone: (string | null)
+} | null)
+valid_until: NullableCivilDate
+/**
+ * @minItems 0
+ * @maxItems 200
+ * 
+ * Items: Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.
+ */
+lines: {
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+}[]
+}
+/**
+ * Modification d'un brouillon de devis (remplacement complet des lignes) : créateur ou gérante.
+ */
+export interface UpdateQuoteDraftRequest {
+expected_version: Version
+quote_id: Ulid
+valid_until: NullableCivilDate
+/**
+ * @minItems 0
+ * @maxItems 200
+ * 
+ * Items: Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.
+ */
+lines: {
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+}[]
+}
+/**
+ * Émission : numéro de la série QUOTE, révision 1 figée ; total_gross est vérifié par le serveur (422 avec details.expected_total sinon) ; validité obligatoire.
+ */
+export interface IssueQuoteRequest {
+expected_version: Version
+quote_id: Ulid
+total_gross: MoneyXaf
+}
+/**
+ * Révision d'un devis émis, accepté ou refusé : nouvelle révision figée avec motif ; les précédentes restent intactes.
+ */
+export interface ReviseQuoteRequest {
+expected_version: Version
+quote_id: Ulid
+reason: string
+valid_until: CivilDate
+/**
+ * @minItems 1
+ * @maxItems 200
+ * 
+ * Items: Ligne de devis : prix TTC unitaire, remise TTC ; total de ligne recalculé (ROUND(quantité × prix) − remise). Aucune prescription.
+ */
+lines: [{
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+}, ...({
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+description: string
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+})[]]
+total_gross: MoneyXaf
+}
+/**
+ * Réponse du client : ACCEPTED (devis émis encore valable) ou DECLINED ; aucune facture ni paiement.
+ */
+export interface QuoteDecisionRequest {
+expected_version: Version
+quote_id: Ulid
+decision: ("ACCEPTED" | "DECLINED")
+reason: (string | null)
+}
+/**
+ * Conversion d'une révision choisie en BROUILLON de facture (invoices.quote_id) : prix confirmés explicitement (QUOTE : prix et remises de la révision ; CATALOG : prix actuel du catalogue, sans remise) ; patient_id obligatoire pour un prospect. Ni émission, ni paiement, ni réserve.
+ */
+export interface ConvertQuoteRequest {
+expected_version: Version
+quote_id: Ulid
+revision_no: number
+invoice_id: Ulid
+patient_id: NullableUlid
+price_basis: ("QUOTE" | "CATALOG")
+prices_confirmed: true
+}
+/**
  * Abandon d'un brouillon de facture (fichier 03) : version de brouillon attendue, motif facultatif (conservé dans l'audit). Aucun numéro, aucune réserve, aucun document à annuler.
  */
 export interface AbandonInvoiceDraftRequest {
 expected_version: Version
 invoice_id: Ulid
 reason: (string | null)
+}
+/**
+ * Fusion manuelle de deux fiches d'un même patient (L1D08), par la gérante après revue : version attendue de la fiche ABSORBÉE, motif obligatoire (5 à 1000 caractères).
+ */
+export interface MergePatientsRequest {
+expected_version: Version
+source_patient_id: Ulid
+survivor_patient_id: Ulid
+reason: string
+}
+/**
+ * Mouvement d'espèces hors vente d'une session OUVERTE (L1D05) : entrée positive, sortie négative ; catégorie obligatoire pour une dépense et seulement pour elle ; approval_id = approbation exacte CASH_MOVEMENT accordée, ou identifiant neuf pour l'exécution directe de la gérante.
+ */
+export interface RecordCashMovementRequest {
+expected_version: null
+movement_id: Ulid
+cash_session_id: Ulid
+movement_kind: CashMovementsKind
+signed_amount: number
+expense_category_id: NullableUlid
+reason: string
+reference: (string | null)
+approval_id: Ulid
+}
+/**
+ * Création (identifiant neuf, code obligatoire) ou modification (nom, activation ; le code ne change pas) d'une catégorie de dépenses par la gérante.
+ */
+export interface ExpenseCategoryRequest {
+expected_version: null
+category_id: Ulid
+code: (string | null)
+name: string
+active: boolean
+}
+/**
+ * Revue par la gérante de l'écart d'une session clôturée : acceptée ou contestée (note obligatoire), une seule fois.
+ */
+export interface CashVarianceReviewRequest {
+expected_version: null
+cash_session_id: Ulid
+decision: ("ACCEPTED" | "DISPUTED")
+note: (string | null)
+}
+/**
+ * Annulation d'une visite avant l'examen (P03) : version de la visite attendue, motif obligatoire (information d'accueil seulement, conservé dans l'audit). Refusée si l'examen a démarré ou si une facture non abandonnée est liée à la visite.
+ */
+export interface CancelVisitRequest {
+expected_version: Version
+visit_id: Ulid
+reason: string
 }
 /**
  * Stock initial validé (I00) : un mouvement OPENING par ligne, lots créés au besoin ; gérante.
@@ -5926,12 +6333,17 @@ quantity: Quantity
 unit_cost: (MoneyXaf | null)
 })[]]
 }
+/**
+ * Enrôlement (O02) : clé publique ES256 du poste et preuve de possession (JWS compact ES256 signé par la clé PRIVÉE du poste, typ eeo-device-proof+jws, kid = empreinte RFC 7638, charge JCS {clinic_id, device_code, issued_at, jwk_thumbprint, purpose=enroll, v=1}, fraîche de 10 minutes).
+ */
 export interface EnrollDeviceRequest {
+expected_version: null
 device_code: string
 name: string
 public_key_jwk: PublicJwk
 responsible_user_id: Ulid
 app_version: string
+proof: CompactJws
 }
 /**
  * Clé publique ES256 du poste (JWK, jamais de composante privée « d »).
@@ -5943,9 +6355,30 @@ x: string
 y: string
 }
 /**
- * Préparation en ligne (gérante) : profils à préparer, plages demandées, quotas et créances à attribuer à ce poste.
+ * Grant signé d'un profil sur ce poste (O02) : permissions effectives figées, catalogue et règles ; durée par défaut eeo.offline.grant_hours (72 h).
+ */
+export interface IssueOfflineGrantRequest {
+expected_version: null
+user_id: Ulid
+valid_hours?: (number | null)
+}
+/**
+ * Révocation d'un poste (retiré ou perdu) et de tous ses grants actifs ; connue du poste à sa prochaine connexion.
+ */
+export interface RevokeDeviceRequest {
+expected_version: null
+status: ("REVOKED" | "LOST")
+reason: string
+}
+export interface RevokeOfflineGrantRequest {
+expected_version: null
+reason: string
+}
+/**
+ * Préparation en ligne (gérante, O03) : profils préparés (grant actif exigé), plages demandées (année en cours par défaut, ou la suivante avant le franchissement), quotas et factures émises à attribuer à ce poste.
  */
 export interface PrepareDeviceRequest {
+expected_version: null
 /**
  * @minItems 1
  * @maxItems 10
@@ -5953,26 +6386,267 @@ export interface PrepareDeviceRequest {
 profiles: [Ulid]|[Ulid, Ulid]|[Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid]|[Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid, Ulid]
 /**
  * @minItems 0
+ * @maxItems 10
  */
-number_ranges: {
+number_ranges?: []|[{
 document_type: DocumentNumberAllocationsDocumentType
 quantity: number
-}[]
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]|[{
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}, {
+document_type: DocumentNumberAllocationsDocumentType
+quantity: number
+document_year?: (number | null)
+}]
 /**
  * @minItems 0
+ * @maxItems 200
  */
-stock_quotas: {
+stock_quotas?: {
 stock_position_id: Ulid
 stock_lot_id: NullableUlid
 quantity: Quantity
 }[]
 /**
  * @minItems 0
+ * @maxItems 500
  */
-invoice_ids: Ulid[]
-known_catalog_version: (string | null)
+invoice_ids?: Ulid[]
+known_catalog_version?: (string | null)
 }
+/**
+ * Clôture après reprise complète (O03) : séquence et empreinte égales au préfixe finalisé du serveur, sinon 409.
+ */
 export interface ReleaseDeviceRequest {
+expected_version: null
+last_device_sequence: Counter
+last_event_hash: NullableSha256Hex
+reason: string
+}
+/**
+ * Remplacement d'un poste par un poste NEUF déjà enrôlé et actif (O07) ; aucun droit de l'ancien poste n'est cloné.
+ */
+export interface ReplaceDeviceRequest {
+expected_version: null
+replacement_device_id: Ulid
+reason: string
+}
+/**
+ * Réconciliation d'un poste remplacé (O07) : séquence et empreinte du manifeste de l'export, égales au préfixe finalisé du serveur, sinon 409 SYNC_INCOMPLETE.
+ */
+export interface ReconcileReplacementRequest {
+expected_version: null
 last_device_sequence: Counter
 last_event_hash: NullableSha256Hex
 reason: string
@@ -5981,11 +6655,13 @@ reason: string
  * Résolution autorisée et motivée ; ne réécrit jamais core/hash/signature ; une correction a sa propre command_id (contrat 23).
  */
 export interface ConflictResolutionRequest {
+expected_version: null
 decision: ("ACCEPT_LOCAL" | "KEEP_CENTRAL" | "REJECT" | "CORRECT")
 reason: string
 correction_command_id: NullableUlid
 }
 export interface CreateExportRequest {
+expected_version?: null
 export_type: ExportRequestsExportType
 patient_id?: NullableUlid
 filters?: ({
@@ -6214,6 +6890,18 @@ created_ids: Ulid[]
 export interface ImportReportResponse {
 data: ImportReport
 }
+/**
+ * Justificatif scanné d'une créance papier (X01), conservé dans le stockage privé du cabinet (classement FINANCIAL) ; aucune adresse publique.
+ */
+export interface LegacyEvidence {
+file_id: Ulid
+sha256: Sha256Hex
+mime_type: ("application/pdf" | "image/jpeg" | "image/png")
+size_bytes: number
+}
+export interface LegacyEvidenceResponse {
+data: LegacyEvidence
+}
 export interface InvoiceLine {
 id: Ulid
 position: number
@@ -6274,6 +6962,7 @@ export interface Invoice {
 id: Ulid
 patient_id: Ulid
 visit_id: NullableUlid
+quote_id?: NullableUlid
 number: (string | null)
 status: InvoicesStatus
 issued_at: NullableInstant
@@ -6340,12 +7029,26 @@ received_by_name: (string | null)
 /**
  * @minItems 0
  */
+reversals?: {
+id: Ulid
+payment_id: Ulid
+amount: PositiveMoneyXaf
+reason: string
+recorded_at: Instant
+recorded_by: Ulid
+recorded_by_name: (string | null)
+}[]
+/**
+ * @minItems 0
+ */
 credit_notes: {
 id: Ulid
 number: (string | null)
 status: CreditNotesStatus
 amount_gross: MoneyXaf
 issued_at: NullableInstant
+reason?: string
+refunded_amount?: MoneyXaf
 }[]
 /**
  * @minItems 0
@@ -6356,6 +7059,7 @@ number: string
 amount: PositiveMoneyXaf
 method: RefundsMethod
 effective_at: Instant
+credit_note_id?: Ulid
 }[]
 write_owner: ({
 device_id: Ulid
@@ -6427,6 +7131,201 @@ ledger_version: (Version | null)
 }
 export interface InvoiceResponse {
 data: Invoice
+}
+/**
+ * Destinataire d'un devis : patient (dossier, nom, prénoms ; aucun téléphone) OU prospect (nom, téléphone). Figé à l'émission et à chaque révision ; jamais une donnée clinique.
+ */
+export interface QuoteRecipient {
+kind: ("PATIENT" | "PROSPECT")
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+record_number: (string | null)
+last_name: string
+first_names: (string | null)
+phone: (string | null)
+}
+/**
+ * Ligne ACTUELLE du devis (brouillon ou dernière révision) ; les révisions antérieures sont dans leur snapshot.
+ */
+export interface QuoteLine {
+id: Ulid
+position: number
+catalog_item_id: NullableUlid
+description_snapshot: string
+unit_code: Code
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+line_total_gross: MoneyXaf
+}
+/**
+ * Révision figée (immuable) : snapshot complet, source de son document, réimprimable à l'identique ; authored_by_name est le nom ACTUEL de l'auteur (le snapshot garde le nom figé).
+ */
+export interface QuoteRevision {
+id: Ulid
+revision_no: number
+recorded_at: Instant
+authored_by: Ulid
+authored_by_name: (string | null)
+reason: string
+snapshot: QuoteRevisionSnapshot
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+}
+export interface QuoteRevisionSnapshot {
+quote_id: Ulid
+number: string
+revision_no: number
+recorded_at: Instant
+issued_at: Instant
+valid_until: NullableCivilDate
+recipient: {
+kind: ("PATIENT" | "PROSPECT")
+patient_id: NullableUlid
+prospect_contact_id: NullableUlid
+record_number: (string | null)
+last_name: string
+first_names: (string | null)
+phone: (string | null)
+}
+/**
+ * @minItems 1
+ */
+lines: [{
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+reference: (string | null)
+description: string
+unit_code: Code
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+line_total_gross: MoneyXaf
+tax_code: string
+tax_rate_percent: (Rate | null)
+tax_amount: (MoneyXaf | null)
+}, ...({
+line_id: Ulid
+position: number
+catalog_item_id: NullableUlid
+reference: (string | null)
+description: string
+unit_code: Code
+quantity: Quantity
+unit_price_gross: MoneyXaf
+discount_gross: MoneyXaf
+line_total_gross: MoneyXaf
+tax_code: string
+tax_rate_percent: (Rate | null)
+tax_amount: (MoneyXaf | null)
+})[]]
+total_gross: MoneyXaf
+currency: Currency
+/**
+ * Régime fiscal figé : aucune taxe inventée ; sans règle validée, NO_TAX_CONFIGURED et liste vide.
+ */
+tax: {
+regime: ("NO_TAX_CONFIGURED" | "VALIDATED_RULES")
+/**
+ * @minItems 0
+ */
+rules: {
+tax_rule_id: Ulid
+code: string
+label: string
+rate_percent: (Rate | null)
+validated_at: NullableInstant
+legal_note: (string | null)
+}[]
+}
+/**
+ * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
+ */
+clinic: {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+authored_by: {
+user_id: Ulid
+display_name: string
+}
+reason: string
+template_version: string
+}
+/**
+ * Devis (L1D07) : effective_status = statut à l'instant (EXPIRED pour un devis émis ou accepté dont la validité est passée, jamais écrit) ; revisions de la plus récente à la plus ancienne ; invoices = brouillons ou factures nés de sa conversion (provenance). Un devis ne compte ni dans le chiffre d'affaires ni dans l'encaissé.
+ */
+export interface Quote {
+id: Ulid
+number: (string | null)
+status: QuotesStatus
+effective_status: QuotesStatus
+valid_until: NullableCivilDate
+total_gross: MoneyXaf
+recipient: QuoteRecipient
+issued_at: NullableInstant
+created_by: Ulid
+created_by_name: (string | null)
+version: Version
+current_revision: number
+/**
+ * @minItems 0
+ */
+lines: QuoteLine[]
+/**
+ * @minItems 0
+ */
+revisions: QuoteRevision[]
+/**
+ * @minItems 0
+ */
+invoices: {
+id: Ulid
+number: (string | null)
+status: InvoicesStatus
+}[]
+created_at: Instant
+updated_at: Instant
+}
+/**
+ * Ligne de la liste des devis : destinataire (identité de base), statut à l'instant, dernière révision.
+ */
+export interface QuoteSummary {
+id: Ulid
+number: (string | null)
+status: QuotesStatus
+effective_status: QuotesStatus
+valid_until: NullableCivilDate
+total_gross: MoneyXaf
+recipient: QuoteRecipient
+issued_at: NullableInstant
+current_revision: number
+version: Version
+created_at: Instant
+}
+export interface QuoteResponse {
+data: Quote
+}
+export interface QuotePage {
+/**
+ * @minItems 0
+ */
+data: QuoteSummary[]
+meta: Pagination
 }
 export interface InvoicePage {
 /**
@@ -6558,11 +7457,196 @@ export interface RefundResultResponse {
 data: RefundResult
 }
 /**
+ * Avoir (B07) : pièce liée à la facture, lignes d'origine créditées, part déjà remboursée (refunded_amount), snapshot figé à l'émission (source de son document, produit sur le poste) ; issued_by_name est le nom ACTUEL de l'émetteur. Un avoir ne se modifie ni ne se supprime.
+ */
+export interface CreditNote {
+id: Ulid
+invoice_id: Ulid
+number: (string | null)
+status: CreditNotesStatus
+amount_gross: PositiveMoneyXaf
+reason: string
+approval_id: Ulid
+issued_at: NullableInstant
+issued_by: NullableUlid
+issued_by_name: (string | null)
+refunded_amount: MoneyXaf
+/**
+ * @minItems 0
+ */
+lines: {
+id: Ulid
+invoice_line_id: Ulid
+description_snapshot: (string | null)
+quantity: (Quantity | null)
+amount_gross: PositiveMoneyXaf
+tax_amount: (MoneyXaf | null)
+reason: (string | null)
+}[]
+snapshot: (CreditNoteSnapshot | null)
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+}
+export interface CreditNoteSnapshot {
+credit_note_id: Ulid
+number: string
+issued_at: Instant
+invoice: {
+invoice_id: Ulid
+number: string
+issued_at: Instant
+total_gross: MoneyXaf
+}
+patient: {
+patient_id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+/**
+ * @minItems 1
+ */
+lines: [{
+invoice_line_id: Ulid
+description: string
+quantity: (Quantity | null)
+amount_gross: PositiveMoneyXaf
+tax_amount: (MoneyXaf | null)
+}, ...({
+invoice_line_id: Ulid
+description: string
+quantity: (Quantity | null)
+amount_gross: PositiveMoneyXaf
+tax_amount: (MoneyXaf | null)
+})[]]
+amount_gross: PositiveMoneyXaf
+reason: string
+issued_by: {
+user_id: Ulid
+display_name: string
+}
+approval_id: Ulid
+/**
+ * Régime fiscal figé : aucune taxe inventée ; sans règle validée, NO_TAX_CONFIGURED et liste vide.
+ */
+tax: {
+regime: ("NO_TAX_CONFIGURED" | "VALIDATED_RULES")
+/**
+ * @minItems 0
+ */
+rules: {
+tax_rule_id: Ulid
+code: string
+label: string
+rate_percent: (Rate | null)
+validated_at: NullableInstant
+legal_note: (string | null)
+}[]
+}
+/**
+ * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
+ */
+clinic: {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+template_version: string
+}
+export interface CreditNoteResponse {
+data: CreditNote
+}
+/**
+ * Remboursement d'un crédit (B08) : sortie d'argent liée à un avoir, snapshot figé (bénéficiaire = identité figée de la facture, source de son document) ; created_by_name est le nom ACTUEL de l'auteur. Un remboursement ne se modifie ni ne se supprime.
+ */
+export interface Refund {
+id: Ulid
+invoice_id: Ulid
+credit_note_id: Ulid
+number: string
+amount: PositiveMoneyXaf
+method: RefundsMethod
+reference: (string | null)
+approval_id: Ulid
+effective_at: Instant
+cash_session_id: NullableUlid
+created_by: Ulid
+created_by_name: (string | null)
+snapshot: RefundSnapshot
+document: ({
+document_id: Ulid
+document_status: GeneratedDocumentsStatus
+} | null)
+}
+export interface RefundSnapshot {
+refund_id: Ulid
+number: string
+effective_at: Instant
+credit_note: {
+credit_note_id: Ulid
+number: string
+}
+invoice: {
+invoice_id: Ulid
+number: string
+issued_at: Instant
+total_gross: MoneyXaf
+}
+beneficiary: {
+patient_id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+amount: PositiveMoneyXaf
+currency: Currency
+method: RefundsMethod
+reference: (string | null)
+created_by: {
+user_id: Ulid
+display_name: string
+}
+/**
+ * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
+ */
+clinic: {
+clinic_id: Ulid
+name: string
+address: (string | null)
+phone: (string | null)
+email: (string | null)
+tax_identifier: (string | null)
+professional_mentions: (string | null)
+document_settings: ({
+
+} | null)
+currency: Currency
+timezone: string
+test_document: boolean
+}
+template_version: string
+}
+export interface RefundResponse {
+data: Refund
+}
+/**
  * Approbation exacte (B06) : nature, cible et empreinte du contenu ; subject = contenu exact relu dans l'audit de la demande et REVÉRIFIÉ contre payload_hash (null s'il ne la reproduit pas, ou pour une exécution directe de la gérante) ; effective_status = statut à l'instant (une demande ou un accord échus sont EXPIRED, jamais écrit) ; noms à la date de la demande et de la décision ; motif de la décision. Aucune donnée clinique.
  */
 export interface Approval {
 id: Ulid
-kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND") | null)
+kind: (("EXAM_FEE_WAIVER" | "DRAFT_LINE_RIGHTS" | "PAYMENT_REVERSAL" | "CREDIT_NOTE" | "REFUND" | "CREDIT_DELIVERY" | "STOCK_MOVEMENT" | "CASH_MOVEMENT") | null)
 action_code: PermissionCode
 target_type: string
 target_id: Ulid
@@ -6658,6 +7742,46 @@ invoice_id: Ulid
 credit_note_id: Ulid
 amount: PositiveMoneyXaf
 method: RefundsMethod
+}
+/**
+ * Remise au patient d'une facture non soldée : reste dû à l'instant de la demande et quantités remises par ligne d'origine (une entrée par ligne, cumul de la remise) ; un encaissement intervenu entre-temps exige une nouvelle demande (action delivery.confirm, cible invoices).
+ */
+export interface CreditDeliverySubject {
+kind: "CREDIT_DELIVERY"
+invoice_id: Ulid
+amount_due: PositiveMoneyXaf
+/**
+ * @minItems 1
+ * @maxItems 200
+ */
+lines: [{
+invoice_line_id: Ulid
+quantity: Quantity
+}, ...({
+invoice_line_id: Ulid
+quantity: Quantity
+})[]]
+}
+/**
+ * Casse ou ajustement de stock : position, article, lot, nature et quantité signée exactes (action stock.adjust, cible stock_positions).
+ */
+export interface StockMovementSubject {
+kind: "STOCK_MOVEMENT"
+position_id: Ulid
+item_id: Ulid
+lot_id: NullableUlid
+movement_kind: ("BREAKAGE" | "ADJUSTMENT")
+signed_quantity: SignedQuantity
+}
+/**
+ * Mouvement d'espèces hors vente d'une session ouverte : nature, montant signé (entrée positive, sortie négative) et catégorie de la dépense exacts (action cash.manage, cible cash_sessions).
+ */
+export interface CashMovementSubject {
+kind: "CASH_MOVEMENT"
+cash_session_id: Ulid
+movement_kind: ("DEPOSIT" | "WITHDRAWAL" | "EXPENSE" | "OPENING_CORRECTION")
+signed_amount: number
+expense_category_id: NullableUlid
 }
 /**
  * Résumé de la cible pour décider : identité administrative du patient, numéro de facture (null pour un brouillon), heure de la visite, paiement visé.
@@ -6833,6 +7957,94 @@ export interface DeliveryResponse {
 data: Delivery
 }
 /**
+ * Remises d'une facture (I01, I02) : par ligne, quantité facturée, remise, retournée, reste à remettre, réserve ouverte et remettable maintenant ; remises confirmées (lot, nom ACTUEL de qui a remis) et retours physiques ; reste dû à l'instant (null pour un brouillon : une facture non soldée se remet avec l'approbation de la gérante). Projection recalculée à chaque lecture, aucun coût d'achat.
+ */
+export interface InvoiceDeliveries {
+invoice_id: Ulid
+invoice_number: (string | null)
+invoice_status: InvoicesStatus
+amount_due: (MoneyXaf | null)
+/**
+ * @minItems 0
+ */
+lines: {
+invoice_line_id: Ulid
+position: number
+item_id: NullableUlid
+description: string
+stock_mode: (CatalogItemsStockMode | null)
+quantity_integer_only: boolean
+quantity: Quantity
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+delivered: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+returned: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+remaining: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+reserved_open: string
+deliverable: boolean
+}[]
+/**
+ * @minItems 0
+ */
+deliveries: {
+id: Ulid
+status: DeliveriesStatus
+delivered_at: Instant
+delivered_by: Ulid
+delivered_by_name: (string | null)
+credit_delivery_approval_id: NullableUlid
+/**
+ * @minItems 0
+ */
+lines: {
+id: Ulid
+invoice_line_id: Ulid
+item_id: Ulid
+description: string
+quantity: Quantity
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+returned: string
+/**
+ * DECIMAL(12,3) en chaîne exacte, zéro admis.
+ */
+returnable: string
+stock_position_id: NullableUlid
+stock_lot_id: NullableUlid
+batch_number: (string | null)
+expires_on: NullableCivilDate
+}[]
+}[]
+/**
+ * @minItems 0
+ */
+returns: {
+id: Ulid
+delivery_line_id: Ulid
+item_id: Ulid
+quantity: Quantity
+condition_code: PhysicalReturnsConditionCode
+accepted_for_restock: boolean
+occurred_at: Instant
+stock_movement_id: NullableUlid
+credit_note_id: NullableUlid
+}[]
+}
+export interface InvoiceDeliveriesResponse {
+data: InvoiceDeliveries
+}
+/**
  * Session de caisse et ses libellés : noms ACTUELS de la caissière et de qui a clôturé, caisse.
  */
 export interface CashSessionEntry {
@@ -6908,6 +8120,73 @@ generated_at: Instant
 }
 export interface CashSessionReportResponse {
 data: CashSessionReport
+}
+/**
+ * Catégorie de dépenses du cabinet (L1D05) : pas un plan comptable réglementaire ; aucune n'est préconfigurée.
+ */
+export interface ExpenseCategory {
+id: Ulid
+code: string
+name: string
+active: boolean
+}
+export interface ExpenseCategoryResponse {
+data: ExpenseCategory
+}
+export interface ExpenseCategoryList {
+/**
+ * @minItems 0
+ */
+data: ExpenseCategory[]
+}
+/**
+ * Mouvement d'espèces hors vente (L1D05) : dépense catégorisée, dépôt, retrait ou correction de l'ouverture ; jamais un paiement (ni facture, ni reçu). approval_mode : demande accordée par la gérante, ou exécution directe de la gérante. Immuable.
+ */
+export interface CashMovement {
+id: Ulid
+cash_session_id: Ulid
+kind: CashMovementsKind
+signed_amount: SignedMoneyXaf
+reason: string
+reference: (string | null)
+occurred_at: Instant
+expense_category: ({
+id: Ulid
+code: string
+name: string
+} | null)
+created_by: Ulid
+created_by_name: (string | null)
+approval_id: Ulid
+approval_mode: ("APPROVED" | "DIRECT")
+}
+export interface CashMovementResponse {
+data: CashMovement
+}
+/**
+ * Revue de l'écart d'une session clôturée par la gérante : fait d'audit, la session figée n'est pas réécrite.
+ */
+export interface CashVarianceReview {
+decision: ("ACCEPTED" | "DISPUTED")
+note: (string | null)
+reviewed_by: NullableUlid
+reviewed_by_name: string
+reviewed_at: Instant
+}
+export interface CashVarianceReviewResponse {
+data: CashVarianceReview
+}
+export interface CashSessionMovements {
+cash_session_id: Ulid
+closed: boolean
+/**
+ * @minItems 0
+ */
+movements: CashMovement[]
+variance_review: (CashVarianceReview | null)
+}
+export interface CashSessionMovementsResponse {
+data: CashSessionMovements
 }
 /**
  * Caisse du jour (jour civil du cabinet) : encaissements nets par mode (encaissés − contre-écritures − remboursements), sessions du jour. Portée CLINIC (finance.global.read) : tout le cabinet, factures et avoirs émis du jour, reste à encaisser des factures ouvertes à l'instant de la lecture. Portée OWN (caissière) : ses encaissements et ses sessions seulement ; issued, credited et outstanding à null.
@@ -7173,22 +8452,40 @@ export interface PrescriptionList {
  */
 data: Prescription[]
 }
+/**
+ * Poste enrôlé (O02) : clé PUBLIQUE ES256 seulement ; kid = empreinte RFC 7638 de cette clé.
+ */
 export interface EnrolledDevice {
 device_id: Ulid
 device_code: string
 name: string
-kid: Ulid
+kid: string
+public_key_jwk: PublicJwk
 status: EnrolledDevicesStatus
 enrolled_at: Instant
 responsible_user_id: Ulid
+responsible_name: (string | null)
 app_version: string
+last_sync_at: NullableInstant
+active_grants: number
 }
 export interface EnrolledDeviceResponse {
 data: EnrolledDevice
 }
+export interface EnrolledDeviceList {
+/**
+ * @minItems 0
+ */
+data: EnrolledDevice[]
+}
+/**
+ * Grant hors-ligne SIGNÉ (O02) : JWS compact ES256, en-tête {alg, kid, typ=eeo-offline-grant+jws} et charge JCS {catalog_sha256, catalog_version, clinic_id, compartments, device_id, grant_id, issued_at, permissions, rules_version, user_id, v=1, valid_until}. Immuable : une révocation s'ajoute (revoked_at), state est calculé à la lecture.
+ */
 export interface OfflineGrant {
 grant_id: Ulid
+device_id: Ulid
 user_id: Ulid
+user_name: (string | null)
 /**
  * @minItems 0
  */
@@ -7201,19 +8498,62 @@ rules_version: string
 catalog_version: string
 issued_at: Instant
 valid_until: Instant
+revoked_at: NullableInstant
+state: ("ACTIVE" | "EXPIRED" | "REVOKED")
 signed_payload: CompactJws
 }
+export interface OfflineGrantResponse {
+data: OfflineGrant
+}
+export interface OfflineGrantList {
+/**
+ * @minItems 0
+ */
+data: OfflineGrant[]
+}
+/**
+ * Clés PUBLIQUES du serveur qui signent les grants (courante puis retirées), à épingler par le poste.
+ */
+export interface SigningKeySet {
+algorithm: "ES256"
+grant_type: "eeo-offline-grant+jws"
+/**
+ * @minItems 1
+ */
+keys: [{
+kid: string
+status: ("CURRENT" | "RETIRED")
+jwk: PublicJwk
+}, ...({
+kid: string
+status: ("CURRENT" | "RETIRED")
+jwk: PublicJwk
+})[]]
+}
+export interface SigningKeySetResponse {
+data: SigningKeySet
+}
+/**
+ * Plage de numéros pré-allouée à ce poste (O03), disjointe de toute autre et de la séquence centrale ; le poste rend le numéro consommé <prefix>-AAAA-<valeur complétée à gauche sur width chiffres>, comme le serveur.
+ */
 export interface NumberAllocation {
 allocation_id: Ulid
+grant_id: Ulid
 document_type: DocumentNumberAllocationsDocumentType
 document_year: number
 range_start: Counter
 range_end: Counter
 last_consumed_value: (Counter | null)
 status: DocumentNumberAllocationsStatus
+prefix: string
+width: number
 }
+/**
+ * Quota de stock du poste (O03) : retiré du disponible central, jamais du physique ; disponible local = alloué − consommé − rendu − réservé localement.
+ */
 export interface StockQuota {
 allocation_id: Ulid
+item_id: Ulid
 stock_position_id: Ulid
 stock_lot_id: NullableUlid
 allocated_quantity: Quantity
@@ -7228,16 +8568,20 @@ returned_quantity: string
 status: DeviceStockAllocationsStatus
 }
 /**
- * Préparation du poste (fichier 19) : grants signés par profil, plages de numéros, quotas, factures attribuées, catalogue versionné.
+ * Préparation du poste (fichier 19, O03) : grants actifs par profil, plages de numéros ACTIVES et leur format, quotas, factures dont le poste est propriétaire, catalogue figé (contenu dont l'empreinte JCS est signée dans le grant ; jamais de coût d'achat), heure du serveur et préfixe finalisé du journal du poste.
  */
 export interface Preparation {
 device_id: Ulid
 /**
- * @minItems 1
+ * @minItems 0
+ * 
+ * Items: Grant hors-ligne SIGNÉ (O02) : JWS compact ES256, en-tête {alg, kid, typ=eeo-offline-grant+jws} et charge JCS {catalog_sha256, catalog_version, clinic_id, compartments, device_id, grant_id, issued_at, permissions, rules_version, user_id, v=1, valid_until}. Immuable : une révocation s'ajoute (revoked_at), state est calculé à la lecture.
  */
-grants: [{
+grants: {
 grant_id: Ulid
+device_id: Ulid
 user_id: Ulid
+user_name: (string | null)
 /**
  * @minItems 0
  */
@@ -7250,41 +8594,35 @@ rules_version: string
 catalog_version: string
 issued_at: Instant
 valid_until: Instant
+revoked_at: NullableInstant
+state: ("ACTIVE" | "EXPIRED" | "REVOKED")
 signed_payload: CompactJws
-}, ...({
-grant_id: Ulid
-user_id: Ulid
+}[]
 /**
  * @minItems 0
- */
-permissions_snapshot: PermissionCode[]
-/**
- * @minItems 0
- */
-compartments: ("ADMINISTRATIVE" | "CLINICAL" | "FINANCIAL" | "MANAGER")[]
-rules_version: string
-catalog_version: string
-issued_at: Instant
-valid_until: Instant
-signed_payload: CompactJws
-})[]]
-/**
- * @minItems 0
+ * 
+ * Items: Plage de numéros pré-allouée à ce poste (O03), disjointe de toute autre et de la séquence centrale ; le poste rend le numéro consommé <prefix>-AAAA-<valeur complétée à gauche sur width chiffres>, comme le serveur.
  */
 number_allocations: {
 allocation_id: Ulid
+grant_id: Ulid
 document_type: DocumentNumberAllocationsDocumentType
 document_year: number
 range_start: Counter
 range_end: Counter
 last_consumed_value: (Counter | null)
 status: DocumentNumberAllocationsStatus
+prefix: string
+width: number
 }[]
 /**
  * @minItems 0
+ * 
+ * Items: Quota de stock du poste (O03) : retiré du disponible central, jamais du physique ; disponible local = alloué − consommé − rendu − réservé localement.
  */
 stock_allocations: {
 allocation_id: Ulid
+item_id: Ulid
 stock_position_id: Ulid
 stock_lot_id: NullableUlid
 allocated_quantity: Quantity
@@ -7302,13 +8640,43 @@ status: DeviceStockAllocationsStatus
  * @minItems 0
  */
 write_owners: {
+owner_id: Ulid
 invoice_id: Ulid
 epoch: number
 }[]
 catalog: {
 catalog_version: string
 snapshot_sha256: Sha256Hex
-file_id: Ulid
+snapshot: {
+/**
+ * @minItems 0
+ */
+items: {
+id: Ulid
+reference: string
+category_code: string
+name: string
+unit_code: string
+quantity_integer_only: boolean
+sale_price: MoneyXaf
+tax_rule_id: NullableUlid
+stock_mode: string
+requires_expiry: boolean
+active: boolean
+version: number
+}[]
+/**
+ * @minItems 0
+ */
+tax_rules: {
+id: Ulid
+code: string
+rate_percent: (string | null)
+active: boolean
+validated_at: (string | null)
+version: number
+}[]
+}
 }
 rules_version: string
 server_time: Instant
@@ -7336,6 +8704,37 @@ released_at: Instant
 }
 export interface ReleaseResponse {
 data: Release
+}
+/**
+ * Remplacement d'un poste (O07) : ancien poste REPLACED, ses grants révoqués (aucun droit transféré), ses plages, quotas et propriétés passés CLOSING jusqu'à la reprise de son journal exporté.
+ */
+export interface Replacement {
+device_id: Ulid
+replacement_device_id: Ulid
+status: "REPLACED"
+revoked_grants: number
+/**
+ * @minItems 0
+ */
+closing_number_allocations: Ulid[]
+/**
+ * @minItems 0
+ */
+closing_stock_allocations: Ulid[]
+/**
+ * @minItems 0
+ */
+closing_write_owners: Ulid[]
+replaced_at: Instant
+}
+export interface ReplacementResponse {
+data: Replacement
+}
+/**
+ * Déclaration de compatibilité de la release du serveur (O06), telle que publiée dans contracts/compatibility.json.
+ */
+export interface CompatibilityResponse {
+data: CompatibilityDeclaration
 }
 export interface DeviceHealth {
 device_id: Ulid
@@ -7367,6 +8766,13 @@ created_at: Instant
 resolution: (string | null)
 resolved_by: NullableUlid
 resolved_at: NullableInstant
+command_name: string
+device_sequence: Counter
+device_name: string
+actor_name: string
+reason: (string | null)
+decision: (("ACCEPT_LOCAL" | "KEEP_CENTRAL" | "REJECT" | "CORRECT") | null)
+resolved_by_name: (string | null)
 }
 export interface ConflictPage {
 /**
@@ -7407,6 +8813,12 @@ error_code: (string | null)
 }
 export interface ExportRequestResponse {
 data: ExportRequest
+}
+export interface ExportRequestList {
+/**
+ * @minItems 0
+ */
+data: ExportRequest[]
 }
 /**
  * Gérante : chiffre d'affaires émis et encaissé distincts ; créances d'ouverture papier séparées ; postes non synchronisés signalés (totaux incomplets).
@@ -7479,7 +8891,7 @@ merged_into_patient_id: NullableUlid
 version: Version
 }
 /**
- * Dossier administratif (identité durable) ; jamais de donnée clinique.
+ * Dossier administratif (identité durable) ; jamais de donnée clinique. merged_records (lecture GET /patients/{id} seulement) : fiches fusionnées dans celle-ci (L1D08), de la plus ancienne fusion à la plus récente.
  */
 export interface Patient {
 id: Ulid
@@ -7506,6 +8918,14 @@ first_visit_certified: boolean
 legacy_record_number: (string | null)
 created_at: Instant
 updated_at: Instant
+/**
+ * @minItems 0
+ */
+merged_records?: {
+patient_id: Ulid
+record_number: string
+merged_at: Instant
+}[]
 }
 /**
  * Historique : visites pour tout profil autorisé ; consultations seulement avec clinical.read ; pièces seulement avec invoice.read.
@@ -7599,6 +9019,63 @@ export interface VisitPage {
  */
 data: Visit[]
 meta: Pagination
+}
+/**
+ * Identité administrative comparée avant une fusion (L1D08) : jamais de donnée clinique.
+ */
+export interface PatientMergeIdentity {
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+sex: PatientRecordsSex
+birth_date: NullableCivilDate
+phone_primary: (Phone | null)
+archived: boolean
+merged_into_patient_id: NullableUlid
+version: Version
+legacy_record_number: (string | null)
+created_at: Instant
+}
+/**
+ * Aperçu d'une fusion : les deux identités côte à côte, ce qui est rattaché à la fiche absorbée (visites pour tout compte autorisé ; consultations et prescriptions seulement avec clinical.read, pièces émises seulement avec invoice.read, null sinon) et les garde-fous qui empêchent la fusion.
+ */
+export interface PatientMergePreview {
+source: PatientMergeIdentity
+survivor: PatientMergeIdentity
+linked: {
+visits: number
+appointments_upcoming: number
+consultations: (number | null)
+prescriptions: (number | null)
+invoices: (number | null)
+}
+/**
+ * @minItems 0
+ */
+blockers: {
+code: ("SOURCE_ALREADY_MERGED" | "SURVIVOR_MERGED" | "SURVIVOR_ARCHIVED" | "VISIT_IN_PROGRESS" | "CONSULTATION_IN_PROGRESS" | "INVOICE_DRAFT" | "APPOINTMENT_UPCOMING")
+message: string
+}[]
+can_merge: boolean
+}
+export interface PatientMergePreviewResponse {
+data: PatientMergePreview
+}
+/**
+ * Fusion enregistrée (patient_merges, immuable) : la fiche absorbée garde son identifiant, son numéro et son historique ; elle pointe vers la fiche conservée.
+ */
+export interface PatientMerge {
+id: Ulid
+source_patient_id: Ulid
+survivor_patient_id: Ulid
+approved_by: Ulid
+merged_at: Instant
+reason: string
+source_version: Version
+}
+export interface PatientMergeResponse {
+data: PatientMerge
 }
 /**
  * Visite (section VISITS, patient.read) : motif et statut administratifs ; occurred_at = heure de la visite.
@@ -7767,62 +9244,208 @@ status: ("RECEIVED" | "PENDING_CONFIRMATION")
 export interface BookingReceiptResponse {
 data: BookingReceipt
 }
+/**
+ * Identité administrative minimale du patient d'un rendez-vous, d'un suivi ou d'une tâche.
+ */
+export interface SchedulingPatient {
+id: Ulid
+record_number: string
+last_name: string
+first_names: (string | null)
+}
+/**
+ * Créneau hebdomadaire d'une ressource (1 = lundi … 7 = dimanche), heure locale du cabinet.
+ */
+export interface OpeningHour {
+id: Ulid
+weekday: number
+opens_at: LocalTime
+closes_at: LocalTime
+valid_from: NullableCivilDate
+valid_to: NullableCivilDate
+}
+/**
+ * Professionnel ou salle réservable ; aucun horaire n'est inventé : sans créneau hebdomadaire, aucun rendez-vous n'est proposé.
+ */
+export interface SchedulingResource {
+id: Ulid
+name: string
+professional_user_id: NullableUlid
+professional_name: (string | null)
+active: boolean
+slot_duration_minutes: number
+version: Version
+/**
+ * @minItems 0
+ */
+opening_hours: OpeningHour[]
+}
+export interface SchedulingResourceResponse {
+data: SchedulingResource
+}
+export interface AppointmentService {
+id: Ulid
+name: string
+duration_minutes: number
+active: boolean
+version: Version
+}
+export interface AppointmentServiceResponse {
+data: AppointmentService
+}
+/**
+ * Fermeture (is_available = false) ou ouverture exceptionnelle datée d'une ressource.
+ */
+export interface ResourceException {
+id: Ulid
+resource_id: Ulid
+starts_at: Instant
+ends_at: Instant
+is_available: boolean
+reason: string
+}
+export interface ResourceExceptionResponse {
+data: ResourceException
+}
+/**
+ * Configuration de l'agenda (S01) : ressources, prestations, exceptions à venir (90 jours).
+ */
+export interface AgendaConfiguration {
+/**
+ * @minItems 0
+ */
+resources: SchedulingResource[]
+/**
+ * @minItems 0
+ */
+services: AppointmentService[]
+/**
+ * @minItems 0
+ */
+exceptions: ResourceException[]
+}
+export interface AgendaConfigurationResponse {
+data: AgendaConfiguration
+}
+/**
+ * Créneaux libres d'un jour civil du cabinet pour une ressource et une prestation, lus SOUS l'état du serveur au moment de la lecture : la réservation revérifie sous verrou.
+ */
+export interface AvailableSlots {
+date: CivilDate
+resource_id: Ulid
+service_id: Ulid
+duration_minutes: number
+/**
+ * @minItems 0
+ */
+slots: {
+starts_at: Instant
+ends_at: Instant
+}[]
+}
+export interface AvailableSlotsResponse {
+data: AvailableSlots
+}
+/**
+ * Contrôle recommandé (S02), jamais une réservation implicite. reason, manual_reason et notes valent null pour un compte sans clinical.read (cloisonnement clinique) ; la date et l'identité restent lisibles par l'agenda.
+ */
 export interface FollowUpPlan {
 id: Ulid
 consultation_id: Ulid
 patient_id: Ulid
-reason: FollowUpPlansReason
+patient: SchedulingPatient
+reason: (FollowUpPlansReason | null)
+anchor_kind: FollowUpPlansAnchorKind
+anchor_date: CivilDate
+interval_value: (number | null)
+interval_unit: (FollowUpPlansIntervalUnit | null)
 recommended_date: CivilDate
 date_origin: FollowUpPlansDateOrigin
+manual_reason: (string | null)
 reminder_enabled: boolean
 preferred_channel: FollowUpPlansPreferredChannel
+advance_value: (number | null)
+advance_unit: (FollowUpPlansAdvanceUnit | null)
+reminder_date: NullableCivilDate
+notes: (string | null)
 status: FollowUpPlansStatus
+appointment_id: NullableUlid
 version: Version
 }
 export interface FollowUpPlanResponse {
 data: FollowUpPlan
 }
+export interface FollowUpPlanList {
 /**
- * Rendez-vous ; un rendez-vous pris hors-ligne reste PENDING_CONFIRMATION jusqu'à validation serveur.
+ * @minItems 0
+ */
+data: FollowUpPlan[]
+}
+/**
+ * Rendez-vous ; un rendez-vous pris hors-ligne reste PENDING_CONFIRMATION jusqu'à validation serveur. visit_id : arrivée enregistrée pour ce rendez-vous, s'il y en a une.
  */
 export interface Appointment {
 id: Ulid
 patient_id: NullableUlid
+patient: (SchedulingPatient | null)
 prospect_contact_id: NullableUlid
 follow_up_id: NullableUlid
 resource_id: Ulid
+resource_name: string
 service_id: Ulid
+service_name: string
 starts_at: Instant
 ends_at: Instant
 status: AppointmentsStatus
 source: AppointmentsSource
 administrative_reason: (string | null)
 cancel_reason: (string | null)
+visit_id: NullableUlid
 version: Version
 }
 export interface AppointmentResponse {
 data: Appointment
 }
-export interface AppointmentPage {
+/**
+ * Rendez-vous d'une période de jours civils du cabinet (31 jours au plus), du plus tôt au plus tard.
+ */
+export interface AppointmentList {
 /**
  * @minItems 0
  */
 data: Appointment[]
-meta: Pagination
 }
+export interface ContactAttempt {
+id: Ulid
+occurred_at: Instant
+result: ContactAttemptsResult
+actor_name: (string | null)
+administrative_note: (string | null)
+}
+/**
+ * Tâche de contact INTERNE (L0 : aucun envoi SMS/WhatsApp réel ; le canal est la préférence du patient). Unique par source et échéance (dedupe_key) : jamais deux relances pour le même événement.
+ */
 export interface ContactTask {
 id: Ulid
 patient_id: NullableUlid
+patient: (SchedulingPatient | null)
 prospect_contact_id: NullableUlid
 follow_up_id: NullableUlid
 appointment_id: NullableUlid
 invoice_id: NullableUlid
+source_type: ("FOLLOW_UP" | "APPOINTMENT" | "INVOICE" | "WORKSHOP_ORDER")
+source_date: NullableCivilDate
+source_starts_at: NullableInstant
 due_at: Instant
 channel: ContactTasksChannel
 status: ContactTasksStatus
 next_attempt_at: NullableInstant
 assigned_to: NullableUlid
 administrative_notes: (string | null)
+/**
+ * @minItems 0
+ */
+attempts: ContactAttempt[]
 version: Version
 }
 export interface ContactTaskPage {
@@ -7832,6 +9455,15 @@ export interface ContactTaskPage {
 data: ContactTask[]
 meta: Pagination
 }
+/**
+ * Tâches de contact d'un jour civil du cabinet (échéance ou nouvelle tentative ce jour-là, ou en retard et encore ouvertes).
+ */
+export interface ContactTaskList {
+/**
+ * @minItems 0
+ */
+data: ContactTask[]
+}
 export interface ContactAttemptResult {
 attempt_id: Ulid
 task: ContactTask
@@ -7840,30 +9472,73 @@ export interface ContactAttemptResultResponse {
 data: ContactAttemptResult
 }
 /**
- * Activité administrative (accueil, gérante) : comptages, aucune donnée clinique ni financière.
+ * Activité administrative (R02, statistics.activity) sur une période de jours civils du cabinet : visites non annulées, patients distincts, nouveaux (première visite connue au cabinet dans la période, reprise historique comprise) et anciens, sexe et tranches d'âge des patients de la période (âge au dernier jour de la période). Comptages seulement, aucune donnée clinique ni financière. appointments et follow_ups_due valent null tant que l'agenda (S01, S02) n'est pas livré.
  */
 export interface ActivityReport {
 from: CivilDate
 to: CivilDate
+timezone: string
 visits: number
+/**
+ * @minItems 0
+ */
+visits_by_reason: {
+reason: VisitsReason
+count: number
+}[]
+patients: number
 new_patients: number
-appointments: number
-appointments_no_show: number
-contact_tasks_due: number
-contact_tasks_done: number
+returning_patients: number
+/**
+ * @minItems 0
+ */
+sex: {
+sex: PatientRecordsSex
+count: number
+}[]
+/**
+ * @minItems 0
+ */
+age_bands: {
+min_age: number
+max_age: (number | null)
+count: number
+}[]
+age_unknown: number
+appointments: (number | null)
+follow_ups_due: (number | null)
 }
 export interface ActivityReportResponse {
 data: ActivityReport
 }
 /**
- * Statistiques cliniques agrégées (R02, statistics.clinical) : comptages seulement, aucun patient identifiable.
+ * Statistiques cliniques agrégées (R02, statistics.clinical) des consultations dont la date effective tombe dans la période : nombre de consultations, par motif (une consultation compte une fois par motif), prescriptions optiques validées, ordonnances de médicaments, orientations par niveau d'urgence, amétropies. Comptages seulement, aucun patient identifiable, aucune agrégation de mesures (jamais d'acuités d'échelles différentes).
  */
 export interface ClinicalReport {
 from: CivilDate
 to: CivilDate
+timezone: string
+consultations: number
 consultations_completed: number
+/**
+ * @minItems 0
+ */
+complaints: {
+term_code: Code
+count: number
+}[]
+consultations_without_complaint: number
 prescriptions_validated: number
+medication_orders: number
 referrals: number
+/**
+ * @minItems 0
+ */
+referrals_by_urgency: {
+urgency: (ConsultationsReferralUrgency | null)
+count: number
+}[]
+referral_unknown: number
 /**
  * @minItems 0
  */
@@ -8129,7 +9804,10 @@ server_time: Instant
 export interface JwsProtectedHeader {
 alg: "ES256"
 typ: "eeo-command+jws"
-kid: Ulid
+/**
+ * Empreinte RFC 7638 (base64url du SHA-256 de {crv, kty, x, y}) de la clé publique ENRÔLÉE du poste : même règle que la preuve de possession (O02). Alignement O05 : le contrat déclarait un ULID.
+ */
+kid: string
 }
 /**
  * Charge signée : la signature porte sur l'identité de la commande, le poste et event_hash (pas sur le cœur entier, déjà lié par le hash).
@@ -11128,133 +12806,9 @@ payload: {
 
 }
 }
-export interface CreditNoteSnapshot {
-credit_note_id: Ulid
-number: string
-issued_at: Instant
-invoice: {
-invoice_id: Ulid
-number: string
-issued_at: Instant
-total_gross: MoneyXaf
-}
-patient: {
-patient_id: Ulid
-record_number: string
-last_name: string
-first_names: (string | null)
-}
-/**
- * @minItems 1
- */
-lines: [{
-invoice_line_id: Ulid
-description: string
-quantity: (Quantity | null)
-amount_gross: PositiveMoneyXaf
-tax_amount: (MoneyXaf | null)
-}, ...({
-invoice_line_id: Ulid
-description: string
-quantity: (Quantity | null)
-amount_gross: PositiveMoneyXaf
-tax_amount: (MoneyXaf | null)
-})[]]
-amount_gross: PositiveMoneyXaf
-reason: string
-issued_by: {
-user_id: Ulid
-display_name: string
-}
-approval_id: Ulid
-/**
- * Régime fiscal figé : aucune taxe inventée ; sans règle validée, NO_TAX_CONFIGURED et liste vide.
- */
-tax: {
-regime: ("NO_TAX_CONFIGURED" | "VALIDATED_RULES")
-/**
- * @minItems 0
- */
-rules: {
-tax_rule_id: Ulid
-code: string
-label: string
-rate_percent: (Rate | null)
-validated_at: NullableInstant
-legal_note: (string | null)
-}[]
-}
-/**
- * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
- */
-clinic: {
-clinic_id: Ulid
-name: string
-address: (string | null)
-phone: (string | null)
-email: (string | null)
-tax_identifier: (string | null)
-professional_mentions: (string | null)
-document_settings: ({
-
-} | null)
-currency: Currency
-timezone: string
-test_document: boolean
-}
-template_version: string
-}
 export interface DeliveryPatientSnapshot {
 patient_id: Ulid
 record_number: string
 last_name: string
 first_names: (string | null)
-}
-export interface RefundSnapshot {
-refund_id: Ulid
-number: string
-effective_at: Instant
-credit_note: {
-credit_note_id: Ulid
-number: string
-}
-invoice: {
-invoice_id: Ulid
-number: string
-issued_at: Instant
-total_gross: MoneyXaf
-}
-beneficiary: {
-patient_id: Ulid
-record_number: string
-last_name: string
-first_names: (string | null)
-}
-amount: PositiveMoneyXaf
-currency: Currency
-method: RefundsMethod
-reference: (string | null)
-created_by: {
-user_id: Ulid
-display_name: string
-}
-/**
- * En-tête du cabinet au moment de l'émission ; test_document = true tant que production_documents_enabled est faux (document TEST clairement marqué, fichier 23).
- */
-clinic: {
-clinic_id: Ulid
-name: string
-address: (string | null)
-phone: (string | null)
-email: (string | null)
-tax_identifier: (string | null)
-professional_mentions: (string | null)
-document_settings: ({
-
-} | null)
-currency: Currency
-timezone: string
-test_document: boolean
-}
-template_version: string
 }

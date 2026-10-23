@@ -1,0 +1,18 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": true,
+  "description": "Demande de casse d'une monture fictive : position, article, lot, nature et quantité signée exactes",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004C",
+    "subject": {
+      "kind": "STOCK_MOVEMENT",
+      "position_id": "01J9ZXK4M2Q8R7S6T5V4W3002H",
+      "item_id": "01J9ZXK4M2Q8R7S6T5V4W3001Z",
+      "lot_id": null,
+      "movement_kind": "BREAKAGE",
+      "signed_quantity": "-1.000"
+    },
+    "reason": "Monture tombée pendant l'essayage (fictif)",
+    "expires_at": null
+  }
+}

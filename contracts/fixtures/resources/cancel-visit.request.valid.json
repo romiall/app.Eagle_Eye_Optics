@@ -1,0 +1,10 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/CancelVisitRequest",
+  "valid": true,
+  "description": "Annulation d'une visite avant l'examen : version de la visite attendue, motif obligatoire (information d'accueil)",
+  "data": {
+    "expected_version": 1,
+    "visit_id": "01J9ZXK4M2Q8R7S6T5V4W30010",
+    "reason": "Le patient est reparti avant l'examen"
+  }
+}

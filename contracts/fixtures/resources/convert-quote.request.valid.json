@@ -1,0 +1,14 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/ConvertQuoteRequest",
+  "valid": true,
+  "description": "Conversion de la révision 1 en brouillon de facture, prix du devis confirmés explicitement",
+  "data": {
+    "expected_version": 2,
+    "quote_id": "01J9ZXK4M2Q8R7S6T5V4W30040",
+    "revision_no": 1,
+    "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30045",
+    "patient_id": null,
+    "price_basis": "QUOTE",
+    "prices_confirmed": true
+  }
+}

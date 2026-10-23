@@ -1,0 +1,21 @@
+{
+  "schema": "commands/RequestApproval.v1.json",
+  "valid": false,
+  "description": "Remise à crédit avec un reste dû nul : rien à approuver, le contenu est refusé par le contrat",
+  "data": {
+    "approval_id": "01J9ZXK4M2Q8R7S6T5V4W3004B",
+    "subject": {
+      "kind": "CREDIT_DELIVERY",
+      "invoice_id": "01J9ZXK4M2Q8R7S6T5V4W30026",
+      "amount_due": 0,
+      "lines": [
+        {
+          "invoice_line_id": "01J9ZXK4M2Q8R7S6T5V4W3001Y",
+          "quantity": "1.000"
+        }
+      ]
+    },
+    "reason": "Demande fictive",
+    "expires_at": null
+  }
+}

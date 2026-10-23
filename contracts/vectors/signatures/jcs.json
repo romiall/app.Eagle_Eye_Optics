@@ -1,0 +1,57 @@
+{
+  "$comment": "Vecteurs JCS (RFC 8785) communs PHP (App\\\\Offline\\\\Jcs) et navigateur (offline/signing/jcs.ts) : input est un texte JSON, canonical sa forme canonique, sha256 l’empreinte de ses octets UTF-8. refused : valeurs sans forme admise (nombre non entier ou hors de la plage sûre).",
+  "cases": [
+    {
+      "name": "clés triées",
+      "input": "{\"b\":2,\"a\":1}",
+      "canonical": "{\"a\":1,\"b\":2}",
+      "sha256": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "name": "objets imbriqués et listes dans leur ordre",
+      "input": "{\"z\":[3,{\"y\":true,\"x\":null}],\"a\":\"texte\"}",
+      "canonical": "{\"a\":\"texte\",\"z\":[3,{\"x\":null,\"y\":true}]}",
+      "sha256": "1b6f604b137c94606e42e4c565def3194600f50e44da6d1c0d610b571de175ee"
+    },
+    {
+      "name": "clés triées par unités de code UTF-16 (et non par points de code)",
+      "input": "{\"\\u20ac\":3,\"a\":1,\"\\ud834\\udd1e\":4,\"\\u00e9\":2,\"\\uffff\":5}",
+      "canonical": "{\"a\":1,\"é\":2,\"€\":3,\"𝄞\":4,\"￿\":5}",
+      "sha256": "7f3456cb5db133edae6c1ba300941f9b6af77b436b4733dcce0ecc44dc97922f"
+    },
+    {
+      "name": "échappements minimaux de JSON.stringify, Unicode et barre oblique tels quels",
+      "input": "{\"t\":\"guillemet \\\" barre \\\\ saut\\nretour\\r tab\\t bs\\b ff\\f ctrl\\u0001 del\\u007f slash / emoji \\ud83d\\ude00 nbsp\\u00a0 ligne\\u2028\"}",
+      "canonical": "{\"t\":\"guillemet \\\" barre \\\\ saut\\nretour\\r tab\\t bs\\b ff\\f ctrl\\u0001 del slash / emoji 😀 nbsp  ligne \"}",
+      "sha256": "4683d03fafa9d2f41db1bcfd36c30a110061e3bce248b584a564ec1852a2699a"
+    },
+    {
+      "name": "entiers sûrs",
+      "input": "{\"n\":[0,-1,9007199254740991,-9007199254740991,12]}",
+      "canonical": "{\"n\":[0,-1,9007199254740991,-9007199254740991,12]}",
+      "sha256": "4d3b6a51096c728c2649df235e9cd61e66d94020b357927288ac81e27467cde9"
+    },
+    {
+      "name": "objet et liste vides",
+      "input": "{\"o\":{},\"l\":[]}",
+      "canonical": "{\"l\":[],\"o\":{}}",
+      "sha256": "111c683c055d4f0a50ce55366e2dfc66644f79266248039a271dd7e25cd5b104"
+    },
+    {
+      "name": "textes français",
+      "input": "{\"nom\":\"Éloïse N’Guessan\",\"cabinet\":\"Cabinet fictif\"}",
+      "canonical": "{\"cabinet\":\"Cabinet fictif\",\"nom\":\"Éloïse N’Guessan\"}",
+      "sha256": "d6260d19c89c57838712670245c5508057f255013fc5680d4d83e668110cfa6b"
+    }
+  ],
+  "refused": [
+    {
+      "name": "nombre à virgule",
+      "input": "{\"x\":1.5}"
+    },
+    {
+      "name": "entier hors de la plage sûre",
+      "input": "{\"x\":9007199254740992}"
+    }
+  ]
+}

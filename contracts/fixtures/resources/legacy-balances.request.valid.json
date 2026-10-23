@@ -1,0 +1,29 @@
+{
+  "schema": "schemas/requests/http.json#/$defs/LegacyBalanceImportRequest",
+  "valid": true,
+  "description": "Reprise de deux créances papier (fictives) : l'une par la fiche du patient, l'autre par son numéro de dossier, justificatif scanné déposé",
+  "data": {
+    "dry_run": false,
+    "evidence_file_id": "01J9ZXK4M2Q8R7S6T5V4W3EV01",
+    "rows": [
+      {
+        "line": 2,
+        "patient_id": "01J9ZXK4M2Q8R7S6T5V4W3PA01",
+        "patient_record_number": null,
+        "paper_reference": "CARNET-2025-0142",
+        "original_total": 80000,
+        "already_paid": 30000,
+        "original_invoice_on": "2025-11-04"
+      },
+      {
+        "line": 3,
+        "patient_id": null,
+        "patient_record_number": "EE-2026-0007",
+        "paper_reference": "CARNET-2025-0150",
+        "original_total": 45000,
+        "already_paid": 0,
+        "original_invoice_on": null
+      }
+    ]
+  }
+}

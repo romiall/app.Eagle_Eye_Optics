@@ -74,7 +74,7 @@
       }
     },
     "Patient": {
-      "description": "Dossier administratif (identité durable) ; jamais de donnée clinique.",
+      "description": "Dossier administratif (identité durable) ; jamais de donnée clinique. merged_records (lecture GET /patients/{id} seulement) : fiches fusionnées dans celle-ci (L1D08), de la plus ancienne fusion à la plus récente.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -245,6 +245,32 @@
         },
         "updated_at": {
           "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "merged_records": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "patient_id",
+              "record_number",
+              "merged_at"
+            ],
+            "properties": {
+              "patient_id": {
+                "$ref": "../../schemas/common.json#/$defs/Ulid"
+              },
+              "record_number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "merged_at": {
+                "$ref": "../../schemas/common.json#/$defs/Instant"
+              }
+            }
+          }
         }
       }
     },
@@ -599,6 +625,263 @@
         },
         "meta": {
           "$ref": "../../schemas/common.json#/$defs/Pagination"
+        }
+      }
+    },
+    "PatientMergeIdentity": {
+      "description": "Identité administrative comparée avant une fusion (L1D08) : jamais de donnée clinique.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_number",
+        "last_name",
+        "first_names",
+        "sex",
+        "birth_date",
+        "phone_primary",
+        "archived",
+        "merged_into_patient_id",
+        "version",
+        "legacy_record_number",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "record_number": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "last_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "first_names": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sex": {
+          "$ref": "../../schemas/enums.json#/$defs/patient_records.sex"
+        },
+        "birth_date": {
+          "$ref": "../../schemas/common.json#/$defs/NullableCivilDate"
+        },
+        "phone_primary": {
+          "anyOf": [
+            {
+              "$ref": "../../schemas/common.json#/$defs/Phone"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "merged_into_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/NullableUlid"
+        },
+        "version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        },
+        "legacy_record_number": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        }
+      }
+    },
+    "PatientMergePreview": {
+      "description": "Aperçu d'une fusion : les deux identités côte à côte, ce qui est rattaché à la fiche absorbée (visites pour tout compte autorisé ; consultations et prescriptions seulement avec clinical.read, pièces émises seulement avec invoice.read, null sinon) et les garde-fous qui empêchent la fusion.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "survivor",
+        "linked",
+        "blockers",
+        "can_merge"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/PatientMergeIdentity"
+        },
+        "survivor": {
+          "$ref": "#/$defs/PatientMergeIdentity"
+        },
+        "linked": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "visits",
+            "appointments_upcoming",
+            "consultations",
+            "prescriptions",
+            "invoices"
+          ],
+          "properties": {
+            "visits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "appointments_upcoming": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "consultations": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "prescriptions": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "invoices": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "blockers": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "SOURCE_ALREADY_MERGED",
+                  "SURVIVOR_MERGED",
+                  "SURVIVOR_ARCHIVED",
+                  "VISIT_IN_PROGRESS",
+                  "CONSULTATION_IN_PROGRESS",
+                  "INVOICE_DRAFT",
+                  "APPOINTMENT_UPCOMING"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              }
+            }
+          }
+        },
+        "can_merge": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PatientMergePreviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PatientMergePreview"
+        }
+      }
+    },
+    "PatientMerge": {
+      "description": "Fusion enregistrée (patient_merges, immuable) : la fiche absorbée garde son identifiant, son numéro et son historique ; elle pointe vers la fiche conservée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_patient_id",
+        "survivor_patient_id",
+        "approved_by",
+        "merged_at",
+        "reason",
+        "source_version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "source_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "survivor_patient_id": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "approved_by": {
+          "$ref": "../../schemas/common.json#/$defs/Ulid"
+        },
+        "merged_at": {
+          "$ref": "../../schemas/common.json#/$defs/Instant"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "source_version": {
+          "$ref": "../../schemas/common.json#/$defs/Version"
+        }
+      }
+    },
+    "PatientMergeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PatientMerge"
         }
       }
     },
