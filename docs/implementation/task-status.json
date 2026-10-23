@@ -256,52 +256,58 @@
    "evidence": [
     "docs/implementation/billing.md",
     "app/Domain/Billing/Catalog/",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Catalogue et règles de taxe versionnés ; données de démonstration FICTIVES (eeo:demo:sales). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Catalogue et règles de taxe versionnés ; données de démonstration FICTIVES (eeo:demo:sales). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B02": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
     "resources/frontend/pages/sales/",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Brouillons de facture, remises plafonnées par droit, totaux par vecteurs communs ; écrans. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Brouillons de facture, remises plafonnées par droit, totaux par vecteurs communs ; écrans. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "I00": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
     "app/Domain/Inventory/",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Service de réservation utilisé dès l'émission, stock initial, disponibilités. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Service de réservation utilisé dès l'émission, stock initial, disponibilités. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B03": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Émission immuable, numérotation sans trou (préfixes TEST-FAC…), snapshots, ledger_version distinct. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Émission immuable, numérotation sans trou (préfixes TEST-FAC…), snapshots, ledger_version distinct. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B05": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
     "resources/frontend/pages/cash/",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Sessions de caisse (ouverture, clôture) et écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Sessions de caisse (ouverture, clôture) et écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B04": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Encaissement acompte/solde, reçu unique par encaissement, BilledExamFeeControl activable (EEO_EXAM_FEE_CONTROL=off par défaut). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Encaissement acompte/solde, reçu unique par encaissement, BilledExamFeeControl activable (EEO_EXAM_FEE_CONTROL=off par défaut). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "O05": {
    "status": "NOT_STARTED",
@@ -313,9 +319,10 @@
    "evidence": [
     "docs/implementation/documents.md",
     "resources/frontend/documents/",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Moteur PDF local jsPDF (modèle → plan → PDF/SVG reproductible), reçu, facture, devis, avoir, remboursement, relevé de caisse ; DocumentStore VOLATIL (coffre O01–O05 à brancher) ; polices standard (écart fichier 11 documenté). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Moteur PDF local jsPDF (modèle → plan → PDF/SVG reproductible), reçu, facture, devis, avoir, remboursement, relevé de caisse ; DocumentStore VOLATIL (coffre O01–O05 à brancher) ; polices standard (écart fichier 11 documenté). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "G1": {
    "status": "NOT_STARTED",
@@ -326,23 +333,26 @@
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Réauthentification (existante, réutilisée) et approbations exactes à usage unique ; contrôle du paiement de l'examen branché (EEO_EXAM_FEE_CONTROL=off par défaut). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Réauthentification (existante, réutilisée) et approbations exactes à usage unique ; contrôle du paiement de l'examen branché (EEO_EXAM_FEE_CONTROL=off par défaut). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B07": {
    "status": "IN_PROGRESS",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Serveur codé et vérifié (contre-écriture, avoir) ; ÉCRANS et modèles PDF de l'avoir à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Serveur codé et vérifié (contre-écriture, avoir) ; ÉCRANS et modèles PDF de l'avoir à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B08": {
    "status": "IN_PROGRESS",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Serveur codé et vérifié (remboursement) ; ÉCRANS à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Serveur codé et vérifié (remboursement) ; ÉCRANS à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "I01": {
    "status": "NOT_STARTED",
@@ -388,42 +398,47 @@
     "resources/frontend/pages/consultations/",
     "tests/Feature/Clinical/",
     "tests/e2e/consultation.spec.ts",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Première tranche (démarrage, ANAMNESIS, HISTORIES, CONCLUSION) vérifiée localement au commit c0c8918 (PHPUnit 1130, Vitest 1362, e2e consultation). Corrections de la revue (trace de lecture des réponses d'écriture, code désactivé conservé, identifiant d'un autre cabinet, instantané de lecture, limiteur, audit sans rows, résumé patient dans Consultation). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Première tranche (démarrage, ANAMNESIS, HISTORIES, CONCLUSION) vérifiée localement au commit c0c8918 (PHPUnit 1130, Vitest 1362, e2e consultation). Corrections de la revue (trace de lecture des réponses d'écriture, code désactivé conservé, identifiant d'un autre cabinet, instantané de lecture, limiteur, audit sans rows, résumé patient dans Consultation). En ligne seulement. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "C02": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/clinical.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Acuités (échelles du cabinet, eeo:clinical:scales), autoréfracteur et réfraction subjective distincts, centrage. Échelles de DÉMONSTRATION non validées (G11/Q06 ouverte). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Acuités (échelles du cabinet, eeo:clinical:scales), autoréfracteur et réfraction subjective distincts, centrage. Échelles de DÉMONSTRATION non validées (G11/Q06 ouverte). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "C03": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/clinical.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Finalisation (révision 1 figée, empreinte SHA-256 JCS : hypothèse G8 à confirmer), correction avec motif, révisions et comparaison. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Finalisation (révision 1 figée, empreinte SHA-256 JCS : hypothèse G8 à confirmer), correction avec motif, révisions et comparaison. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "D02": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/documents.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Modèles cliniques (fiche, ordonnance optique, ordonnance médicamenteuse, lettre), en-tête du cabinet paramétrable, documents de TEST tant que production_documents_enabled=false ; validation visuelle (golden) à faire en vérification. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Modèles cliniques (fiche, ordonnance optique, ordonnance médicamenteuse, lettre), en-tête du cabinet paramétrable, documents de TEST tant que production_documents_enabled=false ; validation visuelle (golden) à faire en vérification. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "C04": {
    "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/clinical.md",
     "docs/implementation/documents.md",
-    "tools/dev/phase-check.sh"
+    "tools/dev/phase-check.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Prescription optique versionnée et validée (generated_documents PENDING, optical_prescription.v1), rubrique MEDICATIONS, lettre d'orientation ; impression locale. Transcription d'ordonnance externe sans écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Prescription optique versionnée et validée (generated_documents PENDING, optical_prescription.v1), rubrique MEDICATIONS, lettre d'orientation ; impression locale. Transcription d'ordonnance externe sans écran. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "P04": {
    "status": "NOT_STARTED",
@@ -443,16 +458,18 @@
   "R01": {
    "status": "IN_PROGRESS",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Caisse du jour minimale en ligne, vérifiée ; tableaux de soldes et finance complets à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Caisse du jour minimale en ligne, vérifiée ; tableaux de soldes et finance complets à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "R02": {
    "status": "IN_PROGRESS",
    "evidence": [
-    "docs/implementation/patients.md"
+    "docs/implementation/patients.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Activité du patient vérifiée ; statistiques DP non commencées. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Activité du patient vérifiée ; statistiques DP non commencées. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "X01": {
    "status": "NOT_STARTED",
@@ -483,9 +500,10 @@
    "status": "IN_PROGRESS",
    "evidence": [
     "docs/implementation/deploiement.md",
-    "tools/deploy/"
+    "tools/deploy/",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
    ],
-   "notes": "Kit mis à jour pour la phase 1 (sauvegarde, restauration, diagnostic, fumée) ; jamais exécuté sur Hostinger. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI à constater. EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Kit mis à jour pour la phase 1 (sauvegarde, restauration, diagnostic, fumée) ; jamais exécuté sur Hostinger. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "G4": {
    "status": "NOT_STARTED",

@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante (2026-10-23) : **phase 1** (fonctions de base de la cliente) codée puis vérifiée en fin de phase, tout vert en local (section « Phase 1 ») ; CI, puis mise en ligne sur Hostinger. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
+- Tâche courante (2026-10-23) : **phase 1** (fonctions de base de la cliente) codée puis vérifiée en fin de phase, tout vert en local et en CI (run 39879707020) ; prochaine étape : mise en ligne sur Hostinger. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -127,8 +127,8 @@ test héritée, matrice de routes incomplète, décisions remplacées), PHPStan 
 écrans, vrais défauts corrigés (espaces perdus à l'affichage, message de décision effacé, refus du mot
 de passe actuel masqué, calcul flottant). Seconde passe avec Playwright : tout vert sauf 9 parcours
 sur 47 ; un vrai défaut corrigé (l'encaissement concluait « Caisse non ouverte » avant la réponse du
-serveur), les autres venaient des tests. Résultat final local : **tout vert, Playwright 47/47**.
-Tâches passées en IN_REVIEW (jamais DONE : hors-ligne et CI à prouver). Restent hors de cette
+serveur), les autres venaient des tests. Résultat final local : **tout vert, Playwright 47/47** ; CI GitHub verte : [run 39879707020](https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020) sur `19d2bda`.
+Tâches passées en IN_REVIEW (jamais DONE : le hors-ligne reste à prouver). Restent hors de cette
 phase : écrans d'avoir et de remboursement (B07, B08), hors-ligne (O01–O07), statistiques DP,
 annulation d'une visite, exécution réelle sur Hostinger.
 
