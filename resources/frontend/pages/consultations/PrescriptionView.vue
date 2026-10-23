@@ -5,11 +5,17 @@
  * porte BROUILLON ; une version validée est immuable. Les valeurs sont celles du document imprimé
  * (`prescriptionScreenModel` : même adaptateur, mêmes libellés et mêmes mises en forme que le moteur de
  * documents) : l'écran et le document disent la même chose.
+ *
+ * Carte de version : titre et puce d'état (« BROUILLON » ou « Validée le … »), tableau de correction
+ * OD / OG aux valeurs alignées à droite en chiffres tabulaires, puis écarts pupillaires et verres en
+ * liste de détails (deux colonnes dès la tablette).
  */
 import { computed } from 'vue'
 
 import { formatInstantFr } from '@/app/clinicTime'
 import { prescriptionScreenModel } from '@/app/services/clinicalDocuments'
+import StatusChip from '@/components/layout/StatusChip.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import type { Prescription } from '@/domain/contracts/generated'
 
 const props = defineProps<{ prescription: Prescription }>()
@@ -24,20 +30,14 @@ const MISSING = '—'
 </script>
 
 <template>
-  <article class="space-y-3 rounded-lg border-2 border-line bg-surface p-4">
-    <header class="flex flex-wrap items-center gap-2">
-      <h3 class="text-lg font-semibold">Version {{ model.versionNo }}</h3>
-      <span
-        v-if="model.status !== 'VALIDATED'"
-        class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-1 text-sm font-semibold"
-        ><span aria-hidden="true">○</span>BROUILLON</span
-      >
-      <span
-        v-else
-        class="inline-flex items-center gap-1 rounded-lg border-2 border-accent bg-accent-soft px-2 py-1 text-sm font-semibold"
-        ><span aria-hidden="true">✓</span>Validée<template v-if="validatedAt">
-          le {{ validatedAt }}</template
-        ></span
+  <article class="card space-y-4 p-4 sm:p-5">
+    <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <h3 class="flex items-center gap-2 text-lg font-semibold">
+        <AppIcon name="glasses" class="text-gold" />Version {{ model.versionNo }}
+      </h3>
+      <StatusChip v-if="model.status !== 'VALIDATED'" tone="warning">BROUILLON</StatusChip>
+      <StatusChip v-else tone="success" icon="check"
+        >Validée<template v-if="validatedAt"> le {{ validatedAt }}</template></StatusChip
       >
     </header>
     <p v-if="model.external" class="text-sm text-muted">
@@ -46,62 +46,76 @@ const MISSING = '—'
       >.
     </p>
 
-    <div class="overflow-x-auto">
-      <table class="w-full border-collapse text-left text-base">
+    <div class="data-table-wrap shadow-none">
+      <table class="data-table">
         <caption class="sr-only">
           Correction par œil
         </caption>
         <thead>
-          <tr class="border-b-2 border-line">
-            <th scope="col" class="py-1 pr-2">Œil</th>
-            <th scope="col" class="py-1 pr-2">Sphère (D)</th>
-            <th scope="col" class="py-1 pr-2">Cylindre (D)</th>
-            <th scope="col" class="py-1 pr-2">Axe (°)</th>
-            <th scope="col" class="py-1 pr-2">Addition (D)</th>
-            <th scope="col" class="py-1">Hauteur</th>
+          <tr>
+            <th scope="col">Œil</th>
+            <th scope="col" class="num">Sphère (D)</th>
+            <th scope="col" class="num">Cylindre (D)</th>
+            <th scope="col" class="num">Axe (°)</th>
+            <th scope="col" class="num">Addition (D)</th>
+            <th scope="col" class="num">Hauteur</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="eye in model.eyes" :key="eye.eye" class="border-b border-line align-top">
-            <th scope="row" class="py-1 pr-2 font-semibold">{{ eye.label }}</th>
+          <tr v-for="eye in model.eyes" :key="eye.eye">
+            <th scope="row" class="font-semibold">{{ eye.label }}</th>
             <template v-if="eye.noCorrection">
-              <td colspan="5" class="py-1">Aucune correction</td>
+              <td colspan="5">Aucune correction</td>
             </template>
             <template v-else>
-              <td class="py-1 pr-2 tabular-nums">{{ eye.sphere }}</td>
-              <td class="py-1 pr-2 tabular-nums">{{ eye.cylinder }}</td>
-              <td class="py-1 pr-2 tabular-nums">{{ eye.axis }}</td>
-              <td class="py-1 pr-2 tabular-nums">{{ eye.addition }}</td>
-              <td class="py-1 tabular-nums">{{ eye.fittingHeight }}</td>
+              <td class="num">{{ eye.sphere }}</td>
+              <td class="num">{{ eye.cylinder }}</td>
+              <td class="num">{{ eye.axis }}</td>
+              <td class="num">{{ eye.addition }}</td>
+              <td class="num">{{ eye.fittingHeight }}</td>
             </template>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <dl class="grid gap-x-4 gap-y-1 text-base sm:grid-cols-[minmax(10rem,auto)_1fr]">
-      <dt class="font-semibold">Écart pupillaire total</dt>
-      <dd class="tabular-nums">{{ model.pd.total }}</dd>
-      <dt class="font-semibold">Écart pupillaire OD</dt>
-      <dd class="tabular-nums">{{ model.pd.od }}</dd>
-      <dt class="font-semibold">Écart pupillaire OG</dt>
-      <dd class="tabular-nums">{{ model.pd.og }}</dd>
-      <template v-if="model.pdJustification">
-        <dt class="font-semibold">Justification</dt>
+    <dl class="detail-list">
+      <div>
+        <dt>Écart pupillaire total</dt>
+        <dd class="tabular-nums">{{ model.pd.total }}</dd>
+      </div>
+      <div>
+        <dt>Écart pupillaire OD</dt>
+        <dd class="tabular-nums">{{ model.pd.od }}</dd>
+      </div>
+      <div>
+        <dt>Écart pupillaire OG</dt>
+        <dd class="tabular-nums">{{ model.pd.og }}</dd>
+      </div>
+      <div v-if="model.pdJustification">
+        <dt>Justification</dt>
         <dd>{{ model.pdJustification }}</dd>
-      </template>
-      <dt class="font-semibold">Usage</dt>
-      <dd>{{ model.usage ?? MISSING }}</dd>
-      <dt class="font-semibold">Type de verre</dt>
-      <dd>{{ model.lensType ?? MISSING }}</dd>
-      <dt class="font-semibold">Indice</dt>
-      <dd>{{ model.lensIndex ?? MISSING }}</dd>
-      <dt class="font-semibold">Traitements</dt>
-      <dd>{{ model.treatments.length > 0 ? model.treatments.join(', ') : MISSING }}</dd>
-      <template v-if="model.notes">
-        <dt class="font-semibold">Observations</dt>
+      </div>
+      <div>
+        <dt>Usage</dt>
+        <dd>{{ model.usage ?? MISSING }}</dd>
+      </div>
+      <div>
+        <dt>Type de verre</dt>
+        <dd>{{ model.lensType ?? MISSING }}</dd>
+      </div>
+      <div>
+        <dt>Indice</dt>
+        <dd>{{ model.lensIndex ?? MISSING }}</dd>
+      </div>
+      <div>
+        <dt>Traitements</dt>
+        <dd>{{ model.treatments.length > 0 ? model.treatments.join(', ') : MISSING }}</dd>
+      </div>
+      <div v-if="model.notes" class="sm:col-span-2">
+        <dt>Observations</dt>
         <dd class="break-words">{{ model.notes }}</dd>
-      </template>
+      </div>
     </dl>
   </article>
 </template>

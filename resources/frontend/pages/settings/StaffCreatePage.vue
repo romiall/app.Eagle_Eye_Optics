@@ -10,15 +10,18 @@
  * après réauthentification (423) : le mot de passe de la gérante est demandé, puis la création reprend.
  */
 import { computed, nextTick, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { createStaffMember } from '@/app/services/staff'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import CheckboxGroup from '@/components/form/CheckboxGroup.vue'
 import TextField from '@/components/form/TextField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import {
   generatePassword,
   loginError,
@@ -142,39 +145,44 @@ async function done(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-nouveau-compte" class="max-w-2xl space-y-6">
-    <div class="space-y-1">
-      <h1 id="titre-nouveau-compte" class="text-2xl font-semibold tracking-tight">
-        Créer un compte
-      </h1>
-      <p class="text-muted">
-        <RouterLink
-          :to="{ name: 'parametres-personnel' }"
-          class="text-primary underline underline-offset-4"
-          >Personnel</RouterLink
-        >
-      </p>
-    </div>
+  <section aria-labelledby="titre-nouveau-compte" class="page-stack max-w-2xl">
+    <PageHeader
+      title-id="titre-nouveau-compte"
+      title="Créer un compte"
+      icon="user-plus"
+      subtitle="Un compte nominatif par personne : son nom figure dans le journal et sur les pièces qu’elle produit."
+      :back="{ to: { name: 'parametres-personnel' }, label: 'Personnel' }"
+    />
 
     <div
       v-if="created"
       id="compte-cree"
       tabindex="-1"
-      class="space-y-3 rounded-lg border-2 border-accent bg-surface p-4 focus:outline-none"
+      class="space-y-4 rounded-xl border border-accent bg-surface p-5 shadow-card focus:outline-none sm:p-6"
     >
-      <h2 class="text-xl font-semibold">Compte créé sur le serveur</h2>
+      <div class="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"
+        >
+          <AppIcon name="check-circle" :size="20" />
+        </span>
+        <h2 class="pt-1 text-xl font-semibold">Compte créé sur le serveur</h2>
+      </div>
       <p>
         <strong>{{ created.display_name }}</strong> peut se connecter avec l’identifiant
         <strong class="break-all">{{ created.login }}</strong
         >.
       </p>
       <template v-if="shownPassword">
-        <p>Mot de passe initial (affiché une seule fois) :</p>
-        <p
-          class="rounded-lg border-2 border-line bg-primary-soft px-3 py-2 font-mono text-lg break-all"
-        >
-          {{ shownPassword }}
-        </p>
+        <div class="space-y-3 rounded-xl border border-accent bg-accent-soft p-4">
+          <p class="font-medium">Mot de passe initial (affiché une seule fois) :</p>
+          <p
+            class="rounded-lg border border-line bg-surface px-3 py-2 font-mono text-lg tracking-wide break-all"
+          >
+            {{ shownPassword }}
+          </p>
+        </div>
         <p class="text-sm text-muted">
           Transmettez-le en personne, jamais par message. La personne le changera à sa première
           connexion. Il ne sera plus affiché après cet écran.
@@ -184,86 +192,93 @@ async function done(): Promise<void> {
         Transmettez en personne le mot de passe que vous avez saisi ; la personne le changera à sa
         première connexion.
       </p>
-      <AppButton variant="primary" @click="done">J’ai noté, ouvrir le compte</AppButton>
+      <div class="form-actions">
+        <AppButton variant="primary" @click="done">J’ai noté, ouvrir le compte</AppButton>
+      </div>
     </div>
 
-    <form v-else class="space-y-5" novalidate @submit.prevent="submit">
-      <ErrorSummary :errors="summary" />
+    <SectionCard v-else>
+      <form class="space-y-5" novalidate @submit.prevent="submit">
+        <ErrorSummary :errors="summary" />
 
-      <StateMessage
-        v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
-        :state="writer.state.value === 'uncertain' ? 'offline' : 'error'"
-        title="Compte non créé"
-      >
-        {{ writer.message.value }}
-      </StateMessage>
-
-      <TextField
-        v-model="displayName"
-        label="Nom affiché"
-        hint="Nom et prénom tels qu’ils apparaîtront dans le journal et sur les pièces."
-        :control-id="IDS.name"
-        :maxlength="180"
-        :error="errors[IDS.name] ?? null"
-        required
-        autocomplete="off"
-      />
-      <TextField
-        v-model="login"
-        label="Identifiant de connexion"
-        hint="Minuscules sans accent, chiffres, « . », « _ » ou « - » ; par exemple marie.ngono."
-        :control-id="IDS.login"
-        :maxlength="64"
-        :error="errors[IDS.login] ?? null"
-        required
-        autocomplete="off"
-      />
-      <TextField
-        v-model="email"
-        label="Adresse électronique (facultative)"
-        type="email"
-        :control-id="IDS.email"
-        :maxlength="254"
-        :error="errors[IDS.email] ?? null"
-        autocomplete="off"
-      />
-      <CheckboxGroup
-        v-model="roles"
-        legend="Profils"
-        hint="Un compte peut cumuler plusieurs profils. Les droits de chaque profil viennent du référentiel."
-        :options="roleOptions"
-        :control-id="IDS.roles"
-        :error="errors[IDS.roles] ?? null"
-      />
-      <div class="space-y-2">
-        <TextField
-          :model-value="password"
-          label="Mot de passe initial"
-          hint="12 caractères au moins, avec des lettres et des chiffres, différent de l’identifiant."
-          type="password"
-          autocomplete="new-password"
-          :control-id="IDS.password"
-          :error="errors[IDS.password] ?? null"
-          required
-          @update:model-value="onPasswordInput"
-        />
-        <AppButton variant="secondary" @click="generate">Générer un mot de passe</AppButton>
-        <p v-if="generated" class="text-sm text-muted">
-          Un mot de passe aléatoire a été placé dans le champ ; il vous sera montré une fois après
-          la création, pour le transmettre en personne.
-        </p>
-      </div>
-
-      <div class="flex flex-wrap gap-3">
-        <AppButton
-          type="submit"
-          variant="primary"
-          :pending="writer.state.value === 'saving'"
-          pending-label="Création en cours…"
-          >Créer le compte</AppButton
+        <StateMessage
+          v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
+          :state="writer.state.value === 'uncertain' ? 'offline' : 'error'"
+          title="Compte non créé"
         >
-      </div>
-    </form>
+          {{ writer.message.value }}
+        </StateMessage>
+
+        <TextField
+          v-model="displayName"
+          label="Nom affiché"
+          hint="Nom et prénom tels qu’ils apparaîtront dans le journal et sur les pièces."
+          :control-id="IDS.name"
+          :maxlength="180"
+          :error="errors[IDS.name] ?? null"
+          required
+          autocomplete="off"
+        />
+        <TextField
+          v-model="login"
+          label="Identifiant de connexion"
+          hint="Minuscules sans accent, chiffres, « . », « _ » ou « - » ; par exemple marie.ngono."
+          :control-id="IDS.login"
+          :maxlength="64"
+          :error="errors[IDS.login] ?? null"
+          required
+          autocomplete="off"
+        />
+        <TextField
+          v-model="email"
+          label="Adresse électronique (facultative)"
+          type="email"
+          :control-id="IDS.email"
+          :maxlength="254"
+          :error="errors[IDS.email] ?? null"
+          autocomplete="off"
+        />
+        <CheckboxGroup
+          v-model="roles"
+          legend="Profils"
+          hint="Un compte peut cumuler plusieurs profils. Les droits de chaque profil viennent du référentiel."
+          :options="roleOptions"
+          :control-id="IDS.roles"
+          :error="errors[IDS.roles] ?? null"
+        />
+        <div class="space-y-3 rounded-xl border border-line bg-canvas p-4">
+          <TextField
+            :model-value="password"
+            label="Mot de passe initial"
+            hint="12 caractères au moins, avec des lettres et des chiffres, différent de l’identifiant."
+            type="password"
+            autocomplete="new-password"
+            :control-id="IDS.password"
+            :error="errors[IDS.password] ?? null"
+            required
+            @update:model-value="onPasswordInput"
+          />
+          <AppButton variant="secondary" @click="generate">
+            <AppIcon name="refresh" :size="18" />
+            Générer un mot de passe
+          </AppButton>
+          <p v-if="generated" class="text-sm text-muted">
+            Un mot de passe aléatoire a été placé dans le champ ; il vous sera montré une fois après
+            la création, pour le transmettre en personne.
+          </p>
+        </div>
+
+        <div class="form-actions">
+          <AppButton
+            type="submit"
+            variant="primary"
+            :pending="writer.state.value === 'saving'"
+            pending-label="Création en cours…"
+            >Créer le compte</AppButton
+          >
+        </div>
+      </form>
+    </SectionCard>
 
     <PasswordConfirmDialog
       :open="writer.state.value === 'reauthentication'"

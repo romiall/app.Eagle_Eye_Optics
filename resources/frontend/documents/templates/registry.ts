@@ -43,14 +43,21 @@ import { buildReceipt } from './financial/receipt'
  *
  * Le serveur écrit ses propres noms PROVISOIRES de version (`PendingDocuments::INVOICE_TEMPLATE` et
  * `RECEIPT_TEMPLATE` dans `generated_documents.template_version` et dans le snapshot du reçu) :
- * `invoice.v1` et `receipt.v1` sont enregistrés ici comme alias du même modèle. Convention retenue :
+ * `invoice.v1`, `receipt.v1`, `credit_note.v1` et `refund.v1` sont enregistrés ici comme alias du même modèle. Convention retenue :
  * `<type>.v<n>` (voir `CLINICAL_TEMPLATE_VERSIONS`) ; une ligne de `SERVER_VERSIONS` suffit pour accepter
  * un autre nom (avoir, remboursement…) quand le serveur en écrira un.
  */
 export const TEMPLATE_VERSION = 'TEST-1'
 
 /** Noms de version déjà écrits par le serveur pour un type de document. */
-const SERVER_VERSIONS = { INVOICE: 'invoice.v1', RECEIPT: 'receipt.v1' } as const
+const SERVER_VERSIONS = {
+  INVOICE: 'invoice.v1',
+  RECEIPT: 'receipt.v1',
+  CREDIT_NOTE: 'credit_note.v1',
+  REFUND: 'refund.v1',
+  /** Révision de devis (L1D07) : `PendingDocuments::QUOTE_TEMPLATE` et `snapshot.template_version`. */
+  QUOTE: 'quote.v1',
+} as const
 
 /**
  * Versions des documents CLINIQUES, même convention `<type>.v<n>` que les pièces financières (type =
@@ -92,10 +99,13 @@ type Builder<K extends DocumentKind> = (
 const REGISTRY: { readonly [K in DocumentKind]: Readonly<Record<string, Builder<K>>> } = {
   INVOICE: { [TEMPLATE_VERSION]: buildInvoice, [SERVER_VERSIONS.INVOICE]: buildInvoice },
   RECEIPT: { [TEMPLATE_VERSION]: buildReceipt, [SERVER_VERSIONS.RECEIPT]: buildReceipt },
-  CREDIT_NOTE: { [TEMPLATE_VERSION]: buildCreditNote },
-  REFUND: { [TEMPLATE_VERSION]: buildRefund },
+  CREDIT_NOTE: {
+    [TEMPLATE_VERSION]: buildCreditNote,
+    [SERVER_VERSIONS.CREDIT_NOTE]: buildCreditNote,
+  },
+  REFUND: { [TEMPLATE_VERSION]: buildRefund, [SERVER_VERSIONS.REFUND]: buildRefund },
   ACCOUNT_STATEMENT: { [TEMPLATE_VERSION]: buildAccountStatement },
-  QUOTE: { [TEMPLATE_VERSION]: buildQuote },
+  QUOTE: { [TEMPLATE_VERSION]: buildQuote, [SERVER_VERSIONS.QUOTE]: buildQuote },
   OPTICAL_PRESCRIPTION: {
     [TEMPLATE_VERSION]: buildOpticalPrescription,
     [CLINICAL_TEMPLATE_VERSIONS.OPTICAL_PRESCRIPTION]: buildOpticalPrescription,

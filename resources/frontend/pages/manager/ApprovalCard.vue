@@ -14,8 +14,10 @@ import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, knownAccountId, revalidateSession } from '@/app/session'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import StatusChip, { type ChipTone } from '@/components/layout/StatusChip.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import {
   buildDecision,
   DECISION_REASON_MAX_LENGTH,
@@ -23,9 +25,8 @@ import {
   isDecidable,
   kindLabel,
   statusLabel,
-  statusSymbol,
 } from '@/domain/approvals/approvals'
-import type { Approval } from '@/domain/contracts/generated'
+import type { Approval, ApprovalsStatus } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
 import { formatMoney, paymentMethodLabel } from '@/pages/sales/format'
 
@@ -34,8 +35,10 @@ const props = defineProps<{ approval: Approval }>()
 /**
  * `decided` : la liste est à relire. Le message de réussite est rendu par la page : la relecture
  * remplace la liste (et cette carte) ; une demande décidée sort d'ailleurs de « En attente ».
+ * `stale` : refus d'état (409 : demande échue, déjà décidée ou utilisée) ; la page DIT ce refus puis relit la
+ * liste, car la relecture recrée cette carte et effacerait un message tenu ici.
  */
-const emit = defineEmits<{ decided: [notice: string | null] }>()
+const emit = defineEmits<{ decided: [notice: string | null]; stale: [message: string] }>()
 
 const mutation = useMutation()
 const reason = ref('')
@@ -53,6 +56,26 @@ const canDecide = computed(
 const subjectLines = computed(() =>
   describeSubject(props.approval.subject, formatMoney, paymentMethodLabel),
 )
+
+/**
+ * Puce du statut effectif : teinte et icône accompagnent le libellé du domaine (la couleur n'est
+ * jamais le seul signal ; l'icône tient lieu du symbole écrit). Un statut inconnu du contrat garde
+ * la puce neutre à point (valeurs par défaut de `StatusChip`) et le libellé « Statut inconnu ».
+ */
+const STATUS_TONES: Readonly<Record<ApprovalsStatus, ChipTone>> = {
+  REQUESTED: 'warning',
+  APPROVED: 'success',
+  REFUSED: 'danger',
+  EXPIRED: 'neutral',
+  CONSUMED: 'info',
+}
+const STATUS_ICONS: Readonly<Record<ApprovalsStatus, string>> = {
+  REQUESTED: 'clock',
+  APPROVED: 'check',
+  REFUSED: 'x',
+  EXPIRED: 'history',
+  CONSUMED: 'check-circle',
+}
 
 const patient = computed(() => {
   const target = props.approval.target.patient
@@ -78,8 +101,11 @@ async function afterOutcome(outcome: MutationOutcome): Promise<void> {
       return
     case 'refused':
     case 'conflict':
+      if (outcome.error.status === 409) {
+        emit('stale', `${kindLabel(props.approval.kind)} : ${outcome.error.message}`)
+        return
+      }
       error.value = outcome.error.fields['reason']?.[0] ?? outcome.error.message
-      if (outcome.error.status === 409) emit('decided', null)
       return
     case 'session-expired':
       void revalidateSession().catch(() => undefined)
@@ -116,71 +142,94 @@ async function passwordConfirmed(): Promise<void> {
 </script>
 
 <template>
-  <article class="space-y-3 rounded-lg border-2 border-line bg-surface p-4">
-    <header class="flex flex-wrap items-baseline justify-between gap-2">
-      <h3 class="text-lg font-semibold">{{ kindLabel(props.approval.kind) }}</h3>
-      <p class="font-medium">
-        <span aria-hidden="true">{{ statusSymbol(props.approval.effective_status) }}</span
+  <article class="card space-y-4 p-4 sm:p-6">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex min-w-0 items-start gap-3">
+        <span
+          aria-hidden="true"
+          class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold-soft text-gold-ink"
+        >
+          <AppIcon name="shield" :size="18" />
+        </span>
+        <h3 class="pt-1 text-lg font-semibold break-words">
+          {{ kindLabel(props.approval.kind) }}
+        </h3>
+      </div>
+      <StatusChip
+        as="p"
+        :tone="STATUS_TONES[props.approval.effective_status]"
+        :icon="STATUS_ICONS[props.approval.effective_status]"
+        class="self-start sm:shrink-0"
         ><span class="sr-only">Statut :</span>
-        {{ statusLabel(props.approval.effective_status) }}
-      </p>
+        {{ statusLabel(props.approval.effective_status) }}</StatusChip
+      >
     </header>
 
-    <dl class="grid gap-x-4 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
-      <template v-if="patient">
-        <dt class="font-medium text-muted">Patient</dt>
+    <dl class="detail-list border-t border-line pt-4">
+      <div v-if="patient">
+        <dt>Patient</dt>
         <dd class="break-words">{{ patient }}</dd>
-      </template>
-      <template v-if="props.approval.target.invoice_number">
-        <dt class="font-medium text-muted">Facture</dt>
+      </div>
+      <div v-if="props.approval.target.invoice_number">
+        <dt>Facture</dt>
         <dd>{{ props.approval.target.invoice_number }}</dd>
-      </template>
-      <template v-if="props.approval.target.visit_occurred_at">
-        <dt class="font-medium text-muted">Visite</dt>
+      </div>
+      <div v-if="props.approval.target.visit_occurred_at">
+        <dt>Visite</dt>
         <dd>Arrivée le {{ formatInstantFr(props.approval.target.visit_occurred_at) }}</dd>
-      </template>
-      <template v-if="props.approval.target.payment">
-        <dt class="font-medium text-muted">Paiement visé</dt>
+      </div>
+      <div v-if="props.approval.target.payment">
+        <dt>Paiement visé</dt>
         <dd>
           {{ formatMoney(props.approval.target.payment.amount) }},
           {{ paymentMethodLabel(props.approval.target.payment.method) }}, le
           {{ formatInstantFr(props.approval.target.payment.effective_at) }}
         </dd>
-      </template>
-      <template v-for="line in subjectLines" :key="line.label">
-        <dt class="font-medium text-muted">{{ line.label }}</dt>
+      </div>
+      <div v-for="line in subjectLines" :key="line.label">
+        <dt>{{ line.label }}</dt>
         <dd class="break-words">{{ line.value }}</dd>
-      </template>
-      <dt class="font-medium text-muted">Motif</dt>
-      <dd class="break-words whitespace-pre-line">{{ props.approval.reason }}</dd>
-      <dt class="font-medium text-muted">Demandée par</dt>
-      <dd>
-        {{ props.approval.requested_by_name }}, le
-        {{ formatInstantFr(props.approval.requested_at) }}
-      </dd>
-      <template v-if="props.approval.expires_at">
-        <dt class="font-medium text-muted">Échéance</dt>
+      </div>
+      <div class="col-span-full">
+        <dt>Motif</dt>
+        <dd class="break-words whitespace-pre-line">{{ props.approval.reason }}</dd>
+      </div>
+      <div>
+        <dt>Demandée par</dt>
+        <dd>
+          {{ props.approval.requested_by_name }}, le
+          {{ formatInstantFr(props.approval.requested_at) }}
+        </dd>
+      </div>
+      <div v-if="props.approval.expires_at">
+        <dt>Échéance</dt>
         <dd>{{ formatInstantFr(props.approval.expires_at) }}</dd>
-      </template>
-      <template v-if="props.approval.decided_at">
-        <dt class="font-medium text-muted">Décision</dt>
+      </div>
+      <div v-if="props.approval.decided_at">
+        <dt>Décision</dt>
         <dd>
           {{ props.approval.decided_by_name ?? 'Compte inconnu' }}, le
           {{ formatInstantFr(props.approval.decided_at) }}
         </dd>
-      </template>
-      <template v-if="props.approval.decision_reason">
-        <dt class="font-medium text-muted">Motif de la décision</dt>
+      </div>
+      <div v-if="props.approval.decision_reason" class="col-span-full">
+        <dt>Motif de la décision</dt>
         <dd class="break-words whitespace-pre-line">{{ props.approval.decision_reason }}</dd>
-      </template>
+      </div>
     </dl>
 
-    <p v-if="own && isDecidable(props.approval)" class="text-sm text-muted">
-      Vous avez fait cette demande : une autre personne habilitée la décide. Pour agir vous-même,
-      exécutez directement l’opération.
+    <p
+      v-if="own && isDecidable(props.approval)"
+      class="flex items-start gap-2 rounded-lg border border-line bg-canvas p-3 text-sm text-muted"
+    >
+      <AppIcon name="info" :size="16" class="mt-0.5 text-gold" />
+      <span>
+        Vous avez fait cette demande : une autre personne habilitée la décide. Pour agir vous-même,
+        exécutez directement l’opération.
+      </span>
     </p>
 
-    <form v-if="canDecide" novalidate class="space-y-3" @submit.prevent>
+    <form v-if="canDecide" novalidate class="space-y-4 border-t border-line pt-4" @submit.prevent>
       <TextAreaField
         v-model="reason"
         :control-id="fieldId"
@@ -188,7 +237,7 @@ async function passwordConfirmed(): Promise<void> {
         :maxlength="DECISION_REASON_MAX_LENGTH"
         :error="error"
       />
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <AppButton
           variant="primary"
           :pending="saving && choice === 'APPROVED'"
@@ -196,8 +245,10 @@ async function passwordConfirmed(): Promise<void> {
           pending-label="Accord en cours…"
           :accessible-name="`Accorder : ${kindLabel(props.approval.kind)}`"
           @click="decide('APPROVED')"
-          >Accorder</AppButton
         >
+          <AppIcon name="check" :size="18" />
+          Accorder
+        </AppButton>
         <AppButton
           variant="danger"
           :pending="saving && choice === 'REFUSED'"
@@ -205,12 +256,19 @@ async function passwordConfirmed(): Promise<void> {
           pending-label="Refus en cours…"
           :accessible-name="`Refuser : ${kindLabel(props.approval.kind)}`"
           @click="decide('REFUSED')"
-          >Refuser</AppButton
         >
+          <AppIcon name="x" :size="18" />
+          Refuser
+        </AppButton>
       </div>
     </form>
-    <p v-else-if="error" role="alert" class="text-sm font-medium text-danger">
-      <span aria-hidden="true">⚠ </span>{{ error }}
+    <p
+      v-else-if="error"
+      role="alert"
+      class="flex items-start gap-2 text-sm font-medium text-danger"
+    >
+      <AppIcon name="alert" :size="16" class="mt-0.5" />
+      <span>{{ error }}</span>
     </p>
 
     <PasswordConfirmDialog

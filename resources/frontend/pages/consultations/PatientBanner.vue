@@ -8,12 +8,17 @@
  * un dossier sous un en-tête qui ne dit pas de qui il s'agit. L'état « archivée » ou « fusionnée » de la fiche
  * n'est pas porté par la consultation : il n'est pas affiché ici. Le professionnel est nommé quand le compte
  * connecté est celui de la consultation (la consultation ne porte que son identifiant).
+ *
+ * Bandeau de dossier : filet doré à gauche, pastille de patient (dès la tablette), identité puis date et
+ * professionnel ; la fente (puces d'état de l'examen) se place à droite dès la tablette, dessous sur
+ * téléphone.
  */
 import { computed } from 'vue'
 
 import { formatInstantFr } from '@/app/clinicTime'
 import { session } from '@/app/session'
 import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import type { Consultation } from '@/domain/contracts/generated'
 
 const props = defineProps<{
@@ -37,19 +42,41 @@ const clinician = computed(() =>
   <div
     role="group"
     aria-label="Patient et consultation"
-    class="space-y-2 rounded-lg border-2 border-line bg-surface p-3 lg:sticky lg:top-0 lg:z-30"
+    class="rounded-xl border border-l-4 border-line border-l-gold bg-surface p-3 shadow-card sm:p-4 lg:sticky lg:top-0 lg:z-30"
   >
-    <PatientIdentityHeader :patient="patient" />
-    <p class="text-sm text-muted">
-      Consultation du
-      <strong class="font-semibold text-ink">{{
-        formatInstantFr(props.consultation.effective_at)
-      }}</strong
-      ><template v-if="clinician">
-        <span aria-hidden="true"> · </span><span class="sr-only">, </span>Professionnel :
-        {{ clinician }}</template
-      >
-    </p>
-    <slot />
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div class="flex min-w-0 items-start gap-4">
+        <div
+          aria-hidden="true"
+          class="hidden size-12 shrink-0 items-center justify-center rounded-full bg-gold-soft text-gold-ink sm:flex"
+        >
+          <AppIcon name="user" :size="24" />
+        </div>
+        <div class="min-w-0 space-y-2">
+          <PatientIdentityHeader :patient="patient" />
+          <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+            <span class="inline-flex items-center gap-1.5">
+              <AppIcon name="calendar" :size="16" class="text-gold" />
+              <span
+                >Consultation du
+                <strong class="font-semibold text-ink">{{
+                  formatInstantFr(props.consultation.effective_at)
+                }}</strong></span
+              >
+            </span>
+            <span v-if="clinician" class="inline-flex items-center gap-1.5">
+              <AppIcon name="stethoscope" :size="16" class="text-gold" />
+              <span
+                ><span class="sr-only">, </span>Professionnel :
+                <strong class="font-semibold text-ink">{{ clinician }}</strong></span
+              >
+            </span>
+          </p>
+        </div>
+      </div>
+      <div v-if="$slots.default" class="sm:shrink-0">
+        <slot />
+      </div>
+    </div>
   </div>
 </template>

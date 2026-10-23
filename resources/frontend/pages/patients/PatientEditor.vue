@@ -21,6 +21,7 @@ import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import { formatDateFr } from '@/components/form/format'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
@@ -205,10 +206,8 @@ async function retry(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-modifier-patient" class="max-w-3xl space-y-6">
-    <h1 id="titre-modifier-patient" class="text-2xl font-semibold tracking-tight">
-      Modifier le patient
-    </h1>
+  <section aria-labelledby="titre-modifier-patient" class="page-stack max-w-4xl">
+    <PageHeader title-id="titre-modifier-patient" title="Modifier le patient" icon="edit" />
 
     <ReadStateMessage
       v-if="baseline === null"
@@ -219,7 +218,9 @@ async function retry(): Promise<void> {
     />
 
     <template v-else>
-      <PatientIdentityHeader :patient="baseline" />
+      <div class="card border-t-4 border-t-gold p-4 sm:p-6">
+        <PatientIdentityHeader :patient="baseline" avatar />
+      </div>
 
       <ReadStateMessage
         v-if="readProblem"
@@ -283,7 +284,7 @@ async function retry(): Promise<void> {
       <form class="space-y-6" novalidate @submit.prevent="submit">
         <PatientFormFields ref="fields" v-model="form" :errors="errors" :disabled="busy" />
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="form-actions">
           <AppButton
             type="submit"
             :pending="state === 'saving'"

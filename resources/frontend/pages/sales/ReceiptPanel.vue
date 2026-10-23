@@ -69,7 +69,7 @@ async function preview(): Promise<void> {
   <section
     :aria-labelledby="`recu-${props.receiptId}`"
     :class="[
-      'space-y-3 rounded-lg border-2 p-4',
+      'space-y-3 rounded-xl border p-4',
       props.highlight ? 'border-accent bg-accent-soft' : 'border-line bg-surface',
     ]"
   >

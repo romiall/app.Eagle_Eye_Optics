@@ -6,17 +6,25 @@ import type {
   CashRegister,
   CashRegisterList,
   CashSession,
+  CashSessionMovements,
+  CashSessionMovementsResponse,
   CashSessionPage,
   CashSessionReport,
   CashSessionReportResponse,
   CatalogPage,
+  CreditNote,
+  CreditNoteResponse,
   CurrentCashSessionResponse,
+  ExpenseCategory,
+  ExpenseCategoryList,
   Invoice,
   InvoicePage,
   InvoiceResponse,
   InvoicesStatus,
   Receipt,
   ReceiptResponse,
+  Refund,
+  RefundResponse,
   SalesSettings,
   SalesSettingsResponse,
   StockAvailabilityPage,
@@ -151,6 +159,26 @@ export async function getReceipt(id: string): Promise<ReadOutcome<Receipt>> {
   return answered(response.data)
 }
 
+/** Avoir (B07) : lignes créditées, part déjà remboursée, snapshot figé (source de son PDF). */
+export async function getCreditNote(id: string): Promise<ReadOutcome<CreditNote>> {
+  assertId(id, 'avoir')
+  const response = await apiRequest<CreditNoteResponse>(
+    'GET',
+    `/api/v1/credit-notes/${encodeURIComponent(id)}`,
+  )
+  return answered(response.data)
+}
+
+/** Remboursement (B08) : pièce liée à un avoir, snapshot figé (source de son PDF). */
+export async function getRefund(id: string): Promise<ReadOutcome<Refund>> {
+  assertId(id, 'remboursement')
+  const response = await apiRequest<RefundResponse>(
+    'GET',
+    `/api/v1/refunds/${encodeURIComponent(id)}`,
+  )
+  return answered(response.data)
+}
+
 /**
  * Empreinte SHA-256 (hexadécimal) des lignes affichées au moment de l'émission. Elle part avec
  * `IssueInvoice` (`catalog_snapshot_sha256`) et le serveur la consigne dans l'audit à côté de la sienne.
@@ -199,6 +227,27 @@ export async function getCashSessionReport(id: string): Promise<ReadOutcome<Cash
     'GET',
     `/api/v1/cash-sessions/${encodeURIComponent(id)}/report`,
   )
+  return answered(response.data)
+}
+
+/**
+ * Mouvements hors vente d'une session (L1D05) et revue de son écart : la sienne (caissière) ou toute
+ * session (gérante).
+ */
+export async function getCashSessionMovements(
+  id: string,
+): Promise<ReadOutcome<CashSessionMovements>> {
+  assertId(id, 'session de caisse')
+  const response = await apiRequest<CashSessionMovementsResponse>(
+    'GET',
+    `/api/v1/cash-sessions/${encodeURIComponent(id)}/movements`,
+  )
+  return answered(response.data)
+}
+
+/** Catégories de dépenses du cabinet (actives seulement sans `cash.manage`). */
+export async function listExpenseCategories(): Promise<ReadOutcome<ExpenseCategory[]>> {
+  const response = await apiRequest<ExpenseCategoryList>('GET', '/api/v1/expense-categories')
   return answered(response.data)
 }
 

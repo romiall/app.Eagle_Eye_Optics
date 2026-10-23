@@ -14,6 +14,7 @@
  */
 import { computed } from 'vue'
 
+import ClinicalHint from '@/components/clinical/ClinicalHint.vue'
 import MeasureField from '@/components/clinical/MeasureField.vue'
 import OpticalTable, {
   type OpticalColumn,
@@ -123,14 +124,14 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
 
 <template>
   <div class="space-y-8">
-    <p class="max-w-prose text-base text-muted">
+    <ClinicalHint>
       Saisissez les valeurs lues, telles que l’échelle les donne. Une case vide est « non mesuré » ;
       « 0 » est une valeur. Aucune conversion entre échelles n’est faite.
-    </p>
+    </ClinicalHint>
     <p
       v-if="props.scalesReady && props.scales.length === 0"
       role="alert"
-      class="rounded-lg border-2 border-warning bg-warning-soft p-3 text-base font-medium text-ink"
+      class="rounded-xl border border-warning bg-warning-soft p-3 text-base font-medium text-ink"
     >
       <span aria-hidden="true">⚠ </span>Aucune échelle d’acuité n’est configurée pour ce cabinet :
       les acuités ne peuvent pas être saisies. Demandez à l’exploitant de les créer (commande
@@ -139,37 +140,16 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
     <p
       v-else-if="!props.scalesReady"
       role="alert"
-      class="rounded-lg border-2 border-warning bg-warning-soft p-3 text-base font-medium text-ink"
+      class="rounded-xl border border-warning bg-warning-soft p-3 text-base font-medium text-ink"
     >
       <span aria-hidden="true">⚠ </span>Les échelles d’acuité n’ont pas pu être lues : le choix de
       l’échelle est indisponible. Aucune échelle n’est devinée.
     </p>
-    <p v-if="hasDemo" class="max-w-prose text-sm text-muted">
-      <span aria-hidden="true">○ </span>Échelles de démonstration : non validées cliniquement, à
-      remplacer par celles du cabinet.
-    </p>
+    <ClinicalHint v-if="hasDemo">
+      Échelles de démonstration : non validées cliniquement, à remplacer par celles du cabinet.
+    </ClinicalHint>
 
     <section v-for="group in ACUITY_GROUPS" :key="group.key" class="space-y-3">
-      <SelectField
-        :model-value="groupScale(model, group.key)"
-        :label="`${group.title} : échelle utilisée`"
-        :placeholder="
-          mixed.has(group.key) ? 'Plusieurs échelles : en choisir une' : 'Choisir l’échelle…'
-        "
-        :options="scaleOptions(group)"
-        :control-id="CONTROL_IDS.acuityScale(group.key)"
-        :error="props.errors[CONTROL_IDS.acuityScale(group.key)] ?? null"
-        :disabled="props.disabled || !props.scalesReady || props.scales.length === 0"
-        @update:model-value="chooseScale(group, $event)"
-      />
-      <p
-        v-if="mixed.has(group.key)"
-        class="rounded-lg border-2 border-warning bg-warning-soft p-3 text-sm font-medium text-ink"
-      >
-        <span aria-hidden="true">⚠ </span>Échelles différentes dans ce groupe : ses valeurs ne sont
-        pas comparables entre elles. Choisissez une seule échelle pour tout le groupe, ou gardez-les
-        séparées en connaissance de cause.
-      </p>
       <datalist :id="listId(group)">
         <option
           v-for="suggestion in acuitySuggestions(scaleCode(group))"
@@ -184,6 +164,30 @@ function valueOf(group: AcuityGroup, correction: string, eye: AcuityEye): string
         :model-value="measures(group)"
         :errors="errorsOf(group)"
       >
+        <template #intro>
+          <div class="max-w-md">
+            <SelectField
+              :model-value="groupScale(model, group.key)"
+              :label="`${group.title} : échelle utilisée`"
+              :placeholder="
+                mixed.has(group.key) ? 'Plusieurs échelles : en choisir une' : 'Choisir l’échelle…'
+              "
+              :options="scaleOptions(group)"
+              :control-id="CONTROL_IDS.acuityScale(group.key)"
+              :error="props.errors[CONTROL_IDS.acuityScale(group.key)] ?? null"
+              :disabled="props.disabled || !props.scalesReady || props.scales.length === 0"
+              @update:model-value="chooseScale(group, $event)"
+            />
+          </div>
+          <p
+            v-if="mixed.has(group.key)"
+            class="rounded-xl border border-warning bg-warning-soft p-3 text-sm font-medium text-ink"
+          >
+            <span aria-hidden="true">⚠ </span>Échelles différentes dans ce groupe : ses valeurs ne
+            sont pas comparables entre elles. Choisissez une seule échelle pour tout le groupe, ou
+            gardez-les séparées en connaissance de cause.
+          </p>
+        </template>
         <template #cellule-WITHOUT="cell">
           <MeasureField
             :label="`${group.title}, sans correction, ${cell.eye}`"

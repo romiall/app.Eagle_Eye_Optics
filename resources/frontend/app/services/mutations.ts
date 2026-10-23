@@ -34,8 +34,35 @@ export type OnlineCommandName =
   | 'CreateTaxRule'
   | 'UpdateTaxRule'
   | 'RegisterOpeningStock'
+  // Import contrôlé du catalogue (X01) : aperçu sans écriture puis toutes les lignes ou aucune.
+  | 'ImportCatalog'
+  // Demande d'un export contrôlé (X02) : l'archive est produite par la tâche planifiée du serveur.
+  | 'RequestExport'
   // Abandon d'un brouillon de facture (fichier 03) : en ligne seulement, version du brouillon attendue.
   | 'AbandonInvoiceDraft'
+  // Annulation d'une visite avant l'examen (P03) : en ligne seulement, version de la visite attendue.
+  | 'CancelVisit'
+  // Fusion manuelle de deux fiches (L1D08) : gérante, mot de passe confirmé, version de la fiche absorbée.
+  | 'MergePatients'
+  // Caisse (L1D05) : dépenses et mouvements hors vente, catégories de dépenses, revue d'un écart de clôture.
+  | 'RecordCashMovement'
+  | 'SaveExpenseCategory'
+  | 'ReviewCashVariance'
+  // Devis versionnés (L1D07) : brouillon, émission, révision, réponse du client, conversion en brouillon de facture.
+  | 'CreateQuoteDraft'
+  | 'UpdateQuoteDraft'
+  | 'IssueQuote'
+  | 'ReviseQuote'
+  | 'RecordQuoteDecision'
+  | 'ConvertQuote'
+  // Agenda (S01) : déplacement, annulation, absence d'un rendez-vous ; configuration de la gérante.
+  | 'RescheduleAppointment'
+  | 'CancelAppointment'
+  | 'MarkAppointmentNoShow'
+  | 'SaveSchedulingResource'
+  | 'ReplaceOpeningHours'
+  | 'AddResourceException'
+  | 'SaveAppointmentService'
 
 /**
  * Version attendue d'une route explicite : `none` (défaut : `expected_version: null` au corps), `entity`

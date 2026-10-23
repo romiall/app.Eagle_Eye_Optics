@@ -440,7 +440,15 @@ describe('démarrer l’examen', () => {
       permissions: ['visit.register', 'agenda.read', 'patient.read'],
     })
 
-    expect(cardOf(root, 0).querySelector('button')).toBeNull()
+    // Aucun bouton d'examen ; seule l'annulation administrative de la visite (visit.register) et sa confirmation
+    // restent proposées.
+    const labels = [...cardOf(root, 0).querySelectorAll('button')].map(
+      (button) => button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '',
+    )
+    const cancelOnly = (label: string): boolean =>
+      label.startsWith('Annuler la visite') || label === 'Garder la visite'
+    expect(labels.filter((label) => !cancelOnly(label))).toEqual([])
+    expect(textOf(cardOf(root, 0))).not.toContain('Démarrer l’examen')
     expect(CLINICIAN).toContain('clinical.write')
     unmount()
   })

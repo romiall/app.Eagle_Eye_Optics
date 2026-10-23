@@ -16,6 +16,8 @@ import { listApprovals } from '@/app/services/approvals'
 import { canOnScreen } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import type { ApprovalFilter } from '@/domain/approvals/approvals'
@@ -30,6 +32,8 @@ const filter = ref<ApprovalFilter>('REQUESTED')
 const page = ref(1)
 /** Décision enregistrée : dite ici, la relecture remplaçant la carte décidée. */
 const notice = ref<string | null>(null)
+/** Refus d'état d'une décision (409) : dit ici, la relecture remplaçant la carte qui l'a reçu. */
+const problem = ref<string | null>(null)
 
 const read = useServerRead<ApprovalPage>(
   () => listApprovals(filter.value === 'REQUESTED' ? 'REQUESTED' : null, page.value),
@@ -43,6 +47,7 @@ const heading = computed(() => (manager.value ? 'Approbations' : 'Mes demandes d
 function choose(next: ApprovalFilter): void {
   if (filter.value === next) return
   notice.value = null
+  problem.value = null
   filter.value = next
   page.value = 1
   void read.reload()
@@ -50,36 +55,43 @@ function choose(next: ApprovalFilter): void {
 
 function goToPage(next: number): void {
   notice.value = null
+  problem.value = null
   page.value = next
   void read.reload()
 }
 
 function decided(message: string | null): void {
   notice.value = message
+  problem.value = null
+  void read.reload()
+}
+
+function stale(message: string): void {
+  notice.value = null
+  problem.value = message
   void read.reload()
 }
 </script>
 
 <template>
-  <section aria-labelledby="titre-approbations" class="mx-auto max-w-4xl space-y-4">
-    <h1 id="titre-approbations" class="text-2xl font-semibold">{{ heading }}</h1>
-    <p class="max-w-prose text-base text-muted">
-      Une approbation autorise une seule opération précise, une fois, avant son échéance. Si son
-      contenu change (montant, lignes, mode), une nouvelle demande est nécessaire.
-      <template v-if="manager"> Décider exige de confirmer votre mot de passe. </template>
-    </p>
+  <section aria-labelledby="titre-approbations" class="page-stack max-w-4xl">
+    <PageHeader title-id="titre-approbations" :title="heading" icon="shield">
+      <p class="max-w-prose text-base text-muted">
+        Une approbation autorise une seule opération précise, une fois, avant son échéance. Si son
+        contenu change (montant, lignes, mode), une nouvelle demande est nécessaire.
+        <template v-if="manager"> Décider exige de confirmer votre mot de passe. </template>
+      </p>
+    </PageHeader>
 
-    <div role="group" aria-label="Filtrer les demandes" class="flex flex-wrap gap-2">
-      <AppButton
-        :variant="filter === 'REQUESTED' ? 'primary' : 'secondary'"
-        :pressed="filter === 'REQUESTED'"
-        @click="choose('REQUESTED')"
+    <div
+      role="group"
+      aria-label="Filtrer les demandes"
+      class="inline-flex max-w-full flex-wrap gap-1 self-start rounded-xl border border-line bg-surface p-1 shadow-card"
+    >
+      <AppButton variant="ghost" :pressed="filter === 'REQUESTED'" @click="choose('REQUESTED')"
         >En attente</AppButton
       >
-      <AppButton
-        :variant="filter === 'ALL' ? 'primary' : 'secondary'"
-        :pressed="filter === 'ALL'"
-        @click="choose('ALL')"
+      <AppButton variant="ghost" :pressed="filter === 'ALL'" @click="choose('ALL')"
         >Toutes</AppButton
       >
     </div>
@@ -87,6 +99,9 @@ function decided(message: string | null): void {
     <StateMessage v-if="notice" state="success" title="Décision enregistrée">{{
       notice
     }}</StateMessage>
+    <StateMessage v-if="problem" state="conflict" title="Décision non enregistrée">
+      {{ problem }} La liste a été relue.
+    </StateMessage>
 
     <SalesReadMessage
       v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
@@ -97,19 +112,20 @@ function decided(message: string | null): void {
       @retry="read.reload()"
     />
 
-    <StateMessage
-      v-else-if="read.state.value === 'empty'"
-      state="empty"
-      :title="filter === 'REQUESTED' ? 'Aucune demande en attente' : 'Aucune demande'"
-    >
-      Le serveur n’a {{ filter === 'REQUESTED' ? 'aucune demande en attente' : 'aucune demande' }}
-      {{ manager ? 'dans ce cabinet' : 'à votre nom' }}.
-    </StateMessage>
+    <div v-else-if="read.state.value === 'empty'" role="status">
+      <EmptyState
+        :title="filter === 'REQUESTED' ? 'Aucune demande en attente' : 'Aucune demande'"
+        icon="check-circle"
+      >
+        Le serveur n’a {{ filter === 'REQUESTED' ? 'aucune demande en attente' : 'aucune demande' }}
+        {{ manager ? 'dans ce cabinet' : 'à votre nom' }}.
+      </EmptyState>
+    </div>
 
     <template v-else-if="result !== null">
-      <ul class="space-y-3">
+      <ul role="list" class="space-y-4">
         <li v-for="approval in result.data" :key="approval.id">
-          <ApprovalCard :approval="approval" @decided="decided" />
+          <ApprovalCard :approval="approval" @decided="decided" @stale="stale" />
         </li>
       </ul>
 

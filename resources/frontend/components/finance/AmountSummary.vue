@@ -31,7 +31,7 @@ const rows = computed(() => [
   <div
     role="group"
     :aria-label="props.title"
-    class="rounded-lg border-2 border-line bg-surface p-4"
+    class="rounded-xl border border-line bg-surface shadow-card p-4"
   >
     <!-- Colonnes à la taille de leur contenu, qui passent à la ligne : un grand montant ne
          déborde jamais sur son voisin (pas de colonnes de largeur fixe). -->

@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * Contrastes de la palette (fichier 04 : « Vérifier le contraste de chaque association et des états
- * désactivés »), calculés selon WCAG 2.2 à partir des jetons réels de
+ * désactivés »), charte de la marque Eagle’s Eye Optics (logo du 2026-10-23 : encre #231F20, or
+ * #8D7827), calculés selon WCAG 2.2 à partir des jetons réels de
  * resources/frontend/styles/tokens.css. Texte : 4,5:1 au moins (AA texte courant) ; bordures de
  * champ, contour de focus et bordures porteuses d'état : 3:1 au moins (WCAG 1.4.11). Le texte
  * désactivé est tenu à 4,5:1 bien que WCAG l'exempte : il doit rester lisible.
@@ -80,6 +81,14 @@ const TEXT_PAIRS: readonly [string, string, string][] = [
   ['danger', 'danger-soft', 'titre du résumé d’erreurs'],
   ['ink', 'danger-soft', 'liens du résumé d’erreurs'],
   ['disabled-ink', 'disabled', 'bouton ou champ désactivé'],
+  ['gold-ink', 'surface', 'titre de marque, badge doré'],
+  ['gold-ink', 'canvas', 'titre de marque sur le fond'],
+  ['gold-ink', 'gold-soft', 'badge doré'],
+  ['gold-ink', 'primary-soft', 'repère doré sur une entrée active'],
+  ['ink', 'gold-soft', 'texte sur fond doré léger'],
+  ['muted', 'gold-soft', 'texte secondaire sur fond doré léger'],
+  ['accent', 'accent-soft', 'symbole de succès sur son fond'],
+  ['warning', 'warning-soft', 'symbole d’avertissement sur son fond'],
 ]
 
 /** Éléments non textuels porteurs d'information (WCAG 1.4.11). */
@@ -90,18 +99,23 @@ const NON_TEXT_PAIRS: readonly [string, string, string][] = [
   ['primary', 'surface', 'contour de focus, bordure de bouton secondaire'],
   ['primary', 'canvas', 'contour de focus sur le fond'],
   ['primary', 'primary-soft', 'repère de l’option active'],
+  ['gold', 'surface', 'filet doré, repère de l’entrée active, icône'],
+  ['gold', 'canvas', 'filet doré sur le fond'],
+  ['gold', 'primary-soft', 'repère doré de l’entrée de navigation active'],
+  ['gold', 'primary', 'filet doré sur un fond d’encre'],
 ]
 
 /** Teintes seulement décoratives (séparateurs, fonds d'encadré bordés d'une teinte vérifiée). */
 const DECORATIVE = new Set(['line'])
 
-describe('palette du fichier 04', () => {
-  it('reprend exactement les teintes proposées par le fichier 04', () => {
-    expect(color('canvas')).toBe('#f6f8fb')
+describe('palette de la marque', () => {
+  it('reprend l’encre et l’or du logo, sur des surfaces blanches', () => {
     expect(color('surface')).toBe('#ffffff')
-    expect(color('ink')).toBe('#172b3a')
-    expect(color('primary')).toBe('#155e75')
-    expect(color('accent')).toBe('#167d65')
+    expect(color('ink')).toBe('#231f20')
+    expect(color('gold')).toBe('#8d7827')
+    // L'or du logo n'est pas assez contrasté pour du petit texte : le texte doré a sa propre teinte.
+    expect(contrast('gold', 'surface')).toBeLessThan(4.5)
+    expect(contrast('gold-ink', 'surface')).toBeGreaterThanOrEqual(4.5)
   })
 
   it.each(TEXT_PAIRS)('texte %s sur %s (%s) : au moins 4,5:1', (foreground, background) => {

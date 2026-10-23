@@ -85,8 +85,10 @@ describe('services d’application : projections oui, tables et journal non', ()
     ["import { m } from '../../offline/projections/merge'\nexport const x = m\n"],
     ["import type { F } from '@/offline/projections/merge'\nexport type X = F\n"],
     ["export const load = () => import('@/offline/projections/merge')\n"],
+    // Façade du coffre (O01, vault.md D26) : opérations typées, ni table ni CryptoKey.
+    ["import { openOfflineVault } from '@/offline/api'\nexport const x = openOfflineVault\n"],
   ])(
-    'lit les projections : %#',
+    'lit les projections et la façade du coffre : %#',
     async (code) => {
       expect(await violations(SERVICE, code)).toEqual([])
     },
@@ -105,6 +107,8 @@ describe('services d’application : projections oui, tables et journal non', ()
     ["import { db } from '@/offline/db'\nexport const d = db\n"],
     ["import { j } from '@/offline/journal'\nexport const x = j\n"],
     ["import { t } from '../../offline/vault/tables'\nexport const x = t\n"],
+    ["import { Vault } from '@/offline/vault/vault'\nexport const x = Vault\n"],
+    ["import { VaultDatabase } from '@/offline/vault/db'\nexport const x = VaultDatabase\n"],
   ])(
     'refuse les tables et le journal : %#',
     async (code) => {

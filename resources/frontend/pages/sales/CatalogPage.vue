@@ -14,6 +14,7 @@ import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import TextField from '@/components/form/TextField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import { categoryLabel, stockModeLabel } from '@/domain/billing/catalog'
 import type {
@@ -98,9 +99,14 @@ async function onReload(): Promise<void> {
   <section aria-labelledby="titre-catalogue" class="max-w-3xl space-y-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <h1 id="titre-catalogue" class="text-2xl font-semibold tracking-tight">Catalogue</h1>
-      <AppButton v-if="editing !== 'new'" variant="primary" @click="edit('new')"
-        >Nouvel article</AppButton
-      >
+      <div class="flex flex-wrap gap-3">
+        <LinkButton :to="{ name: 'import-catalogue' }" variant="secondary"
+          >Importer un fichier CSV</LinkButton
+        >
+        <AppButton v-if="editing !== 'new'" variant="primary" @click="edit('new')"
+          >Nouvel article</AppButton
+        >
+      </div>
     </div>
 
     <StateMessage v-if="notice" state="success" :title="notice" />
@@ -154,7 +160,7 @@ async function onReload(): Promise<void> {
         <li
           v-for="item in result.data"
           :key="item.id"
-          class="space-y-2 rounded-lg border-2 border-line bg-surface p-3"
+          class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-3"
         >
           <p class="flex flex-wrap items-baseline justify-between gap-x-3">
             <span class="font-semibold break-words">{{ item.name }}</span>

@@ -104,7 +104,7 @@ function signedVariance(amount: number): string {
           <li
             v-for="row in rows"
             :key="row.method"
-            class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+            class="space-y-1 rounded-xl border border-line bg-surface shadow-card p-3"
           >
             <p class="flex flex-wrap items-baseline justify-between gap-x-3">
               <span class="font-semibold">{{ paymentMethodLabel(row.method) }}</span>
@@ -123,7 +123,7 @@ function signedVariance(amount: number): string {
           </li>
         </ul>
         <dl
-          class="grid gap-x-6 gap-y-2 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-3"
+          class="grid gap-x-6 gap-y-2 rounded-xl border border-line bg-surface shadow-card p-4 sm:grid-cols-3"
         >
           <div>
             <dt class="text-sm text-muted">Espèces (tiroir)</dt>
@@ -151,7 +151,7 @@ function signedVariance(amount: number): string {
           Ventes du jour et reste à encaisser
         </h2>
         <dl
-          class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2"
+          class="grid gap-x-6 gap-y-3 rounded-xl border border-line bg-surface shadow-card p-4 sm:grid-cols-2"
         >
           <div>
             <dt class="text-sm text-muted">Factures émises ce jour</dt>
@@ -201,7 +201,7 @@ function signedVariance(amount: number): string {
           <li
             v-for="session in report.sessions"
             :key="session.id"
-            class="space-y-2 rounded-lg border-2 border-line bg-surface p-3"
+            class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-3"
           >
             <p class="flex flex-wrap items-baseline justify-between gap-x-3">
               <span class="font-semibold break-words">{{

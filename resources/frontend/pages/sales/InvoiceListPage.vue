@@ -176,7 +176,7 @@ function clearPatient(): void {
         <li
           v-for="invoice in shown"
           :key="invoice.id"
-          class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+          class="space-y-1 rounded-xl border border-line bg-surface shadow-card p-3"
         >
           <p class="flex flex-wrap items-baseline justify-between gap-x-3">
             <RouterLink

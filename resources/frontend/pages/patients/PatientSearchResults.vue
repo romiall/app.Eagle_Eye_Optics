@@ -6,6 +6,9 @@
  * ne peut jamais s'afficher à la place de la courante. « Aucun résultat » n'est dit que si le
  * serveur a répondu à cette recherche (`useRead` : état « vide ») ; sans réponse, c'est « Recherche
  * serveur indisponible ». Identité administrative seulement : aucun résumé médical.
+ *
+ * Présentation : une carte de rangées séparées par un filet ; chaque rangée est un lien vers la fiche
+ * (pastille d'initiales, nom en gras, dossier, âge, téléphone, puces « archivée » et « fusionnée »).
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -14,7 +17,11 @@ import { clinicToday } from '@/app/clinicTime'
 import { searchPatients } from '@/app/services/patients'
 import { can } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
+import StatusChip from '@/components/layout/StatusChip.vue'
+import PatientInitials from '@/components/patients/PatientInitials.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import type { PatientPage } from '@/domain/contracts/generated'
@@ -85,25 +92,26 @@ watch(
   { immediate: true },
 )
 
-function line(patient: PatientPage['data'][number]): string {
-  return [
-    `Dossier ${patient.record_number}`,
-    formatAge(patientAge(patient.birth_date, today)),
-    patient.phone_primary ?? 'téléphone non renseigné',
-  ].join(' · ')
+/** Nombre de fiches trouvées, écrit au-dessus de la liste (le même texte est annoncé). */
+const found = computed(() =>
+  total.value === 1 ? '1 patient trouvé' : `${total.value} patients trouvés`,
+)
+
+function age(patient: PatientPage['data'][number]): string {
+  return formatAge(patientAge(patient.birth_date, today))
 }
 </script>
 
 <template>
   <section aria-labelledby="titre-resultats" class="space-y-4">
-    <h2
-      id="titre-resultats"
-      ref="heading"
-      tabindex="-1"
-      class="text-lg font-semibold focus:outline-none"
-    >
-      Résultats
-    </h2>
+    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <h2 id="titre-resultats" ref="heading" tabindex="-1" class="section-title focus:outline-none">
+        Résultats
+      </h2>
+      <p v-if="read.state.value === 'ready' && result !== null" class="text-sm text-muted">
+        {{ found }}
+      </p>
+    </div>
 
     <ReadStateMessage
       v-if="read.state.value !== 'ready' && read.state.value !== 'empty'"
@@ -126,54 +134,75 @@ function line(patient: PatientPage['data'][number]): string {
       </template>
     </StateMessage>
 
-    <StateMessage v-else-if="read.state.value === 'empty'" state="empty" title="Aucun résultat">
+    <EmptyState v-else-if="read.state.value === 'empty'" title="Aucun résultat" icon="search">
       Le serveur n’a trouvé aucun patient pour cette recherche. Vérifiez l’orthographe, ou cherchez
       par téléphone ou par numéro de dossier avant de créer une nouvelle fiche.
       <template v-if="canCreate" #action>
         <LinkButton to="/patients/nouveau" variant="primary">Créer un patient</LinkButton>
       </template>
-    </StateMessage>
+    </EmptyState>
 
     <template v-else-if="result !== null">
-      <ul class="space-y-2">
-        <li v-for="patient in result.data" :key="patient.id">
+      <ul class="card divide-y divide-line">
+        <li
+          v-for="patient in result.data"
+          :key="patient.id"
+          class="first:rounded-t-xl last:rounded-b-xl hover:bg-canvas"
+        >
           <RouterLink
             :to="{ name: 'patient', params: { id: patient.id } }"
-            class="block min-h-11 space-y-1 rounded-lg border-2 border-line bg-surface p-3 hover:border-primary"
+            class="group flex min-h-11 items-center gap-3 rounded-xl p-3 sm:gap-4 sm:px-5 sm:py-4"
           >
-            <span class="block font-semibold break-words text-ink">{{
-              patientDisplayName(patient.last_name, patient.first_names)
-            }}</span>
-            <span class="block text-sm break-words text-muted">{{ line(patient) }}</span>
-            <span
-              v-if="patient.archived"
-              class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-0.5 text-sm font-medium text-ink"
-              ><span aria-hidden="true">⚠</span>Fiche archivée</span
-            >
-            <span
-              v-if="patient.merged_into_patient_id !== null"
-              class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-0.5 text-sm font-medium text-ink"
-              ><span aria-hidden="true">⚠</span>Fiche fusionnée</span
-            >
+            <PatientInitials
+              :last-name="patient.last_name"
+              :first-names="patient.first_names"
+              size="sm"
+            />
+            <span class="min-w-0 flex-1 space-y-1">
+              <span class="block font-semibold break-words text-ink group-hover:underline">{{
+                patientDisplayName(patient.last_name, patient.first_names)
+              }}</span>
+              <span class="block text-sm break-words text-muted"
+                >Dossier <span class="font-medium text-ink">{{ patient.record_number }}</span> ·
+                {{ age(patient) }} · {{ patient.phone_primary ?? 'téléphone non renseigné' }}</span
+              >
+              <span
+                v-if="patient.archived || patient.merged_into_patient_id !== null"
+                class="flex flex-wrap gap-2 pt-0.5"
+              >
+                <StatusChip v-if="patient.archived" tone="warning" icon="alert"
+                  >Fiche archivée</StatusChip
+                >
+                <StatusChip
+                  v-if="patient.merged_into_patient_id !== null"
+                  tone="warning"
+                  icon="alert"
+                  >Fiche fusionnée</StatusChip
+                >
+              </span>
+            </span>
+            <AppIcon name="chevron-right" :size="20" class="text-muted group-hover:text-gold-ink" />
           </RouterLink>
         </li>
       </ul>
 
-      <PaginationControls
-        :current-page="result.meta.current_page"
-        :last-page="result.meta.last_page"
-        :total="result.meta.total"
-        @page="emit('page', $event)"
-      />
+      <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <PaginationControls
+          :current-page="result.meta.current_page"
+          :last-page="result.meta.last_page"
+          :total="result.meta.total"
+          @page="emit('page', $event)"
+        />
 
-      <p v-if="canCreate" class="text-sm text-muted">
-        Le patient n’est pas dans la liste ?
-        <RouterLink
-          to="/patients/nouveau"
-          class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-          >Créer un nouveau patient</RouterLink
-        >
-      </p>
+        <p v-if="canCreate" class="text-sm text-muted">
+          Le patient n’est pas dans la liste ?
+          <RouterLink
+            to="/patients/nouveau"
+            class="text-link inline-flex min-h-11 items-center font-semibold"
+            >Créer un nouveau patient</RouterLink
+          >
+        </p>
+      </div>
     </template>
   </section>
 </template>

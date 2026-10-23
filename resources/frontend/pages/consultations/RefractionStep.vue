@@ -12,12 +12,15 @@
  * - L'écart pupillaire (DP) de l'autoréfracteur se saisit à l'étape « Centrage ».
  * Le formulaire est tenu par l'écran ; ce composant affiche les erreurs reçues par identifiant de contrôle.
  */
+import ClinicalHint from '@/components/clinical/ClinicalHint.vue'
 import MeasureField from '@/components/clinical/MeasureField.vue'
 import OpticalTable, {
   type OpticalColumn,
   type OpticalMeasures,
 } from '@/components/clinical/OpticalTable.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
 import { TEXT_MAX_LENGTH } from '@/domain/clinical/fields'
 import { EYE_SHORT_LABELS, STAGE_LABELS } from '@/domain/clinical/labels'
@@ -126,14 +129,13 @@ function error(id: string): string | null {
 
 <template>
   <div class="space-y-8">
-    <p class="max-w-prose text-base text-muted">
+    <ClinicalHint>
       Trois mesures distinctes, jamais fusionnées. Une case vide est « non mesuré » ; « 0,00 » est
       une valeur. Les valeurs sont conservées telles que saisies (virgule ou point, deux décimales
       au plus).
-    </p>
+    </ClinicalHint>
 
-    <section v-for="stage in REFRACTION_STAGES" :key="stage" class="space-y-2">
-      <p class="text-sm text-muted">{{ HINTS[stage] }}</p>
+    <section v-for="stage in REFRACTION_STAGES" :key="stage" class="space-y-3">
       <OpticalTable
         :caption="STAGE_LABELS[stage]"
         :columns="columns(stage)"
@@ -141,6 +143,9 @@ function error(id: string): string | null {
         :model-value="measures(stage)"
         :errors="errorsOf(stage)"
       >
+        <template #intro>
+          <p class="max-w-prose text-sm text-muted">{{ HINTS[stage] }}</p>
+        </template>
         <template #cellule-sphere="cell">
           <MeasureField
             :label="cell.label"
@@ -188,35 +193,48 @@ function error(id: string): string | null {
           />
         </template>
       </OpticalTable>
-      <ul v-if="notices(stage).length > 0" class="space-y-1 text-sm text-ink">
-        <li v-for="notice in notices(stage)" :key="`${notice.eye}-${notice.text}`">
-          <span aria-hidden="true">○ </span>{{ STAGE_LABELS[stage] }},
-          {{ EYE_SHORT_LABELS[notice.eye] }} · {{ notice.text }}
+      <ul
+        v-if="notices(stage).length > 0"
+        class="space-y-1.5 rounded-lg border border-warning bg-warning-soft px-3 py-2.5 text-sm text-ink"
+      >
+        <li
+          v-for="notice in notices(stage)"
+          :key="`${notice.eye}-${notice.text}`"
+          class="flex items-start gap-2"
+        >
+          <AppIcon name="alert" :size="16" class="mt-0.5 text-warning" />
+          <span class="min-w-0">
+            {{ STAGE_LABELS[stage] }}, {{ EYE_SHORT_LABELS[notice.eye] }} · {{ notice.text }}
+          </span>
         </li>
       </ul>
     </section>
 
-    <TermChecklist
-      group="AMETROPIA"
-      legend="Type d’amétropie"
-      hint="Choix du professionnel : aucun n’est déduit des chiffres. Plusieurs choix possibles."
-      :id-base="CONTROL_IDS.ametropias"
-      :rows="model.ametropias"
-      :error="error(CONTROL_IDS.ametropias)"
-      :other-error="error(CONTROL_IDS.ametropiaOther)"
-      :disabled="props.disabled"
-      @update:rows="model = { ...model, ametropias: $event }"
-    />
+    <SectionCard flat>
+      <div class="space-y-6">
+        <TermChecklist
+          group="AMETROPIA"
+          legend="Type d’amétropie"
+          hint="Choix du professionnel : aucun n’est déduit des chiffres. Plusieurs choix possibles."
+          :id-base="CONTROL_IDS.ametropias"
+          :rows="model.ametropias"
+          :error="error(CONTROL_IDS.ametropias)"
+          :other-error="error(CONTROL_IDS.ametropiaOther)"
+          :disabled="props.disabled"
+          @update:rows="model = { ...model, ametropias: $event }"
+        />
 
-    <TextAreaField
-      :model-value="model.observations"
-      label="Observations"
-      :control-id="CONTROL_IDS.refractionObservations"
-      :rows="4"
-      :maxlength="TEXT_MAX_LENGTH"
-      :error="error(CONTROL_IDS.refractionObservations)"
-      :disabled="props.disabled"
-      @update:model-value="model = { ...model, observations: $event }"
-    />
+        <TextAreaField
+          :model-value="model.observations"
+          label="Observations"
+          :control-id="CONTROL_IDS.refractionObservations"
+          :rows="4"
+          :maxlength="TEXT_MAX_LENGTH"
+          :error="error(CONTROL_IDS.refractionObservations)"
+          :disabled="props.disabled"
+          @update:model-value="model = { ...model, observations: $event }"
+        />
+      </div>
+    </SectionCard>
   </div>
 </template>

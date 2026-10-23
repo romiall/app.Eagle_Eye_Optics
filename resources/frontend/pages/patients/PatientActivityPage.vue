@@ -10,14 +10,16 @@ import { useRoute } from 'vue-router'
 
 import { getPatient } from '@/app/services/patients'
 import StateMessage from '@/components/feedback/StateMessage.vue'
-import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
-import LinkButton from '@/components/ui/LinkButton.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import PatientRecordHeader from '@/components/patients/PatientRecordHeader.vue'
 import type { Patient } from '@/domain/contracts/generated'
 
 import PatientActivityList from './PatientActivityList.vue'
 import PatientRecordTabs from './PatientRecordTabs.vue'
 import ReadStateMessage from './ReadStateMessage.vue'
 import { usePatientRead } from './usePatientRead'
+
+const BACK = { to: '/patients', label: 'Retour aux patients' }
 
 const route = useRoute()
 const id = computed(() => String(route.params['id']))
@@ -32,15 +34,17 @@ const patient = computed(() => (read.data.value?.id === id.value ? read.data.val
 </script>
 
 <template>
-  <section aria-labelledby="titre-fiche" class="max-w-3xl space-y-6">
+  <section aria-labelledby="titre-fiche" class="page-stack max-w-5xl">
     <template v-if="patient">
-      <PatientIdentityHeader :patient="patient" as="h1" title-id="titre-fiche" />
-      <PatientRecordTabs :patient-id="patient.id" current="activite" />
-      <PatientActivityList :key="patient.id" :patient-id="patient.id" />
+      <PatientRecordHeader :patient="patient" title-id="titre-fiche" :back="BACK" />
+      <div class="space-y-6">
+        <PatientRecordTabs :patient-id="patient.id" current="activite" />
+        <PatientActivityList :key="patient.id" :patient-id="patient.id" />
+      </div>
     </template>
 
     <template v-else>
-      <h1 id="titre-fiche" class="text-2xl font-semibold tracking-tight">Dossier patient</h1>
+      <PageHeader title-id="titre-fiche" title="Dossier patient" icon="patients" :back="BACK" />
       <StateMessage v-if="read.state.value === 'ready'" state="error" title="Fiche inattendue">
         Le serveur a répondu avec une autre fiche que celle demandée : rien n’est affiché.
       </StateMessage>
@@ -51,7 +55,5 @@ const patient = computed(() => (read.data.value?.id === id.value ? read.data.val
         @retry="read.reload()"
       />
     </template>
-
-    <LinkButton to="/patients" variant="ghost">Retour aux patients</LinkButton>
   </section>
 </template>

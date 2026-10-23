@@ -5,9 +5,9 @@
  */
 export function controlClasses(invalid: boolean, extra = ''): string[] {
   return [
-    'min-h-11 w-full rounded-lg border-2 bg-surface px-3 py-2 text-base text-ink',
-    'disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink',
-    invalid ? 'border-danger' : 'border-field',
+    'min-h-11 w-full rounded-lg border bg-surface px-3 py-2 text-base text-ink shadow-[inset_0_1px_2px_rgb(35_31_32/0.04)]',
+    'hover:border-primary disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink',
+    invalid ? 'border-danger ring-1 ring-danger' : 'border-field',
     extra,
   ]
 }

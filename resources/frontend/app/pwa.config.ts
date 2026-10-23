@@ -73,13 +73,15 @@ export function createPwaOptions(
       scope: '/',
       display: 'standalone',
       orientation: 'any',
-      // Palette du fichier 04 : fond et action principale (resources/frontend/styles/tokens.css).
-      background_color: '#f6f8fb',
-      theme_color: '#155e75',
+      // Charte du logo : fond de l'application et encre de la marque (resources/frontend/styles/tokens.css).
+      background_color: '#f7f5f1',
+      theme_color: '#231f20',
       icons: PWA_ICONS.map((icon) => ({ ...icon })),
     },
     workbox: {
-      globPatterns: ['assets/**/*.{js,css,woff2}'],
+      // Le logo de la marque (SVG de l'interface, PNG de l'en-tête des documents PDF) est précaché comme le code :
+      // il s'affiche et s'imprime hors ligne.
+      globPatterns: ['assets/**/*.{js,css,woff2,svg,png}'],
       additionalManifestEntries: staticPrecacheEntries(revisions, shellRevision),
       // Les chemins issus de Vite sont relatifs à public/build ; ceux de public/ commencent par « / ».
       manifestTransforms: [

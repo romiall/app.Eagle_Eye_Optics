@@ -5,6 +5,7 @@
  * réinitialisation du mot de passe. La gérante ne se modifie ni profils ni activation, ne se déroge pas et ne
  * réinitialise pas son propre mot de passe ici ; un compte gérante ne se réinitialise pas depuis l'écran
  * (procédure de secours sur le serveur). L'écran ne propose que ce que le serveur accepte, et le dit.
+ * Présentation : une carte de synthèse, puis une carte par opération, dans l'ordre de lecture.
  */
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
@@ -12,10 +13,15 @@ import { RouterLink, useRoute } from 'vue-router'
 import { clinicTimeZone } from '@/app/clinicTime'
 import { getStaffMember } from '@/app/services/staff'
 import { session } from '@/app/session'
+import StaffRoleChips from '@/components/admin/StaffRoleChips.vue'
+import StaffStateChip from '@/components/admin/StaffStateChip.vue'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
-import { permissionLabel, rolesLabel } from '@/domain/access/staff'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import { permissionLabel } from '@/domain/access/staff'
 import type { StaffMember } from '@/domain/contracts/generated'
 import { useServerRead } from '@/pages/today/useServerRead'
 
@@ -43,19 +49,13 @@ function updated(next: StaffMember): void {
 </script>
 
 <template>
-  <section aria-labelledby="titre-compte" class="max-w-2xl space-y-8">
-    <div class="space-y-1">
-      <h1 id="titre-compte" class="text-2xl font-semibold tracking-tight break-words">
-        {{ member?.display_name ?? 'Compte du personnel' }}
-      </h1>
-      <p class="text-muted">
-        <RouterLink
-          :to="{ name: 'parametres-personnel' }"
-          class="text-primary underline underline-offset-4"
-          >Personnel</RouterLink
-        >
-      </p>
-    </div>
+  <section aria-labelledby="titre-compte" class="page-stack max-w-3xl">
+    <PageHeader
+      title-id="titre-compte"
+      :title="member?.display_name ?? 'Compte du personnel'"
+      icon="user"
+      :back="{ to: { name: 'parametres-personnel' }, label: 'Personnel' }"
+    />
 
     <StateMessage v-if="flash" state="success" :title="flash" />
 
@@ -69,35 +69,56 @@ function updated(next: StaffMember): void {
     />
 
     <template v-if="member !== null">
-      <dl class="grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
-        <dt class="font-medium">Identifiant</dt>
-        <dd class="break-all">{{ member.login }}</dd>
-        <dt class="font-medium">Adresse électronique</dt>
-        <dd class="break-all">{{ member.email ?? 'Non renseignée' }}</dd>
-        <dt class="font-medium">Profils</dt>
-        <dd>
-          {{ rolesLabel(member.roles) }}
-        </dd>
-        <dt class="font-medium">État</dt>
-        <dd>
-          <template v-if="member.active"><span aria-hidden="true">● </span>Actif</template>
-          <template v-else><span aria-hidden="true">○ </span>Désactivé</template>
-        </dd>
-      </dl>
+      <SectionCard>
+        <dl class="detail-list">
+          <div>
+            <dt>Identifiant</dt>
+            <dd class="break-all">{{ member.login }}</dd>
+          </div>
+          <div>
+            <dt>Adresse électronique</dt>
+            <dd class="break-all">{{ member.email ?? 'Non renseignée' }}</dd>
+          </div>
+          <div>
+            <dt>Profils</dt>
+            <dd class="pt-1">
+              <StaffRoleChips :roles="member.roles" />
+            </dd>
+          </div>
+          <div>
+            <dt>État</dt>
+            <dd class="pt-1">
+              <StaffStateChip :active="member.active" />
+            </dd>
+          </div>
+        </dl>
 
-      <details class="rounded-lg border-2 border-line bg-surface p-3">
-        <summary class="min-h-11 cursor-pointer py-2 font-medium">
-          Droits effectifs ({{ member.permissions.length }})
-        </summary>
-        <p class="mb-2 text-sm text-muted">
-          Calculés par le serveur à partir des profils et des dérogations en cours.
-        </p>
-        <ul class="list-disc space-y-1 pl-5">
-          <li v-for="code in member.permissions" :key="code">
-            {{ permissionLabel(code) }} <span class="text-sm text-muted">({{ code }})</span>
-          </li>
-        </ul>
-      </details>
+        <details class="group mt-6 rounded-xl border border-line bg-canvas">
+          <summary
+            class="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-2 font-medium hover:bg-primary-soft"
+          >
+            <AppIcon name="key" :size="18" class="text-gold" />
+            <span class="min-w-0 flex-1">Droits effectifs ({{ member.permissions.length }})</span>
+            <AppIcon name="chevron-down" :size="18" class="text-muted group-open:rotate-180" />
+          </summary>
+          <div class="space-y-3 border-t border-line px-4 pt-3 pb-4">
+            <p class="text-sm text-muted">
+              Calculés par le serveur à partir des profils et des dérogations en cours.
+            </p>
+            <ul role="list" class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              <li v-for="code in member.permissions" :key="code" class="flex min-w-0 gap-2">
+                <span
+                  aria-hidden="true"
+                  class="mt-2.5 size-1.5 shrink-0 rounded-full bg-gold"
+                ></span>
+                <span class="min-w-0 break-words">
+                  {{ permissionLabel(code) }} <span class="text-sm text-muted">({{ code }})</span>
+                </span>
+              </li>
+            </ul>
+          </div>
+        </details>
+      </SectionCard>
 
       <FreshnessNote
         v-if="read.freshness.value"
@@ -108,20 +129,36 @@ function updated(next: StaffMember): void {
       <StaffProfileForm :member="member" :self="self" @updated="updated" />
 
       <StaffOverrideForm v-if="!self" :member="member" @updated="updated" />
-      <p v-else class="max-w-prose text-muted">
-        Vous ne vous appliquez pas de dérogation : une autre gérante le fait.
+      <p
+        v-else
+        class="flex max-w-prose items-start gap-3 rounded-xl border border-line bg-surface p-4 text-muted"
+      >
+        <AppIcon name="info" :size="18" class="mt-1 text-gold" />
+        <span>Vous ne vous appliquez pas de dérogation : une autre gérante le fait.</span>
       </p>
 
       <StaffPasswordReset v-if="!self && !isManager" :member="member" @reset="read.reload()" />
-      <p v-else-if="self" class="max-w-prose text-muted">
-        Votre propre mot de passe se change avec votre mot de passe actuel :
-        <RouterLink :to="{ name: 'mot-de-passe' }" class="text-primary underline underline-offset-4"
-          >Changer mon mot de passe</RouterLink
-        >.
+      <p
+        v-else-if="self"
+        class="flex max-w-prose items-start gap-3 rounded-xl border border-line bg-surface p-4 text-muted"
+      >
+        <AppIcon name="key" :size="18" class="mt-1 text-gold" />
+        <span>
+          Votre propre mot de passe se change avec votre mot de passe actuel :
+          <RouterLink :to="{ name: 'mot-de-passe' }" class="text-link font-medium"
+            >Changer mon mot de passe</RouterLink
+          >.
+        </span>
       </p>
-      <p v-else class="max-w-prose text-muted">
-        Le mot de passe d’une gérante ne se réinitialise pas depuis l’application : la procédure de
-        secours se fait sur le serveur (voir le guide d’exploitation).
+      <p
+        v-else
+        class="flex max-w-prose items-start gap-3 rounded-xl border border-line bg-surface p-4 text-muted"
+      >
+        <AppIcon name="lock" :size="18" class="mt-1 text-gold" />
+        <span>
+          Le mot de passe d’une gérante ne se réinitialise pas depuis l’application : la procédure
+          de secours se fait sur le serveur (voir le guide d’exploitation).
+        </span>
       </p>
     </template>
   </section>

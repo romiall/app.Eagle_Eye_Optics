@@ -85,7 +85,8 @@ describe('configuration PWA : jamais d’API en cache ni de repli SPA sur /api',
       '/icons/favicon.svg',
     ])
     expect(entries.some((entry) => entry.url.startsWith('/api'))).toBe(false)
-    expect(workbox.globPatterns).toEqual(['assets/**/*.{js,css,woff2}'])
+    // Le logo (SVG émis par Vite) est précaché avec le code de l'application.
+    expect(workbox.globPatterns).toEqual(['assets/**/*.{js,css,woff2,svg,png}'])
   })
 
   it('met à jour sur confirmation et sans prise de contrôle immédiate (aucune commande locale interrompue)', () => {

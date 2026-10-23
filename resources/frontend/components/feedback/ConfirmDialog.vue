@@ -139,7 +139,7 @@ function onClose(): void {
     :aria-labelledby="titleId"
     :aria-describedby="bodyId"
     tabindex="-1"
-    class="m-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-ink/40"
+    class="m-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-t-4 border-line border-t-gold bg-surface p-0 text-ink shadow-xl backdrop:bg-ink/40"
     @cancel="onCancel"
     @close="onClose"
   >

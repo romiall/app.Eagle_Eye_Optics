@@ -248,7 +248,7 @@ async function retry(): Promise<void> {
   <form
     novalidate
     :aria-labelledby="`${prefix}-titre`"
-    class="space-y-4 rounded-lg border-2 border-primary bg-surface p-4"
+    class="space-y-4 rounded-xl border border-primary bg-surface p-4"
     @submit.prevent="submit"
   >
     <h2 :id="`${prefix}-titre`" class="text-lg font-semibold">

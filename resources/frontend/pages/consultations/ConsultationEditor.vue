@@ -7,9 +7,13 @@
  *
  * - En-tête patient fixe sur écran large (identité, dossier, date et heure, professionnel), lu dans la
  *   consultation elle-même.
+ * - Liste des étapes en pastilles numérotées (colonne latérale sur grand écran) : étape courante,
+ *   rubrique déjà renseignée sur le serveur (coche, décrite aux lecteurs d'écran), saisie non
+ *   enregistrée (« non enregistrée », en toutes lettres).
  * - Précédent / Enregistrer / Suivant : « Suivant » valide et enregistre l'étape avant d'avancer. Une
  *   étape n'est dite enregistrée qu'après la réponse du serveur (« Enregistré sur le serveur à
- *   10h42 ») ; rien n'est dit « enregistré sur ce poste ».
+ *   10h42 ») ; rien n'est dit « enregistré sur ce poste ». Sur téléphone, la barre de ces boutons
+ *   reste visible en bas de l'écran, au-dessus des raccourcis, tant que l'étape est à l'écran.
  * - Conflit de version (409) : saisie conservée, « Recharger la consultation » la rebase sur la
  *   version actuelle et signale les valeurs modifiées des deux côtés.
  * - Terminer l'examen : confirmation, récapitulatif des rubriques non renseignées (jamais transformées en
@@ -23,21 +27,26 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { clinicTimeZone, formatInstantFr } from '@/app/clinicTime'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
+import WorkStatusChip from '@/components/clinical/WorkStatusChip.vue'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
+import StatusChip from '@/components/layout/StatusChip.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import { missingDataText } from '@/domain/clinical/completion'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
 import {
   DELIVERED_STEPS,
+  type DeliveredStep,
   REFERRAL_BADGE,
   STEP_TITLES,
   urgencyLabel,
-  workStatusSymbol,
 } from '@/domain/clinical/labels'
 
 import AnamnesisStep from './AnamnesisStep.vue'
@@ -170,11 +179,40 @@ const completedAt = computed(() => {
   return at === null || at === undefined ? null : formatInstantFr(at)
 })
 const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
+
+/** Icône décorative de chaque rubrique (en-tête de l'étape affichée). */
+const STEP_ICONS: Readonly<Record<DeliveredStep, string>> = {
+  ANAMNESIS: 'clipboard',
+  HISTORIES: 'history',
+  VISUAL_ACUITY: 'eye',
+  REFRACTION: 'glasses',
+  CENTERING: 'map-pin',
+  MEDICATIONS: 'file-plus',
+  CONCLUSION: 'stethoscope',
+}
+
+/** Rubrique déjà renseignée dans la version lue sur le serveur (pas dans la saisie en cours). */
+function stepFilled(step: DeliveredStep): boolean {
+  const recap = completionRecap.value
+  return recap !== null && !recap.emptySteps.includes(step)
+}
+
+/** Pastille du numéro d'étape : étape courante, rubrique renseignée, ou à faire. */
+function stepBadge(step: DeliveredStep): string {
+  if (step === current.value) return 'bg-primary text-primary-contrast'
+  if (stepFilled(step)) return 'bg-accent-soft text-accent'
+  return 'bg-gold-soft text-gold-ink'
+}
 </script>
 
 <template>
-  <section aria-labelledby="titre-consultation" class="max-w-3xl space-y-6">
-    <h1 id="titre-consultation" class="text-2xl font-semibold tracking-tight">Consultation</h1>
+  <section aria-labelledby="titre-consultation" class="page-stack max-w-6xl">
+    <PageHeader
+      title-id="titre-consultation"
+      title="Consultation"
+      icon="consultations"
+      :back="{ to: { name: 'consultations' }, label: 'Retour aux consultations' }"
+    />
 
     <ConsultationReadMessage
       v-if="baseline === null"
@@ -186,19 +224,16 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
 
     <template v-else>
       <PatientBanner :consultation="baseline">
-        <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
-          <span class="inline-flex items-center gap-1 rounded-lg border-2 border-line px-2 py-1"
-            ><span aria-hidden="true">{{ workStatusSymbol(baseline.status) }}</span
-            ><span class="sr-only">État du travail : </span>{{ statusLabel }}</span
+        <p class="flex flex-wrap items-center gap-2 sm:justify-end">
+          <WorkStatusChip :status="baseline.status" :label="statusLabel"
+            ><span class="sr-only">État du travail : </span></WorkStatusChip
           >
-          <span
-            v-if="referred"
-            class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-1"
-            ><span aria-hidden="true">⚠</span>{{ REFERRAL_BADGE
+          <StatusChip v-if="referred" tone="warning" icon="alert"
+            >{{ REFERRAL_BADGE
             }}<template v-if="referral"
               ><span aria-hidden="true"> · </span><span class="sr-only">, niveau : </span
               >{{ referral }}</template
-            ></span
+            ></StatusChip
           >
         </p>
       </PatientBanner>
@@ -308,187 +343,244 @@ const revisionCount = computed(() => baseline.value?.revisions.length ?? 0)
           </template>
         </StateMessage>
 
-        <nav aria-label="Étapes de la consultation">
-          <ol class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <li v-for="(step, index) in DELIVERED_STEPS" :key="step">
-              <button
-                type="button"
-                :aria-current="step === current ? 'step' : undefined"
-                :disabled="busy"
-                :class="[
-                  'flex min-h-11 w-full items-center gap-2 rounded-lg border-2 px-3 py-2 text-left text-base font-medium',
-                  'disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink',
-                  step === current
-                    ? 'border-primary bg-primary-soft text-primary'
-                    : 'border-line bg-surface text-ink hover:bg-primary-soft',
-                ]"
-                @click="editor.goTo(step)"
-              >
-                <span class="font-semibold">{{ index + 1 }}.</span>
-                <span class="min-w-0 break-words">{{ STEP_TITLES[step] }}</span>
-                <span v-if="dirtySteps.includes(step)" class="text-sm font-normal text-warning"
-                  ><span aria-hidden="true">● </span>non enregistrée</span
+        <div class="grid gap-6 xl:grid-cols-[15rem_minmax(0,1fr)] xl:items-start">
+          <nav aria-label="Étapes de la consultation">
+            <ol class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1">
+              <li v-for="(step, index) in DELIVERED_STEPS" :key="step" class="min-w-0">
+                <button
+                  type="button"
+                  :aria-current="step === current ? 'step' : undefined"
+                  :aria-describedby="stepFilled(step) ? 'etapes-rubrique-renseignee' : undefined"
+                  :disabled="busy"
+                  :class="[
+                    'flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left text-base font-medium',
+                    'disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink',
+                    step === current
+                      ? 'border-primary bg-primary-soft text-primary shadow-[inset_0_-3px_0_var(--color-gold)]'
+                      : 'border-line bg-surface text-ink shadow-card hover:border-gold hover:bg-primary-soft',
+                  ]"
+                  @click="editor.goTo(step)"
                 >
-              </button>
-            </li>
-          </ol>
-        </nav>
+                  <span
+                    :class="[
+                      'flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums',
+                      stepBadge(step),
+                    ]"
+                    >{{ index + 1 }}<span class="sr-only">.</span></span
+                  >
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="break-words">{{ STEP_TITLES[step] }}</span>
+                    <span v-if="dirtySteps.includes(step)" class="text-sm font-normal text-warning"
+                      ><span aria-hidden="true">● </span>non enregistrée</span
+                    >
+                  </span>
+                  <AppIcon
+                    v-if="stepFilled(step)"
+                    name="check-circle"
+                    :size="18"
+                    class="text-accent"
+                  />
+                </button>
+              </li>
+            </ol>
+            <!-- Description des étapes cochées, lue avec le bouton, jamais affichée. -->
+            <p id="etapes-rubrique-renseignee" hidden>Rubrique déjà renseignée</p>
+          </nav>
 
-        <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
+          <div class="min-w-0 space-y-6">
+            <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
 
-        <form class="space-y-6" novalidate @submit.prevent="onSubmit">
-          <h2
-            :id="CONTROL_IDS.step"
-            ref="heading"
-            tabindex="-1"
-            class="text-xl font-semibold focus:outline-none"
-          >
-            Étape {{ stepIndex + 1 }} sur {{ DELIVERED_STEPS.length }} :
-            {{ STEP_TITLES[current] }}
-          </h2>
-
-          <AnamnesisStep
-            v-if="current === 'ANAMNESIS'"
-            v-model="drafts.ANAMNESIS"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-          <HistoriesStep
-            v-else-if="current === 'HISTORIES'"
-            v-model="drafts.HISTORIES"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-          <VisualAcuityStep
-            v-else-if="current === 'VISUAL_ACUITY'"
-            v-model="drafts.VISUAL_ACUITY"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-            :scales="scales"
-            :scales-ready="scalesReady"
-          />
-          <RefractionStep
-            v-else-if="current === 'REFRACTION'"
-            v-model="drafts.REFRACTION"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-          <CenteringStep
-            v-else-if="current === 'CENTERING'"
-            v-model="drafts.CENTERING"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-          <MedicationsStep
-            v-else-if="current === 'MEDICATIONS'"
-            v-model="drafts.MEDICATIONS"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-          <ConclusionStep
-            v-else
-            v-model="drafts.CONCLUSION"
-            :errors="errorMap"
-            :disabled="readOnly || busy"
-          />
-
-          <p v-if="notice" role="status" class="font-medium text-ink">
-            <span aria-hidden="true">○ </span>{{ notice }}
-          </p>
-          <p v-if="currentDirty" class="text-sm font-medium text-warning">
-            <span aria-hidden="true">● </span>Modifications non enregistrées sur cette étape.
-          </p>
-
-          <section
-            v-if="amending"
-            aria-labelledby="titre-motif-correction"
-            class="space-y-3 rounded-lg border-2 border-warning bg-warning-soft p-4"
-          >
-            <h3 id="titre-motif-correction" class="text-lg font-semibold">
-              Motif de la correction
-            </h3>
-            <TextAreaField
-              v-model="amendReason"
-              label="Pourquoi corrigez-vous cet examen ?"
-              hint="Obligatoire. Conservé avec la révision, lisible par les profils cliniques ; jamais recopié dans le journal d’audit."
-              :control-id="AMEND_REASON_ID"
-              :rows="3"
-              :maxlength="1000"
-              :error="amendReasonError"
-              :disabled="busy"
-              required
-            />
-          </section>
-
-          <div class="flex flex-wrap items-center gap-3">
-            <AppButton variant="secondary" :disabled="busy || isFirst" @click="editor.previous"
-              >Précédent</AppButton
+            <form
+              class="card space-y-6 p-4 lg:p-6 max-md:[&_:is(input,select,textarea)]:scroll-mb-48"
+              novalidate
+              @submit.prevent="onSubmit"
             >
-            <template v-if="amending">
-              <AppButton
-                id="consultation-enregistrer"
-                type="submit"
-                variant="primary"
-                :pending="saving && operation === 'amend'"
-                pending-label="Enregistrement de la correction…"
-                :disabled="busy || needsReload"
-                >Enregistrer la correction</AppButton
+              <div class="flex items-start gap-3 border-b border-line pb-4">
+                <div
+                  aria-hidden="true"
+                  class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-soft text-gold-ink"
+                >
+                  <AppIcon :name="STEP_ICONS[current]" :size="20" />
+                </div>
+                <h2
+                  :id="CONTROL_IDS.step"
+                  ref="heading"
+                  tabindex="-1"
+                  class="min-w-0 focus:outline-none"
+                >
+                  <span class="block text-sm font-semibold text-gold-ink"
+                    >Étape {{ stepIndex + 1 }} sur {{ DELIVERED_STEPS.length
+                    }}<span class="sr-only"> : </span></span
+                  ><span class="block text-xl font-semibold break-words">{{
+                    STEP_TITLES[current]
+                  }}</span>
+                </h2>
+              </div>
+
+              <AnamnesisStep
+                v-if="current === 'ANAMNESIS'"
+                v-model="drafts.ANAMNESIS"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+              <HistoriesStep
+                v-else-if="current === 'HISTORIES'"
+                v-model="drafts.HISTORIES"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+              <VisualAcuityStep
+                v-else-if="current === 'VISUAL_ACUITY'"
+                v-model="drafts.VISUAL_ACUITY"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+                :scales="scales"
+                :scales-ready="scalesReady"
+              />
+              <RefractionStep
+                v-else-if="current === 'REFRACTION'"
+                v-model="drafts.REFRACTION"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+              <CenteringStep
+                v-else-if="current === 'CENTERING'"
+                v-model="drafts.CENTERING"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+              <MedicationsStep
+                v-else-if="current === 'MEDICATIONS'"
+                v-model="drafts.MEDICATIONS"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+              <ConclusionStep
+                v-else
+                v-model="drafts.CONCLUSION"
+                :errors="errorMap"
+                :disabled="readOnly || busy"
+              />
+
+              <p v-if="notice" role="status" class="font-medium text-ink">
+                <span aria-hidden="true">○ </span>{{ notice }}
+              </p>
+
+              <section
+                v-if="amending"
+                aria-labelledby="titre-motif-correction"
+                class="space-y-3 rounded-xl border border-warning bg-warning-soft p-4"
               >
-              <AppButton v-if="!isLast" variant="secondary" :disabled="busy" @click="editor.advance"
-                >Suivant</AppButton
+                <h3
+                  id="titre-motif-correction"
+                  class="flex items-center gap-2 text-lg font-semibold"
+                >
+                  <AppIcon name="edit" :size="18" class="text-warning" />Motif de la correction
+                </h3>
+                <TextAreaField
+                  v-model="amendReason"
+                  label="Pourquoi corrigez-vous cet examen ?"
+                  hint="Obligatoire. Conservé avec la révision, lisible par les profils cliniques ; jamais recopié dans le journal d’audit."
+                  :control-id="AMEND_REASON_ID"
+                  :rows="3"
+                  :maxlength="1000"
+                  :error="amendReasonError"
+                  :disabled="busy"
+                  required
+                />
+              </section>
+
+              <p v-if="!readOnly && !amending" class="max-w-prose text-sm text-muted">
+                « Suivant » enregistre l’étape sur le serveur avant de passer à la suivante.
+              </p>
+
+              <!-- Actions : collées en bas de l'écran sur téléphone, au-dessus des raccourcis. -->
+              <div
+                class="border-t border-line bg-surface pt-4 max-md:sticky max-md:bottom-[4.25rem] max-md:z-20 max-md:-mx-4 max-md:-mb-4 max-md:rounded-b-xl max-md:px-4 max-md:pt-3 max-md:pb-3 max-md:shadow-raised"
               >
-              <AppButton variant="ghost" :disabled="busy" @click="cancelAmend"
-                >Abandonner la correction</AppButton
-              >
-            </template>
-            <template v-else-if="!readOnly">
-              <AppButton
-                id="consultation-enregistrer"
-                type="submit"
-                :variant="isLast ? 'primary' : 'secondary'"
-                :pending="savingStep && pending !== null && !pending.advance"
-                pending-label="Enregistrement en cours…"
-                :disabled="busy || needsReload"
-                >Enregistrer</AppButton
-              >
-              <AppButton
-                v-if="!isLast"
-                variant="primary"
-                :pending="savingStep && pending !== null && pending.advance"
-                pending-label="Enregistrement en cours…"
-                :disabled="busy || needsReload"
-                @click="editor.saveAndAdvance"
-                >Suivant</AppButton
-              >
-            </template>
-            <AppButton v-else-if="!isLast" variant="primary" @click="editor.advance"
-              >Suivant</AppButton
+                <p v-if="currentDirty" class="mb-3 text-sm font-medium text-warning">
+                  <span aria-hidden="true">● </span>Modifications non enregistrées sur cette étape.
+                </p>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div class="flex flex-1 flex-wrap gap-2 *:grow sm:flex-none sm:gap-3 sm:*:grow-0">
+                    <AppButton
+                      variant="secondary"
+                      :disabled="busy || isFirst"
+                      @click="editor.previous"
+                      ><AppIcon name="chevron-left" :size="18" />Précédent</AppButton
+                    >
+                    <template v-if="amending">
+                      <AppButton
+                        id="consultation-enregistrer"
+                        type="submit"
+                        variant="primary"
+                        :pending="saving && operation === 'amend'"
+                        pending-label="Enregistrement de la correction…"
+                        :disabled="busy || needsReload"
+                        >Enregistrer la correction</AppButton
+                      >
+                      <AppButton
+                        v-if="!isLast"
+                        variant="secondary"
+                        :disabled="busy"
+                        @click="editor.advance"
+                        >Suivant<AppIcon name="chevron-right" :size="18"
+                      /></AppButton>
+                      <AppButton variant="ghost" :disabled="busy" @click="cancelAmend"
+                        >Abandonner la correction</AppButton
+                      >
+                    </template>
+                    <template v-else-if="!readOnly">
+                      <AppButton
+                        id="consultation-enregistrer"
+                        type="submit"
+                        :variant="isLast ? 'primary' : 'secondary'"
+                        :pending="savingStep && pending !== null && !pending.advance"
+                        pending-label="Enregistrement en cours…"
+                        :disabled="busy || needsReload"
+                        >Enregistrer</AppButton
+                      >
+                      <AppButton
+                        v-if="!isLast"
+                        variant="primary"
+                        :pending="savingStep && pending !== null && pending.advance"
+                        pending-label="Enregistrement en cours…"
+                        :disabled="busy || needsReload"
+                        @click="editor.saveAndAdvance"
+                        >Suivant<AppIcon name="chevron-right" :size="18"
+                      /></AppButton>
+                    </template>
+                    <AppButton v-else-if="!isLast" variant="primary" @click="editor.advance"
+                      >Suivant<AppIcon name="chevron-right" :size="18"
+                    /></AppButton>
+                  </div>
+                  <SaveStatus :state="saveStatus" :at="recordedAt" :time-zone="timeZone" />
+                </div>
+              </div>
+            </form>
+
+            <SectionCard
+              v-if="canFinish"
+              title="Terminer l’examen"
+              title-id="titre-terminer"
+              icon="check-circle"
             >
-            <SaveStatus :state="saveStatus" :at="recordedAt" :time-zone="timeZone" />
+              <p class="max-w-prose text-base text-ink">
+                Terminer fige la première révision de l’examen : les rubriques deviennent lisibles
+                mais ne se modifient plus que par une correction motivée. Les rubriques non
+                renseignées restent « non renseignées ».
+              </p>
+              <p v-if="finishBlocked" class="mt-3 text-sm font-medium text-warning">
+                <span aria-hidden="true">● </span>{{ finishBlocked }}
+              </p>
+              <div class="mt-4">
+                <AppButton variant="primary" :disabled="finishDisabled" @click="editor.openFinish"
+                  >Terminer l’examen</AppButton
+                >
+              </div>
+            </SectionCard>
           </div>
-          <p v-if="!readOnly && !amending" class="max-w-prose text-sm text-muted">
-            « Suivant » enregistre l’étape sur le serveur avant de passer à la suivante.
-          </p>
-        </form>
-
-        <section
-          v-if="canFinish"
-          aria-labelledby="titre-terminer"
-          class="space-y-3 rounded-lg border-2 border-line bg-surface p-4"
-        >
-          <h2 id="titre-terminer" class="text-lg font-semibold">Terminer l’examen</h2>
-          <p class="max-w-prose text-base text-ink">
-            Terminer fige la première révision de l’examen : les rubriques deviennent lisibles mais
-            ne se modifient plus que par une correction motivée. Les rubriques non renseignées
-            restent « non renseignées ».
-          </p>
-          <p v-if="finishBlocked" class="text-sm font-medium text-warning">
-            <span aria-hidden="true">● </span>{{ finishBlocked }}
-          </p>
-          <AppButton variant="primary" :disabled="finishDisabled" @click="editor.openFinish"
-            >Terminer l’examen</AppButton
-          >
-        </section>
+        </div>
 
         <!-- Monté seulement quand la finalisation est possible : aucun bouton « Terminer » caché ailleurs. -->
         <ConfirmDialog

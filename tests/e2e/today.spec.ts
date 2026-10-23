@@ -71,6 +71,44 @@ test.describe('file du jour (P03) sur la vraie application', () => {
     }
   })
 
+  test('annuler une visite avant l’examen : motif obligatoire, la visite reste dans la file, marquée annulée', async ({
+    page,
+  }) => {
+    test.setTimeout(120_000)
+    await signIn(page, 'RECEPTION')
+    const patientUrl = await createPatient(page, 'Annulation Parcours', '+237 600 00 08 88')
+    await page.goto(patientUrl)
+    await page.getByRole('link', { name: 'Enregistrer une arrivée' }).click()
+    await expect(page).toHaveURL(/\/aujourdhui\/arrivee\?patient=/)
+    await expect(page.getByRole('main')).toContainText('Annulation Parcours')
+    await page.getByLabel('Motif de la visite').selectOption({ label: 'Examen de vue' })
+    await page.getByLabel('Note administrative (facultative)').fill('Arrivée à annuler (fictif)')
+    await page.getByRole('button', { name: 'Enregistrer l’arrivée' }).click()
+    await expect(page).toHaveURL(/\/aujourdhui$/)
+
+    const main = page.getByRole('main')
+    await main
+      .getByRole('button', { name: /Annuler la visite de .*Annulation Parcours/ })
+      .first()
+      .click()
+    const dialog = page.getByRole('dialog', { name: /Annuler la visite de .*Annulation Parcours/ })
+    await expect(dialog).toBeVisible()
+    // Sans motif, rien n'est envoyé.
+    await dialog.getByRole('button', { name: 'Annuler la visite' }).click()
+    await expect(dialog).toContainText('Indiquez le motif')
+    await dialog
+      .getByLabel('Motif de l’annulation (obligatoire)')
+      .fill('Patient reparti avant l’examen')
+    await dialog.getByRole('button', { name: 'Annuler la visite' }).click()
+
+    await expect(main).toContainText('Visite annulée')
+    await expect(main.getByRole('link', { name: /Annulation Parcours/ }).first()).toBeVisible()
+    await expect(main).toContainText('Annulé')
+    await expect(
+      main.getByRole('button', { name: /Annuler la visite de .*Annulation Parcours/ }),
+    ).toHaveCount(0)
+  })
+
   test('la caisse lit la file sans pouvoir enregistrer d’arrivée', async ({ page }) => {
     await signIn(page, 'CASHIER')
 

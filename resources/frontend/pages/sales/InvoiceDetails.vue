@@ -3,8 +3,9 @@
  * Fiche d'une facture ÉMISE (B03, B04) : numéro définitif, patient et cabinet FIGÉS à l'émission
  * (snapshots), lignes figées, récapitulatif de la projection du serveur (« Total encaissé », « Reste à
  * encaisser »), encaissements avec leurs reçus, encaissement d'un acompte ou du solde, PDF de la facture
- * et des reçus générés sur ce poste. Rien n'y est modifiable : une erreur se corrige par un avoir
- * (lot suivant). Jamais « payé », « soldé » ni « acquitté » : un reste nul se lit avec ses reçus.
+ * et des reçus générés sur ce poste. Rien n'y est modifiable : une erreur se corrige par une pièce liée
+ * (contre-écriture, avoir, remboursement : `CorrectionsPanel`). Jamais « payé », « soldé » ni « acquitté » :
+ * un reste nul se lit avec ses reçus. Remise au patient et retours physiques (I01, I02) : `DeliveriesPanel`.
  */
 import { computed, ref, shallowRef } from 'vue'
 
@@ -12,6 +13,7 @@ import { formatInstantFr } from '@/app/clinicTime'
 import { getCurrentCashSession } from '@/app/services/billing'
 import type { RenderedDocument } from '@/app/services/documents'
 import { invoiceDocument } from '@/app/services/salesDocuments'
+import { vaultView } from '@/app/services/vault'
 import { canOnScreen } from '@/app/session'
 import BalanceSummary from '@/components/billing/BalanceSummary.vue'
 import DocumentPreview from '@/components/documents/DocumentPreview.vue'
@@ -22,6 +24,8 @@ import type { CashSession, Invoice } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
 import { useServerRead } from '@/pages/today/useServerRead'
 
+import CorrectionsPanel from './CorrectionsPanel.vue'
+import DeliveriesPanel from './DeliveriesPanel.vue'
 import { formatMoney, paymentMethodLabel, quantityLabel, rateLabel, unitLabel } from './format'
 import PaymentForm from './PaymentForm.vue'
 import ReceiptPanel from './ReceiptPanel.vue'
@@ -32,7 +36,16 @@ const emit = defineEmits<{ reload: [] }>()
 
 const canCollect = computed(() => canOnScreen('payment.collect') || canOnScreen('exam_fee.collect'))
 const canReadCash = computed(() => canOnScreen('cash.own_session'))
-const held = computed(() => heldByDevice(props.invoice))
+// Facture détenue par un poste préparé : encaissée sur CE poste seulement (coffre ouvert, O04, O05), jamais par la
+// route directe ; ailleurs, l'écran le dit et ne propose pas d'encaisser.
+const heldHere = computed(
+  () =>
+    heldByDevice(props.invoice) &&
+    vaultView.value.session !== null &&
+    vaultView.value.deviceId !== null &&
+    props.invoice.write_owner?.device_id === vaultView.value.deviceId,
+)
+const held = computed(() => heldByDevice(props.invoice) && !heldHere.value)
 const amountDue = computed(() => Math.max(0, props.invoice.balance.balance_due))
 const patient = computed(() => props.invoice.patient_snapshot)
 const testDocument = computed(() => props.invoice.clinic_snapshot?.test_document === true)
@@ -145,7 +158,7 @@ async function previewInvoice(): Promise<void> {
         <li
           v-for="line in sortedLines"
           :key="line.id"
-          class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+          class="space-y-1 rounded-xl border border-line bg-surface shadow-card p-3"
         >
           <p class="font-semibold break-words">
             {{ line.description_snapshot
@@ -186,7 +199,7 @@ async function previewInvoice(): Promise<void> {
         <li
           v-for="payment in confirmedPayments"
           :key="payment.id"
-          class="space-y-2 rounded-lg border-2 border-line bg-surface p-3"
+          class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-3"
         >
           <p class="flex flex-wrap items-baseline justify-between gap-x-3">
             <span class="font-semibold break-words">
@@ -247,6 +260,18 @@ async function previewInvoice(): Promise<void> {
       />
       <AppButton v-else variant="primary" @click="newPayment">Nouvel encaissement</AppButton>
     </template>
+
+    <DeliveriesPanel
+      :key="`remises-${props.invoice.ledger_version ?? 0}`"
+      :invoice="props.invoice"
+    />
+
+    <CorrectionsPanel
+      :invoice="props.invoice"
+      :cash-session-id="cashSessionId"
+      :cash-session-read="cashSessionRead"
+      @reload="emit('reload')"
+    />
 
     <section aria-labelledby="titre-pdf-facture" class="space-y-3">
       <h2 id="titre-pdf-facture" class="text-lg font-semibold">Document de la facture</h2>

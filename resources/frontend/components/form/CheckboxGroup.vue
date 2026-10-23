@@ -60,11 +60,11 @@ function toggle(option: CheckboxOption, checked: boolean): void {
   >
     <legend class="mb-1 p-0 text-base font-medium text-ink">{{ props.legend }}</legend>
     <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
-    <ul class="space-y-1">
+    <ul class="grid gap-2 sm:grid-cols-2">
       <li v-for="option in props.options" :key="option.value">
         <label
           :for="boxId(option)"
-          class="flex min-h-11 items-center gap-3 rounded-lg px-1 py-1 text-base text-ink"
+          class="flex min-h-11 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-1 text-base text-ink hover:border-primary has-checked:border-gold has-checked:bg-primary-soft has-checked:font-medium has-disabled:cursor-not-allowed has-disabled:bg-disabled"
         >
           <input
             :id="boxId(option)"

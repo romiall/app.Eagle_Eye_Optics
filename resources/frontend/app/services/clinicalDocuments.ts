@@ -37,6 +37,7 @@ import {
   type RenderedDocument,
   renderDocument,
 } from './documents'
+import { depositOriginal } from './documentDeposit'
 
 /**
  * Documents CLINIQUES imprimables (D02, C04 ; fichier 11), générés SUR CE POSTE par le moteur de
@@ -160,11 +161,14 @@ async function keepOrReopen(
   if (documentId === null) return rendered
   try {
     await keepOriginal(rendered, { key, documentId, entityId })
+    void depositOriginal({ documentId, key, bytes: rendered.bytes, sha256: rendered.sha256 })
     return rendered
   } catch (error) {
     if (!(error instanceof DocumentStoreError) || error.code !== 'DOCUMENT_CONFLICT') throw error
     const stored = await documentStore().get(key)
     if (stored === null || stored.meta.sha256 === null) throw error
+    // L'original conservé sur ce poste est celui qui part au serveur (jamais le PDF régénéré qui en diffère).
+    void depositOriginal({ documentId, key, bytes: stored.bytes, sha256: stored.meta.sha256 })
     return {
       ...rendered,
       bytes: stored.bytes,

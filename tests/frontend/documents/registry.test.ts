@@ -35,6 +35,8 @@ describe('registre des modèles versionnés', () => {
   it('accepte les noms de version déjà écrits par le serveur (invoice.v1, receipt.v1) comme alias', () => {
     expect(templateVersionsOf('INVOICE')).toEqual(['TEST-1', 'invoice.v1'])
     expect(templateVersionsOf('RECEIPT')).toEqual(['TEST-1', 'receipt.v1'])
+    expect(templateVersionsOf('CREDIT_NOTE')).toEqual(['TEST-1', 'credit_note.v1'])
+    expect(templateVersionsOf('REFUND')).toEqual(['TEST-1', 'refund.v1'])
     const receipt = buildDocument('RECEIPT', {
       ...demoReceiptDeposit(),
       templateVersion: 'receipt.v1',
@@ -100,8 +102,9 @@ describe('correspondance avec le serveur', () => {
       `${entry.document_type}|${entry.template_version}`
 
     expect(declared.map(key).sort()).toEqual(templateCompatibility().map(key).sort())
-    // 8 types serveur en TEST-1, invoice.v1, receipt.v1, optical_prescription.v1, clinical_record.v1.
-    expect(declared.length).toBe(12)
+    // 8 types serveur en TEST-1, invoice.v1, receipt.v1, credit_note.v1, refund.v1, quote.v1, optical_prescription.v1,
+    // clinical_record.v1.
+    expect(declared.length).toBe(15)
   })
 })
 

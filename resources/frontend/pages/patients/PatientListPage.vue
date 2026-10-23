@@ -6,12 +6,18 @@
  * mémoire de la session pour revenir de la fiche à la liste, sans passer par l'URL (aucun nom ni
  * téléphone dans l'adresse). « Créer » n'est proposé qu'à côté des résultats : on vérifie d'abord
  * que le patient n'existe pas.
+ *
+ * Présentation : en-tête d'écran, barre de recherche en carte, puis les résultats en rangées
+ * (`PatientSearchResults`) ; avant toute recherche, un état vide explique quoi saisir.
  */
 import { computed, ref, watch } from 'vue'
 
 import { can } from '@/app/session'
 import TextField from '@/components/form/TextField.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import { searchTerm } from '@/domain/patients/duplicates'
 
@@ -61,18 +67,24 @@ function goToPage(page: number): void {
 </script>
 
 <template>
-  <section aria-labelledby="titre-patients" class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 id="titre-patients" class="text-2xl font-semibold tracking-tight">Patients</h1>
-      <LinkButton v-if="canCreate" to="/patients/nouveau" variant="primary"
-        >Nouveau patient</LinkButton
-      >
-    </div>
+  <section aria-labelledby="titre-patients" class="page-stack max-w-4xl">
+    <PageHeader
+      title-id="titre-patients"
+      title="Patients"
+      icon="patients"
+      subtitle="Retrouvez une fiche par le nom, le téléphone ou le numéro de dossier."
+    >
+      <template v-if="canCreate" #actions>
+        <LinkButton to="/patients/nouveau" variant="primary"
+          ><AppIcon name="user-plus" :size="18" />Nouveau patient</LinkButton
+        >
+      </template>
+    </PageHeader>
 
     <form
       role="search"
       aria-label="Rechercher un patient"
-      class="flex flex-col gap-3 sm:flex-row sm:items-end"
+      class="card flex flex-col gap-3 border-t-4 border-t-gold p-4 sm:flex-row sm:items-end sm:p-6"
       novalidate
       @submit.prevent="search"
     >
@@ -87,7 +99,7 @@ function goToPage(page: number): void {
           :error="error"
         />
       </div>
-      <AppButton type="submit">Rechercher</AppButton>
+      <AppButton type="submit"><AppIcon name="search" :size="18" />Rechercher</AppButton>
     </form>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
@@ -101,9 +113,9 @@ function goToPage(page: number): void {
       @page="goToPage"
       @summary="announcement = $event"
     />
-    <p v-else class="max-w-prose text-muted">
+    <EmptyState v-else title="Commencez par une recherche" icon="search">
       Saisissez un nom, un téléphone ou un numéro de dossier pour afficher les fiches. Avant de
       créer un nouveau patient, vérifiez qu’il n’existe pas déjà.
-    </p>
+    </EmptyState>
   </section>
 </template>

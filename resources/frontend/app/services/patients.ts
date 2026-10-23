@@ -3,6 +3,8 @@ import type {
   Patient,
   PatientActivity,
   PatientActivityMeta,
+  PatientMergePreview,
+  PatientMergePreviewResponse,
   PatientPage,
   PatientResponse,
 } from '@/domain/contracts/generated'
@@ -67,4 +69,20 @@ export async function listPatientActivity(
     `/api/v1/patients/${encodeURIComponent(id)}/activity?${parameters}`,
   )
   return answered(response)
+}
+
+/**
+ * Aperçu de la fusion de la fiche `sourceId` dans la fiche `survivorId` (L1D08, gérante) : identités côte à
+ * côte, éléments rattachés à la fiche absorbée (selon les droits du compte) et garde-fous. Lecture seule.
+ */
+export async function previewPatientMerge(
+  sourceId: string,
+  survivorId: string,
+): Promise<ReadOutcome<PatientMergePreview>> {
+  const parameters = new URLSearchParams({ into: survivorId })
+  const response = await apiRequest<PatientMergePreviewResponse>(
+    'GET',
+    `/api/v1/patients/${encodeURIComponent(sourceId)}/merge-preview?${parameters}`,
+  )
+  return answered(response.data)
 }

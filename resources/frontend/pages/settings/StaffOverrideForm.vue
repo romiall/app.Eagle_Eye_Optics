@@ -14,8 +14,10 @@ import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
 import SelectField from '@/components/form/SelectField.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import {
   endOfCivilDayUtc,
   OVERRIDABLE_PERMISSIONS,
@@ -121,13 +123,12 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-derogation" class="space-y-4">
-    <h2 id="titre-derogation" class="text-xl font-semibold">Dérogation de droit</h2>
-    <p class="max-w-prose text-muted">
-      Une dérogation s’ajoute aux profils du compte, pour une personne nommée, avec un motif
-      conservé dans le journal. Elle s’applique dès la requête suivante.
-    </p>
-
+  <SectionCard
+    title="Dérogation de droit"
+    title-id="titre-derogation"
+    icon="shield"
+    description="Une dérogation s’ajoute aux profils du compte, pour une personne nommée, avec un motif conservé dans le journal. Elle s’applique dès la requête suivante."
+  >
     <form class="space-y-5" novalidate @submit.prevent="submit">
       <ErrorSummary :errors="summary" />
       <StateMessage
@@ -147,18 +148,21 @@ async function submit(): Promise<void> {
         {{ saved }}
       </StateMessage>
 
-      <SelectField
-        v-model="permission"
-        label="Droit"
-        placeholder="Choisir un droit…"
-        :options="permissionOptions"
-        :control-id="IDS.permission"
-        :error="errors[IDS.permission] ?? null"
-        required
-      />
-      <p v-if="holds !== null" class="text-sm text-muted">
-        Aujourd’hui, ce compte {{ holds ? 'détient' : 'ne détient pas' }} ce droit.
-      </p>
+      <div class="space-y-2">
+        <SelectField
+          v-model="permission"
+          label="Droit"
+          placeholder="Choisir un droit…"
+          :options="permissionOptions"
+          :control-id="IDS.permission"
+          :error="errors[IDS.permission] ?? null"
+          required
+        />
+        <p v-if="holds !== null" class="flex items-center gap-2 text-sm text-muted">
+          <AppIcon :name="holds ? 'check-circle' : 'x-circle'" :size="16" />
+          <span>Aujourd’hui, ce compte {{ holds ? 'détient' : 'ne détient pas' }} ce droit.</span>
+        </p>
+      </div>
       <SelectField
         v-model="effect"
         label="Effet"
@@ -186,13 +190,15 @@ async function submit(): Promise<void> {
         required
       />
 
-      <AppButton
-        type="submit"
-        variant="primary"
-        :pending="writer.state.value === 'saving'"
-        pending-label="Enregistrement en cours…"
-        >Enregistrer la dérogation</AppButton
-      >
+      <div class="form-actions">
+        <AppButton
+          type="submit"
+          variant="primary"
+          :pending="writer.state.value === 'saving'"
+          pending-label="Enregistrement en cours…"
+          >Enregistrer la dérogation</AppButton
+        >
+      </div>
     </form>
 
     <PasswordConfirmDialog
@@ -201,5 +207,5 @@ async function submit(): Promise<void> {
       @confirmed="writer.resume()"
       @cancel="writer.cancel()"
     />
-  </section>
+  </SectionCard>
 </template>

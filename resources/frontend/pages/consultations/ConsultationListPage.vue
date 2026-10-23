@@ -4,7 +4,9 @@
  * consultations du jour par défaut, ou de tous les jours, filtrables par état et par « mes examens », de la
  * plus récente à la plus ancienne, 50 par page. La liste ne montre AUCUNE valeur clinique (patient, date,
  * état, professionnel) : le dossier s'ouvre sur la consultation, dont la lecture est tracée. Une liste qui
- * n'a pas pu être lue est « indisponible », jamais « aucun examen ». Cartes plutôt qu'un tableau (360 px).
+ * n'a pas pu être lue est « indisponible », jamais « aucun examen ». Cartes plutôt qu'un tableau (360 px) :
+ * toute la carte ouvre la consultation (lien étendu), l'état est une puce écrite en toutes lettres, deux
+ * colonnes sur grand écran.
  *
  * Préréglages par l'adresse (raccourcis de l'accueil) : `?jour=tous`, `?etat=IN_PROGRESS`, `?mes=1` — des
  * filtres, jamais une donnée de santé.
@@ -14,15 +16,18 @@ import { RouterLink, useRoute } from 'vue-router'
 
 import { clinicTimeZone, clinicToday, formatInstantFr } from '@/app/clinicTime'
 import { listConsultations } from '@/app/services/consultationList'
+import WorkStatusChip from '@/components/clinical/WorkStatusChip.vue'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import CheckboxField from '@/components/form/CheckboxField.vue'
 import DateField from '@/components/form/DateField.vue'
 import SelectField from '@/components/form/SelectField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
-import { WORK_STATUS_LABELS, workStatusLabel, workStatusSymbol } from '@/domain/clinical/labels'
+import { WORK_STATUS_LABELS } from '@/domain/clinical/labels'
 import type {
   ConsultationSummary,
   ConsultationSummaryPage,
@@ -95,13 +100,18 @@ const emptyTitle = computed(() =>
 </script>
 
 <template>
-  <section aria-labelledby="titre-examens" class="max-w-3xl space-y-6">
-    <h1 id="titre-examens" class="text-2xl font-semibold tracking-tight">Consultations</h1>
+  <section aria-labelledby="titre-examens" class="page-stack max-w-5xl">
+    <PageHeader
+      title-id="titre-examens"
+      title="Consultations"
+      icon="consultations"
+      subtitle="Examens du cabinet, du plus récent au plus ancien. Ouvrez un examen pour le lire ou le poursuivre."
+    />
 
     <form
       role="search"
       aria-label="Filtrer les examens"
-      class="grid gap-4 sm:grid-cols-2"
+      class="card grid gap-4 p-4 sm:grid-cols-2 sm:gap-x-6 sm:p-5"
       @submit.prevent
     >
       <div class="space-y-2">
@@ -127,7 +137,7 @@ const emptyTitle = computed(() =>
         v-model="mine"
         label="Seulement mes examens"
         control-id="examens-miens"
-        class="sm:col-span-2"
+        class="border-t border-line pt-3 sm:col-span-2"
       />
     </form>
 
@@ -144,43 +154,75 @@ const emptyTitle = computed(() =>
     </StateMessage>
 
     <template v-else-if="result !== null">
-      <ul class="space-y-3">
+      <ul class="grid gap-3 sm:gap-4 xl:grid-cols-2">
         <li
           v-for="consultation in result.data"
           :key="consultation.id"
-          class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+          class="card relative flex min-w-0 flex-col gap-3 p-4 hover:border-gold hover:shadow-raised sm:p-5"
         >
-          <p class="flex flex-wrap items-baseline justify-between gap-x-3">
-            <RouterLink
-              :to="{ name: 'consultation', params: { id: consultation.id } }"
-              class="inline-flex min-h-11 items-center font-semibold break-words text-primary underline underline-offset-4"
-              :aria-label="`${name(consultation)}, examen du ${formatInstantFr(consultation.effective_at)}`"
-              >{{ name(consultation) }}</RouterLink
+          <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+            <p class="min-w-0">
+              <!-- Lien étendu (::after) : toute la carte ouvre la consultation. -->
+              <RouterLink
+                :to="{ name: 'consultation', params: { id: consultation.id } }"
+                class="text-link inline-flex min-h-11 items-center text-lg font-semibold break-words after:absolute after:inset-0 after:rounded-xl"
+                :aria-label="`${name(consultation)}, examen du ${formatInstantFr(consultation.effective_at)}`"
+                >{{ name(consultation) }}</RouterLink
+              >
+            </p>
+            <WorkStatusChip :status="consultation.status" class="sm:mt-2.5" />
+          </div>
+          <ul class="flex flex-col gap-1.5 text-sm text-muted sm:flex-row sm:flex-wrap sm:gap-x-5">
+            <li class="inline-flex items-center gap-1.5">
+              <AppIcon name="id-card" :size="16" class="text-gold" />
+              <span
+                >Dossier
+                <span class="font-medium text-ink">{{
+                  consultation.patient.record_number
+                }}</span></span
+              >
+            </li>
+            <li class="inline-flex items-center gap-1.5">
+              <AppIcon name="calendar" :size="16" class="text-gold" />
+              <span
+                >Examen du
+                <span class="font-medium text-ink tabular-nums">{{
+                  formatInstantFr(consultation.effective_at)
+                }}</span></span
+              >
+            </li>
+            <li class="inline-flex min-w-0 items-center gap-1.5">
+              <AppIcon name="stethoscope" :size="16" class="text-gold" />
+              <span class="min-w-0 break-words"
+                >Professionnel :
+                <span class="font-medium text-ink">{{
+                  consultation.clinician.display_name
+                }}</span></span
+              >
+            </li>
+          </ul>
+          <div
+            v-if="consultation.completed_at !== null || consultation.status === 'COMPLETED'"
+            class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line pt-2 text-sm"
+          >
+            <p
+              v-if="consultation.completed_at !== null"
+              class="inline-flex items-center gap-1.5 text-muted"
             >
-            <span class="text-base"
-              ><span aria-hidden="true">{{ workStatusSymbol(consultation.status) }}</span>
-              {{ workStatusLabel(consultation.status) }}</span
-            >
-          </p>
-          <p class="text-sm text-muted">
-            Dossier {{ consultation.patient.record_number }} · examen du
-            {{ formatInstantFr(consultation.effective_at) }}
-          </p>
-          <p class="text-sm break-words">
-            Professionnel : {{ consultation.clinician.display_name }}
-            <template v-if="consultation.completed_at !== null">
-              · terminé le {{ formatInstantFr(consultation.completed_at) }} (révision
-              {{ consultation.current_revision }})
-            </template>
-          </p>
-          <p v-if="consultation.status === 'COMPLETED'">
+              <AppIcon name="check-circle" :size="16" class="text-accent" />
+              <span
+                >Terminé le {{ formatInstantFr(consultation.completed_at) }} (révision
+                {{ consultation.current_revision }})</span
+              >
+            </p>
             <RouterLink
+              v-if="consultation.status === 'COMPLETED'"
               :to="{ name: 'consultation-historique', params: { id: consultation.id } }"
-              class="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+              class="text-link relative z-10 inline-flex min-h-11 items-center gap-1.5 font-semibold"
               :aria-label="`Révisions de l’examen de ${name(consultation)}`"
-              >Révisions</RouterLink
+              ><AppIcon name="history" :size="16" />Révisions</RouterLink
             >
-          </p>
+          </div>
         </li>
       </ul>
 

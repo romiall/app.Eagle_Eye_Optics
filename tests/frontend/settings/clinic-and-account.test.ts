@@ -75,7 +75,9 @@ describe('cabinet et documents', () => {
     await settle()
     await click(buttonByName(root, 'Enregistrer les paramètres'))
 
-    const confirmation = document.querySelector<HTMLInputElement>('#confirmation-mot-de-passe')
+    const confirmation = document.querySelector<HTMLInputElement>(
+      '[id^="confirmation-mot-de-passe"]',
+    )
     if (confirmation === null) throw new Error('Confirmation introuvable.')
     confirmation.value = 'MotDePasseGerante1'
     confirmation.dispatchEvent(new Event('input', { bubbles: true }))

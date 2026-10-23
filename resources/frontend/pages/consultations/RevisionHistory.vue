@@ -11,6 +11,8 @@
  * - Mise en page : sur grand écran, trois colonnes (élément, révision de référence, révision comparée) ; sur
  *   téléphone, des blocs empilés, sans défilement horizontal.
  * - Hors ligne : « indisponible », jamais une révision vide ni une ancienne copie.
+ * - Présentation : cartes de révision (la révision actuelle porte sa puce), choix des révisions dans une
+ *   carte, faits regroupés par rubrique, changement en puce écrite (symbole et libellé).
  */
 import { computed, ref, shallowRef, watch } from 'vue'
 
@@ -19,10 +21,13 @@ import { formatInstantFr } from '@/app/clinicTime'
 import { getConsultation, getRevision, getVisualAcuityScales } from '@/app/services/consultations'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import SelectField from '@/components/form/SelectField.vue'
-import LinkButton from '@/components/ui/LinkButton.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import StatusChip, { type ChipTone } from '@/components/layout/StatusChip.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import {
   CHANGE_LABELS,
   CHANGE_SYMBOLS,
+  type ChangeKind,
   compareSteps,
   type ComparisonRow,
   describeSteps,
@@ -189,13 +194,34 @@ function authorName(detail: ClinicalRevisionDetail | null): string {
 function shortHash(hash: string): string {
   return hash.slice(0, 12)
 }
+
+/** Révision en vigueur de l'examen (la dernière figée). */
+const currentRevision = computed(() => consultation.value?.current_revision ?? null)
+
+/** Teinte de la puce de changement : elle accompagne le symbole et le libellé, jamais seule. */
+const CHANGE_TONES: Readonly<Record<ChangeKind, ChipTone>> = {
+  same: 'neutral',
+  changed: 'gold',
+  added: 'success',
+  removed: 'warning',
+}
 </script>
 
 <template>
-  <section aria-labelledby="titre-revisions" class="max-w-4xl space-y-6">
-    <h1 id="titre-revisions" class="text-2xl font-semibold tracking-tight">
-      Révisions de la consultation
-    </h1>
+  <section aria-labelledby="titre-revisions" class="page-stack max-w-5xl">
+    <PageHeader
+      title-id="titre-revisions"
+      title="Révisions de la consultation"
+      icon="history"
+      :back="
+        consultation === null
+          ? undefined
+          : {
+              to: { name: 'consultation', params: { id: props.consultationId } },
+              label: 'Retour à la consultation',
+            }
+      "
+    />
 
     <ConsultationReadMessage
       v-if="consultation === null"
@@ -206,62 +232,65 @@ function shortHash(hash: string): string {
     />
 
     <template v-else>
-      <p class="flex flex-wrap gap-3">
-        <LinkButton
-          :to="{ name: 'consultation', params: { id: props.consultationId } }"
-          variant="secondary"
-          >Retour à la consultation</LinkButton
-        >
-      </p>
-
       <StateMessage v-if="revisions.length === 0" state="empty" title="Aucune révision enregistrée">
         Cet examen n’est pas terminé : la première révision est figée quand on le termine. Les
         révisions suivantes sont créées par les corrections motivées.
       </StateMessage>
 
       <template v-else>
-        <p class="max-w-prose text-base text-muted">
-          Chaque révision est figée telle qu’enregistrée : elle ne change jamais. Choisissez deux
-          révisions pour les comparer ; une valeur absente est « non renseigné » ou « non mesuré »,
-          jamais « aucun ».
-        </p>
+        <div class="space-y-3">
+          <h2 class="section-title">Révisions enregistrées</h2>
+          <p class="max-w-prose text-base text-muted">
+            Chaque révision est figée telle qu’enregistrée : elle ne change jamais. Choisissez deux
+            révisions pour les comparer ; une valeur absente est « non renseigné » ou « non mesuré
+            », jamais « aucun ».
+          </p>
+          <ol class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <li
+              v-for="revision in revisions"
+              :key="revision.id"
+              class="card flex min-w-0 flex-col gap-1.5 p-4 text-base"
+            >
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="font-semibold">Révision {{ revision.revision_no }}</p>
+                <StatusChip
+                  v-if="revision.revision_no === currentRevision"
+                  tone="success"
+                  icon="check"
+                  >Actuelle</StatusChip
+                >
+              </div>
+              <p class="text-sm text-muted tabular-nums">
+                {{ formatInstantFr(revision.recorded_at) }}
+              </p>
+              <p class="break-words">Motif : {{ revision.reason }}</p>
+              <p class="mt-auto border-t border-line pt-2 text-sm text-muted">
+                Empreinte SHA-256 :
+                <span class="tabular-nums">{{ shortHash(revision.sha256) }}…</span>
+              </p>
+            </li>
+          </ol>
+        </div>
 
-        <ol class="space-y-2">
-          <li
-            v-for="revision in revisions"
-            :key="revision.id"
-            class="rounded-lg border-2 border-line bg-surface p-3 text-base"
-          >
-            <p class="font-semibold">
-              Révision {{ revision.revision_no }}
-              <span class="font-normal text-muted"
-                >· {{ formatInstantFr(revision.recorded_at) }}</span
-              >
-            </p>
-            <p>Motif : {{ revision.reason }}</p>
-            <p class="text-sm text-muted">
-              Empreinte SHA-256 :
-              <span class="tabular-nums">{{ shortHash(revision.sha256) }}…</span>
-            </p>
-          </li>
-        </ol>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          <SelectField
-            :model-value="leftNo === null ? null : String(leftNo)"
-            label="Révision de référence"
-            placeholder="Aucune (voir une seule révision)"
-            :options="options"
-            @update:model-value="choose('left', $event)"
-          />
-          <SelectField
-            :model-value="rightNo === null ? null : String(rightNo)"
-            label="Révision à comparer"
-            placeholder="Choisir une révision…"
-            :options="options"
-            required
-            @update:model-value="choose('right', $event)"
-          />
+        <div class="space-y-3">
+          <h2 class="section-title">Comparaison</h2>
+          <div class="card grid gap-4 p-4 sm:grid-cols-2 sm:gap-x-6 sm:p-5">
+            <SelectField
+              :model-value="leftNo === null ? null : String(leftNo)"
+              label="Révision de référence"
+              placeholder="Aucune (voir une seule révision)"
+              :options="options"
+              @update:model-value="choose('left', $event)"
+            />
+            <SelectField
+              :model-value="rightNo === null ? null : String(rightNo)"
+              label="Révision à comparer"
+              placeholder="Choisir une révision…"
+              :options="options"
+              required
+              @update:model-value="choose('right', $event)"
+            />
+          </div>
         </div>
 
         <StateMessage v-if="loadingAny" state="loading" title="Chargement de la révision…" />
@@ -273,66 +302,73 @@ function shortHash(hash: string): string {
         >
           Révision {{ failure.revisionNo }} : {{ failure.message }}
           <template #action>
-            <button
-              type="button"
-              class="min-h-11 rounded-lg border-2 border-primary bg-surface px-4 py-2 text-base font-semibold text-primary"
-              @click="retry(failure.revisionNo)"
-            >
-              Réessayer
-            </button>
+            <AppButton variant="secondary" @click="retry(failure.revisionNo)">Réessayer</AppButton>
           </template>
         </StateMessage>
 
-        <div v-if="right !== null && (!comparing || left !== null)" class="space-y-4">
+        <div v-if="right !== null && (!comparing || left !== null)" class="space-y-6">
           <div class="grid gap-3 sm:grid-cols-2">
-            <p
-              v-if="comparing && left"
-              class="rounded-lg border-2 border-line bg-surface p-3 text-sm"
-            >
-              <strong>Référence : révision {{ left.revision_no }}</strong
-              ><br />
-              Enregistrée par {{ authorName(left) }} le {{ formatInstantFr(left.recorded_at) }}.
-              <br />Motif : {{ left.reason }}
-            </p>
-            <p class="rounded-lg border-2 border-line bg-surface p-3 text-sm">
-              <strong
-                >{{ comparing ? 'Comparée' : 'Révision' }} : révision
-                {{ right.revision_no }}</strong
-              ><br />
-              Enregistrée par {{ authorName(right) }} le {{ formatInstantFr(right.recorded_at) }}.
-              <br />Motif : {{ right.reason }}
-            </p>
+            <div v-if="comparing && left" class="card space-y-1 p-4 text-sm">
+              <p class="text-base font-semibold">Référence : révision {{ left.revision_no }}</p>
+              <p class="text-muted">
+                Enregistrée par {{ authorName(left) }} le {{ formatInstantFr(left.recorded_at) }}.
+              </p>
+              <p class="break-words">Motif : {{ left.reason }}</p>
+            </div>
+            <div class="card space-y-1 border-t-4 border-t-gold p-4 text-sm">
+              <p class="text-base font-semibold">
+                {{ comparing ? 'Comparée' : 'Révision' }} : révision {{ right.revision_no }}
+              </p>
+              <p class="text-muted">
+                Enregistrée par {{ authorName(right) }} le {{ formatInstantFr(right.recorded_at) }}.
+              </p>
+              <p class="break-words">Motif : {{ right.reason }}</p>
+            </div>
           </div>
 
-          <p v-if="comparing" role="status" class="text-base font-medium text-ink">
-            {{
-              differences === 0
-                ? 'Aucune différence entre ces deux révisions.'
-                : `${differences} différence(s) entre ces deux révisions.`
-            }}
-          </p>
-          <label v-if="comparing" class="flex min-h-11 items-center gap-3 text-base">
-            <input v-model="onlyDifferences" type="checkbox" class="size-5" />
-            Afficher seulement les différences
-          </label>
+          <div
+            v-if="comparing"
+            class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+          >
+            <p role="status" class="text-base font-medium text-ink">
+              {{
+                differences === 0
+                  ? 'Aucune différence entre ces deux révisions.'
+                  : `${differences} différence(s) entre ces deux révisions.`
+              }}
+            </p>
+            <label class="flex min-h-11 items-center gap-3 text-base">
+              <input v-model="onlyDifferences" type="checkbox" class="size-5 accent-primary" />
+              Afficher seulement les différences
+            </label>
+          </div>
 
-          <section v-for="group in stepsWithRows" :key="group.step" class="space-y-2">
-            <h2 class="text-lg font-semibold">{{ STEP_TITLES[group.step] }}</h2>
+          <section v-for="group in stepsWithRows" :key="group.step" class="space-y-3">
+            <h2 class="section-title">{{ STEP_TITLES[group.step] }}</h2>
             <ul class="space-y-2">
               <li
                 v-for="row in group.rows"
                 :key="`${row.step}-${row.key}`"
                 :class="[
-                  'rounded-lg border-2 bg-surface p-3',
-                  row.kind === 'same' ? 'border-line' : 'border-primary',
+                  'rounded-xl border border-line bg-surface p-4 shadow-card',
+                  row.kind === 'same' ? '' : 'border-l-4 border-l-gold',
                 ]"
               >
-                <dl class="grid gap-2 sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr] sm:gap-4">
-                  <div>
+                <dl
+                  :class="[
+                    'grid gap-2 sm:gap-4',
+                    comparing
+                      ? 'sm:grid-cols-[minmax(8rem,1fr)_2fr_2fr]'
+                      : 'sm:grid-cols-[minmax(8rem,1fr)_4fr]',
+                  ]"
+                >
+                  <div class="space-y-1">
                     <dt class="font-semibold">{{ row.label }}</dt>
-                    <dd v-if="comparing" class="text-sm font-medium">
-                      <span aria-hidden="true">{{ CHANGE_SYMBOLS[row.kind] }}</span>
-                      {{ CHANGE_LABELS[row.kind] }}
+                    <dd v-if="comparing">
+                      <StatusChip :tone="CHANGE_TONES[row.kind]"
+                        ><span aria-hidden="true">{{ CHANGE_SYMBOLS[row.kind] }}</span>
+                        {{ CHANGE_LABELS[row.kind] }}</StatusChip
+                      >
                     </dd>
                   </div>
                   <div v-if="comparing">
@@ -341,7 +377,7 @@ function shortHash(hash: string): string {
                   </div>
                   <div>
                     <dt class="text-sm text-muted">Révision {{ right.revision_no }}</dt>
-                    <dd class="break-words">{{ row.right }}</dd>
+                    <dd class="font-medium break-words">{{ row.right }}</dd>
                   </div>
                 </dl>
                 <p v-if="row.note" class="mt-2 text-sm font-medium text-warning">

@@ -14,6 +14,10 @@
  * l'écran ne le laisse pas croire.
  *
  * Une autre visite du même patient le même jour ne bloque pas : un simple avertissement la signale.
+ *
+ * Présentation (charte du logo) : en-tête d'écran, puis deux cartes (le patient avec son identité
+ * confirmée, le motif et la note) et les boutons du formulaire sous un filet. Le motif reste une
+ * liste de choix ; les avis du patient et du motif sont des encadrés avec une icône décorative.
  */
 import { computed, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -35,8 +39,11 @@ import ComboboxField, {
 } from '@/components/form/ComboboxField.vue'
 import SelectField from '@/components/form/SelectField.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import PatientIdentityHeader from '@/components/patients/PatientIdentityHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import type { Patient, PatientSummary } from '@/domain/contracts/generated'
 import { formatAge, patientAge, patientDisplayName } from '@/domain/patients/identity'
@@ -223,6 +230,18 @@ const requestedText = typeof requested === 'string' && requested !== '' ? reques
 const wanted = requestedText !== null && isUlid(requestedText) ? requestedText : null
 /** `?patient=` présent mais illisible : dit, et la recherche reste ouverte. */
 const requestedInvalid = requested !== undefined && wanted === null
+// Arrivée d'un rendez-vous de l'agenda (`?rendez-vous=<identifiant>`, S01) : rattachée seulement au patient du
+// rendez-vous ; si la personne choisit un autre patient, la visite n'est liée à aucun rendez-vous.
+const requestedAppointment = route.query['rendez-vous']
+const wantedAppointment =
+  typeof requestedAppointment === 'string' && isUlid(requestedAppointment)
+    ? requestedAppointment
+    : null
+const appointmentId = computed(() =>
+  wantedAppointment !== null && wanted !== null && patientId.value === wanted
+    ? wantedAppointment
+    : null,
+)
 const preRead = wanted === null ? null : usePatientRead<Patient>(() => getPatient(wanted))
 
 if (preRead !== null) {
@@ -345,7 +364,12 @@ async function submit(): Promise<void> {
     return
   }
   const values = checked.values
-  const signature = JSON.stringify([values.patient_id, values.reason, values.administrative_note])
+  const signature = JSON.stringify([
+    values.patient_id,
+    values.reason,
+    values.administrative_note,
+    appointmentId.value,
+  ])
   let at: string
   if (lastAttempt !== null && lastAttempt.signature === signature && REPLAYABLE.has(state.value)) {
     at = lastAttempt.at
@@ -360,7 +384,11 @@ async function submit(): Promise<void> {
     }
   }
   lastAttempt = { signature, at }
-  const payload = buildRegisterVisitPayload(values, { visitId: mutation.effectId('visit_id') }, at)
+  const payload = buildRegisterVisitPayload(
+    values,
+    { visitId: mutation.effectId('visit_id'), appointmentId: appointmentId.value },
+    at,
+  )
   await afterOutcome(await mutation.submit({ name: 'RegisterVisit', payload }))
 }
 
@@ -371,17 +399,13 @@ async function retry(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-arrivee" class="max-w-3xl space-y-6">
-    <div class="space-y-1">
-      <h1 id="titre-arrivee" class="text-2xl font-semibold tracking-tight">
-        Enregistrer une arrivée
-      </h1>
-      <p class="max-w-prose text-muted">
-        Choisissez le patient et le motif de sa venue. L’heure d’arrivée est celle de
-        l’enregistrement. Notez ici des informations d’accueil seulement : aucune information
-        médicale.
-      </p>
-    </div>
+  <section aria-labelledby="titre-arrivee" class="page-stack max-w-3xl">
+    <PageHeader
+      title-id="titre-arrivee"
+      title="Enregistrer une arrivée"
+      icon="arrival"
+      subtitle="Choisissez le patient et le motif de sa venue. L’heure d’arrivée est celle de l’enregistrement. Notez ici des informations d’accueil seulement : aucune information médicale."
+    />
 
     <ErrorSummary ref="summaryBox" :errors="summary" />
 
@@ -407,9 +431,21 @@ async function retry(): Promise<void> {
       </template>
     </StateMessage>
 
-    <p v-if="requestedInvalid" role="status" class="font-medium text-ink">
-      <span aria-hidden="true">⚠ </span>Le patient indiqué dans l’adresse n’est pas valide :
-      cherchez-le ci-dessous.
+    <p
+      v-if="appointmentId"
+      role="status"
+      class="flex items-start gap-2 rounded-xl border border-line bg-primary-soft p-3 font-medium text-ink sm:p-4"
+    >
+      <AppIcon name="calendar" :size="18" class="mt-0.5 text-primary" />
+      <span>Arrivée liée au rendez-vous de l’agenda : il passera « arrivé ».</span>
+    </p>
+    <p
+      v-if="requestedInvalid"
+      role="status"
+      class="flex items-start gap-2 rounded-xl border border-warning bg-warning-soft p-3 font-medium text-ink sm:p-4"
+    >
+      <AppIcon name="alert" :size="18" class="mt-0.5 text-warning" />
+      <span>Le patient indiqué dans l’adresse n’est pas valide : cherchez-le ci-dessous.</span>
     </p>
     <ReadStateMessage
       v-if="
@@ -421,84 +457,106 @@ async function retry(): Promise<void> {
       @retry="preRead.reload()"
     />
 
-    <form class="space-y-6" novalidate @submit.prevent="submit">
-      <div class="space-y-3">
-        <ComboboxField
-          v-model="patientId"
-          :control-id="FIELD_IDS.patient"
-          label="Patient"
-          required
-          :selected-label="selectedLabel"
-          :search="searchForPatients"
-          :unavailable-text="unavailableText"
-          :error="patientError"
-          :disabled="busy"
-          hint="Nom, prénom, téléphone ou numéro de dossier (par exemple EE-2026-0001). Au moins 2 caractères."
-          @select="onSelect"
-        />
-        <p class="sr-only" role="status" aria-live="polite">{{ selectedAnnouncement }}</p>
-        <PatientIdentityHeader v-if="selected" :patient="selected" />
-        <p v-if="canCreatePatient" class="text-sm text-muted">
-          Le patient n’est pas dans la liste ?
-          <RouterLink
-            to="/patients/nouveau"
-            class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-            >Créer une fiche patient</RouterLink
+    <form class="page-stack" novalidate @submit.prevent="submit">
+      <SectionCard title="Identification du patient" icon="user">
+        <div class="space-y-4">
+          <ComboboxField
+            v-model="patientId"
+            :control-id="FIELD_IDS.patient"
+            label="Patient"
+            required
+            :selected-label="selectedLabel"
+            :search="searchForPatients"
+            :unavailable-text="unavailableText"
+            :error="patientError"
+            :disabled="busy"
+            hint="Nom, prénom, téléphone ou numéro de dossier (par exemple EE-2026-0001). Au moins 2 caractères."
+            @select="onSelect"
+          />
+          <p class="sr-only" role="status" aria-live="polite">{{ selectedAnnouncement }}</p>
+          <div v-if="selected" class="rounded-xl border border-line bg-canvas p-4">
+            <PatientIdentityHeader :patient="selected" avatar />
+          </div>
+          <p v-if="canCreatePatient" class="text-sm text-muted">
+            Le patient n’est pas dans la liste ?
+            <RouterLink
+              to="/patients/nouveau"
+              class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:decoration-gold hover:decoration-2"
+              >Créer une fiche patient</RouterLink
+            >
+          </p>
+          <p
+            v-if="sameDay.length > 0"
+            role="status"
+            class="flex items-start gap-2 rounded-xl border border-warning bg-warning-soft p-3 text-ink sm:p-4"
           >
-        </p>
-        <p
-          v-if="sameDay.length > 0"
-          role="status"
-          class="rounded-lg border-2 border-warning bg-warning-soft p-3 text-ink"
-        >
-          <span aria-hidden="true">⚠ </span>Ce patient a déjà
-          {{
-            sameDay.length === 1
-              ? 'une arrivée enregistrée'
-              : `${sameDay.length} arrivées enregistrées`
-          }}
-          aujourd’hui :
-          <template v-for="(visit, index) in sameDay" :key="visit.id"
-            ><template v-if="index > 0">, </template>{{ reasonLabel(visit.reason) }} à
-            {{ formatTimeFr(visit.occurred_at) }} ({{ statusLabel(visit.status) }})</template
-          >. Vous pouvez enregistrer une autre arrivée, par exemple un achat après l’examen, mais
-          vérifiez qu’il ne s’agit pas d’un doublon.
-        </p>
-        <p v-else-if="dayUnknown" role="status" class="text-sm text-muted">
-          <span aria-hidden="true">○ </span>La file du jour n’a pas pu être lue en entier : une
-          autre arrivée du même patient ne peut pas être signalée.
-        </p>
-      </div>
+            <AppIcon name="alert" :size="18" class="mt-0.5 text-warning" />
+            <span
+              >Ce patient a déjà
+              {{
+                sameDay.length === 1
+                  ? 'une arrivée enregistrée'
+                  : `${sameDay.length} arrivées enregistrées`
+              }}
+              aujourd’hui :
+              <template v-for="(visit, index) in sameDay" :key="visit.id"
+                ><template v-if="index > 0">, </template>{{ reasonLabel(visit.reason) }} à
+                {{ formatTimeFr(visit.occurred_at) }} ({{ statusLabel(visit.status) }})</template
+              >. Vous pouvez enregistrer une autre arrivée, par exemple un achat après l’examen,
+              mais vérifiez qu’il ne s’agit pas d’un doublon.</span
+            >
+          </p>
+          <p
+            v-else-if="dayUnknown"
+            role="status"
+            class="flex items-start gap-1.5 text-sm text-muted"
+          >
+            <AppIcon name="info" :size="16" class="mt-0.5" />
+            <span
+              >La file du jour n’a pas pu être lue en entier : une autre arrivée du même patient ne
+              peut pas être signalée.</span
+            >
+          </p>
+        </div>
+      </SectionCard>
 
-      <div class="space-y-2">
-        <SelectField
-          v-model="reasonValue"
-          :control-id="FIELD_IDS.reason"
-          label="Motif de la visite"
-          required
-          placeholder="Choisir le motif"
-          :options="reasonOptions"
-          :error="errors.reason ?? null"
-          :disabled="busy"
-        />
-        <p v-if="reason" class="text-sm text-muted">
-          {{ reasonHint(reason, examFeeControlledOnScreen()) }}
-        </p>
-      </div>
+      <SectionCard title="Motif et note d’accueil" icon="clipboard">
+        <div class="space-y-5">
+          <div class="space-y-3">
+            <SelectField
+              v-model="reasonValue"
+              :control-id="FIELD_IDS.reason"
+              label="Motif de la visite"
+              required
+              placeholder="Choisir le motif"
+              :options="reasonOptions"
+              :error="errors.reason ?? null"
+              :disabled="busy"
+            />
+            <p
+              v-if="reason"
+              class="flex items-start gap-2 rounded-lg bg-primary-soft p-3 text-sm text-ink"
+            >
+              <AppIcon name="info" :size="16" class="mt-0.5 text-primary" />
+              <span>{{ reasonHint(reason, examFeeControlledOnScreen()) }}</span>
+            </p>
+          </div>
 
-      <TextAreaField
-        v-model="note"
-        :control-id="FIELD_IDS.note"
-        label="Note administrative (facultative)"
-        :maxlength="NOTE_MAX_LENGTH"
-        hint="Information d’accueil seulement, par exemple « accompagné d’un parent ». Aucune information médicale."
-        :error="errors.note ?? null"
-        :disabled="busy"
-      />
+          <TextAreaField
+            v-model="note"
+            :control-id="FIELD_IDS.note"
+            label="Note administrative (facultative)"
+            :maxlength="NOTE_MAX_LENGTH"
+            hint="Information d’accueil seulement, par exemple « accompagné d’un parent ». Aucune information médicale."
+            :error="errors.note ?? null"
+            :disabled="busy"
+          />
+        </div>
+      </SectionCard>
 
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="form-actions">
         <AppButton type="submit" :pending="busy" pending-label="Enregistrement en cours…"
-          >Enregistrer l’arrivée</AppButton
+          ><AppIcon name="check" :size="18" />Enregistrer l’arrivée</AppButton
         >
         <LinkButton :to="{ name: 'aujourdhui' }" variant="secondary">Annuler</LinkButton>
         <SaveStatus :state="saveState" :at="recordedAt" :time-zone="timeZone" />

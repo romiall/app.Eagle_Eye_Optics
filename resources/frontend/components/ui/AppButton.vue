@@ -38,9 +38,11 @@ const props = withDefaults(
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
 const variants: Record<string, string> = {
-  primary: 'border-transparent bg-primary text-primary-contrast hover:bg-primary-strong',
-  secondary: 'border-primary bg-surface text-primary hover:bg-primary-soft',
-  danger: 'border-transparent bg-danger text-primary-contrast hover:bg-danger-strong',
+  primary:
+    'border-transparent bg-primary text-primary-contrast shadow-card hover:bg-primary-strong',
+  secondary:
+    'border-field bg-surface text-primary shadow-card hover:border-primary hover:bg-primary-soft',
+  danger: 'border-transparent bg-danger text-primary-contrast shadow-card hover:bg-danger-strong',
   ghost: 'border-transparent bg-transparent text-primary hover:bg-primary-soft',
 }
 </script>
@@ -54,8 +56,10 @@ const variants: Record<string, string> = {
     :aria-busy="props.pending ? 'true' : undefined"
     :aria-pressed="props.pressed === undefined ? undefined : props.pressed ? 'true' : 'false'"
     :class="[
-      'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-base font-semibold',
-      'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-ink',
+      'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-base font-semibold',
+      'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-ink disabled:shadow-none',
+      // Bouton à bascule enfoncé : fond doré léger, bordure et filet dorés (en plus d'`aria-pressed`).
+      'aria-pressed:border-gold aria-pressed:bg-primary-soft aria-pressed:text-primary aria-pressed:shadow-[inset_0_-3px_0_var(--color-gold)]',
       variants[props.variant],
     ]"
     @click="emit('click', $event)"

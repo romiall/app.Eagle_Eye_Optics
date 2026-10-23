@@ -86,14 +86,29 @@ export interface InvoiceDocumentData {
   paymentAtIssue: PaymentAtIssueData | null
 }
 
+/**
+ * Destinataire d'un devis (L1D07) : un patient (identité de son dossier) OU un prospect sans dossier (nom et
+ * téléphone), figé dans la révision imprimée.
+ */
+export type QuoteRecipientData =
+  | { kind: 'PATIENT'; patient: PatientIdentity }
+  | { kind: 'PROSPECT'; name: string; phone: string | null }
+
 export interface QuoteDocumentData {
   templateVersion: string
   quoteId: string
   number: string | null
+  /** Révision imprimée (1 à l'émission, puis une par correction) ; null pour un brouillon. */
+  revisionNo: number | null
+  /** Instant de la première émission (null : brouillon). */
   issuedAt: string | null
+  /** Instant de la révision imprimée, quand elle n'est pas la première (null sinon). */
+  revisedAt: string | null
+  /** Motif d'une révision au-delà de la première (null sinon). */
+  revisionReason: string | null
   validUntil: string | null
   clinic: DocumentClinic
-  patient: PatientIdentity
+  recipient: QuoteRecipientData
   tax: InvoiceTaxData
   lines: readonly InvoiceLineData[]
   totalGross: number

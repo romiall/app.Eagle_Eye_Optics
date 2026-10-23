@@ -80,7 +80,7 @@ defineExpose({ commit, fieldId })
   <li
     :id="fieldId('line')"
     tabindex="-1"
-    class="space-y-3 rounded-lg border-2 border-line bg-surface p-3"
+    class="space-y-3 rounded-xl border border-line bg-surface shadow-card p-3"
     :aria-labelledby="`${prefix}-titre`"
   >
     <div class="flex flex-wrap items-start justify-between gap-2">

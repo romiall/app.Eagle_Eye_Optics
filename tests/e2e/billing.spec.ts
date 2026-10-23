@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test'
 
 import { demoAccount } from './support/accounts'
 
@@ -64,6 +64,21 @@ async function addCatalogLine(page: Page, search: string, name: RegExp): Promise
   // La liste des résultats porte le même nom que le champ (listbox étiquetée) : viser le champ par son rôle.
   await page.getByRole('combobox', { name: 'Ajouter un article du catalogue' }).fill(search)
   await page.getByRole('option', { name }).click()
+}
+
+/**
+ * Opération sensible : le serveur peut demander la confirmation du mot de passe (423) si la dernière
+ * confirmation est trop ancienne. Attend la réponse (succès visible ou boîte de confirmation), confirme au besoin,
+ * puis attend le succès.
+ */
+async function confirmPasswordIfAsked(page: Page, success: Locator): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: 'Confirmer votre mot de passe' })
+  await expect(dialog.or(success).first()).toBeVisible()
+  if (await dialog.isVisible()) {
+    await dialog.getByLabel('Mot de passe').fill(demoAccount('MANAGER').password)
+    await dialog.getByRole('button', { name: 'Confirmer et reprendre' }).click()
+  }
+  await expect(success.first()).toBeVisible()
 }
 
 function receiptNumbers(text: string): string[] {
@@ -218,6 +233,77 @@ test.describe('facturation et encaissement (B02 à B05) sur la vraie application
     await page.reload()
     await expect(main).toContainText('Facture abandonnée')
     await expect(main).not.toContainText('TEST-FAC-')
+
+    await context.close()
+  })
+
+  test('la gérante contre-passe un paiement, émet un avoir puis rembourse le crédit, sans toucher au reçu', async ({
+    browser,
+  }) => {
+    // Parcours long (émission, encaissement, trois corrections avec confirmation du mot de passe, rechargement).
+    test.setTimeout(240_000)
+    const patientPath = await createPatient(browser, 'Correction Parcours', '+237 600 00 07 77')
+
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    // La caisse principale est tenue par la session de la caissière (parcours précédents) : la gérante règle
+    // et rembourse ici par mobile money, qui ne dépend pas d'une session de caisse.
+    await signIn(page, 'MANAGER')
+    const main = page.getByRole('main')
+
+    await page.goto(patientPath)
+    await page.getByRole('link', { name: 'Créer une facture' }).click()
+    await addCatalogLine(page, 'DEMO-MON', /Monture fictive/)
+    await page.getByRole('button', { name: 'Enregistrer le brouillon' }).click()
+    await expect(page).toHaveURL(/\/ventes\/factures\/[0-9A-HJKMNP-TV-Z]{26}$/)
+    await page.getByRole('button', { name: 'Émettre la facture' }).click()
+    await page
+      .getByRole('dialog', { name: 'Émettre la facture ?' })
+      .getByRole('button', { name: 'Émettre la facture' })
+      .click()
+    await expect(page.getByRole('heading', { level: 1, name: /^Facture TEST-FAC-/ })).toBeVisible()
+    await page.getByRole('button', { name: /^Encaisser le reste/ }).click()
+    await page.getByLabel('Mode de règlement').selectOption({ label: 'Mobile money MTN' })
+    await page.getByLabel('Référence de l’opération').fill('REFERENCE-FICTIVE-CORR')
+    await page.getByRole('button', { name: /^Encaisser \d/ }).click()
+    await expect(main).toContainText('Encaissement enregistré sur le serveur')
+    const receipt = receiptNumbers(await main.innerText())[0] ?? ''
+
+    // Contre-écriture : motif obligatoire, mot de passe confirmé, le reçu d'origine reste tel qu'émis.
+    await page.getByRole('button', { name: /Contre-passer le paiement/ }).click()
+    await page.getByLabel('Montant à contre-passer').fill('5 000')
+    await page.getByLabel('Montant à contre-passer').blur()
+    await page.getByLabel('Motif (obligatoire)').fill('Montant saisi en trop (fictif)')
+    await page.getByRole('button', { name: 'Enregistrer la contre-écriture' }).click()
+    await confirmPasswordIfAsked(page, main.getByText('Correction enregistrée'))
+    await expect(main).toContainText('Correction enregistrée')
+    await expect(main).toContainText('Contre-écritures')
+
+    // Avoir sur la ligne d'origine, puis remboursement en espèces d'une partie du crédit.
+    await page.getByRole('button', { name: 'Émettre un avoir' }).click()
+    await page.getByLabel(/Montant à créditer sur « Monture/).fill('10 000')
+    await page.getByLabel(/Montant à créditer sur « Monture/).blur()
+    await page.getByLabel('Motif (obligatoire)').fill('Geste commercial (fictif)')
+    await page.getByRole('button', { name: 'Émettre l’avoir' }).click()
+    await confirmPasswordIfAsked(page, main.getByText(/Avoir TEST-AV-\d{4}-\d{6}/))
+    await expect(main).toContainText(/Avoir TEST-AV-\d{4}-\d{6}/)
+
+    await page.getByRole('button', { name: /Rembourser le crédit de l’avoir/ }).click()
+    await page.getByLabel('Montant remboursé').fill('5 000')
+    await page.getByLabel('Montant remboursé').blur()
+    await page.getByLabel('Mode de remboursement').selectOption({ label: 'Mobile money MTN' })
+    await page.getByLabel(/^Référence/).fill('REFERENCE-FICTIVE-RMB')
+    await page.getByRole('button', { name: 'Enregistrer le remboursement' }).click()
+    await confirmPasswordIfAsked(page, main.getByText(/Remboursement TEST-RMB-\d{4}-\d{6}/))
+    await expect(main).toContainText(/Remboursement TEST-RMB-\d{4}-\d{6}/)
+
+    // Rechargement : les pièces liées viennent du serveur ; le reçu d'origine garde son numéro.
+    await page.reload()
+    await expect(main).toContainText(`Reçu ${receipt}`)
+    await expect(main).toContainText(/Avoir TEST-AV-/)
+    await expect(main).toContainText(/Remboursement TEST-RMB-/)
+    const text = (await main.innerText()).toLowerCase()
+    for (const word of FORBIDDEN) expect(text, word).not.toContain(word)
 
     await context.close()
   })

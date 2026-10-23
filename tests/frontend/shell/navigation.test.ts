@@ -61,6 +61,8 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Communication',
       'Rapports',
       'Paramètres',
+      // Module de préparation des postes (O01 à O05) : jamais livré dans le menu, il s'ouvre depuis les Paramètres.
+      'Postes hors-ligne',
     ])
   })
 
@@ -83,10 +85,12 @@ describe('navigation de la coquille (fichier 04)', () => {
     ])
   })
 
-  it('ne présente aucun écran futur comme livré : patients, file du jour, examens, ventes et paramètres seulement', () => {
+  it('ne présente aucun écran futur comme livré : patients, file du jour, examens, agenda, ventes, statistiques et paramètres seulement', () => {
     // Chaque tâche qui livre un écran passe son entrée à true en même temps que sa route et ses
-    // tests (et met ce test à jour) : ici P01 (Nouveau patient), P02 (module Patients, Rechercher) et
-    // P03 (module Aujourd'hui, action « Consultations du jour » qui mène à la file du jour).
+    // tests (et met ce test à jour) : ici P01 (Nouveau patient), P02 (module Patients, Rechercher),
+    // P03 (module Aujourd'hui, action « Consultations du jour » qui mène à la file du jour), S01 (agenda
+    // et « Rendez-vous ») et R02 (« Statistiques »). Stock, atelier, communication, rapports financiers
+    // et postes hors-ligne restent non livrés.
     const entries: readonly NavigationEntry[] = [...APP_MODULES, ...HOME_ACTIONS]
     expect(
       entries.filter((entry) => entry.delivered).map((entry) => `${entry.id}:${entry.deliveredBy}`),
@@ -95,13 +99,17 @@ describe('navigation de la coquille (fichier 04)', () => {
       'patients:P02',
       // Liste des examens du cabinet (C01 à C04, en ligne).
       'consultations:C01',
+      // Agenda interne (S01, en ligne).
+      'agenda:S01',
       // Ventes et caisse (B02 à B05, en ligne) : caisse, factures, encaissements, catalogue.
       'sales:B02',
       // Paramètres : comptes du personnel et identité du cabinet (écrans F09 des routes F05).
       'settings:F09',
       'new-patient:P01',
       'search:P02',
+      'appointment:S01',
       'consultations-today:P03',
+      'statistics:R02',
       'settings:F09',
     ])
 
@@ -110,18 +118,21 @@ describe('navigation de la coquille (fichier 04)', () => {
       'Aujourd’hui',
       'Patients',
       'Consultations',
+      'Agenda',
       'Ventes et caisse',
       'Paramètres',
     ])
     expect(visibleHomeActions(everything, ALL_MODULES).map((action) => action.label)).toEqual([
       'Nouveau patient',
       'Rechercher',
+      'Rendez-vous',
       'Consultations du jour',
+      'Statistiques',
       'Paramètres',
     ])
     // Livrés mais pas ouverts par l'exploitant : rien n'apparaît.
     expect(visibleModules(everything, [])).toEqual([])
-    expect(visibleHomeActions(everything, ['sales', 'agenda'])).toEqual([])
+    expect(visibleHomeActions(everything, ['sales', 'stock'])).toEqual([])
   })
 
   it('les écrans patient suivent les droits : lecture seule sans « Nouveau patient »', () => {

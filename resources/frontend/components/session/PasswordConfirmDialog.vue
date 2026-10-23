@@ -6,7 +6,7 @@
  * est confirmé (`POST /auth/reauthenticate`), puis l'écran reprend la même commande avec la même clé.
  * La saisie de l'écran reste derrière la boîte ; le mot de passe est effacé à la fermeture.
  */
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, ref, useId, watch } from 'vue'
 
 import { ApiError, NetworkUnavailable } from '@/app/api'
 import { confirmPassword } from '@/app/services/reauth'
@@ -20,7 +20,9 @@ const props = withDefaults(defineProps<{ open: boolean; action?: string }>(), {
 
 const emit = defineEmits<{ confirmed: []; cancel: [] }>()
 
-const FIELD_ID = 'confirmation-mot-de-passe'
+// Identifiant propre à chaque boîte : une page peut en porter deux (import du catalogue et créances papier),
+// et une boîte fermée garde son contenu dans le document : un identifiant commun détacherait le libellé du champ.
+const FIELD_ID = `confirmation-mot-de-passe-${useId()}`
 
 const password = ref('')
 const error = ref<string | null>(null)

@@ -47,6 +47,7 @@ import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
 import CashSessionsManager from './CashSessionsManager.vue'
+import Expenses from './Expenses.vue'
 import SessionReportButton from './SessionReportButton.vue'
 
 interface CashView {
@@ -477,7 +478,7 @@ async function retryClose(): Promise<void> {
           Session ouverte : {{ registerName }}
         </h2>
         <dl
-          class="grid gap-x-6 gap-y-3 rounded-lg border-2 border-line bg-surface p-4 sm:grid-cols-2"
+          class="grid gap-x-6 gap-y-3 rounded-xl border border-line bg-surface shadow-card p-4 sm:grid-cols-2"
         >
           <div>
             <dt class="text-sm text-muted">Ouverte le</dt>
@@ -503,17 +504,28 @@ async function retryClose(): Promise<void> {
           </div>
         </dl>
         <p class="text-sm text-muted">
-          Projection du serveur à la lecture : fond + espèces encaissées − remboursements en
-          espèces. Mobile money, virements et chèques ne sont pas dans le tiroir.
+          Projection du serveur à la lecture : fond + espèces encaissées − remboursements en espèces
+          ± dépenses et mouvements autorisés. Mobile money, virements et chèques ne sont pas dans le
+          tiroir.
         </p>
         <div class="flex flex-wrap gap-3">
           <LinkButton :to="{ name: 'factures' }" variant="secondary">Aller aux factures</LinkButton>
           <LinkButton :to="{ name: 'caisse-du-jour' }" variant="secondary"
             >Caisse du jour</LinkButton
           >
+          <LinkButton v-if="isManager" :to="{ name: 'categories-depenses' }" variant="ghost"
+            >Catégories de dépenses</LinkButton
+          >
         </div>
         <SessionReportButton :session-id="session.id" label="Relevé provisoire (PDF)" />
       </section>
+
+      <Expenses
+        :session-id="session.id"
+        :open="true"
+        :available="session.theoretical_cash"
+        @changed="read.reload()"
+      />
 
       <StateMessage
         v-if="expectedChanged"

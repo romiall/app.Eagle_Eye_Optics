@@ -46,6 +46,12 @@ const entries = computed<Entry[]>(() =>
       visible: canOnScreen('invoice.read'),
     },
     {
+      name: 'devis',
+      label: 'Devis',
+      text: 'Propositions remises au client, révisions réimprimables et conversion en facture.',
+      visible: canOnScreen('invoice.read'),
+    },
+    {
       name: 'catalogue',
       label: 'Catalogue',
       text: 'Articles, prestations et prix de vente (gérante).',
@@ -78,7 +84,7 @@ const entries = computed<Entry[]>(() =>
       <li
         v-for="entry in entries"
         :key="entry.name"
-        class="space-y-2 rounded-lg border-2 border-line bg-surface p-4"
+        class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-4"
       >
         <LinkButton :to="{ name: entry.name }" variant="secondary">{{ entry.label }}</LinkButton>
         <p class="text-sm text-muted">{{ entry.text }}</p>

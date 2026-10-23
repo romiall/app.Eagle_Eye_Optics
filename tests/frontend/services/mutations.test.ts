@@ -1,5 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { reactive } from 'vue'
 
 import { REQUEST_TIMEOUT_MS } from '@/app/api'
 import { resetNetworkForTests } from '@/app/network'
@@ -375,6 +376,17 @@ describe('useMutation : saisie préservée, une clé par intention', () => {
       sentHeaders(fetchMock, 0)['Idempotency-Key'],
     )
     expect(mutation.saveState.value).toBe('synced')
+  })
+
+  it('accepte une charge issue d’objets réactifs (lignes d’un écran) sans DataCloneError', async () => {
+    const fetchMock = stubFetch({ command: [respond(201, { data: {} })] })
+    const mutation = useMutation(createMutationDispatcher())
+    const rows = reactive([{ reference: 'E2E-IMP-001', price: 45_000 }])
+
+    expect((await mutation.submit({ ...INTENT, payload: { rows } })).kind).toBe('synced')
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).rows).toEqual([
+      { reference: 'E2E-IMP-001', price: 45_000 },
+    ])
   })
 
   it('une charge modifiée est une nouvelle intention, avec une nouvelle clé', async () => {

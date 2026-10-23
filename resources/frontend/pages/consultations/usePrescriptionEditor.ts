@@ -4,6 +4,7 @@ import { clinicToday } from '@/app/clinicTime'
 import {
   getConsultation,
   getConsultationPrescriptions,
+  getPatientPrescriptions,
   getPrescription,
 } from '@/app/services/consultations'
 import type { MutationOutcome } from '@/app/services/mutations'
@@ -37,6 +38,15 @@ import { useClinicalRead } from './useClinicalRead'
 /** Ce que l'écran édite : une première prescription, un brouillon enregistré, ou une nouvelle version. */
 export type PrescriptionMode = 'idle' | 'new' | 'edit' | 'revise'
 
+/**
+ * Prescriptions éditées : celles d'une consultation (internes), ou les ordonnances EXTERNES transcrites d'un
+ * patient (sans consultation : prescripteur et date d'origine obligatoires). Une chaîne désigne une consultation.
+ */
+export type PrescriptionSource =
+  | string
+  | { readonly kind: 'consultation'; readonly consultationId: string }
+  | { readonly kind: 'external'; readonly patientId: string }
+
 function prescriptionFromResult(result: unknown): Prescription | null {
   const data =
     typeof result === 'object' && result !== null && 'data' in result
@@ -60,11 +70,28 @@ function prescriptionFromResult(result: unknown): Prescription | null {
  *   immuable ; le PDF est préparé (en attente) et généré par le moteur de documents, jamais ici.
  * - Copier la réfraction ou le centrage dans la prescription est un geste explicite (confirmation de l'écran).
  */
-export function usePrescriptionEditor(consultationId: string) {
-  const consultationRead = useClinicalRead<Consultation>(() => getConsultation(consultationId))
-  const listRead = useClinicalRead<Prescription[]>(() =>
-    getConsultationPrescriptions(consultationId),
+export function usePrescriptionEditor(source: PrescriptionSource) {
+  const scope =
+    typeof source === 'string'
+      ? ({ kind: 'consultation', consultationId: source } as const)
+      : source
+  const consultationId = scope.kind === 'consultation' ? scope.consultationId : null
+  const external = scope.kind === 'external'
+  // Une ordonnance externe n'a pas de consultation : rien à lire (et rien à recopier de la réfraction).
+  const consultationRead = useClinicalRead<Consultation | null>(() =>
+    consultationId === null
+      ? Promise.resolve({
+          data: null,
+          freshness: { serverAsOf: new Date().toISOString(), complete: true },
+          live: true,
+        })
+      : getConsultation(consultationId),
   )
+  const listRead = useClinicalRead<Prescription[]>(async () => {
+    if (scope.kind === 'consultation') return getConsultationPrescriptions(scope.consultationId)
+    const read = await getPatientPrescriptions(scope.patientId)
+    return { ...read, data: read.data.filter((prescription) => prescription.origin === 'EXTERNAL') }
+  })
   const mutation = useMutation()
 
   const mode = ref<PrescriptionMode>('idle')
@@ -148,7 +175,7 @@ export function usePrescriptionEditor(consultationId: string) {
     mutation.reset()
     mode.value = 'new'
     saved.value = null
-    draft.value = blankPrescription('INTERNAL')
+    draft.value = blankPrescription(external ? 'EXTERNAL' : 'INTERNAL')
     errors.value = []
     conflict.value = null
   }
@@ -285,7 +312,8 @@ export function usePrescriptionEditor(consultationId: string) {
   async function saveDraft(): Promise<void> {
     const current = draft.value
     const exam = consultation.value
-    if (busy.value || current === null || exam === null || !canWrite.value) return
+    const patientId = scope.kind === 'external' ? scope.patientId : (exam?.patient_id ?? null)
+    if (busy.value || current === null || patientId === null || !canWrite.value) return
     notice.value = null
     pendingKind.value = 'save'
     const found = check('draft')
@@ -315,9 +343,13 @@ export function usePrescriptionEditor(consultationId: string) {
 
     const revising = mode.value === 'revise' ? latest.value : null
     const { prescriptionId, seriesId } = ids()
+    const firstPath =
+      consultationId === null
+        ? '/prescriptions/external'
+        : `/consultations/${consultationId}/prescriptions`
     const route =
       revising === null
-        ? { method: 'POST' as const, path: `/consultations/${consultationId}/prescriptions` }
+        ? { method: 'POST' as const, path: firstPath }
         : { method: 'POST' as const, path: `/prescriptions/${revising.id}/revisions` }
     await afterOutcome(
       await mutation.submit({
@@ -329,7 +361,7 @@ export function usePrescriptionEditor(consultationId: string) {
             seriesId: revising === null ? seriesId : revising.series_id,
             versionNo: revising === null ? 1 : revising.version_no + 1,
             supersedesId: revising === null ? null : revising.id,
-            patientId: exam.patient_id,
+            patientId,
             consultationId,
           },
           current,

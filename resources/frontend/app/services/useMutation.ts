@@ -1,4 +1,4 @@
-import { computed, readonly, ref } from 'vue'
+import { computed, readonly, ref, toRaw } from 'vue'
 
 import type { ApiError } from '@/app/api'
 import { knownAccountId, refreshSession, session } from '@/app/session'
@@ -26,6 +26,24 @@ import {
  * perd (les identifiants d'effets de la charge empêchent alors le doublon côté serveur, O04 les
  * conserve dans le journal du poste).
  */
+/**
+ * Copie profonde d'une saisie, détachée de l'écran : `structuredClone` refuse les objets réactifs de Vue
+ * (un tableau de lignes lu depuis un `ref` lève une DataCloneError), alors que la charge d'une commande
+ * est toujours une donnée simple. Les octets et les fichiers restent tels quels (déjà clonables).
+ */
+function detachedCopy<T>(value: T): T {
+  const raw = toRaw(value) as unknown
+  if (Array.isArray(raw)) return raw.map((item) => detachedCopy(item)) as T
+  if (raw === null || typeof raw !== 'object') return raw as T
+  if (raw instanceof Date) return new Date(raw.getTime()) as T
+  if (ArrayBuffer.isView(raw) || raw instanceof ArrayBuffer || raw instanceof Blob) {
+    return structuredClone(raw) as T
+  }
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, item]) => [key, detachedCopy(item)]),
+  ) as T
+}
+
 export type MutationState =
   | 'idle'
   | 'saving'
@@ -151,7 +169,7 @@ export function useMutation(dispatcher: MutationDispatcher = useMutationDispatch
    * objets.
    */
   async function submit(request: MutationIntent): Promise<MutationOutcome> {
-    const intent = Object.freeze(structuredClone(request)) as MutationIntent
+    const intent = Object.freeze(detachedCopy(request)) as MutationIntent
     const print = fingerprint(intent)
     if (inFlight !== null) {
       if (inFlight.fingerprint === print) return inFlight.promise

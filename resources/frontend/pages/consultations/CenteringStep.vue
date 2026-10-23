@@ -11,8 +11,10 @@
  */
 import { computed } from 'vue'
 
+import ClinicalHint from '@/components/clinical/ClinicalHint.vue'
 import MeasureField from '@/components/clinical/MeasureField.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { type CenteringDraft, pdMismatch, suggestedSum } from '@/domain/clinical/centering'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
@@ -40,41 +42,47 @@ const showReason = computed(() => mismatch.value || cleanText(model.value.reason
 
 <template>
   <div class="space-y-6">
-    <p class="max-w-prose text-base text-muted">
+    <ClinicalHint>
       Écart pupillaire objectif, en millimètres. Une case vide est « non mesuré ». Le total et les
       écarts monoculaires sont saisis séparément : aucun n’est calculé à votre place.
-    </p>
+    </ClinicalHint>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-      <MeasureField
-        :model-value="model.pdTotal"
-        label="Écart pupillaire total (mm)"
-        :control-id="CONTROL_IDS.pdTotal"
-        :error="error(CONTROL_IDS.pdTotal)"
-        :disabled="props.disabled"
-        @update:model-value="update('pdTotal', $event)"
-      />
-      <MeasureField
-        :model-value="model.pdOd"
-        label="Écart pupillaire OD (mm)"
-        :control-id="CONTROL_IDS.pdOd"
-        :error="error(CONTROL_IDS.pdOd)"
-        :disabled="props.disabled"
-        @update:model-value="update('pdOd', $event)"
-      />
-      <MeasureField
-        :model-value="model.pdOg"
-        label="Écart pupillaire OG (mm)"
-        :control-id="CONTROL_IDS.pdOg"
-        :error="error(CONTROL_IDS.pdOg)"
-        :disabled="props.disabled"
-        @update:model-value="update('pdOg', $event)"
-      />
-    </div>
+    <SectionCard flat>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <MeasureField
+          :model-value="model.pdTotal"
+          label="Écart pupillaire total (mm)"
+          :control-id="CONTROL_IDS.pdTotal"
+          :error="error(CONTROL_IDS.pdTotal)"
+          :disabled="props.disabled"
+          @update:model-value="update('pdTotal', $event)"
+        />
+        <MeasureField
+          :model-value="model.pdOd"
+          label="Écart pupillaire OD (mm)"
+          :control-id="CONTROL_IDS.pdOd"
+          :error="error(CONTROL_IDS.pdOd)"
+          :disabled="props.disabled"
+          @update:model-value="update('pdOd', $event)"
+        />
+        <MeasureField
+          :model-value="model.pdOg"
+          label="Écart pupillaire OG (mm)"
+          :control-id="CONTROL_IDS.pdOg"
+          :error="error(CONTROL_IDS.pdOg)"
+          :disabled="props.disabled"
+          @update:model-value="update('pdOg', $event)"
+        />
+      </div>
+    </SectionCard>
 
-    <div v-if="sum !== null" class="space-y-2 text-base text-ink">
+    <div
+      v-if="sum !== null"
+      class="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 text-base text-ink sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+    >
       <p>
-        Somme OD + OG : <strong class="tabular-nums">{{ measureText(sum) }} mm</strong>
+        Somme OD + OG :
+        <strong class="text-lg font-semibold tabular-nums">{{ measureText(sum) }} mm</strong>
         <span v-if="mismatch" class="font-medium text-warning">
           <span aria-hidden="true"> ⚠ </span>diffère de l’écart total saisi
         </span>

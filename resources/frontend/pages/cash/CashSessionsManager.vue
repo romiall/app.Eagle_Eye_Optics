@@ -37,6 +37,7 @@ import SalesReadMessage from '@/pages/sales/SalesReadMessage.vue'
 import { useServerRead } from '@/pages/today/useServerRead'
 
 import SessionReportButton from './SessionReportButton.vue'
+import VarianceReview from './VarianceReview.vue'
 
 const FIELD_IDS = { counted: 'gerante-caisse-compte', reason: 'gerante-caisse-motif' } as const
 
@@ -246,7 +247,7 @@ function fieldError(fieldId: string): string | null {
         <li
           v-for="session in result.data"
           :key="session.id"
-          class="space-y-2 rounded-lg border-2 border-line bg-surface p-3"
+          class="space-y-2 rounded-xl border border-line bg-surface shadow-card p-3"
         >
           <p class="flex flex-wrap items-baseline justify-between gap-x-3">
             <span class="font-semibold break-words">{{ cashier(session) }}</span>
@@ -288,12 +289,18 @@ function fieldError(fieldId: string): string | null {
               >Clôturer cette session</AppButton
             >
           </div>
+          <!-- Écart d'une session clôturée : revue de la gérante (L1D05), sans réécrire la clôture. -->
+          <VarianceReview
+            v-if="session.closed_at !== null && (session.variance ?? 0) !== 0"
+            :session-id="session.id"
+            :cashier-name="cashier(session)"
+          />
 
           <form
             v-if="selected?.id === session.id"
             novalidate
             :aria-label="`Clôture de la session de ${cashier(session)}`"
-            class="space-y-4 rounded-lg border-2 border-primary p-3"
+            class="space-y-4 rounded-xl border border-primary p-3"
             @submit.prevent="requestClose"
           >
             <ErrorSummary :ref="bindSummary" :errors="errors" />

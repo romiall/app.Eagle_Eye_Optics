@@ -12,6 +12,7 @@ import { computed } from 'vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
 import YesNoField from '@/components/form/YesNoField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
 import {
   type AnamnesisDraft,
@@ -63,39 +64,42 @@ function error(controlId: string): string | null {
       @update:model-value="update('symptoms', $event)"
     />
 
-    <div class="space-y-4">
-      <YesNoField
-        :model-value="model.wearsGlasses"
-        legend="Porte actuellement des lunettes"
-        :control-id="CONTROL_IDS.wearsGlasses"
-        :error="error(CONTROL_IDS.wearsGlasses)"
-        :disabled="props.disabled"
-        @update:model-value="update('wearsGlasses', $event)"
-      />
-      <template v-if="model.wearsGlasses === true">
-        <TextField
-          :model-value="model.glassesDuration"
-          label="Depuis combien de temps"
-          hint="En texte libre."
-          :control-id="CONTROL_IDS.glassesDuration"
-          :maxlength="TEXT_MAX_LENGTH"
-          :error="error(CONTROL_IDS.glassesDuration)"
-          :disabled="props.disabled"
-          @update:model-value="update('glassesDuration', $event)"
-        />
+    <SectionCard flat>
+      <div class="space-y-4">
         <YesNoField
-          :model-value="model.previousCorrectionAvailable"
-          legend="Ancienne correction disponible"
-          :control-id="CONTROL_IDS.previousCorrection"
-          :error="error(CONTROL_IDS.previousCorrection)"
+          :model-value="model.wearsGlasses"
+          legend="Porte actuellement des lunettes"
+          :control-id="CONTROL_IDS.wearsGlasses"
+          :error="error(CONTROL_IDS.wearsGlasses)"
           :disabled="props.disabled"
-          @update:model-value="update('previousCorrectionAvailable', $event)"
+          @update:model-value="update('wearsGlasses', $event)"
         />
-      </template>
-      <p v-if="ignored" class="text-sm font-medium text-warning">
-        <span aria-hidden="true">⚠ </span>La durée et l’ancienne correction saisies ne sont pas
-        enregistrées tant que « Porte actuellement des lunettes » n’est pas « Oui ».
-      </p>
-    </div>
+        <template v-if="model.wearsGlasses === true">
+          <TextField
+            :model-value="model.glassesDuration"
+            label="Depuis combien de temps"
+            hint="En texte libre."
+            :control-id="CONTROL_IDS.glassesDuration"
+            :maxlength="TEXT_MAX_LENGTH"
+            :error="error(CONTROL_IDS.glassesDuration)"
+            :disabled="props.disabled"
+            class="max-w-md"
+            @update:model-value="update('glassesDuration', $event)"
+          />
+          <YesNoField
+            :model-value="model.previousCorrectionAvailable"
+            legend="Ancienne correction disponible"
+            :control-id="CONTROL_IDS.previousCorrection"
+            :error="error(CONTROL_IDS.previousCorrection)"
+            :disabled="props.disabled"
+            @update:model-value="update('previousCorrectionAvailable', $event)"
+          />
+        </template>
+        <p v-if="ignored" class="text-sm font-medium text-warning">
+          <span aria-hidden="true">⚠ </span>La durée et l’ancienne correction saisies ne sont pas
+          enregistrées tant que « Porte actuellement des lunettes » n’est pas « Oui ».
+        </p>
+      </div>
+    </SectionCard>
   </div>
 </template>

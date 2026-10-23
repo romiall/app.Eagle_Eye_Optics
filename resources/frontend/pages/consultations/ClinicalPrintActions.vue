@@ -32,7 +32,7 @@ const persistent = clinicalDocumentsPersistent()
 <template>
   <section
     :aria-labelledby="props.titleId"
-    class="space-y-3 rounded-lg border-2 border-line bg-surface p-4"
+    class="space-y-3 rounded-xl border border-line bg-surface shadow-card p-4"
   >
     <h2 :id="props.titleId" class="text-lg font-semibold">{{ props.title }}</h2>
     <div class="max-w-prose space-y-1 text-base text-ink">

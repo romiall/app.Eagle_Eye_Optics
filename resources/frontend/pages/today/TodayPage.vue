@@ -11,6 +11,9 @@
  * l'examen ne démarre qu'avec la facture de frais de la visite encaissée ou une dispense accordée par la
  * gérante ; chaque visite porte son marqueur (voir `VisitQueue`). Un achat ou un retrait n'impose aucun
  * examen.
+ *
+ * Présentation (charte du logo) : en-tête d'écran avec la date civile du cabinet au-dessus du titre,
+ * encadré du contrôle du paiement de l'examen, barre de choix du jour en carte, puis la file.
  */
 import { computed, ref } from 'vue'
 
@@ -18,7 +21,9 @@ import { clinicToday, formatDayFr } from '@/app/clinicTime'
 import { can, canOnScreen, examFeeControlledOnScreen, moduleOpenOnScreen } from '@/app/session'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import DateField from '@/components/form/DateField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import { CivilDate } from '@/domain/values/civilDate'
 import { shiftDay } from '@/domain/patients/visits'
@@ -47,6 +52,8 @@ const mentionsExamStart = computed(
 const examFeeControlled = computed(() => examFeeControlledOnScreen())
 const queueKey = computed(() => `${day.value}\u{1F}${page.value}\u{1F}${run.value}`)
 const isToday = computed(() => day.value === clinicToday().toString())
+/** Date civile du cabinet à l'ouverture de l'écran, au-dessus du titre (« jeudi 15 octobre 2026 »). */
+const todayLabel = formatDayFr(clinicToday())
 const title = computed(() => {
   const label = formatDayFr(CivilDate.fromString(day.value))
   return isToday.value ? `File du jour : ${label} (aujourd’hui)` : `File du jour : ${label}`
@@ -91,39 +98,59 @@ function goToPage(next: number): void {
 </script>
 
 <template>
-  <section aria-labelledby="titre-aujourdhui" class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 id="titre-aujourdhui" class="text-2xl font-semibold tracking-tight">Aujourd’hui</h1>
-      <LinkButton v-if="canRegister" :to="{ name: 'arrivee' }" variant="primary"
-        >Enregistrer une arrivée</LinkButton
-      >
-    </div>
+  <section aria-labelledby="titre-aujourdhui" class="page-stack">
+    <PageHeader
+      title-id="titre-aujourdhui"
+      title="Aujourd’hui"
+      icon="today"
+      :eyebrow="todayLabel"
+      subtitle="Arrivées du cabinet, état de chaque visite et suite à donner."
+    >
+      <template v-if="canRegister" #actions>
+        <LinkButton :to="{ name: 'arrivee' }" variant="primary"
+          ><AppIcon name="arrival" :size="18" />Enregistrer une arrivée</LinkButton
+        >
+      </template>
+    </PageHeader>
 
     <StateMessage v-if="flash" state="success" :title="flash" />
 
-    <p v-if="examFeeControlled" class="max-w-prose text-muted">
-      Les frais d’examen sont contrôlés : un examen de vue ou un contrôle de suivi ne démarre
-      qu’avec la facture de frais de la visite encaissée, ou une dispense accordée par la gérante.
-      Un achat direct ou un retrait de commande n’impose aucun examen.
-    </p>
-    <p v-else class="max-w-prose text-muted">
-      <span aria-hidden="true">⚠ </span>Le contrôle du paiement de l’examen n’est pas encore actif.
-      Une arrivée pour un examen de vue ou un contrôle de suivi n’est donc pas bloquée faute de
-      règlement, et cet écran ne dit rien de l’état du règlement de l’examen.
-      <template v-if="mentionsExamStart">
-        Démarrer l’examen n’est pas non plus bloqué par le règlement.
-      </template>
-      Un achat direct ou un retrait de commande n’impose aucun examen.
-    </p>
+    <div class="card flex items-start gap-3 p-4 sm:gap-4 sm:p-5">
+      <div
+        aria-hidden="true"
+        :class="[
+          'flex size-9 shrink-0 items-center justify-center rounded-lg',
+          examFeeControlled ? 'bg-accent-soft text-accent' : 'bg-warning-soft text-warning',
+        ]"
+      >
+        <AppIcon :name="examFeeControlled ? 'shield' : 'alert'" :size="18" />
+      </div>
+      <p v-if="examFeeControlled" class="max-w-prose text-muted">
+        Les frais d’examen sont contrôlés : un examen de vue ou un contrôle de suivi ne démarre
+        qu’avec la facture de frais de la visite encaissée, ou une dispense accordée par la gérante.
+        Un achat direct ou un retrait de commande n’impose aucun examen.
+      </p>
+      <p v-else class="max-w-prose text-muted">
+        Le contrôle du paiement de l’examen n’est pas encore actif. Une arrivée pour un examen de
+        vue ou un contrôle de suivi n’est donc pas bloquée faute de règlement, et cet écran ne dit
+        rien de l’état du règlement de l’examen.
+        <template v-if="mentionsExamStart">
+          Démarrer l’examen n’est pas non plus bloqué par le règlement.
+        </template>
+        Un achat direct ou un retrait de commande n’impose aucun examen.
+      </p>
+    </div>
 
-    <div
-      role="group"
-      aria-label="Choisir le jour affiché"
-      class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
-    >
-      <AppButton variant="secondary" @click="shift(-1)">Jour précédent</AppButton>
-      <AppButton variant="secondary" @click="showToday">Aujourd’hui</AppButton>
-      <AppButton variant="secondary" @click="shift(1)">Jour suivant</AppButton>
+    <div role="group" aria-label="Choisir le jour affiché" class="card toolbar p-4 sm:p-5">
+      <div class="flex flex-wrap gap-2 *:grow sm:*:grow-0">
+        <AppButton variant="secondary" @click="shift(-1)"
+          ><AppIcon name="chevron-left" :size="18" />Jour précédent</AppButton
+        >
+        <AppButton variant="secondary" @click="showToday">Aujourd’hui</AppButton>
+        <AppButton variant="secondary" @click="shift(1)"
+          >Jour suivant<AppIcon name="chevron-right" :size="18"
+        /></AppButton>
+      </div>
       <div class="sm:w-56">
         <DateField
           :key="fieldKey"
@@ -135,7 +162,9 @@ function goToPage(next: number): void {
           @update:model-value="chooseDay"
         />
       </div>
-      <AppButton variant="ghost" @click="refresh">Actualiser la file</AppButton>
+      <AppButton variant="ghost" class="sm:ml-auto" @click="refresh"
+        ><AppIcon name="refresh" :size="18" />Actualiser la file</AppButton
+      >
     </div>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>

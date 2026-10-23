@@ -23,7 +23,7 @@ const lines = computed(() => balanceLines(props.balance))
   <div
     role="group"
     :aria-label="props.title"
-    class="rounded-lg border-2 border-line bg-surface p-4"
+    class="rounded-xl border border-line bg-surface shadow-card p-4"
   >
     <dl class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-10">
       <div

@@ -3,34 +3,52 @@ import { createRouter, createWebHistory, type Router, type RouterHistory } from 
 
 import { DOCUMENT_PERMISSIONS } from '@/documents/access'
 import ChangePasswordPage from '@/pages/account/ChangePasswordPage.vue'
+import ClinicalComparePage from '@/pages/clinical/Compare.vue'
 import ConsultationHistoryPage from '@/pages/consultations/ConsultationHistoryPage.vue'
 import ConsultationListPage from '@/pages/consultations/ConsultationListPage.vue'
 import ConsultationPage from '@/pages/consultations/ConsultationPage.vue'
 import PrescriptionsPage from '@/pages/consultations/PrescriptionsPage.vue'
 import DocumentPreviewPage from '@/pages/documents/DocumentPreviewPage.vue'
 import ForbiddenPage from '@/pages/ForbiddenPage.vue'
+import HelpPage from '@/pages/help/HelpPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import NotFoundPage from '@/pages/NotFoundPage.vue'
 import PatientActivityPage from '@/pages/patients/PatientActivityPage.vue'
 import PatientCreatePage from '@/pages/patients/PatientCreatePage.vue'
 import PatientEditPage from '@/pages/patients/PatientEditPage.vue'
+import PatientPrescriptionsPage from '@/pages/patients/PatientPrescriptionsPage.vue'
 import PatientListPage from '@/pages/patients/PatientListPage.vue'
 import PatientViewPage from '@/pages/patients/PatientViewPage.vue'
+import StatisticsPage from '@/pages/reports/StatisticsPage.vue'
+import AgendaPage from '@/pages/agenda/AgendaPage.vue'
+import AgendaSettingsPage from '@/pages/agenda/AgendaSettingsPage.vue'
+import NewAppointmentPage from '@/pages/agenda/NewAppointmentPage.vue'
+import FollowUpsPage from '@/pages/follow-ups/FollowUpsPage.vue'
 import ApprovalsPage from '@/pages/manager/Approvals.vue'
+import ImportsPage from '@/pages/manager/Imports.vue'
+import PatientMergePage from '@/pages/manager/PatientMerge.vue'
+import SyncConflictsPage from '@/pages/manager/SyncConflicts.vue'
+import DevicePreparationPage from '@/pages/settings/DevicePreparationPage.vue'
 import CashDayPage from '@/pages/cash/CashDayPage.vue'
 import CashSessionPage from '@/pages/cash/CashSessionPage.vue'
+import ExpenseCategoriesPage from '@/pages/cash/ExpenseCategories.vue'
 import CatalogPage from '@/pages/sales/CatalogPage.vue'
 import InvoiceCreatePage from '@/pages/sales/InvoiceCreatePage.vue'
 import InvoiceListPage from '@/pages/sales/InvoiceListPage.vue'
 import InvoicePage from '@/pages/sales/InvoicePage.vue'
+import QuoteCreatePage from '@/pages/sales/QuoteCreatePage.vue'
+import QuotePage from '@/pages/sales/QuotePage.vue'
+import QuotesPage from '@/pages/sales/Quotes.vue'
 import SalesHomePage from '@/pages/sales/SalesHomePage.vue'
 import TaxRulesPage from '@/pages/sales/TaxRulesPage.vue'
 import ClinicSettingsPage from '@/pages/settings/ClinicSettingsPage.vue'
+import ExportsPage from '@/pages/settings/ExportsPage.vue'
 import SettingsHomePage from '@/pages/settings/SettingsHomePage.vue'
 import StaffCreatePage from '@/pages/settings/StaffCreatePage.vue'
 import StaffListPage from '@/pages/settings/StaffListPage.vue'
 import StaffMemberPage from '@/pages/settings/StaffMemberPage.vue'
+import MovementForm from '@/pages/stock/MovementForm.vue'
 import StockPage from '@/pages/stock/StockPage.vue'
 import ArrivalPage from '@/pages/today/ArrivalPage.vue'
 import TodayPage from '@/pages/today/TodayPage.vue'
@@ -132,6 +150,39 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Activité du patient', permissions: ['patient.read'], module: 'patients' },
       },
       {
+        // Onglet « Prescriptions » du dossier (compte clinique) : ordonnances externes transcrites, sans consultation.
+        path: `/patients/${ULID_ID}/prescriptions`,
+        name: 'patient-prescriptions',
+        component: PatientPrescriptionsPage,
+        meta: {
+          title: 'Prescriptions du patient',
+          permissions: ['clinical.read'],
+          module: 'consultations',
+        },
+      },
+      {
+        // Fusion manuelle de deux fiches (L1D08) : la fiche de l'adresse est celle à absorber ; gérante.
+        path: `/patients/${ULID_ID}/fusion`,
+        name: 'patient-fusion',
+        component: PatientMergePage,
+        meta: {
+          title: 'Fusionner deux fiches',
+          permissions: ['patient.merge'],
+          module: 'patients',
+        },
+      },
+      {
+        // Comparaison de deux examens terminés d'un même patient (L1D08) : rubriques et prescriptions validées.
+        path: `/patients/${ULID_ID}/comparaison`,
+        name: 'patient-comparaison',
+        component: ClinicalComparePage,
+        meta: {
+          title: 'Comparer deux examens',
+          permissions: ['clinical.read'],
+          module: 'consultations',
+        },
+      },
+      {
         // Liste des examens du cabinet (patient, date, état, professionnel ; aucune valeur clinique).
         path: '/consultations',
         name: 'consultations',
@@ -201,6 +252,13 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Caisse', permissions: ['cash.own_session'], module: 'sales' },
       },
       {
+        // Catégories de dépenses de la caisse (L1D05) : gérante.
+        path: '/ventes/caisse/categories-depenses',
+        name: 'categories-depenses',
+        component: ExpenseCategoriesPage,
+        meta: { title: 'Catégories de dépenses', permissions: ['cash.manage'], module: 'sales' },
+      },
+      {
         // Caisse du jour (R01 minimal) : la gérante lit tout le cabinet, une caissière ses seuls encaissements.
         path: '/ventes/caisse-du-jour',
         name: 'caisse-du-jour',
@@ -234,10 +292,36 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Facture', permissions: ['invoice.read'], module: 'sales' },
       },
       {
+        // Devis versionnés (L1D07) : ni créance ni encaissement ; conversion explicite en brouillon de facture.
+        path: '/ventes/devis',
+        name: 'devis',
+        component: QuotesPage,
+        meta: { title: 'Devis', permissions: ['invoice.read'], module: 'sales' },
+      },
+      {
+        path: '/ventes/devis/nouveau',
+        name: 'devis-nouveau',
+        component: QuoteCreatePage,
+        meta: { title: 'Nouveau devis', permissions: ['invoice.create'], module: 'sales' },
+      },
+      {
+        path: `/ventes/devis/${ULID_ID}`,
+        name: 'devis-detail',
+        component: QuotePage,
+        meta: { title: 'Devis', permissions: ['invoice.read'], module: 'sales' },
+      },
+      {
         path: '/ventes/catalogue',
         name: 'catalogue',
         component: CatalogPage,
         meta: { title: 'Catalogue', permissions: ['catalog.manage'], module: 'sales' },
+      },
+      {
+        // Import contrôlé du catalogue depuis un fichier CSV (X01) : aperçu, puis toutes les lignes ou aucune.
+        path: '/ventes/catalogue/import',
+        name: 'import-catalogue',
+        component: ImportsPage,
+        meta: { title: 'Importer le catalogue', permissions: ['catalog.manage'], module: 'sales' },
       },
       {
         path: '/ventes/taxes',
@@ -246,12 +330,19 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Règles fiscales', permissions: ['catalog.manage'], module: 'sales' },
       },
       {
-        // Disponibilités et stock initial (I00), module « stock » ; les écrans d'exploitation du stock
-        // (remises, réserves sous quota) viennent avec I01.
+        // Disponibilités et stock initial (I00), module « stock ». La remise au patient (I01) et le retour
+        // physique (I02) se font depuis la fiche facture (`DeliveriesPanel`).
         path: '/stock',
         name: 'stock',
         component: StockPage,
         meta: { title: 'Stock', permissions: ['stock.read'], module: 'stock' },
+      },
+      {
+        // Casse et ajustement approuvés (I02) : gérante (stock.adjust), mot de passe confirmé à l'envoi.
+        path: '/stock/mouvement',
+        name: 'stock-movement',
+        component: MovementForm,
+        meta: { title: 'Casse ou ajustement', permissions: ['stock.adjust'], module: 'stock' },
       },
       // Paramètres (module « settings ») : comptes du personnel et identité du cabinet, gérante seulement
       // (users.manage ; le serveur revérifie et exige une réauthentification pour chaque écriture).
@@ -284,6 +375,17 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         meta: { title: 'Compte du personnel', permissions: ['users.manage'], module: 'settings' },
       },
       {
+        // Exports contrôlés (X02) : archive privée par export, téléchargeable 48 h.
+        path: '/parametres/exports',
+        name: 'parametres-exports',
+        component: ExportsPage,
+        meta: {
+          title: 'Exports',
+          permissions: ['export.global', 'clinical.export'],
+          module: 'settings',
+        },
+      },
+      {
         // Approbations exactes (B06) : la gérante décide (réauthentification à chaque décision) ; un compte qui
         // demande seulement voit ses propres demandes et leur décision (le serveur filtre).
         path: '/parametres/approbations',
@@ -293,6 +395,25 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
           title: 'Approbations',
           permissions: ['approval.decide', 'approval.request'],
           module: 'settings',
+        },
+      },
+      {
+        // Préparation de ce poste pour le hors-ligne (O01 à O05) : coffre chiffré, enrôlement, profils, numéros réservés
+        // et synchronisation. Module « offline » (fermé par défaut).
+        path: '/parametres/poste',
+        name: 'parametres-poste',
+        component: DevicePreparationPage,
+        meta: { title: 'Préparer ce poste', permissions: ['offline.enroll'], module: 'offline' },
+      },
+      {
+        // Conflits de synchronisation des postes (O05) : décision motivée de la gérante. Module « offline ».
+        path: '/parametres/conflits-synchronisation',
+        name: 'conflits-synchronisation',
+        component: SyncConflictsPage,
+        meta: {
+          title: 'Conflits de synchronisation',
+          permissions: ['approval.decide'],
+          module: 'offline',
         },
       },
       {
@@ -307,6 +428,56 @@ export function createEeoRouter(history: RouterHistory = createWebHistory()): Ro
         name: 'mot-de-passe',
         component: ChangePasswordPage,
         meta: { title: 'Changer mon mot de passe' },
+      },
+      {
+        // Statistiques du dossier patient (R02), module « reports » : activité de l'accueil (statistics.activity) et
+        // examens (statistics.clinical) ; l'écran ne montre que les tableaux des droits du compte.
+        path: '/rapports/statistiques',
+        name: 'statistiques',
+        component: StatisticsPage,
+        meta: {
+          title: 'Statistiques',
+          permissions: ['statistics.activity', 'statistics.clinical'],
+          module: 'reports',
+        },
+      },
+      {
+        // Agenda interne (S01), module « agenda » : vues jour et semaine, prise de rendez-vous, configuration (gérante).
+        path: '/agenda',
+        name: 'agenda',
+        component: AgendaPage,
+        meta: { title: 'Agenda', permissions: ['agenda.read'], module: 'agenda' },
+      },
+      {
+        path: '/agenda/nouveau',
+        name: 'rendez-vous-nouveau',
+        component: NewAppointmentPage,
+        meta: { title: 'Nouveau rendez-vous', permissions: ['agenda.write'], module: 'agenda' },
+      },
+      {
+        // Configuration de l'agenda : gérante (faute de droit dédié au référentiel, users.manage).
+        path: '/agenda/configuration',
+        name: 'agenda-configuration',
+        component: AgendaSettingsPage,
+        meta: {
+          title: 'Configuration de l’agenda',
+          permissions: ['users.manage'],
+          module: 'agenda',
+        },
+      },
+      {
+        // Suivis (S02) : tâches de contact internes du jour et patients à revoir ; aucun envoi de message.
+        path: '/suivis',
+        name: 'suivis',
+        component: FollowUpsPage,
+        meta: { title: 'Patients à rappeler', permissions: ['agenda.read'], module: 'agenda' },
+      },
+      {
+        // Aide intégrée : tout compte connecté ; elle ne montre que les écrans de ses droits et modules ouverts.
+        path: '/aide',
+        name: 'aide',
+        component: HelpPage,
+        meta: { title: 'Aide' },
       },
       {
         path: '/:pathMatch(.*)*',

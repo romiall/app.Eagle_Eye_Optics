@@ -7,6 +7,8 @@
  * Les valeurs sont celles que le professionnel saisit (ou recopie par un geste explicite et confirmé de
  * l'écran) : rien n'est calculé, déduit ni transposé. Une case vide est « non saisi » ; « 0,00 » est une valeur.
  * Le formulaire est tenu par l'écran ; ce composant affiche les erreurs reçues par identifiant de contrôle.
+ * Présentation : rubriques séparées par un filet, chacune titrée avec son icône et son action de copie
+ * à droite dès la tablette ; le tableau de correction garde toute la largeur.
  */
 import { computed, ref } from 'vue'
 
@@ -20,6 +22,7 @@ import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
 import DateField from '@/components/form/DateField.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { TEXT_MAX_LENGTH } from '@/domain/clinical/fields'
 import {
   EYES,
@@ -148,39 +151,45 @@ function chooseIndex(value: string | null): void {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <section v-if="external" class="space-y-4">
-      <h3 class="text-lg font-semibold">Ordonnance externe</h3>
-      <TextField
-        :model-value="model.externalPrescriber"
-        label="Prescripteur"
-        :control-id="RX_IDS.externalPrescriber"
-        :maxlength="180"
-        :error="error(RX_IDS.externalPrescriber)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="patch({ externalPrescriber: $event })"
-      />
-      <DateField
-        :model-value="model.externalPrescribedOn"
-        label="Date de l’ordonnance"
-        field="external_prescribed_on"
-        :control-id="RX_IDS.externalPrescribedOn"
-        :error="error(RX_IDS.externalPrescribedOn)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="patch({ externalPrescribedOn: $event })"
-      />
+      <h3 class="flex items-center gap-2 text-lg font-semibold">
+        <AppIcon name="file" class="text-gold" />Ordonnance externe
+      </h3>
+      <div class="form-grid">
+        <TextField
+          :model-value="model.externalPrescriber"
+          label="Prescripteur"
+          :control-id="RX_IDS.externalPrescriber"
+          :maxlength="180"
+          :error="error(RX_IDS.externalPrescriber)"
+          :disabled="props.disabled"
+          required
+          @update:model-value="patch({ externalPrescriber: $event })"
+        />
+        <DateField
+          :model-value="model.externalPrescribedOn"
+          label="Date de l’ordonnance"
+          field="external_prescribed_on"
+          :control-id="RX_IDS.externalPrescribedOn"
+          :error="error(RX_IDS.externalPrescribedOn)"
+          :disabled="props.disabled"
+          required
+          @update:model-value="patch({ externalPrescribedOn: $event })"
+        />
+      </div>
     </section>
 
-    <section class="space-y-3">
-      <div class="flex flex-wrap items-center gap-3">
-        <h3 class="text-lg font-semibold">Correction</h3>
+    <section :class="['space-y-4', external ? 'border-t border-line pt-6' : '']">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <AppIcon name="glasses" class="text-gold" />Correction
+        </h3>
         <AppButton
           v-if="props.canCopyRefraction && !props.disabled"
           variant="secondary"
           @click="emit('copy-refraction')"
-          >Copier une mesure de réfraction…</AppButton
+          ><AppIcon name="clipboard" :size="18" />Copier une mesure de réfraction…</AppButton
         >
       </div>
       <OpticalTable
@@ -252,24 +261,28 @@ function chooseIndex(value: string | null): void {
         </template>
       </OpticalTable>
       <fieldset class="m-0 min-w-0 space-y-1 border-0 p-0">
-        <legend class="text-base font-medium text-ink">Mention d’absence de correction</legend>
-        <label
-          v-for="eye in EYES"
-          :key="eye"
-          class="flex min-h-11 items-center gap-3 text-base"
-          :for="RX_IDS.eye(eye, 'no_correction')"
-        >
-          <input
-            :id="RX_IDS.eye(eye, 'no_correction')"
-            type="checkbox"
-            class="size-5"
-            :checked="model.eyes[eye].noCorrection"
-            :disabled="props.disabled"
-            :aria-invalid="error(RX_IDS.eye(eye, 'no_correction')) ? 'true' : undefined"
-            @change="patchEye(eye, { noCorrection: ($event.target as HTMLInputElement).checked })"
-          />
-          Œil {{ eye === 'OD' ? 'droit (OD)' : 'gauche (OG)' }} : aucune correction
-        </label>
+        <legend class="mb-1 p-0 text-base font-medium text-ink">
+          Mention d’absence de correction
+        </legend>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="eye in EYES"
+            :key="eye"
+            class="flex min-h-11 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-1 text-base text-ink hover:border-primary has-checked:border-gold has-checked:bg-primary-soft has-checked:font-medium has-disabled:cursor-not-allowed has-disabled:bg-disabled"
+            :for="RX_IDS.eye(eye, 'no_correction')"
+          >
+            <input
+              :id="RX_IDS.eye(eye, 'no_correction')"
+              type="checkbox"
+              class="size-6 shrink-0 accent-primary"
+              :checked="model.eyes[eye].noCorrection"
+              :disabled="props.disabled"
+              :aria-invalid="error(RX_IDS.eye(eye, 'no_correction')) ? 'true' : undefined"
+              @change="patchEye(eye, { noCorrection: ($event.target as HTMLInputElement).checked })"
+            />
+            Œil {{ eye === 'OD' ? 'droit (OD)' : 'gauche (OG)' }} : aucune correction
+          </label>
+        </div>
         <p
           v-for="eye in EYES"
           v-show="error(RX_IDS.eye(eye, 'no_correction')) !== null"
@@ -281,14 +294,16 @@ function chooseIndex(value: string | null): void {
       </fieldset>
     </section>
 
-    <section class="space-y-4">
-      <div class="flex flex-wrap items-center gap-3">
-        <h3 class="text-lg font-semibold">Écart pupillaire</h3>
+    <section class="space-y-4 border-t border-line pt-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <AppIcon name="eye" class="text-gold" />Écart pupillaire
+        </h3>
         <AppButton
           v-if="props.canCopyCentering && !props.disabled"
           variant="secondary"
           @click="emit('copy-centering')"
-          >Reporter les écarts du centrage</AppButton
+          ><AppIcon name="clipboard" :size="18" />Reporter les écarts du centrage</AppButton
         >
       </div>
       <div class="grid gap-4 sm:grid-cols-3">
@@ -333,71 +348,75 @@ function chooseIndex(value: string | null): void {
       >
     </section>
 
-    <section class="space-y-4">
-      <h3 class="text-lg font-semibold">Verres</h3>
-      <SelectField
-        :model-value="model.usageCode"
-        label="Usage"
-        placeholder="Choisir un usage…"
-        :options="usageOptions"
-        :control-id="RX_IDS.usage"
-        :error="error(RX_IDS.usage)"
-        :disabled="props.disabled"
-        @update:model-value="chooseUsage"
-      />
-      <TextField
-        v-if="model.usageCode === 'OTHER'"
-        :model-value="model.usageOther"
-        label="Autre usage : précisez"
-        :control-id="RX_IDS.usageOther"
-        :maxlength="TEXT_MAX_LENGTH"
-        :error="error(RX_IDS.usageOther)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="patch({ usageOther: $event })"
-      />
-      <SelectField
-        :model-value="model.lensTypeCode"
-        label="Type de verre"
-        placeholder="Choisir un type…"
-        :options="typeOptions"
-        :control-id="RX_IDS.lensType"
-        :error="error(RX_IDS.lensType)"
-        :disabled="props.disabled"
-        @update:model-value="chooseType"
-      />
-      <TextField
-        v-if="model.lensTypeCode === 'OTHER'"
-        :model-value="model.lensTypeOther"
-        label="Autre type de verre : précisez"
-        :control-id="RX_IDS.lensTypeOther"
-        :maxlength="TEXT_MAX_LENGTH"
-        :error="error(RX_IDS.lensTypeOther)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="patch({ lensTypeOther: $event })"
-      />
-      <SelectField
-        :model-value="model.lensIndex"
-        label="Indice"
-        placeholder="Choisir un indice…"
-        :options="indexOptions"
-        :control-id="RX_IDS.lensIndex"
-        :error="error(RX_IDS.lensIndex)"
-        :disabled="props.disabled"
-        @update:model-value="chooseIndex"
-      />
-      <TextField
-        v-if="model.lensIndex === LENS_INDEX_OTHER"
-        :model-value="model.lensIndexOther"
-        label="Autre indice : précisez"
-        :control-id="RX_IDS.lensIndexOther"
-        :maxlength="TEXT_MAX_LENGTH"
-        :error="error(RX_IDS.lensIndexOther)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="patch({ lensIndexOther: $event })"
-      />
+    <section class="space-y-4 border-t border-line pt-6">
+      <h3 class="flex items-center gap-2 text-lg font-semibold">
+        <AppIcon name="tag" class="text-gold" />Verres
+      </h3>
+      <div class="form-grid">
+        <SelectField
+          :model-value="model.usageCode"
+          label="Usage"
+          placeholder="Choisir un usage…"
+          :options="usageOptions"
+          :control-id="RX_IDS.usage"
+          :error="error(RX_IDS.usage)"
+          :disabled="props.disabled"
+          @update:model-value="chooseUsage"
+        />
+        <TextField
+          v-if="model.usageCode === 'OTHER'"
+          :model-value="model.usageOther"
+          label="Autre usage : précisez"
+          :control-id="RX_IDS.usageOther"
+          :maxlength="TEXT_MAX_LENGTH"
+          :error="error(RX_IDS.usageOther)"
+          :disabled="props.disabled"
+          required
+          @update:model-value="patch({ usageOther: $event })"
+        />
+        <SelectField
+          :model-value="model.lensTypeCode"
+          label="Type de verre"
+          placeholder="Choisir un type…"
+          :options="typeOptions"
+          :control-id="RX_IDS.lensType"
+          :error="error(RX_IDS.lensType)"
+          :disabled="props.disabled"
+          @update:model-value="chooseType"
+        />
+        <TextField
+          v-if="model.lensTypeCode === 'OTHER'"
+          :model-value="model.lensTypeOther"
+          label="Autre type de verre : précisez"
+          :control-id="RX_IDS.lensTypeOther"
+          :maxlength="TEXT_MAX_LENGTH"
+          :error="error(RX_IDS.lensTypeOther)"
+          :disabled="props.disabled"
+          required
+          @update:model-value="patch({ lensTypeOther: $event })"
+        />
+        <SelectField
+          :model-value="model.lensIndex"
+          label="Indice"
+          placeholder="Choisir un indice…"
+          :options="indexOptions"
+          :control-id="RX_IDS.lensIndex"
+          :error="error(RX_IDS.lensIndex)"
+          :disabled="props.disabled"
+          @update:model-value="chooseIndex"
+        />
+        <TextField
+          v-if="model.lensIndex === LENS_INDEX_OTHER"
+          :model-value="model.lensIndexOther"
+          label="Autre indice : précisez"
+          :control-id="RX_IDS.lensIndexOther"
+          :maxlength="TEXT_MAX_LENGTH"
+          :error="error(RX_IDS.lensIndexOther)"
+          :disabled="props.disabled"
+          required
+          @update:model-value="patch({ lensIndexOther: $event })"
+        />
+      </div>
       <TermChecklist
         group="LENS_TREATMENT"
         legend="Traitements"
@@ -411,15 +430,17 @@ function chooseIndex(value: string | null): void {
       />
     </section>
 
-    <TextAreaField
-      :model-value="model.notes"
-      label="Observations"
-      :control-id="RX_IDS.notes"
-      :rows="3"
-      :maxlength="TEXT_MAX_LENGTH"
-      :error="error(RX_IDS.notes)"
-      :disabled="props.disabled"
-      @update:model-value="patch({ notes: $event })"
-    />
+    <div class="border-t border-line pt-6">
+      <TextAreaField
+        :model-value="model.notes"
+        label="Observations"
+        :control-id="RX_IDS.notes"
+        :rows="3"
+        :maxlength="TEXT_MAX_LENGTH"
+        :error="error(RX_IDS.notes)"
+        :disabled="props.disabled"
+        @update:model-value="patch({ notes: $event })"
+      />
+    </div>
   </div>
 </template>

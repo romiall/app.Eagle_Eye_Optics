@@ -37,16 +37,22 @@ test.describe('coquille de l’application (F09)', () => {
       'Bonjour Gérante (démonstration)',
     )
     // La gérante a toutes les permissions ; l'environnement de test ouvre « patients », « today »,
-    // « consultations », « sales », « stock » et « settings » (EEO_ENABLED_MODULES de prepare-env.mjs). Seul ce
-    // qui est livré ET ouvert apparaît (docs/implementation/modules.md) : actions d'accueil du dossier patient,
-    // raccourcis de travail par activité, puis le changement de son mot de passe ; ni message « aucun module
-    // livré », ni module futur.
+    // « consultations », « sales », « stock », « settings », « reports », « agenda » et « offline »
+    // (EEO_ENABLED_MODULES de prepare-env.mjs). Seul ce qui est livré ET ouvert apparaît
+    // (docs/implementation/modules.md) : actions d'accueil du dossier patient, raccourcis de travail par activité,
+    // puis le changement de son mot de passe et l'aide ; ni message « aucun module livré », ni module futur.
     await expect(page.getByText('Aucun module métier livré pour l’instant')).toHaveCount(0)
     await expect(page.getByRole('main').getByRole('link')).toHaveText([
+      'Voir la file du jour',
+      'Voir l’agenda',
+      'Voir la caisse du jour',
       'Nouveau patient',
       'Rechercher',
+      'Rendez-vous',
       'Consultations du jour',
+      'Statistiques',
       'Paramètres',
+      'Patients à rappeler',
       'Enregistrer une arrivée',
       'Mes examens en cours',
       'Examens du jour',
@@ -57,6 +63,7 @@ test.describe('coquille de l’application (F09)', () => {
       'Cabinet et documents',
       'Catalogue',
       'Changer mon mot de passe',
+      'Aide : comment utiliser l’application',
     ])
     await expect(
       page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link'),
@@ -65,20 +72,13 @@ test.describe('coquille de l’application (F09)', () => {
       'Aujourd’hui',
       'Patients',
       'Consultations',
+      'Agenda',
       'Ventes et caisse',
       'Paramètres',
     ])
-    // Modules et actions non livrés : jamais présentés, même ouverts par l'exploitant (le stock l'est ici, son
-    // entrée de menu attend I01).
-    for (const future of [
-      'Agenda',
-      'Rendez-vous',
-      'Stock',
-      'Atelier',
-      'Communication',
-      'Rapports',
-      'Statistiques',
-    ]) {
+    // Modules non livrés : jamais présentés, même ouverts par l'exploitant (le stock l'est ici, son entrée de menu
+    // attend I01 ; « offline » n'a pas d'entrée de menu). L'agenda, « Rendez-vous » et « Statistiques » sont livrés.
+    for (const future of ['Stock', 'Atelier', 'Communication', 'Rapports', 'Postes hors-ligne']) {
       await expect(page.getByRole('link', { name: future, exact: true }), future).toHaveCount(0)
     }
     const banner = page.getByRole('banner')
@@ -87,9 +87,10 @@ test.describe('coquille de l’application (F09)', () => {
       '/',
     )
     // Écrit en casse normale, affiché en capitales.
-    expect(await banner.getByRole('link').first().innerText()).toContain(
-      'EAGLE’S EYE OPTICS MEDICAL – GESTION DES PATIENTS',
-    )
+    // (la marque est sur deux lignes : nom du cabinet, puis « Gestion des patients »).
+    const brandText = await banner.getByRole('link').first().innerText()
+    expect(brandText).toContain('EAGLE’S EYE OPTICS MEDICAL')
+    expect(brandText).toContain('GESTION DES PATIENTS')
     await expect(banner.getByText('En ligne')).toBeVisible()
 
     await page.getByRole('button', { name: 'Se déconnecter' }).click()

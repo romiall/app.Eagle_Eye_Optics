@@ -2,6 +2,8 @@ import type {
   Approval,
   ApprovalsStatus,
   ApprovalSubject,
+  CashMovementSubject,
+  CreditDeliverySubject,
   CreditNoteSubject,
   DecideApprovalPayload,
   DraftLineRightsSubject,
@@ -10,8 +12,10 @@ import type {
   RefundsMethod,
   RefundSubject,
   RequestApprovalPayload,
+  StockMovementSubject,
 } from '../contracts/generated'
 import { RuleViolation } from '../errors'
+import { type FixedDecimal, Quantity } from '../values/decimal'
 import { optionalText } from '../values/text'
 
 /**
@@ -36,6 +40,9 @@ export const KIND_LABELS: Readonly<Record<ApprovalKind, string>> = {
   PAYMENT_REVERSAL: 'Contre-écriture d’un paiement',
   CREDIT_NOTE: 'Avoir sur une facture émise',
   REFUND: 'Remboursement d’un crédit',
+  CREDIT_DELIVERY: 'Remise avant règlement complet',
+  STOCK_MOVEMENT: 'Casse ou ajustement de stock',
+  CASH_MOVEMENT: 'Mouvement de caisse hors vente',
 }
 
 export function kindLabel(kind: Approval['kind']): string {
@@ -179,6 +186,101 @@ export function refundSubject(
   }
 }
 
+export interface CreditDeliveryLineInput {
+  invoice_line_id: string
+  /** Quantité remise, forme canonique ou saisie (« 1 », « 1.000 »). */
+  quantity: string
+}
+
+/**
+ * Remise d'une facture non soldée (I01) : reste dû à l'instant et quantités remises par ligne d'origine. Même
+ * normalisation que le serveur (`ApprovalSubject::creditDelivery`) : deux lignes d'une même ligne d'origine sont
+ * additionnées, les lignes sont triées par identifiant, les quantités canoniques (« 1 » = « 1.000 »).
+ */
+export function creditDeliverySubject(
+  invoiceId: string,
+  amountDue: number,
+  lines: readonly CreditDeliveryLineInput[],
+): CreditDeliverySubject {
+  if (lines.length === 0) {
+    throw RuleViolation.invalid(
+      'lines',
+      'approval.subject_lines_required',
+      'La remise à approuver porte au moins une ligne.',
+    )
+  }
+  const totals = new Map<string, FixedDecimal>()
+  for (const line of lines) {
+    const quantity = Quantity.parse(line.quantity)
+    if (quantity === null) {
+      throw RuleViolation.invalid('quantity', 'quantity.required', 'Quantité remise obligatoire.')
+    }
+    const previous = totals.get(line.invoice_line_id)
+    totals.set(line.invoice_line_id, previous === undefined ? quantity : previous.plus(quantity))
+  }
+  const normalized = [...totals.entries()]
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .map(([invoiceLineId, quantity]) => ({
+      invoice_line_id: invoiceLineId,
+      quantity: quantity.canonical(),
+    }))
+  return {
+    kind: 'CREDIT_DELIVERY',
+    invoice_id: invoiceId,
+    amount_due: amountDue,
+    lines: normalized as CreditDeliverySubject['lines'],
+  }
+}
+
+/**
+ * Casse ou ajustement de stock (I02) : position, article, lot, nature et quantité signée exactes (forme
+ * canonique, « -1 » = « -1.000 »), comme `ApprovalSubject::stockMovement`.
+ */
+export function stockMovementSubject(
+  positionId: string,
+  itemId: string,
+  lotId: string | null,
+  movementKind: StockMovementSubject['movement_kind'],
+  signedQuantity: FixedDecimal,
+): StockMovementSubject {
+  return {
+    kind: 'STOCK_MOVEMENT',
+    position_id: positionId,
+    item_id: itemId,
+    lot_id: lotId,
+    movement_kind: movementKind,
+    signed_quantity: signedQuantity.canonical(),
+  }
+}
+
+/**
+ * Mouvement d'espèces hors vente d'une session ouverte (L1D05) : nature, montant SIGNÉ (entrée positive,
+ * sortie négative) et catégorie de la dépense exacts, comme `ApprovalSubject::cashMovement`.
+ */
+export function cashMovementSubject(
+  sessionId: string,
+  movementKind: CashMovementSubject['movement_kind'],
+  signedAmount: number,
+  expenseCategoryId: string | null,
+): CashMovementSubject {
+  return {
+    kind: 'CASH_MOVEMENT',
+    cash_session_id: sessionId,
+    movement_kind: movementKind,
+    signed_amount: signedAmount,
+    expense_category_id: expenseCategoryId,
+  }
+}
+
+/** Libellé d'une nature de mouvement de caisse. */
+export const CASH_MOVEMENT_LABELS: Readonly<Record<CashMovementSubject['movement_kind'], string>> =
+  {
+    DEPOSIT: 'Dépôt (entrée d’espèces)',
+    WITHDRAWAL: 'Retrait (versement, coffre)',
+    EXPENSE: 'Dépense payée en espèces',
+    OPENING_CORRECTION: 'Correction de l’ouverture',
+  }
+
 // --- Demande et décision ----------------------------------------------------------------------------
 
 /** Charge `RequestApproval` (alias d'objet : transmissible au répartiteur de mutations). */
@@ -296,7 +398,37 @@ export function describeSubject(
         { label: 'Montant remboursé', value: formatMoney(subject.amount) },
         { label: 'Mode', value: methodLabel(subject.method) },
       ]
+    case 'CREDIT_DELIVERY':
+      return [
+        { label: 'Reste dû au moment de la remise', value: formatMoney(subject.amount_due) },
+        { label: 'Lignes remises', value: String(subject.lines.length) },
+      ]
+    case 'STOCK_MOVEMENT':
+      return [
+        {
+          label: 'Opération',
+          value: subject.movement_kind === 'BREAKAGE' ? 'Casse (sortie du stock)' : 'Ajustement',
+        },
+        { label: 'Quantité', value: quantityLabel(subject.signed_quantity) },
+      ]
+    case 'CASH_MOVEMENT':
+      return [
+        { label: 'Opération', value: CASH_MOVEMENT_LABELS[subject.movement_kind] },
+        {
+          label:
+            subject.signed_amount < 0 ? 'Montant sorti du tiroir' : 'Montant entré dans le tiroir',
+          value: formatMoney(Math.abs(subject.signed_amount)),
+        },
+      ]
   }
+}
+
+/** « -1 » pour -1.000, « 1,5 » pour 1.500 (affichage d'une quantité signée exacte). */
+function quantityLabel(canonical: string): string {
+  const trimmed = canonical.includes('.')
+    ? canonical.replace(/0+$/, '').replace(/\.$/, '')
+    : canonical
+  return trimmed.replace('.', ',')
 }
 
 /** Champ de la demande qui porte une erreur du serveur (clé de `error.fields`), ou null. */

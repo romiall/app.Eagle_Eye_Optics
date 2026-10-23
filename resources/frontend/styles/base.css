@@ -13,6 +13,345 @@ html {
 body {
   margin: 0;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * Identité visuelle (charte du logo, docs/implementation/shell.md) : règles par défaut de faible
+ * priorité (couche « base ») — toute classe utilitaire d'un écran les remplace.
+ */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-gold-soft);
+    color: var(--color-ink);
+  }
+
+  /* Titre d'écran : court filet doré sous le titre (repère de la marque, purement décoratif). */
+  #contenu h1 {
+    padding-bottom: 0.5rem;
+    background-image: linear-gradient(var(--color-gold), var(--color-gold));
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 2.5rem 3px;
+  }
+
+  /* Tableaux : en-têtes discrets, lignes aérées, chiffres alignés. */
+  table {
+    border-collapse: collapse;
+  }
+
+  thead th {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  tbody tr + tr {
+    border-top: 1px solid var(--color-line);
+  }
+
+  td,
+  th {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Interactions : transitions courtes (désactivées par « animations réduites »). */
+  a,
+  button,
+  summary,
+  input,
+  select,
+  textarea {
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  /* Menu repliable de navigation (`list-none`) : pas de triangle natif ; les autres le gardent. */
+  summary.list-none::-webkit-details-marker {
+    display: none;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
+    opacity: 1;
+  }
+}
+
+/*
+ * Briques de mise en page communes aux écrans (couche « components »,
+ * docs/implementation/shell.md) : pile d'écran, cartes, grilles, barre d'outils, titre de section,
+ * liste de détails, formulaire et tableau de données. Les utilitaires d'un écran les complètent ou
+ * les remplacent (couche « utilities », prioritaire). Aucune teinte nouvelle : seulement des
+ * associations vérifiées par tests/frontend/shell/palette.test.ts (texte encre, secondaire ou
+ * action sur surface, fond crème ou fond doré léger ; or réservé aux filets).
+ */
+@layer components {
+  /* Pile d'un écran : sections espacées régulièrement, un peu plus dès la tablette. */
+  .page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Carte : surface blanche, bordure fine, ombre légère (le contenu fixe sa marge intérieure). */
+  .card {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Carte cliquable (`RouterLink class="card card-link p-4"`) : bordure dorée, ombre au survol. */
+  .card-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 2.75rem;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  .card-link:hover {
+    border-color: var(--color-gold);
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* Grille de cartes : une colonne sur téléphone, deux sur tablette, trois sur ordinateur. */
+  .card-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  /* Grille de tuiles de chiffres (`<dl class="stat-grid">`) : deux par ligne dès 360 px. */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  /* Tuiles plus larges (montants en FCFA) : une par ligne sur téléphone. */
+  .stat-grid-wide {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  }
+
+  /* Barre d'outils (filtres, choix du jour) : empilée sur téléphone, en ligne ensuite. */
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* Titre de section hors carte : court filet doré vertical devant le texte (décoratif). */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+  }
+
+  .section-title::before {
+    content: '';
+    flex-shrink: 0;
+    width: 0.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background-color: var(--color-gold);
+  }
+
+  /* Liste de détails (`<dl class="detail-list">` de `<div><dt/><dd/></div>`) : libellé discret. */
+  .detail-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.5rem;
+    margin: 0;
+  }
+
+  .detail-list dt {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+  }
+
+  .detail-list dd {
+    margin: 0;
+    color: var(--color-ink);
+    overflow-wrap: break-word;
+  }
+
+  /* Champs d'un formulaire : une colonne sur téléphone, deux ensuite (`col-span-full` : long). */
+  .form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem 1.25rem;
+  }
+
+  /* Boutons d'un formulaire : sous un filet, pleine largeur sur téléphone, en ligne ensuite. */
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* Lien dans un texte : souligné, soulignement doré et plus épais au survol. */
+  .text-link {
+    color: var(--color-primary);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+
+  .text-link:hover {
+    text-decoration-color: var(--color-gold);
+    text-decoration-thickness: 2px;
+  }
+
+  /*
+   * Tableau de données : cadre de carte qui défile seul en largeur si besoin (jamais la page),
+   * en-tête sur fond doré léger, lignes séparées par un filet, survol crème, nombres et montants
+   * alignés à droite en chiffres tabulaires (`th`/`td` de classe `num`).
+   */
+  .data-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .data-table caption {
+    padding: 0.75rem;
+    color: var(--color-ink);
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .data-table thead th {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+    background-color: var(--color-primary-soft);
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    vertical-align: bottom;
+  }
+
+  .data-table tbody th,
+  .data-table tbody td,
+  .data-table tfoot th,
+  .data-table tfoot td {
+    padding: 0.75rem;
+    vertical-align: top;
+  }
+
+  .data-table tbody th {
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+
+  .data-table tbody tr + tr {
+    border-top: 1px solid var(--color-line);
+  }
+
+  .data-table tbody tr:hover {
+    background-color: var(--color-canvas);
+  }
+
+  .data-table tfoot {
+    border-top: 2px solid var(--color-line);
+    font-weight: 600;
+  }
+
+  .data-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Tableau collé aux bords d'une `SectionCard` (`flush`) : le cadre de la carte suffit. */
+  .section-card-flush > .data-table-wrap {
+    border-width: 0;
+    border-radius: 0 0 calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px);
+    box-shadow: none;
+  }
+
+  .section-card-flush:first-child > .data-table-wrap {
+    border-radius: calc(var(--radius-xl) - 1px);
+  }
+
+  @media (min-width: 40rem) {
+    .page-stack {
+      gap: 2rem;
+    }
+
+    .card-grid,
+    .detail-list,
+    .form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat-grid {
+      gap: 1rem;
+    }
+
+    .toolbar,
+    .form-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .toolbar {
+      align-items: flex-end;
+    }
+
+    .form-actions {
+      align-items: center;
+    }
+
+    .data-table caption,
+    .data-table thead th,
+    .data-table tbody th,
+    .data-table tbody td,
+    .data-table tfoot th,
+    .data-table tfoot td {
+      padding-inline: 1rem;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .card-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
 }
 
 /*

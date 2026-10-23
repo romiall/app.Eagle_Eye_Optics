@@ -7,7 +7,7 @@ import type {
 import { RuleViolation } from '../errors'
 import { CivilDate } from '../values/civilDate'
 import { Instant } from '../values/instant'
-import { optionalText } from '../values/text'
+import { optionalText, trimBlanks } from '../values/text'
 
 /**
  * Visites et file du jour (P03 ; fichier 02, « Patients et accueil » ; AT05). Règles pures : ni Vue,
@@ -233,6 +233,8 @@ export type RegisterVisitRequestPayload = {
 export interface RegisterVisitIds {
   /** Identifiant de la visite, connu avant tout envoi (`effectId('visit_id')`). */
   visitId: string
+  /** Rendez-vous dont c'est l'arrivée (S01), s'il y en a un : il passe « arrivé » avec la visite. */
+  appointmentId?: string | null
 }
 
 /**
@@ -249,7 +251,7 @@ export function buildRegisterVisitPayload(
     patient_id: values.patient_id,
     reason: values.reason,
     occurred_at: occurredAt,
-    appointment_id: null,
+    appointment_id: ids.appointmentId ?? null,
     administrative_note: values.administrative_note,
   }
 }
@@ -266,4 +268,44 @@ export function arrivalFieldFromServer(key: string): ArrivalField | null {
     default:
       return null
   }
+}
+
+// --- Annulation d'une visite (P03) -------------------------------------------------------------------
+
+export const CANCEL_REASON_MIN_LENGTH = 3
+export const CANCEL_REASON_MAX_LENGTH = 500
+
+/** Statuts d'une visite encore avant l'examen : seuls ceux-là s'annulent (le serveur revérifie tout). */
+export const CANCELLABLE_STATUSES: readonly VisitsStatus[] = [
+  'ARRIVED',
+  'AWAITING_EXAM_FEE',
+  'READY_FOR_EXAM',
+]
+
+/**
+ * Visite annulable depuis la file : avant l'examen et sans consultation connue. Une consultation existante
+ * n'est visible qu'avec le droit clinique : sans lui, le serveur refuse (409) et l'écran le dit.
+ */
+export function isCancellable(visit: Pick<Visit, 'status' | 'consultation_id'>): boolean {
+  return CANCELLABLE_STATUSES.includes(visit.status) && visit.consultation_id === null
+}
+
+/** Motif obligatoire de l'annulation (information d'accueil, 3 à 500 caractères). */
+export function validateCancelReason(
+  text: string,
+): { ok: true; reason: string } | { ok: false; error: string } {
+  const reason = trimBlanks(text)
+  if (reason.length < CANCEL_REASON_MIN_LENGTH) {
+    return {
+      ok: false,
+      error: `Indiquez le motif de l’annulation (au moins ${CANCEL_REASON_MIN_LENGTH} caractères).`,
+    }
+  }
+  if (reason.length > CANCEL_REASON_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `Le motif compte au plus ${CANCEL_REASON_MAX_LENGTH} caractères.`,
+    }
+  }
+  return { ok: true, reason }
 }

@@ -31,6 +31,7 @@ import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import type {
   CatalogItem,
@@ -46,6 +47,8 @@ import {
   REASON_MAX_LENGTH,
   validateOpeningStock,
 } from '@/domain/inventory/opening'
+import type { ImportProblem } from '@/domain/billing/catalogImport'
+import { openingTemplateCsv, readOpeningCsv } from '@/domain/inventory/openingImport'
 import { currentInstant } from '@/domain/patients/visits'
 import { newUlid } from '@/domain/values/ulid'
 import { quantityLabel } from '@/pages/sales/format'
@@ -146,6 +149,65 @@ const itemOptions = computed(() =>
 function setRef(key: string, element: unknown): void {
   if (element === null) fieldRefs.delete(key)
   else fieldRefs.set(key, element as { commit: () => boolean })
+}
+
+// --- Remplir le stock initial depuis un fichier CSV (X01) -------------------------------------------
+
+const csvProblems = ref<ImportProblem[]>([])
+const csvReading = ref(false)
+
+/** Tous les articles du catalogue (pages successives) : chaque référence du fichier y est retrouvée. */
+async function allCatalogItems(): Promise<CatalogItem[]> {
+  const all: CatalogItem[] = []
+  let last = 1
+  for (let current = 1; current <= last; current += 1) {
+    const result = await searchCatalog('', current)
+    all.push(...result.data.data)
+    last = result.data.meta.last_page
+  }
+  return all
+}
+
+function downloadOpeningTemplate(): void {
+  const blob = new Blob([`\u{FEFF}${openingTemplateCsv()}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'modele-stock-initial.csv'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Le fichier remplit le formulaire (rien n'est envoyé) : la gérante relit puis enregistre comme d'habitude. */
+async function fillFromCsv(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  csvProblems.value = []
+  if (file === null) return
+  csvReading.value = true
+  try {
+    const parsed = readOpeningCsv(
+      await file.text(),
+      await allCatalogItems(),
+      locationRead.data.value ?? [],
+    )
+    csvProblems.value = parsed.problems
+    if (parsed.problems.length === 0) {
+      lines.value = parsed.lines
+      notice.value = `${parsed.lines.length} ligne(s) reprise(s) du fichier : vérifiez-les, indiquez le motif puis enregistrez.`
+    }
+  } catch {
+    csvProblems.value = [
+      {
+        line: 1,
+        column: null,
+        message: 'Le fichier ou le catalogue n’a pas pu être lu : réessayez.',
+      },
+    ]
+  } finally {
+    csvReading.value = false
+    input.value = ''
+  }
 }
 
 function addLine(): void {
@@ -302,6 +364,9 @@ async function onPasswordConfirmed(): Promise<void> {
 <template>
   <section aria-labelledby="titre-stock" class="max-w-3xl space-y-6">
     <h1 id="titre-stock" class="text-2xl font-semibold tracking-tight">Stock</h1>
+    <LinkButton v-if="canOpen" :to="{ name: 'stock-movement' }" variant="secondary"
+      >Casse ou ajustement</LinkButton
+    >
 
     <StateMessage v-if="notice" state="success" :title="notice" />
 
@@ -326,7 +391,7 @@ async function onPasswordConfirmed(): Promise<void> {
           <li
             v-for="row in result.data"
             :key="row.stock_position_id"
-            class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+            class="space-y-1 rounded-xl border border-line bg-surface shadow-card p-3"
           >
             <p class="font-semibold break-words">{{ itemName(row.item_id) }}</p>
             <p class="text-sm text-muted break-words">{{ locationName(row.location_id) }}</p>
@@ -441,7 +506,7 @@ async function onPasswordConfirmed(): Promise<void> {
           <li
             v-for="(line, index) in lines"
             :key="line.movementId"
-            class="space-y-3 rounded-lg border-2 border-line bg-surface p-3"
+            class="space-y-3 rounded-xl border border-line bg-surface shadow-card p-3"
           >
             <div class="flex flex-wrap items-start justify-between gap-2">
               <h3 class="text-base font-semibold">Ligne {{ index + 1 }}</h3>
@@ -519,6 +584,39 @@ async function onPasswordConfirmed(): Promise<void> {
         <AppButton variant="secondary" :disabled="saving" @click="addLine"
           >Ajouter une ligne</AppButton
         >
+
+        <div class="space-y-2 rounded-lg border-2 border-line bg-surface p-3">
+          <label for="stock-fichier-csv" class="block font-medium"
+            >Remplir depuis un fichier CSV (facultatif)</label
+          >
+          <p class="text-sm text-muted">
+            Colonnes : reference, quantite, emplacement, lot, peremption, cout_unitaire. Les lignes
+            remplacent celles du formulaire ; rien n’est enregistré avant « Enregistrer ».
+          </p>
+          <input
+            id="stock-fichier-csv"
+            type="file"
+            accept=".csv,text/csv"
+            class="block min-h-11 w-full max-w-full text-base"
+            :disabled="saving || csvReading"
+            @change="fillFromCsv"
+          />
+          <AppButton variant="ghost" @click="downloadOpeningTemplate"
+            >Télécharger le modèle de stock initial</AppButton
+          >
+          <StateMessage
+            v-if="csvProblems.length > 0"
+            state="error"
+            title="Le fichier est à corriger : le formulaire n’a pas été modifié"
+          >
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+              <li v-for="(item, index) in csvProblems" :key="index">
+                Ligne {{ item.line }}<template v-if="item.column"> ({{ item.column }})</template> :
+                {{ item.message }}
+              </li>
+            </ul>
+          </StateMessage>
+        </div>
 
         <TextAreaField
           v-model="reason"

@@ -268,7 +268,7 @@ onBeforeUnmount(() => {
       />
       <div
         v-show="open"
-        class="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-line bg-surface shadow-lg"
+        class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-line bg-surface shadow-raised"
       >
         <ul :id="listId" role="listbox" :aria-label="props.label" class="max-h-72 overflow-y-auto">
           <li
@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
             :class="[
               'min-h-11 cursor-pointer border-l-4 px-3 py-2',
               index === activeIndex
-                ? 'border-primary bg-primary-soft text-primary'
+                ? 'border-gold bg-primary-soft text-primary'
                 : 'border-transparent text-ink hover:bg-canvas',
             ]"
             @mousedown.prevent

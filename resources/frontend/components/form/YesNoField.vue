@@ -60,12 +60,12 @@ const choices = computed(() => [
   >
     <legend class="mb-1 p-0 text-base font-medium text-ink">{{ props.legend }}</legend>
     <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
-    <div class="flex flex-wrap gap-x-4 gap-y-1">
+    <div class="flex flex-wrap gap-2">
       <label
         v-for="choice in choices"
         :key="choice.key"
         :for="`${id}-${choice.key}`"
-        class="flex min-h-11 items-center gap-2 rounded-lg px-1 py-1 text-base text-ink"
+        class="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1 text-base text-ink hover:border-primary has-checked:border-gold has-checked:bg-primary-soft has-checked:font-medium has-disabled:cursor-not-allowed has-disabled:bg-disabled"
       >
         <input
           :id="`${id}-${choice.key}`"

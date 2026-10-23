@@ -243,7 +243,7 @@ async function reloadRule(): Promise<void> {
       v-if="editing !== null"
       novalidate
       aria-labelledby="titre-regle"
-      class="space-y-4 rounded-lg border-2 border-primary bg-surface p-4"
+      class="space-y-4 rounded-xl border border-primary bg-surface p-4"
       @submit.prevent="submit"
     >
       <h2 id="titre-regle" class="text-lg font-semibold">
@@ -361,7 +361,7 @@ async function reloadRule(): Promise<void> {
       <li
         v-for="rule in read.data.value"
         :key="rule.id"
-        class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
+        class="space-y-1 rounded-xl border border-line bg-surface shadow-card p-3"
       >
         <p class="flex flex-wrap items-baseline justify-between gap-x-3">
           <span class="font-semibold break-words">{{ rule.label }} ({{ rule.code }})</span>

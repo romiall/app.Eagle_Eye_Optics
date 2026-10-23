@@ -212,3 +212,43 @@ describe('écran Approbations de la gérante', () => {
     unmount()
   })
 })
+
+describe('refus d’état d’une décision (409)', () => {
+  it('le message du serveur reste affiché après la relecture qui recrée la carte', async () => {
+    const me = meResponse(MANAGER, 'Gérante Fictive', [...ALL_TEST_MODULES])
+    me.data.id = ME_ID
+    let reads = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown, init?: RequestInit): Promise<Response> => {
+        const url = new URL(String(input), 'https://cabinet.test')
+        const method = init?.method ?? 'GET'
+        if (url.pathname === '/up') return json(200, { status: 'ok' })
+        if (url.pathname === '/api/sanctum/csrf-cookie') return new Response(null, { status: 204 })
+        if (url.pathname === '/api/v1/auth/me') return json(200, me)
+        if (url.pathname === '/api/v1/approvals' && method === 'GET') {
+          reads += 1
+          return json(200, page([approval()]))
+        }
+        if (url.pathname === `/api/v1/approvals/${APPROVAL_ID}/decision` && method === 'POST') {
+          return apiError(
+            409,
+            'STATE_TRANSITION_REFUSED',
+            'Cette demande a déjà été décidée ou est échue.',
+          )
+        }
+        return json(404, { error: { code: 'RESOURCE_NOT_FOUND', message: 'Introuvable' } })
+      }),
+    )
+    const { root, unmount } = await openApp('/parametres/approbations')
+    expect(reads).toBe(1)
+
+    await click(buttonByName(root, 'Accorder'))
+    await flushPromises()
+
+    expect(reads).toBe(2)
+    expect(textOf(root)).toContain('Décision non enregistrée')
+    expect(textOf(root)).toContain('Cette demande a déjà été décidée ou est échue.')
+    unmount()
+  })
+})

@@ -51,7 +51,7 @@ defineExpose({ focus })
     tabindex="-1"
     role="alert"
     :aria-labelledby="titleId"
-    class="rounded-lg border-2 border-danger bg-danger-soft p-4 text-ink"
+    class="rounded-xl border border-l-4 border-danger bg-danger-soft p-4 text-ink shadow-card sm:p-5"
   >
     <h2 :id="titleId" class="text-base font-semibold text-danger">
       <span aria-hidden="true">⚠ </span>{{ props.title }}

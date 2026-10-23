@@ -33,6 +33,8 @@ export interface ReadOutcome<T> {
 export interface ReadOptions<T> {
   /** Vrai si la donnée lue est vide (liste sans résultat) : état `empty`. */
   isEmpty?: (data: T) => boolean
+  /** Ne rien lire à la création : la lecture part au premier `reload()` (donnée utile seulement plus tard). */
+  lazy?: boolean
 }
 
 export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadOptions<T> = {}) {
@@ -87,7 +89,7 @@ export function useRead<T>(loader: () => Promise<ReadOutcome<T>>, options: ReadO
     }
   }
 
-  void reload()
+  if (options.lazy !== true) void reload()
 
   return {
     state: readonly(state),

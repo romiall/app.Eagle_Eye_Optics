@@ -12,6 +12,11 @@
  * Liste en cartes empilées (aucun tableau, aucun défilement horizontal à 360 px). Un élément n'est un lien
  * que si le serveur donne l'adresse de son écran ET que cet écran existe dans cette version et s'ouvre pour
  * ce compte (droit et module) ; sinon son titre est du texte simple.
+ *
+ * Présentation : frise chronologique, une pastille d'icône par nature d'élément (teinte de sa section)
+ * reliée par un filet, puis la carte (date, titre, détails). Le montant d'une pièce financière est repris
+ * en grand à droite pour la lecture rapide ; ce rappel est masqué aux lecteurs d'écran, qui le lisent déjà
+ * dans les détails.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -21,7 +26,9 @@ import { type ActivitySectionCode, listPatientActivity } from '@/app/services/pa
 import { canAny, enabledModules } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage, { type ScreenState } from '@/components/feedback/StateMessage.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import type {
   PatientActivity,
@@ -29,13 +36,16 @@ import type {
   PatientActivitySection,
 } from '@/domain/contracts/generated'
 import {
+  type ActivitySection,
   ALL_EMPTY,
   itemDetails,
   itemKey,
   itemTitle,
   SECTION_EMPTY,
   SECTION_LABELS,
+  sectionOf,
 } from '@/domain/patients/activity'
+import { formatMoney } from '@/domain/values/money'
 
 import { usePatientRead } from './usePatientRead'
 
@@ -216,29 +226,54 @@ const failure = computed<View | null>(() => {
   }
 })
 
-/** Filtre : bouton à bascule (`aria-pressed`), cible de 44 px, mêmes teintes qu'`AppButton`. */
-const CHIP_CLASS =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border-2 px-4 py-2 text-base font-semibold'
-const CHIP_ON = 'border-transparent bg-primary text-primary-contrast hover:bg-primary-strong'
-const CHIP_OFF = 'border-primary bg-surface text-primary hover:bg-primary-soft'
+/** Icône de la pastille selon la nature de l'élément (décorative : le titre la dit en clair). */
+const ICONS: Readonly<Record<PatientActivityItem['type'], string>> = {
+  VISIT: 'arrival',
+  CONSULTATION: 'eye',
+  PRESCRIPTION: 'glasses',
+  MEDICATION_ORDER: 'clipboard',
+  INVOICE: 'file',
+  RECEIPT: 'receipt',
+  CREDIT_NOTE: 'percent',
+  REFUND: 'wallet',
+}
 
-const LINK_CLASS =
-  'inline-flex min-h-11 items-center font-semibold break-words text-primary underline underline-offset-4'
+/** Teinte de la pastille selon la section (associations vérifiées : icône sur son fond léger). */
+const TONES: Readonly<Record<ActivitySection, string>> = {
+  VISITS: 'border-line bg-surface text-muted',
+  EXAMS: 'border-line bg-primary-soft text-primary',
+  PRESCRIPTIONS: 'border-gold bg-gold-soft text-gold-ink',
+  FINANCIAL: 'border-accent bg-accent-soft text-accent',
+}
+
+/** Montant d'une pièce financière, déjà écrit dans ses détails : rappel visuel aligné à droite. */
+function amountOf(item: PatientActivityItem): string | null {
+  switch (item.type) {
+    case 'INVOICE':
+      return formatMoney(item.total_gross)
+    case 'RECEIPT':
+    case 'REFUND':
+      return formatMoney(item.amount)
+    case 'CREDIT_NOTE':
+      return formatMoney(item.amount_gross)
+    default:
+      return null
+  }
+}
+
+const LINK_CLASS = 'text-link inline-flex min-h-11 items-center font-semibold break-words'
 </script>
 
 <template>
-  <section aria-labelledby="titre-activite" class="space-y-4">
-    <h2
-      id="titre-activite"
-      ref="heading"
-      tabindex="-1"
-      class="text-lg font-semibold focus:outline-none"
-    >
-      Activité
-    </h2>
-    <p class="max-w-prose text-muted">
-      Du plus récent au plus ancien. Une nouvelle entrée ne remplace jamais une précédente.
-    </p>
+  <section aria-labelledby="titre-activite" class="space-y-5">
+    <div class="space-y-1">
+      <h2 id="titre-activite" ref="heading" tabindex="-1" class="section-title focus:outline-none">
+        Activité
+      </h2>
+      <p class="max-w-prose text-muted">
+        Du plus récent au plus ancien. Une nouvelle entrée ne remplace jamais une précédente.
+      </p>
+    </div>
 
     <div
       v-if="sections.length > 1"
@@ -246,16 +281,15 @@ const LINK_CLASS =
       aria-label="Filtrer l’activité"
       class="flex flex-wrap gap-2"
     >
-      <button
+      <AppButton
         v-for="chip in chips"
         :key="chip.code ?? 'tout'"
-        type="button"
-        :aria-pressed="chip.code === section ? 'true' : 'false'"
-        :class="[CHIP_CLASS, chip.code === section ? CHIP_ON : CHIP_OFF]"
+        variant="secondary"
+        :pressed="chip.code === section"
         @click="choose(chip.code)"
       >
         {{ chipLabel(chip) }}
-      </button>
+      </AppButton>
     </div>
 
     <p role="status" aria-live="polite" class="sr-only">{{ announcement }}</p>
@@ -278,7 +312,7 @@ const LINK_CLASS =
       </template>
     </StateMessage>
 
-    <StateMessage v-else-if="read.state.value === 'empty'" state="empty" :title="emptyTitle" />
+    <EmptyState v-else-if="read.state.value === 'empty'" :title="emptyTitle" icon="history" />
 
     <StateMessage
       v-else-if="read.state.value === 'ready' && result === null"
@@ -291,27 +325,50 @@ const LINK_CLASS =
     <template v-else-if="result !== null">
       <ol
         id="activite-liste"
-        class="space-y-3"
+        class="relative space-y-4 before:absolute before:top-5 before:bottom-5 before:left-5 before:w-px before:bg-line"
         aria-label="Activité, du plus récent au plus ancien"
       >
         <li
           v-for="item in result.data"
           :key="itemKey(item)"
-          class="space-y-1 rounded-lg border-2 border-line bg-surface p-3 break-words"
+          class="relative flex gap-3 break-words sm:gap-4"
         >
-          <p class="text-sm text-muted">
-            <time :datetime="item.occurred_at">{{ formatInstantFr(item.occurred_at) }}</time>
-          </p>
-          <p>
-            <RouterLink v-if="openable(item)" :to="openable(item) ?? '/'" :class="LINK_CLASS"
-              >{{ itemTitle(item)
-              }}<span class="sr-only"> du {{ formatInstantFr(item.occurred_at) }}</span></RouterLink
-            >
-            <span v-else class="font-semibold text-ink">{{ itemTitle(item) }}</span>
-          </p>
-          <p v-for="line in itemDetails(item)" :key="line" class="text-base text-ink">
-            {{ line }}
-          </p>
+          <span
+            aria-hidden="true"
+            :class="[
+              'relative flex size-10 shrink-0 items-center justify-center rounded-full border',
+              TONES[sectionOf(item)],
+            ]"
+          >
+            <AppIcon :name="ICONS[item.type]" :size="18" />
+          </span>
+          <div class="min-w-0 flex-1 rounded-xl border border-line bg-surface p-4 shadow-card">
+            <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+              <div class="min-w-0 space-y-0.5">
+                <p class="text-sm text-muted">
+                  <time :datetime="item.occurred_at">{{ formatInstantFr(item.occurred_at) }}</time>
+                </p>
+                <p>
+                  <RouterLink v-if="openable(item)" :to="openable(item) ?? '/'" :class="LINK_CLASS"
+                    >{{ itemTitle(item)
+                    }}<span class="sr-only">
+                      du {{ formatInstantFr(item.occurred_at) }}</span
+                    ></RouterLink
+                  >
+                  <span v-else class="font-semibold text-ink">{{ itemTitle(item) }}</span>
+                </p>
+              </div>
+              <span
+                v-if="amountOf(item) !== null"
+                aria-hidden="true"
+                class="text-lg font-semibold whitespace-nowrap text-ink tabular-nums"
+                >{{ amountOf(item) }}</span
+              >
+            </div>
+            <p v-for="line in itemDetails(item)" :key="line" class="mt-1 text-base text-ink">
+              {{ line }}
+            </p>
+          </div>
         </li>
       </ol>
 

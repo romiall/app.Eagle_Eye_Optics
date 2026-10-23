@@ -5,6 +5,11 @@
  * gratuit — rien n'est vérifié. Contrôle actif (P03 avec B04 et B06) : « Frais d'examen à encaisser »,
  * « Dispense … demandée », « Frais d'examen encaissés : reçu n° … » (numéro du reçu réel) ou « Dispense
  * approuvée par la gérante ». Symbole et texte, jamais la couleur seule.
+ *
+ * Présenté en puce (charte du logo) : avertissement quand rien n'est contrôlé ou qu'une action est
+ * attendue, succès pour des frais encaissés ou une dispense accordée, neutre sans examen
+ * (associations vérifiées par tests/frontend/shell/palette.test.ts). Le symbole reste le premier
+ * élément décoratif de la puce.
  */
 import { computed } from 'vue'
 
@@ -17,17 +22,26 @@ const props = withDefaults(
 )
 
 const marker = computed(() => examFeeMarker(props.control, props.receiptNumber))
+
+/** Fond et bordure de la puce, teinte du symbole. */
+const tone = computed(() => {
+  if (marker.value.notControlled || marker.value.pending === true) {
+    return { chip: 'border-warning bg-warning-soft text-ink', symbol: 'text-warning' }
+  }
+  if (props.control === 'PAID' || props.control === 'WAIVED') {
+    return { chip: 'border-accent bg-accent-soft text-ink', symbol: 'text-accent' }
+  }
+  return { chip: 'border-line bg-surface text-muted', symbol: 'text-muted' }
+})
 </script>
 
 <template>
   <span
     :class="[
-      'inline-flex items-start gap-1 text-sm font-medium',
-      marker.notControlled || marker.pending === true
-        ? 'rounded-lg border-2 border-warning bg-warning-soft px-2 py-0.5 text-ink'
-        : 'text-muted',
+      'inline-flex max-w-full items-start gap-1.5 rounded-2xl border px-2.5 py-0.5 text-sm font-medium',
+      tone.chip,
     ]"
-    ><span aria-hidden="true">{{ marker.symbol }}</span
-    ><span>{{ marker.text }}</span></span
+    ><span aria-hidden="true" :class="tone.symbol">{{ marker.symbol }}</span
+    ><span class="min-w-0 break-words">{{ marker.text }}</span></span
   >
 </template>

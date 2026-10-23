@@ -1,18 +1,25 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+/**
+ * Page introuvable : l'adresse ne correspond à aucun écran livré et ouvert (un module fermé répond
+ * de même, comme le serveur avec son 404). La page le dit sobrement et ramène à l'accueil, sans
+ * rien deviner de l'écran cherché.
+ */
+import EmptyState from '@/components/layout/EmptyState.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import LinkButton from '@/components/ui/LinkButton.vue'
 </script>
 
 <template>
-  <section aria-labelledby="titre-introuvable" class="space-y-4">
-    <h1 id="titre-introuvable" class="text-2xl font-semibold tracking-tight">Page introuvable</h1>
-    <p class="max-w-prose text-muted">
-      Cette adresse ne correspond à aucun écran de l’application.
-    </p>
-    <RouterLink
-      to="/"
-      class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-    >
-      Retour à l’accueil
-    </RouterLink>
+  <section aria-labelledby="titre-introuvable" class="page-stack">
+    <PageHeader title-id="titre-introuvable" title="Page introuvable" />
+    <EmptyState title="Cette adresse ne correspond à aucun écran de l’application." icon="search">
+      Vérifiez l’adresse saisie, ou revenez à l’accueil pour retrouver vos écrans.
+      <template #action>
+        <LinkButton to="/" variant="primary"
+          ><AppIcon name="home" :size="18" />Retour à l’accueil</LinkButton
+        >
+      </template>
+    </EmptyState>
   </section>
 </template>

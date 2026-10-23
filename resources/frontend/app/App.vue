@@ -21,12 +21,16 @@ import {
   useRouter,
 } from 'vue-router'
 
+import logoUrl from '@/assets/brand/eeo-logo.svg'
 import NetworkStatus from '@/components/feedback/NetworkStatus.vue'
 import ReauthDialog from '@/components/session/ReauthDialog.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import UpdatePrompt from '@/components/update/UpdatePrompt.vue'
 
 import { useNavigationCatalog, visibleModules } from './navigation'
+import { iconOf } from './navigationIcons'
 import { probeServer, useNetworkStatus } from './network'
 import {
   currentPermissions,
@@ -164,8 +168,25 @@ async function logout(): Promise<void> {
   }
 }
 
+/**
+ * Entrée de navigation : icône décorative et libellé ; l'entrée active (`aria-current="page"`) est
+ * marquée par un fond doré léger, un filet doré à gauche et le gras (jamais la couleur seule).
+ */
 const linkClass =
-  'flex min-h-11 items-center rounded-lg px-3 py-2 text-base font-medium text-ink hover:bg-primary-soft aria-[current=page]:bg-primary-soft aria-[current=page]:font-semibold aria-[current=page]:text-primary'
+  'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-base font-medium text-ink transition-colors hover:bg-primary-soft aria-[current=page]:bg-primary-soft aria-[current=page]:font-semibold aria-[current=page]:text-primary aria-[current=page]:shadow-[inset_3px_0_0_var(--color-gold)]'
+/** Entrée de la barre du téléphone : icône au-dessus du libellé, filet doré en haut pour l'active. */
+const barLinkClass =
+  'flex min-h-14 min-w-16 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-xs font-medium text-ink transition-colors hover:bg-primary-soft aria-[current=page]:bg-primary-soft aria-[current=page]:font-semibold aria-[current=page]:text-primary aria-[current=page]:shadow-[inset_0_3px_0_var(--color-gold)]'
+
+/** Initiales du compte connecté (pastille décorative à côté du nom). */
+const initials = computed(() =>
+  (session.account?.display_name ?? '')
+    .split(/\s+/)
+    .filter((part) => /^\p{L}/u.test(part))
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join(''),
+)
 </script>
 
 <template>
@@ -176,23 +197,61 @@ const linkClass =
     >Aller au contenu</a
   >
   <div class="flex min-h-screen flex-col">
-    <header class="border-b border-line bg-surface">
-      <div class="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+    <header class="border-b border-line bg-surface shadow-card">
+      <div aria-hidden="true" class="h-1 bg-gold"></div>
+      <div
+        class="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:px-6"
+      >
         <RouterLink
           v-if="signedIn"
           to="/"
-          class="inline-flex min-h-11 items-center rounded-lg text-base font-semibold tracking-tight text-primary uppercase"
-          >Eagle’s Eye Optics Medical – Gestion des patients<span class="sr-only">
-            (accueil)</span
-          ></RouterLink
+          class="order-1 inline-flex min-h-11 items-center gap-3 rounded-lg pr-2 text-sm font-bold tracking-[0.12em] text-ink uppercase"
+          ><img :src="logoUrl" alt="" width="52" height="57" class="h-12 w-auto sm:h-14" /><span
+            class="sr-only flex-col leading-tight sm:not-sr-only sm:flex"
+            ><span>Eagle’s Eye Optics Medical</span><span class="sr-only"> – </span
+            ><span class="text-xs font-semibold tracking-[0.18em] text-gold-ink"
+              >Gestion des patients</span
+            ></span
+          ><span class="sr-only"> (accueil)</span></RouterLink
         >
         <p
           v-else
-          class="inline-flex min-h-11 items-center text-base font-semibold tracking-tight text-primary uppercase"
+          class="order-1 inline-flex min-h-11 items-center gap-3 text-sm font-bold tracking-[0.12em] text-ink uppercase"
         >
-          Eagle’s Eye Optics Medical – Gestion des patients
+          <img
+            v-if="route.meta.public !== true"
+            :src="logoUrl"
+            alt=""
+            width="52"
+            height="57"
+            class="h-12 w-auto sm:h-14"
+          /><span class="flex flex-col leading-tight"
+            ><span>Eagle’s Eye Optics Medical</span><span class="sr-only"> – </span
+            ><span class="text-xs font-semibold tracking-[0.18em] text-gold-ink"
+              >Gestion des patients</span
+            ></span
+          >
         </p>
-        <div class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+        <!--
+          Ordre visuel : sur téléphone, ligne 1 = logo, compte, état du réseau ; ligne 2 = « Aide » et
+          « Se déconnecter », visibles avec leur texte. Sur écran large : logo, état, compte, actions.
+          L'ordre du DOM (donc du clavier) suit l'ordre visuel dans les deux cas.
+        -->
+        <div
+          v-if="signedIn && session.account"
+          class="order-2 flex min-w-0 flex-1 items-center justify-end gap-2 sm:order-3 sm:flex-none"
+        >
+          <span
+            v-if="initials"
+            aria-hidden="true"
+            class="flex size-9 shrink-0 items-center justify-center rounded-full border border-gold bg-gold-soft text-sm font-semibold text-gold-ink"
+            >{{ initials }}</span
+          >
+          <p class="min-w-0 truncate text-sm font-medium text-ink sm:max-w-48">
+            <span class="sr-only">Compte connecté : </span>{{ session.account.display_name }}
+          </p>
+        </div>
+        <div class="order-3 ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:order-2">
           <NetworkStatus />
           <SyncStatus />
           <p
@@ -206,39 +265,53 @@ const linkClass =
           <AppButton v-if="sessionExpired" variant="secondary" @click="reconnecting = true"
             >Se reconnecter</AppButton
           >
-          <template v-if="signedIn && session.account">
-            <p class="text-sm text-ink">
-              <span class="sr-only">Compte connecté : </span>{{ session.account.display_name }}
-            </p>
-            <AppButton
-              variant="ghost"
-              :pending="loggingOut"
-              pending-label="Déconnexion en cours…"
-              @click="logout"
-              >Se déconnecter</AppButton
-            >
-          </template>
+        </div>
+        <div
+          v-if="signedIn && session.account"
+          class="order-4 flex w-full items-center justify-between gap-2 border-t border-line pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0"
+        >
+          <RouterLink
+            :to="{ name: 'aide' }"
+            class="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-primary underline underline-offset-4 hover:bg-primary-soft"
+            ><AppIcon name="help" :size="18" />Aide</RouterLink
+          >
+          <AppButton
+            variant="ghost"
+            :pending="loggingOut"
+            pending-label="Déconnexion en cours…"
+            @click="logout"
+            ><AppIcon name="logout" :size="18" />Se déconnecter</AppButton
+          >
         </div>
       </div>
     </header>
 
-    <div class="mx-auto flex w-full max-w-6xl flex-1">
+    <div class="mx-auto flex w-full max-w-7xl flex-1">
       <nav
         v-if="modules.length > 0"
         aria-label="Navigation principale"
-        class="hidden w-56 shrink-0 border-r border-line px-2 py-4 md:block"
+        class="hidden w-60 shrink-0 border-r border-line bg-surface px-3 py-5 md:block"
       >
         <ul class="space-y-1">
-          <li><RouterLink to="/" :class="linkClass">Accueil</RouterLink></li>
+          <li>
+            <RouterLink to="/" :class="linkClass"
+              ><AppIcon :name="iconOf('accueil')" class="text-gold" />Accueil</RouterLink
+            >
+          </li>
           <li v-for="module in modules" :key="module.id">
-            <RouterLink :to="module.path" :class="linkClass">{{ module.label }}</RouterLink>
+            <RouterLink :to="module.path" :class="linkClass"
+              ><AppIcon :name="iconOf(module.id)" class="text-gold" />{{ module.label }}</RouterLink
+            >
           </li>
         </ul>
       </nav>
       <main
         id="contenu"
         tabindex="-1"
-        :class="['w-full min-w-0 flex-1 px-4 py-6', modules.length > 0 ? 'pb-24 md:pb-6' : '']"
+        :class="[
+          'w-full min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8',
+          modules.length > 0 ? 'pb-28 md:pb-8' : '',
+        ]"
       >
         <div
           v-if="logoutError"
@@ -247,6 +320,8 @@ const linkClass =
         >
           <span aria-hidden="true">⚠ </span>{{ logoutError }}
         </div>
+        <!-- Nouvelle version proposée, jamais imposée (O06). -->
+        <UpdatePrompt class="mb-4" />
         <RouterView />
       </main>
     </div>
@@ -254,20 +329,30 @@ const linkClass =
     <nav
       v-if="modules.length > 0"
       aria-label="Raccourcis"
-      class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface md:hidden"
+      class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface shadow-raised md:hidden"
     >
       <ul class="flex justify-around gap-1 px-2 py-1">
         <li v-for="module in shortcuts" :key="module.id">
-          <RouterLink :to="module.path" :class="linkClass">{{ module.label }}</RouterLink>
+          <RouterLink :to="module.path" :class="barLinkClass"
+            ><AppIcon :name="iconOf(module.id)" :size="22" class="text-gold" />{{
+              module.label
+            }}</RouterLink
+          >
         </li>
         <li v-if="others.length > 0" class="relative">
           <details ref="moreMenu" @keydown.esc="closeMoreMenu(true)">
-            <summary :class="[linkClass, 'cursor-pointer list-none']">Plus</summary>
+            <summary :class="[barLinkClass, 'cursor-pointer list-none']">
+              <AppIcon name="more" :size="22" class="text-gold" /><span>Plus</span>
+            </summary>
             <ul
-              class="absolute right-0 bottom-full mb-2 max-h-[min(70vh,24rem)] w-56 space-y-1 overflow-y-auto rounded-lg border border-line bg-surface p-2 shadow-lg"
+              class="absolute right-0 bottom-full mb-2 max-h-[min(70vh,24rem)] w-60 space-y-1 overflow-y-auto rounded-xl border border-line bg-surface p-2 shadow-raised"
             >
               <li v-for="module in others" :key="module.id">
-                <RouterLink :to="module.path" :class="linkClass">{{ module.label }}</RouterLink>
+                <RouterLink :to="module.path" :class="linkClass"
+                  ><AppIcon :name="iconOf(module.id)" class="text-gold" />{{
+                    module.label
+                  }}</RouterLink
+                >
               </li>
             </ul>
           </details>

@@ -29,6 +29,7 @@ import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { canOnScreen, moduleOpenOnScreen, revalidateSession } from '@/app/session'
 import { useUnsavedChangesGuard } from '@/app/unsavedChanges'
+import ApprovalRequestDialog from '@/components/approvals/ApprovalRequestDialog.vue'
 import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
@@ -54,7 +55,14 @@ import {
   validateDraftLines,
 } from '@/domain/billing/draft'
 import { buildIssuePayload, heldByDevice, issueBlockers } from '@/domain/billing/issueInvoice'
-import type { CatalogItem, Invoice, InvoiceResponse } from '@/domain/contracts/generated'
+import { draftLineRightsSubject } from '@/domain/approvals/approvals'
+import type {
+  Approval,
+  CatalogItem,
+  DraftLineRightsSubject,
+  Invoice,
+  InvoiceResponse,
+} from '@/domain/contracts/generated'
 import { currentInstant } from '@/domain/patients/visits'
 import { formatMoney } from '@/domain/values/money'
 import { newUlid } from '@/domain/values/ulid'
@@ -108,6 +116,17 @@ const lines = ref<DraftLineForm[]>(props.initial === null ? [] : linesFromInvoic
 const savedLines = shallowRef<DraftLineForm[]>(lines.value.map((line) => ({ ...line })))
 const savedAt = ref<string | null>(null)
 const nothingToSave = ref(false)
+/**
+ * Prix ou remise au-delà des droits du compte (422 `APPROVAL_REQUIRED_OR_EXPIRED`) : contenu exact des lignes
+ * envoyées, pour une demande d'autorisation à la gérante (B06). Une fois accordée, le brouillon s'enregistre
+ * avec EXACTEMENT ces lignes : le serveur retrouve l'autorisation par son contenu et la consomme.
+ */
+const rightsSubject = ref<DraftLineRightsSubject | null>(null)
+const askingRights = ref(false)
+const rightsRequested = ref<string | null>(null)
+const mayRequestRights = computed(
+  () => canOnScreen('approval.request') && moduleOpenOnScreen('settings'),
+)
 
 const lineErrors = ref<Record<string, Partial<Record<DraftLineField, string>>>>({})
 const generalErrors = ref<string[]>([])
@@ -165,6 +184,13 @@ function clearFeedback(): void {
   lineErrors.value = {}
   generalErrors.value = []
   nothingToSave.value = false
+  rightsSubject.value = null
+}
+
+/** Demande d'autorisation créée : elle attend la décision de la gérante. */
+function rightsRequestSent(approval: Approval): void {
+  askingRights.value = false
+  rightsRequested.value = `Demande d’autorisation envoyée à la gérante (${approval.reason}). Une fois accordée, enregistrez de nouveau le brouillon sans modifier ses lignes.`
 }
 
 function showLineErrors(errors: readonly DraftLineError[]): void {
@@ -258,6 +284,10 @@ function afterServerInvoice(invoice: Invoice): void {
   savedLines.value = lines.value.map((line) => ({ ...line }))
 }
 
+/** Lignes et facture de la dernière demande d'enregistrement : contenu exact d'une éventuelle autorisation. */
+let lastSent: { invoiceId: string; lines: Parameters<typeof draftLineRightsSubject>[2] } | null =
+  null
+
 async function afterSave(result: MutationOutcome, creating: boolean): Promise<void> {
   switch (result.kind) {
     case 'synced': {
@@ -277,6 +307,13 @@ async function afterSave(result: MutationOutcome, creating: boolean): Promise<vo
       if (result.error.code === 'STATE_TRANSITION_REFUSED') {
         emit('stale')
         return
+      }
+      if (result.error.code === 'APPROVAL_REQUIRED_OR_EXPIRED' && lastSent !== null) {
+        rightsSubject.value = draftLineRightsSubject(
+          lastSent.invoiceId,
+          props.patientId,
+          lastSent.lines,
+        )
       }
       applyServerRefusal(result.error.fields, result.error.message)
       await summaryBox.value?.focus()
@@ -316,31 +353,29 @@ async function save(): Promise<void> {
     return
   }
   if (base === null) {
-    await afterSave(
-      await draftMutation.submit({
-        name: 'CreateInvoiceDraft',
-        payload: buildCreateDraftPayload({
-          invoiceId: draftMutation.effectId('invoice_id'),
-          patientId: props.patientId,
-          visitId: props.visitId,
-          dueDate: null,
-          lines: lines.value,
-        }),
-      }),
-      true,
-    )
+    const payload = buildCreateDraftPayload({
+      invoiceId: draftMutation.effectId('invoice_id'),
+      patientId: props.patientId,
+      visitId: props.visitId,
+      dueDate: null,
+      lines: lines.value,
+    })
+    lastSent = { invoiceId: payload.invoice_id, lines: payload.lines }
+    await afterSave(await draftMutation.submit({ name: 'CreateInvoiceDraft', payload }), true)
     return
   }
+  const payload = buildUpdateDraftPayload({
+    invoiceId: base.id,
+    visitId: base.visit_id,
+    dueDate: base.due_date,
+    lines: lines.value,
+  })
+  lastSent = { invoiceId: base.id, lines: payload.lines }
   await afterSave(
     await draftMutation.submit({
       name: 'UpdateDraft',
       path: { id: base.id },
-      payload: buildUpdateDraftPayload({
-        invoiceId: base.id,
-        visitId: base.visit_id,
-        dueDate: base.due_date,
-        lines: lines.value,
-      }),
+      payload,
       expectedVersion: base.draft_version,
     }),
     false,
@@ -622,6 +657,31 @@ const saveStatus = computed(() => {
       <ErrorSummary ref="summaryBox" :errors="summary" />
     </div>
 
+    <StateMessage
+      v-if="rightsSubject && mayRequestRights"
+      state="conflict"
+      title="Prix ou remise au-delà de vos droits"
+    >
+      Ces lignes dépassent ce que votre compte peut accorder. Demandez une autorisation à la gérante
+      pour exactement ces lignes ; une fois accordée, enregistrez de nouveau le brouillon sans les
+      modifier.
+      <template #action>
+        <AppButton variant="secondary" @click="askingRights = true"
+          >Demander une autorisation</AppButton
+        >
+      </template>
+    </StateMessage>
+    <StateMessage v-if="rightsRequested" state="empty" title="Autorisation demandée">{{
+      rightsRequested
+    }}</StateMessage>
+    <ApprovalRequestDialog
+      :open="askingRights"
+      :subject="rightsSubject"
+      summary="Prix ou remises du brouillon de facture, pour exactement les lignes affichées."
+      @requested="rightsRequestSent"
+      @cancel="askingRights = false"
+    />
+
     <StateMessage v-if="needsReload" state="conflict" title="Le brouillon a changé entre-temps">
       <p>
         Quelqu’un a modifié ce brouillon pendant votre saisie. Votre saisie est conservée. Relisez
@@ -715,7 +775,7 @@ const saveStatus = computed(() => {
       >
 
       <div
-        class="rounded-lg border-2 border-line bg-surface p-4"
+        class="rounded-xl border border-line bg-surface shadow-card p-4"
         role="group"
         aria-label="Total du brouillon"
       >

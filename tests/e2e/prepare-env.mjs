@@ -41,7 +41,10 @@ const overrides = {
   // « sales » ouvre l'aperçu des documents (D02, /documents/apercu) et les écrans de vente et de caisse
   // (B01 à B05) ; « stock » ouvre les disponibilités et le stock initial (I00) ; « settings » ouvre les
   // paramètres de la gérante (personnel, cabinet et documents).
-  EEO_ENABLED_MODULES: 'patients,today,consultations,sales,stock,settings',
+  // « agenda » : agenda interne et suivis (S01, S02), avec l'agenda de démonstration (eeo:demo:agenda).
+  // « offline » : préparation d'un poste et synchronisation (O01 à O05, parcours offline-sync.spec.ts) ; sans coffre de
+  // poste ouvert, il ne change rien aux autres parcours (toutes les mutations suivent la route directe).
+  EEO_ENABLED_MODULES: 'patients,today,consultations,sales,stock,settings,reports,agenda,offline',
   // Les parcours e2e se connectent souvent, vite : la limite de 20 connexions par minute et par adresse IP
   // (production) les bloquerait sur une machine rapide.
   EEO_RATE_LOGIN_IP: '1000',
@@ -88,6 +91,12 @@ artisan('e2e', 'eeo:clinical:scales', '--demo')
 // Ventes de DÉMONSTRATION (fictives) : caisse principale, taxe de test, articles DEMO-* et stock initial, par le
 // chemin central au nom de demo.gerante ; sans eux, aucune facture ni aucun encaissement n'est possible en e2e.
 artisan('e2e', 'eeo:demo:sales')
+// Agenda de DÉMONSTRATION (fictif) : une salle, des horaires et deux prestations fictives, deux rappels internes ; sans
+// eux, aucun créneau n'est proposé (aucun horaire n'est inventé).
+artisan('e2e', 'eeo:demo:agenda')
+// Clé ES256 de TEST qui signe les grants des postes préparés (O02, parcours offline-sync.spec.ts) : créée une fois dans
+// le stockage privé local, jamais dans le dépôt ; sans changement si elle existe déjà.
+artisan('e2e', 'eeo:offline:signing-key')
 console.log(
   `Base ${overrides.DB_DATABASE} migrée ; comptes de démonstration fictifs et échelles de démonstration préparés.`,
 )

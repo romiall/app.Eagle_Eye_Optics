@@ -11,6 +11,7 @@ import { computed } from 'vue'
 import SelectField from '@/components/form/SelectField.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import YesNoField from '@/components/form/YesNoField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
 import { isUrgency, URGENCY_LABELS, URGENCY_LEVELS } from '@/domain/clinical/labels'
 import {
@@ -60,43 +61,48 @@ function error(controlId: string): string | null {
       @update:model-value="update('conclusion', $event)"
     />
 
-    <YesNoField
-      :model-value="model.referral"
-      legend="Orientation vers un ophtalmologiste"
-      :control-id="CONTROL_IDS.referral"
-      :error="error(CONTROL_IDS.referral)"
-      :disabled="props.disabled"
-      @update:model-value="update('referral', $event)"
-    />
+    <SectionCard flat>
+      <div class="space-y-6">
+        <YesNoField
+          :model-value="model.referral"
+          legend="Orientation vers un ophtalmologiste"
+          :control-id="CONTROL_IDS.referral"
+          :error="error(CONTROL_IDS.referral)"
+          :disabled="props.disabled"
+          @update:model-value="update('referral', $event)"
+        />
 
-    <template v-if="model.referral === true">
-      <SelectField
-        :model-value="model.urgency"
-        label="Niveau d’urgence"
-        placeholder="Choisir un niveau…"
-        hint="Obligatoire quand une orientation est proposée."
-        :control-id="CONTROL_IDS.urgency"
-        :options="urgencyOptions"
-        :error="error(CONTROL_IDS.urgency)"
-        :disabled="props.disabled"
-        required
-        @update:model-value="chooseUrgency"
-      />
-      <TermChecklist
-        group="REFERRAL_REASON"
-        legend="Motifs de l’orientation"
-        hint="Plusieurs motifs peuvent être cochés."
-        :id-base="CONTROL_IDS.reasons"
-        :rows="model.reasons"
-        :error="error(CONTROL_IDS.reasons)"
-        :other-error="error(CONTROL_IDS.reasonOther)"
-        :disabled="props.disabled"
-        @update:rows="update('reasons', $event)"
-      />
-    </template>
-    <p v-if="ignored" class="text-sm font-medium text-warning">
-      <span aria-hidden="true">⚠ </span>Le niveau d’urgence et les motifs saisis ne sont pas
-      enregistrés tant que l’orientation n’est pas « Oui ».
-    </p>
+        <template v-if="model.referral === true">
+          <SelectField
+            :model-value="model.urgency"
+            label="Niveau d’urgence"
+            placeholder="Choisir un niveau…"
+            hint="Obligatoire quand une orientation est proposée."
+            :control-id="CONTROL_IDS.urgency"
+            :options="urgencyOptions"
+            :error="error(CONTROL_IDS.urgency)"
+            :disabled="props.disabled"
+            required
+            class="max-w-md"
+            @update:model-value="chooseUrgency"
+          />
+          <TermChecklist
+            group="REFERRAL_REASON"
+            legend="Motifs de l’orientation"
+            hint="Plusieurs motifs peuvent être cochés."
+            :id-base="CONTROL_IDS.reasons"
+            :rows="model.reasons"
+            :error="error(CONTROL_IDS.reasons)"
+            :other-error="error(CONTROL_IDS.reasonOther)"
+            :disabled="props.disabled"
+            @update:rows="update('reasons', $event)"
+          />
+        </template>
+        <p v-if="ignored" class="text-sm font-medium text-warning">
+          <span aria-hidden="true">⚠ </span>Le niveau d’urgence et les motifs saisis ne sont pas
+          enregistrés tant que l’orientation n’est pas « Oui ».
+        </p>
+      </div>
+    </SectionCard>
   </div>
 </template>

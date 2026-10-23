@@ -27,11 +27,15 @@ import {
   taxTotalRows,
 } from './shared'
 
+/** Mention imposée en tête de chaque devis (L1D07) : un devis n'est jamais une pièce de vente. */
+export const QUOTE_NOT_INVOICE = 'Devis — ne vaut pas facture.'
+
 /**
  * Devis / facture proforma (fichier 03 : « Le devis est facultatif en L1 et ne remplace aucun de ces
- * objets »). Ce modèle est PRÉPARATOIRE : le devis n'est livré qu'en L1, ses mentions restent à valider.
- * Il ne dit jamais qu'une somme est due ou réglée : aucun règlement n'est enregistré sur un devis, et il
- * ne crée ni vente, ni réservation de stock, ni numéro de facture.
+ * objets » ; L1D07). Le document d'un devis émis est produit de la RÉVISION figée qu'il imprime (numéro,
+ * révision, validité, destinataire, lignes, taxe comprise, cabinet) : une ancienne révision se réimprime à
+ * l'identique. Il ne dit jamais qu'une somme est due ou réglée : aucun règlement n'est enregistré sur un
+ * devis, et il ne crée ni vente, ni réservation de stock, ni numéro de facture.
  */
 export function buildQuote(data: QuoteDocumentData, options?: BuildOptions): DocumentModel {
   const resolved = resolveOptions(options)
@@ -49,19 +53,43 @@ export function buildQuote(data: QuoteDocumentData, options?: BuildOptions): Doc
     )
   }
   if (!draft) requireInstant(data.issuedAt, 'issued_at')
+  const revised = !draft && data.revisionNo !== null && data.revisionNo > 1
+  if (revised) requireInstant(data.revisedAt, 'revised_at')
   const timeZone = data.clinic.timezone
   const withTax = hasValidatedTax(data.tax)
 
   const headerFields: FieldRow[] = [
     { label: 'Numéro', value: data.number ?? 'Non attribué (brouillon)' },
-    {
-      label: draft ? 'Date du brouillon' : 'Date',
-      value: formatDateFr(requireInstant(draft ? resolved.now : data.issuedAt, 'date'), timeZone),
-    },
   ]
+  if (!draft && data.revisionNo !== null) {
+    headerFields.push({ label: 'Révision', value: `n° ${data.revisionNo}` })
+  }
+  headerFields.push({
+    label: draft ? 'Date du brouillon' : 'Date',
+    value: formatDateFr(requireInstant(draft ? resolved.now : data.issuedAt, 'date'), timeZone),
+  })
+  if (revised && data.revisedAt !== null) {
+    headerFields.push({ label: 'Révisé le', value: formatDateFr(data.revisedAt, timeZone) })
+  }
   if (data.validUntil !== null) {
     headerFields.push({ label: 'Valable jusqu’au', value: formatCivilDateFr(data.validUntil) })
   }
+
+  const recipientRows: FieldRow[] =
+    data.recipient.kind === 'PATIENT'
+      ? patientRows(data.recipient.patient, 'Devis établi pour')
+      : [
+          { label: 'Devis établi pour', value: data.recipient.name },
+          ...(data.recipient.phone === null
+            ? []
+            : [{ label: 'Téléphone', value: data.recipient.phone }]),
+        ]
+
+  // L'instant propre de la pièce : celui de la révision imprimée (même PDF à chaque réimpression).
+  const documentAt = revised ? data.revisedAt : data.issuedAt
+  const pdfTitle = draft
+    ? 'Devis - brouillon'
+    : `Devis ${data.number ?? ''}${data.revisionNo === null ? '' : ` - révision ${data.revisionNo}`}`
 
   return assembleModel({
     kind: 'QUOTE',
@@ -70,14 +98,18 @@ export function buildQuote(data: QuoteDocumentData, options?: BuildOptions): Doc
     options: resolved,
     family: 'financial',
     heading: draft ? 'DEVIS (brouillon)' : 'DEVIS',
-    subtitle: 'Proforma',
+    subtitle: 'Proforma — ne vaut pas facture',
     number: data.number,
-    documentAt: data.issuedAt,
+    documentAt,
     draft,
     headerFields,
-    pdfTitle: draft ? 'Devis - brouillon' : `Devis ${data.number ?? ''}`.trim(),
+    pdfTitle: pdfTitle.trim(),
     body: [
-      fields(patientRows(data.patient, 'Devis établi pour'), 1),
+      notice('warning', QUOTE_NOT_INVOICE),
+      fields(recipientRows, 1),
+      ...(revised && data.revisionReason !== null
+        ? [fields([{ label: 'Motif de la révision', value: data.revisionReason }], 1)]
+        : []),
       table(
         'Lignes du devis',
         invoiceLineColumns(resolved.format, withTax),

@@ -99,7 +99,10 @@ export async function apiRequest<T>(
   extraHeaders: Readonly<Record<string, string>> = {},
 ): Promise<T> {
   const headers: Record<string, string> = { ...extraHeaders, Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // Octets bruts (original PDF d'un document) : envoyés tels quels, type de contenu fourni par l'appelant.
+  // `ArrayBuffer.isView` reconnaît les octets d'un autre contexte d'exécution (iframe, tests jsdom) que `instanceof`.
+  const raw = ArrayBuffer.isView(body)
+  if (body !== undefined && !raw) headers['Content-Type'] = 'application/json'
   const token = method === 'GET' ? null : xsrfToken()
   if (token !== null) headers['X-XSRF-TOKEN'] = token
   const signal = timeoutSignal()
@@ -113,7 +116,7 @@ export async function apiRequest<T>(
       credentials: 'same-origin',
       cache: 'no-store',
       ...(signal === undefined ? {} : { signal }),
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : { body: raw ? (body as BodyInit) : JSON.stringify(body) }),
     })
     // Une réponse interrompue (corps coupé, délai dépassé) n'est pas une réponse.
     text = await response.text()

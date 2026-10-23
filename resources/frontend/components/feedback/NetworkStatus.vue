@@ -23,7 +23,10 @@ const view = computed(() => {
   <p
     role="status"
     aria-live="polite"
-    :class="['flex min-h-11 items-center gap-1 text-sm font-medium', view.tone]"
+    :class="[
+      'flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-canvas px-3 text-sm font-medium',
+      view.tone,
+    ]"
   >
     <span aria-hidden="true">{{ view.icon }}</span
     ><span>{{ view.text }}</span>

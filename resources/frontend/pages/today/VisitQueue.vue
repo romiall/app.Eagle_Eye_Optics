@@ -15,6 +15,11 @@
  * Examen (C01) : « Démarrer l'examen », « Reprendre l'examen » ou « Consulter l'examen » par visite,
  * selon les droits clinical.write et clinical.read, le module « consultations » ouvert et l'état de la
  * visite (`ExamAction`). Un refus d'état au démarrage (409) est dit au-dessus de la liste, qui est relue.
+ *
+ * Présentation (charte du logo) : compteurs par état de la page lue (dits « sur cette page » quand la
+ * file en compte plusieurs, jamais extrapolés), cartes au filet coloré par statut avec initiales,
+ * heure, motif, puces du statut et du paiement de l'examen, puis les actions (principale pleine,
+ * secondaires discrètes). L'ordre des visites reste celui du serveur.
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -24,14 +29,21 @@ import { listVisits } from '@/app/services/visits'
 import { can, canOnScreen, enabledModules, moduleOpenOnScreen } from '@/app/session'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
+import StatTile from '@/components/layout/StatTile.vue'
+import StatusChip from '@/components/layout/StatusChip.vue'
+import PatientInitials from '@/components/patients/PatientInitials.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
 import ExamFeeMarker from '@/components/visits/ExamFeeMarker.vue'
-import type { Visit, VisitPage } from '@/domain/contracts/generated'
+import { reasonIcon, visitStatusView } from '@/components/visits/visitPresentation'
+import type { Visit, VisitPage, VisitsStatus } from '@/domain/contracts/generated'
 import { formatAge, patientAge, patientDisplayName } from '@/domain/patients/identity'
-import { reasonLabel, statusLabel, statusSymbol } from '@/domain/patients/visits'
+import { reasonLabel, statusLabel } from '@/domain/patients/visits'
 
+import CancelVisitAction from './CancelVisitAction.vue'
 import ExamAction from './ExamAction.vue'
 import ExamFeeWaiverAction from './ExamFeeWaiverAction.vue'
 import QueueStateMessage from './QueueStateMessage.vue'
@@ -64,6 +76,34 @@ const result = computed(() => read.data.value)
 const total = computed(() => result.value?.meta.total ?? 0)
 /** Vide « certain » mais le serveur annonce des visites : la page demandée n'existe plus. */
 const pastTheEnd = computed(() => read.state.value === 'empty' && total.value > 0)
+
+/** Statuts d'une visite encore attendue (avant l'examen ou le passage en caisse). */
+const WAITING: readonly VisitsStatus[] = ['ARRIVED', 'AWAITING_EXAM_FEE', 'READY_FOR_EXAM']
+
+/**
+ * Compteurs par état des visites de la page lue (statuts du serveur, présentation seule). Quand la
+ * file compte plusieurs pages, chaque compteur le dit (« Sur cette page ») : rien n'est extrapolé.
+ */
+const counts = computed(() => {
+  const visits = result.value?.data ?? []
+  const among = (statuses: readonly VisitsStatus[]): number =>
+    visits.filter((visit) => statuses.includes(visit.status)).length
+  return {
+    waiting: among(WAITING),
+    inConsultation: among(['IN_CONSULTATION']),
+    completed: among(['COMPLETED']),
+    cancelled: among(['CANCELLED']),
+  }
+})
+const multiPage = computed(() => (result.value?.meta.last_page ?? 1) > 1)
+const pageHint = computed(() => (multiPage.value ? 'Sur cette page' : undefined))
+/** Visites annulées comprises dans le total : dit seulement quand toute la file est lue. */
+const totalHint = computed(() => {
+  const cancelled = counts.value.cancelled
+  if (multiPage.value || cancelled === 0) return undefined
+  return cancelled === 1 ? 'Dont 1 annulée' : `Dont ${cancelled} annulées`
+})
+
 /** La fiche s'ouvre pour qui peut lire les patients, quand ce module est ouvert. */
 const canOpenPatient = computed(
   () => can('patient.read') && enabledModules.value.includes('patients'),
@@ -98,6 +138,14 @@ function onStale(message: string): void {
 
 /** Demande de dispense envoyée (P03 avec B06) : dite au-dessus de la liste, qui est relue (marqueur à jour). */
 const requestNotice = ref<string | null>(null)
+
+/** Visite annulée (P03) : dite au-dessus de la liste, qui est relue (la visite y reste, marquée annulée). */
+const cancelNotice = ref<string | null>(null)
+
+function onCancelled(message: string): void {
+  cancelNotice.value = message
+  void read.reload()
+}
 
 function onRequested(message: string): void {
   requestNotice.value = message
@@ -150,19 +198,27 @@ function identityLine(visit: Visit): string {
 }
 
 const LINK_CLASS =
-  'inline-flex min-h-11 items-center font-semibold break-words text-primary underline underline-offset-4'
+  'inline-flex min-h-11 items-center font-semibold break-words text-primary underline underline-offset-4 hover:decoration-gold hover:decoration-2'
 </script>
 
 <template>
-  <section aria-labelledby="titre-file" class="space-y-4">
-    <h2
-      id="titre-file"
-      ref="heading"
-      tabindex="-1"
-      class="text-lg font-semibold focus:outline-none"
-    >
-      {{ props.title }}
-    </h2>
+  <section aria-labelledby="titre-file" class="space-y-4 sm:space-y-5">
+    <div class="flex items-center gap-3">
+      <div
+        aria-hidden="true"
+        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gold-soft text-gold-ink"
+      >
+        <AppIcon name="calendar" :size="20" />
+      </div>
+      <h2
+        id="titre-file"
+        ref="heading"
+        tabindex="-1"
+        class="min-w-0 text-lg font-semibold break-words focus:outline-none sm:text-xl"
+      >
+        {{ props.title }}
+      </h2>
+    </div>
 
     <StateMessage
       v-if="staleNotice"
@@ -174,6 +230,10 @@ const LINK_CLASS =
 
     <StateMessage v-if="requestNotice" state="success" title="Demande envoyée à la gérante">
       {{ requestNotice }}
+    </StateMessage>
+
+    <StateMessage v-if="cancelNotice" state="success" title="Visite annulée">
+      {{ cancelNotice }}
     </StateMessage>
 
     <QueueStateMessage
@@ -196,146 +256,221 @@ const LINK_CLASS =
       </template>
     </StateMessage>
 
-    <StateMessage
+    <EmptyState
       v-else-if="read.state.value === 'empty'"
-      state="empty"
       title="Aucune visite ce jour"
+      icon="arrival"
     >
       Le serveur n’a enregistré aucune arrivée pour ce jour.
-    </StateMessage>
+    </EmptyState>
 
     <template v-else-if="result !== null">
-      <ul id="file-cartes" class="space-y-3 lg:hidden">
+      <dl class="stat-grid sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Visites enregistrées"
+          :value="result.meta.total"
+          icon="users"
+          tone="gold"
+          :hint="totalHint"
+        />
+        <StatTile label="En attente" :value="counts.waiting" icon="clock" :hint="pageHint" />
+        <StatTile
+          label="En consultation"
+          :value="counts.inConsultation"
+          icon="stethoscope"
+          :hint="pageHint"
+        />
+        <StatTile
+          label="Terminées"
+          :value="counts.completed"
+          icon="check-circle"
+          tone="success"
+          :hint="pageHint"
+        />
+      </dl>
+
+      <ul id="file-cartes" class="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:hidden">
         <li
           v-for="visit in result.data"
           :key="visit.id"
-          class="space-y-2 rounded-lg border-2 border-line bg-surface p-3"
+          :class="[
+            'card flex min-w-0 flex-col gap-3 border-l-4 p-4',
+            visitStatusView(visit.status).accent,
+            visitStatusView(visit.status).quiet ? 'bg-canvas shadow-none' : '',
+          ]"
         >
-          <p class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span class="text-lg font-semibold tabular-nums"
-              ><span class="sr-only">Arrivée à </span>{{ formatTimeFr(visit.occurred_at) }}</span
-            >
-            <span class="text-base font-medium"
-              ><span aria-hidden="true">{{ statusSymbol(visit.status) }}</span
-              ><span class="sr-only">Statut :</span> {{ statusLabel(visit.status) }}</span
-            >
-          </p>
-          <p class="space-y-0.5">
-            <RouterLink
-              v-if="canOpenPatient"
-              :to="{ name: 'patient', params: { id: visit.patient.id } }"
-              :class="LINK_CLASS"
-              >{{ nameOf(visit) }}</RouterLink
-            >
-            <span v-else class="block font-semibold break-words text-ink">{{ nameOf(visit) }}</span>
-            <span class="block text-sm break-words text-muted">{{ identityLine(visit) }}</span>
-          </p>
-          <p class="text-base">
-            <span class="sr-only">Motif : </span>{{ reasonLabel(visit.reason) }}
-          </p>
-          <p>
-            <ExamFeeMarker
-              :control="visit.exam_fee_control"
-              :receipt-number="visit.exam_fee_receipt_number ?? null"
+          <div class="flex items-start gap-3">
+            <PatientInitials
+              :last-name="visit.patient.last_name"
+              :first-names="visit.patient.first_names"
             />
-          </p>
-          <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
-          <ExamAction v-if="showExam" :visit="visit" @stale="onStale" />
-          <LinkButton
-            v-if="canInvoice && visit.status !== 'CANCELLED'"
-            :to="invoiceLink(visit)"
-            variant="secondary"
-            :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
-            >Créer une facture</LinkButton
-          >
-          <p
-            v-if="visit.administrative_note"
-            class="text-sm break-words whitespace-pre-line text-muted"
-          >
-            Note : {{ visit.administrative_note }}
-          </p>
-        </li>
-      </ul>
-
-      <table id="file-tableau" class="hidden w-full border-collapse text-left lg:table">
-        <caption class="sr-only">
-          {{
-            props.title
-          }}
-        </caption>
-        <thead>
-          <tr class="border-b-2 border-line text-sm text-muted">
-            <th scope="col" class="px-3 py-2 font-medium">Arrivée</th>
-            <th scope="col" class="px-3 py-2 font-medium">Patient</th>
-            <th scope="col" class="px-3 py-2 font-medium">Motif</th>
-            <th scope="col" class="px-3 py-2 font-medium">Statut</th>
-            <th scope="col" class="px-3 py-2 font-medium">Paiement de l’examen</th>
-            <th v-if="showExam" scope="col" class="px-3 py-2 font-medium">Examen</th>
-            <th v-if="canInvoice" scope="col" class="px-3 py-2 font-medium">Facturation</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="visit in result.data" :key="visit.id" class="border-b border-line align-top">
-            <td class="px-3 py-2 font-semibold tabular-nums">
-              {{ formatTimeFr(visit.occurred_at) }}
-            </td>
-            <td class="px-3 py-2 break-words">
+            <p class="min-w-0 flex-1">
               <RouterLink
                 v-if="canOpenPatient"
                 :to="{ name: 'patient', params: { id: visit.patient.id } }"
                 :class="LINK_CLASS"
                 >{{ nameOf(visit) }}</RouterLink
               >
-              <span v-else class="block font-semibold text-ink">{{ nameOf(visit) }}</span>
-              <span class="block text-sm text-muted">{{ identityLine(visit) }}</span>
-              <span
-                v-if="visit.administrative_note"
-                class="block text-sm break-words whitespace-pre-line text-muted"
-                >Note : {{ visit.administrative_note }}</span
-              >
-            </td>
-            <td class="px-3 py-2">{{ reasonLabel(visit.reason) }}</td>
-            <td class="px-3 py-2">
-              <span aria-hidden="true">{{ statusSymbol(visit.status) }}</span>
-              {{ statusLabel(visit.status) }}
-            </td>
-            <td class="space-y-2 px-3 py-2">
-              <ExamFeeMarker
-                :control="visit.exam_fee_control"
-                :receipt-number="visit.exam_fee_receipt_number ?? null"
-              />
-              <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
-            </td>
-            <td v-if="showExam" class="px-3 py-2">
-              <ExamAction :visit="visit" @stale="onStale" />
-            </td>
-            <td v-if="canInvoice" class="px-3 py-2">
-              <LinkButton
-                v-if="visit.status !== 'CANCELLED'"
-                :to="invoiceLink(visit)"
-                variant="secondary"
-                :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
-                >Créer une facture</LinkButton
-              >
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <span v-else class="block font-semibold break-words text-ink">{{
+                nameOf(visit)
+              }}</span>
+              <span class="block text-sm break-words text-muted">{{ identityLine(visit) }}</span>
+            </p>
+            <p class="flex shrink-0 items-center gap-1 text-lg font-semibold tabular-nums">
+              <AppIcon name="clock" :size="16" class="text-muted" />
+              <span class="sr-only">Arrivée à</span> {{ formatTimeFr(visit.occurred_at) }}
+            </p>
+          </div>
 
-      <PaginationControls
-        :current-page="result.meta.current_page"
-        :last-page="result.meta.last_page"
-        :total="result.meta.total"
-        label="Pagination de la file du jour"
-        unit="visites"
-        @page="emit('page', $event)"
-      />
+          <p class="flex items-center gap-2 font-medium text-ink">
+            <AppIcon :name="reasonIcon(visit.reason)" :size="18" class="text-muted" />
+            <span><span class="sr-only">Motif : </span>{{ reasonLabel(visit.reason) }}</span>
+          </p>
 
-      <FreshnessNote
-        v-if="read.freshness.value"
-        :freshness="read.freshness.value"
-        :time-zone="timeZone"
-      />
+          <div class="flex flex-wrap items-center gap-2">
+            <StatusChip
+              :tone="visitStatusView(visit.status).tone"
+              :icon="visitStatusView(visit.status).icon"
+              ><span class="sr-only">Statut : </span>{{ statusLabel(visit.status) }}</StatusChip
+            >
+            <ExamFeeMarker
+              :control="visit.exam_fee_control"
+              :receipt-number="visit.exam_fee_receipt_number ?? null"
+            />
+          </div>
+
+          <p
+            v-if="visit.administrative_note"
+            class="rounded-lg bg-canvas px-3 py-2 text-sm break-words whitespace-pre-line text-muted"
+          >
+            Note : {{ visit.administrative_note }}
+          </p>
+
+          <div
+            class="mt-auto flex flex-wrap items-start gap-2 border-t border-line pt-3 empty:hidden"
+          >
+            <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
+            <ExamAction v-if="showExam" :visit="visit" @stale="onStale" />
+            <LinkButton
+              v-if="canInvoice && visit.status !== 'CANCELLED'"
+              :to="invoiceLink(visit)"
+              variant="secondary"
+              :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
+              >Créer une facture</LinkButton
+            >
+            <CancelVisitAction
+              class="ml-auto"
+              :visit="visit"
+              @cancelled="onCancelled"
+              @stale="onStale"
+            />
+          </div>
+        </li>
+      </ul>
+
+      <div class="data-table-wrap hidden lg:block">
+        <table id="file-tableau" class="data-table hidden lg:table">
+          <caption class="sr-only">
+            {{
+              props.title
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Arrivée</th>
+              <th scope="col">Patient</th>
+              <th scope="col">Motif</th>
+              <th scope="col">Statut</th>
+              <th scope="col">Paiement de l’examen</th>
+              <th v-if="showExam" scope="col">Examen</th>
+              <th v-if="canInvoice" scope="col">Facturation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="visit in result.data" :key="visit.id">
+              <td class="font-semibold whitespace-nowrap tabular-nums">
+                {{ formatTimeFr(visit.occurred_at) }}
+              </td>
+              <td class="break-words">
+                <div class="flex items-start gap-3">
+                  <PatientInitials
+                    size="sm"
+                    class="mt-0.5"
+                    :last-name="visit.patient.last_name"
+                    :first-names="visit.patient.first_names"
+                  />
+                  <div class="min-w-0">
+                    <RouterLink
+                      v-if="canOpenPatient"
+                      :to="{ name: 'patient', params: { id: visit.patient.id } }"
+                      :class="LINK_CLASS"
+                      >{{ nameOf(visit) }}</RouterLink
+                    >
+                    <span v-else class="block font-semibold text-ink">{{ nameOf(visit) }}</span>
+                    <span class="block text-sm text-muted">{{ identityLine(visit) }}</span>
+                    <span
+                      v-if="visit.administrative_note"
+                      class="block text-sm break-words whitespace-pre-line text-muted"
+                      >Note : {{ visit.administrative_note }}</span
+                    >
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="inline-flex items-center gap-2">
+                  <AppIcon :name="reasonIcon(visit.reason)" :size="18" class="text-muted" />
+                  {{ reasonLabel(visit.reason) }}
+                </span>
+              </td>
+              <td class="space-y-2">
+                <StatusChip
+                  as="p"
+                  :tone="visitStatusView(visit.status).tone"
+                  :icon="visitStatusView(visit.status).icon"
+                  >{{ statusLabel(visit.status) }}</StatusChip
+                >
+                <CancelVisitAction :visit="visit" @cancelled="onCancelled" @stale="onStale" />
+              </td>
+              <td class="space-y-2">
+                <ExamFeeMarker
+                  :control="visit.exam_fee_control"
+                  :receipt-number="visit.exam_fee_receipt_number ?? null"
+                />
+                <ExamFeeWaiverAction :visit="visit" @requested="onRequested" />
+              </td>
+              <td v-if="showExam">
+                <ExamAction :visit="visit" @stale="onStale" />
+              </td>
+              <td v-if="canInvoice">
+                <LinkButton
+                  v-if="visit.status !== 'CANCELLED'"
+                  :to="invoiceLink(visit)"
+                  variant="secondary"
+                  :accessible-name="`Créer une facture pour ${nameOf(visit)}`"
+                  >Créer une facture</LinkButton
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <PaginationControls
+          :current-page="result.meta.current_page"
+          :last-page="result.meta.last_page"
+          :total="result.meta.total"
+          label="Pagination de la file du jour"
+          unit="visites"
+          @page="emit('page', $event)"
+        />
+
+        <FreshnessNote
+          v-if="read.freshness.value"
+          :freshness="read.freshness.value"
+          :time-zone="timeZone"
+        />
+      </div>
     </template>
   </section>
 </template>

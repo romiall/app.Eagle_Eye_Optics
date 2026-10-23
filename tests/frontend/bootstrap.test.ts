@@ -93,16 +93,43 @@ describe('amorçage de la coquille Vue', () => {
         'parametres-cabinet',
         'mot-de-passe',
         'approbations',
+        'parametres-poste',
+        'conflits-synchronisation',
+        'patient-prescriptions',
+        'patient-fusion',
+        'patient-comparaison',
+        'categories-depenses',
+        'devis',
+        'devis-nouveau',
+        'devis-detail',
+        'import-catalogue',
+        'stock-movement',
+        'parametres-exports',
+        'statistiques',
+        'agenda',
+        'rendez-vous-nouveau',
+        'agenda-configuration',
+        'suivis',
+        'aide',
       ]),
     )
     // 11 routes d'origine + historique (C03) + prescription (C04) + aperçu des documents (D02)
     // + activité du patient (onglet du dossier) + ventes et caisse (8 : B01 à B05, I00)
     // + caisse du jour (R01 minimal) + liste des examens + paramètres (5 : F09)
-    // + changement de son mot de passe + approbations (B06).
-    expect(router.getRoutes()).toHaveLength(32)
+    // + changement de son mot de passe + approbations (B06) + préparation du poste (O01, O02)
+    // + prescriptions, fusion et comparaison du patient + catégories de dépenses + devis (3)
+    // + import du catalogue + casse/ajustement + exports + statistiques + agenda (3) + suivis + aide.
+    // Total recompté sur le routeur réel : 50 routes, aucun nom en double.
+    const names = router.getRoutes().map((route) => String(route.name))
+    expect(new Set(names).size).toBe(names.length)
+    expect(router.getRoutes()).toHaveLength(50)
     // Chaque route métier dépend de son module (mise en service progressive) et de ses permissions.
+    // Les onglets cliniques du dossier (prescriptions, comparaison des examens) dépendent du module « consultations ».
+    const clinicalTabs = ['patient-prescriptions', 'patient-comparaison']
     for (const route of router.getRoutes().filter((entry) => entry.path.startsWith('/patients'))) {
-      expect(route.meta.module, String(route.name)).toBe('patients')
+      expect(route.meta.module, String(route.name)).toBe(
+        clinicalTabs.includes(String(route.name)) ? 'consultations' : 'patients',
+      )
       expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
     }
     // La consultation (C01) se lit avec clinical.read, module « consultations » ; l'adresse n'accepte
@@ -126,7 +153,11 @@ describe('amorçage de la coquille Vue', () => {
     for (const route of router
       .getRoutes()
       .filter((entry) => entry.path.startsWith('/parametres'))) {
-      expect(route.meta.module, String(route.name)).toBe('settings')
+      // La préparation du poste et les conflits de synchronisation relèvent du module « offline » (fermé par défaut).
+      const expected = ['parametres-poste', 'conflits-synchronisation'].includes(String(route.name))
+        ? 'offline'
+        : 'settings'
+      expect(route.meta.module, String(route.name)).toBe(expected)
       expect(route.meta.permissions?.length, String(route.name)).toBeGreaterThan(0)
     }
     expect(router.resolve('/mon-compte/mot-de-passe').meta.module).toBeUndefined()

@@ -12,10 +12,13 @@
  */
 import { computed, nextTick } from 'vue'
 
+import ClinicalHint from '@/components/clinical/ClinicalHint.vue'
 import SelectField from '@/components/form/SelectField.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { CONTROL_IDS } from '@/domain/clinical/controls'
 import { TEXT_MAX_LENGTH } from '@/domain/clinical/fields'
 import { DURATION_UNIT_LABELS, MEDICATION_FORM_LABELS } from '@/domain/clinical/labels'
@@ -100,10 +103,10 @@ function chooseUnit(index: number, value: string | null): void {
 
 <template>
   <div class="space-y-6">
-    <p class="max-w-prose text-base text-muted">
+    <ClinicalHint>
       Saisie libre : aucune base de médicaments n’est utilisée et aucune posologie n’est complétée à
       votre place. Prescrire ne crée ni vente ni mouvement de stock.
-    </p>
+    </ClinicalHint>
 
     <p
       v-if="props.errors[CONTROL_IDS.orders]"
@@ -113,29 +116,37 @@ function chooseUnit(index: number, value: string | null): void {
     >
       <span aria-hidden="true">⚠ </span>{{ props.errors[CONTROL_IDS.orders] }}
     </p>
-    <p v-if="model.orders.length === 0" class="text-base text-ink">
-      <span aria-hidden="true">○ </span>Aucun médicament prescrit à cette consultation.
-    </p>
+    <EmptyState
+      v-if="model.orders.length === 0"
+      title="Aucun médicament prescrit à cette consultation."
+      icon="file-plus"
+      flat
+    />
 
-    <ol class="space-y-6">
-      <li v-for="(order, index) in model.orders" :key="order.id">
-        <fieldset class="space-y-4 rounded-lg border-2 border-line bg-surface p-4">
-          <legend class="px-1 text-lg font-semibold">
+    <ol class="space-y-4">
+      <li
+        v-for="(order, index) in model.orders"
+        :key="order.id"
+        class="rounded-xl border border-line bg-canvas p-4 sm:p-5"
+      >
+        <fieldset class="m-0 min-w-0 space-y-4 border-0 p-0">
+          <legend class="mb-1 p-0 text-lg font-semibold break-words">
             Médicament {{ index + 1
             }}<template v-if="order.name.trim() !== ''"> : {{ order.name.trim() }}</template>
           </legend>
 
-          <TextField
-            :model-value="order.name"
-            label="Nom du médicament"
-            :control-id="CONTROL_IDS.order(index, 'nom')"
-            :maxlength="NAME_MAX"
-            :error="error(index, 'nom')"
-            :disabled="props.disabled"
-            required
-            @update:model-value="patch(index, { name: $event })"
-          />
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="form-grid">
+            <TextField
+              :model-value="order.name"
+              label="Nom du médicament"
+              :control-id="CONTROL_IDS.order(index, 'nom')"
+              :maxlength="NAME_MAX"
+              :error="error(index, 'nom')"
+              :disabled="props.disabled"
+              required
+              class="col-span-full"
+              @update:model-value="patch(index, { name: $event })"
+            />
             <SelectField
               :model-value="order.form"
               label="Forme"
@@ -158,46 +169,46 @@ function chooseUnit(index: number, value: string | null): void {
               required
               @update:model-value="patch(index, { formOther: $event })"
             />
-          </div>
-          <TextField
-            :model-value="order.strength"
-            label="Dosage ou concentration"
-            hint="Texte libre, par exemple la concentration inscrite sur le produit."
-            :control-id="CONTROL_IDS.order(index, 'dosage')"
-            :maxlength="STRENGTH_MAX"
-            :error="error(index, 'dosage')"
-            :disabled="props.disabled"
-            @update:model-value="patch(index, { strength: $event })"
-          />
-          <TextAreaField
-            :model-value="order.dosage"
-            label="Posologie"
-            :control-id="CONTROL_IDS.order(index, 'posologie')"
-            :rows="2"
-            :maxlength="TEXT_MAX_LENGTH"
-            :error="error(index, 'posologie')"
-            :disabled="props.disabled"
-            @update:model-value="patch(index, { dosage: $event })"
-          />
-          <TextField
-            :model-value="order.frequency"
-            label="Fréquence"
-            :control-id="CONTROL_IDS.order(index, 'frequence')"
-            :maxlength="FREQUENCY_MAX"
-            :error="error(index, 'frequence')"
-            :disabled="props.disabled"
-            @update:model-value="patch(index, { frequency: $event })"
-          />
-          <TextField
-            :model-value="order.durationText"
-            label="Durée (texte)"
-            :control-id="CONTROL_IDS.order(index, 'duree')"
-            :maxlength="DURATION_TEXT_MAX"
-            :error="error(index, 'duree')"
-            :disabled="props.disabled"
-            @update:model-value="patch(index, { durationText: $event })"
-          />
-          <div class="grid gap-4 sm:grid-cols-2">
+            <TextField
+              :model-value="order.strength"
+              label="Dosage ou concentration"
+              hint="Texte libre, par exemple la concentration inscrite sur le produit."
+              :control-id="CONTROL_IDS.order(index, 'dosage')"
+              :maxlength="STRENGTH_MAX"
+              :error="error(index, 'dosage')"
+              :disabled="props.disabled"
+              class="col-span-full"
+              @update:model-value="patch(index, { strength: $event })"
+            />
+            <TextAreaField
+              :model-value="order.dosage"
+              label="Posologie"
+              :control-id="CONTROL_IDS.order(index, 'posologie')"
+              :rows="2"
+              :maxlength="TEXT_MAX_LENGTH"
+              :error="error(index, 'posologie')"
+              :disabled="props.disabled"
+              class="col-span-full"
+              @update:model-value="patch(index, { dosage: $event })"
+            />
+            <TextField
+              :model-value="order.frequency"
+              label="Fréquence"
+              :control-id="CONTROL_IDS.order(index, 'frequence')"
+              :maxlength="FREQUENCY_MAX"
+              :error="error(index, 'frequence')"
+              :disabled="props.disabled"
+              @update:model-value="patch(index, { frequency: $event })"
+            />
+            <TextField
+              :model-value="order.durationText"
+              label="Durée (texte)"
+              :control-id="CONTROL_IDS.order(index, 'duree')"
+              :maxlength="DURATION_TEXT_MAX"
+              :error="error(index, 'duree')"
+              :disabled="props.disabled"
+              @update:model-value="patch(index, { durationText: $event })"
+            />
             <TextField
               :model-value="order.durationValue"
               label="Durée structurée : nombre"
@@ -219,31 +230,32 @@ function chooseUnit(index: number, value: string | null): void {
               :disabled="props.disabled"
               @update:model-value="chooseUnit(index, $event)"
             />
+            <TextAreaField
+              :model-value="order.instructions"
+              label="Instructions"
+              :control-id="CONTROL_IDS.order(index, 'instructions')"
+              :rows="2"
+              :maxlength="TEXT_MAX_LENGTH"
+              :error="error(index, 'instructions')"
+              :disabled="props.disabled"
+              class="col-span-full"
+              @update:model-value="patch(index, { instructions: $event })"
+            />
           </div>
-          <TextAreaField
-            :model-value="order.instructions"
-            label="Instructions"
-            :control-id="CONTROL_IDS.order(index, 'instructions')"
-            :rows="2"
-            :maxlength="TEXT_MAX_LENGTH"
-            :error="error(index, 'instructions')"
-            :disabled="props.disabled"
-            @update:model-value="patch(index, { instructions: $event })"
-          />
 
           <p v-if="withoutPosology.has(index)" class="text-sm font-medium text-warning">
             <span aria-hidden="true">⚠ </span>Aucune posologie, fréquence, durée ni instruction
             saisie pour ce médicament. Rien n’est complété à votre place.
           </p>
 
-          <div v-if="!props.disabled" class="flex flex-wrap gap-3">
+          <div v-if="!props.disabled" class="flex flex-wrap gap-3 border-t border-line pt-4">
             <AppButton
               :id="`${CONTROL_IDS.order(index, 'deplacer')}--1`"
               variant="secondary"
               :disabled="index === 0"
               :accessible-name="`Monter ${orderTitle(order, index)}`"
               @click="move(index, -1)"
-              >Monter</AppButton
+              ><AppIcon name="chevron-up" :size="18" />Monter</AppButton
             >
             <AppButton
               :id="`${CONTROL_IDS.order(index, 'deplacer')}-1`"
@@ -251,22 +263,24 @@ function chooseUnit(index: number, value: string | null): void {
               :disabled="index === model.orders.length - 1"
               :accessible-name="`Descendre ${orderTitle(order, index)}`"
               @click="move(index, 1)"
-              >Descendre</AppButton
+              ><AppIcon name="chevron-down" :size="18" />Descendre</AppButton
             >
             <AppButton
               variant="ghost"
               :accessible-name="`Retirer ${orderTitle(order, index)}`"
               @click="remove(index)"
-              >Retirer</AppButton
+              ><AppIcon name="trash" :size="18" />Retirer</AppButton
             >
           </div>
         </fieldset>
       </li>
     </ol>
 
-    <AppButton v-if="!props.disabled" variant="secondary" :disabled="!canAdd" @click="add"
-      >Ajouter un médicament</AppButton
-    >
-    <p v-if="!canAdd" class="text-sm text-muted">Vingt médicaments au plus par consultation.</p>
+    <div v-if="!props.disabled || !canAdd" class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <AppButton v-if="!props.disabled" variant="secondary" :disabled="!canAdd" @click="add"
+        ><AppIcon name="plus" :size="18" />Ajouter un médicament</AppButton
+      >
+      <p v-if="!canAdd" class="text-sm text-muted">Vingt médicaments au plus par consultation.</p>
+    </div>
   </div>
 </template>

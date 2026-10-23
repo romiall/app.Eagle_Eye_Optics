@@ -14,6 +14,7 @@ import { revalidateSession, session } from '@/app/session'
 import ErrorSummary, { type FieldErrorItem } from '@/components/feedback/ErrorSummary.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import TextField from '@/components/form/TextField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { passwordError } from '@/domain/access/staff'
 
@@ -115,56 +116,67 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-mdp" class="max-w-xl space-y-6">
-    <h1 id="titre-mdp" class="text-2xl font-semibold tracking-tight">Changer mon mot de passe</h1>
+  <section aria-labelledby="titre-mdp" class="mx-auto w-full max-w-xl">
+    <div class="card space-y-6 p-5 sm:p-8">
+      <PageHeader
+        title-id="titre-mdp"
+        title="Changer mon mot de passe"
+        icon="key"
+        subtitle="Saisissez votre mot de passe actuel, puis le nouveau, deux fois."
+      />
 
-    <div v-if="done" id="mdp-change" tabindex="-1" class="focus:outline-none">
-      <StateMessage state="success" title="Mot de passe changé sur le serveur">
-        Votre session reste ouverte ; vos autres sessions ont été fermées.
-      </StateMessage>
+      <div v-if="done" id="mdp-change" tabindex="-1" class="focus:outline-none">
+        <StateMessage state="success" title="Mot de passe changé sur le serveur">
+          Votre session reste ouverte ; vos autres sessions ont été fermées.
+        </StateMessage>
+      </div>
+
+      <form class="space-y-5" novalidate @submit.prevent="submit">
+        <ErrorSummary :errors="summary" />
+        <StateMessage v-if="failure" state="error" title="Mot de passe non changé">
+          {{ failure }}
+        </StateMessage>
+
+        <TextField
+          v-model="current"
+          label="Mot de passe actuel"
+          type="password"
+          autocomplete="current-password"
+          :control-id="IDS.current"
+          :error="errors[IDS.current] ?? null"
+          required
+        />
+        <div class="space-y-5 border-t border-line pt-5">
+          <TextField
+            v-model="password"
+            label="Nouveau mot de passe"
+            hint="12 caractères au moins, avec des lettres et des chiffres, différent de votre identifiant."
+            type="password"
+            autocomplete="new-password"
+            :control-id="IDS.password"
+            :error="errors[IDS.password] ?? null"
+            required
+          />
+          <TextField
+            v-model="confirmation"
+            label="Confirmation du nouveau mot de passe"
+            type="password"
+            autocomplete="new-password"
+            :control-id="IDS.confirmation"
+            :error="errors[IDS.confirmation] ?? null"
+            required
+          />
+        </div>
+        <div class="form-actions">
+          <AppButton
+            type="submit"
+            variant="primary"
+            :pending="pending"
+            pending-label="Changement en cours…"
+            >Changer le mot de passe</AppButton
+          >
+        </div>
+      </form>
     </div>
-
-    <form class="space-y-5" novalidate @submit.prevent="submit">
-      <ErrorSummary :errors="summary" />
-      <StateMessage v-if="failure" state="error" title="Mot de passe non changé">
-        {{ failure }}
-      </StateMessage>
-
-      <TextField
-        v-model="current"
-        label="Mot de passe actuel"
-        type="password"
-        autocomplete="current-password"
-        :control-id="IDS.current"
-        :error="errors[IDS.current] ?? null"
-        required
-      />
-      <TextField
-        v-model="password"
-        label="Nouveau mot de passe"
-        hint="12 caractères au moins, avec des lettres et des chiffres, différent de votre identifiant."
-        type="password"
-        autocomplete="new-password"
-        :control-id="IDS.password"
-        :error="errors[IDS.password] ?? null"
-        required
-      />
-      <TextField
-        v-model="confirmation"
-        label="Confirmation du nouveau mot de passe"
-        type="password"
-        autocomplete="new-password"
-        :control-id="IDS.confirmation"
-        :error="errors[IDS.confirmation] ?? null"
-        required
-      />
-      <AppButton
-        type="submit"
-        variant="primary"
-        :pending="pending"
-        pending-label="Changement en cours…"
-        >Changer le mot de passe</AppButton
-      >
-    </form>
   </section>
 </template>

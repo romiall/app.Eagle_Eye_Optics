@@ -116,6 +116,18 @@ export async function getConsultationPrescriptions(
 }
 
 /** Une prescription optique (C04). */
+/** Prescriptions d'un patient (internes et ordonnances externes transcrites), de la plus récente à la plus ancienne. */
+export async function getPatientPrescriptions(
+  patientId: string,
+): Promise<ReadOutcome<Prescription[]>> {
+  const response = await apiRequest<PrescriptionList>(
+    'GET',
+    `/api/v1/patients/${encodeURIComponent(patientId)}/prescriptions`,
+  )
+  if (!Array.isArray(response?.data)) throw unexpected('prescriptions')
+  return live(response.data)
+}
+
 export async function getPrescription(id: string): Promise<ReadOutcome<Prescription>> {
   const response = await apiRequest<PrescriptionResponse>(
     'GET',

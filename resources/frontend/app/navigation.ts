@@ -73,8 +73,9 @@ export const APP_MODULES: readonly AppModule[] = [
     label: 'Agenda',
     path: '/agenda',
     permissions: ['agenda.read'],
+    // Agenda interne (S01, en ligne) : vues jour et semaine, prise de rendez-vous, patients à rappeler (S02).
     deliveredBy: 'S01',
-    delivered: false,
+    delivered: true,
     mobileShortcut: true,
   },
   {
@@ -134,6 +135,17 @@ export const APP_MODULES: readonly AppModule[] = [
     delivered: true,
     mobileShortcut: false,
   },
+  {
+    // Préparation des postes pour le hors-ligne (O01, O02) : sans entrée de menu ; l'écran s'ouvre depuis les
+    // Paramètres quand l'exploitant a ouvert le module « offline ». Le travail sans Internet viendra avec O03 à O05.
+    id: 'offline',
+    label: 'Postes hors-ligne',
+    path: '/parametres/poste',
+    permissions: ['offline.enroll'],
+    deliveredBy: 'O05',
+    delivered: false,
+    mobileShortcut: false,
+  },
 ]
 
 export const HOME_ACTIONS: readonly HomeAction[] = [
@@ -158,10 +170,10 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
   {
     id: 'appointment',
     label: 'Rendez-vous',
-    path: '/agenda',
+    path: '/agenda/nouveau',
     permissions: ['agenda.write'],
     deliveredBy: 'S01',
-    delivered: false,
+    delivered: true,
     module: 'agenda',
   },
   {
@@ -179,7 +191,7 @@ export const HOME_ACTIONS: readonly HomeAction[] = [
     path: '/rapports/statistiques',
     permissions: ['statistics.activity', 'statistics.clinical'],
     deliveredBy: 'R02',
-    delivered: false,
+    delivered: true,
     module: 'reports',
   },
   {
@@ -247,6 +259,16 @@ export interface WorkShortcut extends NavigationEntry {
 }
 
 export const WORK_SHORTCUTS: readonly WorkShortcut[] = [
+  {
+    id: 'contact-tasks',
+    label: 'Patients à rappeler',
+    path: '/suivis',
+    permissions: ['agenda.read'],
+    deliveredBy: 'S02',
+    delivered: true,
+    module: 'agenda',
+    group: 'reception',
+  },
   {
     id: 'arrival',
     label: 'Enregistrer une arrivée',

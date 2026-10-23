@@ -14,6 +14,7 @@ import CheckboxField from '@/components/form/CheckboxField.vue'
 import CheckboxGroup from '@/components/form/CheckboxGroup.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { changeNeedsReason, ROLE_LABELS, STAFF_ROLES } from '@/domain/access/staff'
@@ -136,9 +137,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-profil" class="space-y-4">
-    <h2 id="titre-profil" class="text-xl font-semibold">Compte et profils</h2>
-
+  <SectionCard title="Compte et profils" title-id="titre-profil" icon="id-card">
     <form class="space-y-5" novalidate @submit.prevent="submit">
       <ErrorSummary :errors="summary" />
       <StateMessage
@@ -160,59 +159,64 @@ async function submit(): Promise<void> {
         title="Compte enregistré sur le serveur"
       />
 
-      <TextField
-        v-model="displayName"
-        label="Nom affiché"
-        :control-id="IDS.name"
-        :maxlength="180"
-        :error="errors[IDS.name] ?? null"
-        required
-        autocomplete="off"
-      />
-      <TextField
-        v-model="email"
-        label="Adresse électronique (facultative)"
-        type="email"
-        :control-id="IDS.email"
-        :maxlength="254"
-        :error="errors[IDS.email] ?? null"
-        autocomplete="off"
-      />
-      <CheckboxGroup
-        v-model="roles"
-        legend="Profils"
-        :hint="
-          props.self
-            ? 'Vous ne modifiez pas vos propres profils : une autre gérante le fait.'
-            : 'Retirer un profil exige un motif.'
-        "
-        :options="roleOptions"
-        :control-id="IDS.roles"
-        :error="errors[IDS.roles] ?? null"
-        :disabled="props.self"
-      />
-      <CheckboxField
-        v-model="active"
-        label="Compte actif"
-        :hint="
-          props.self
-            ? 'Vous ne désactivez pas votre propre compte.'
-            : 'Un compte désactivé ne peut plus se connecter ; ses sessions sont fermées. Il n’est jamais supprimé.'
-        "
-        :control-id="IDS.active"
-        :error="errors[IDS.active] ?? null"
-        :disabled="props.self"
-      />
-      <TextAreaField
-        v-model="reason"
-        :label="needsReason ? 'Motif (obligatoire)' : 'Motif (facultatif)'"
-        hint="Conservé dans le journal d’audit."
-        :control-id="IDS.reason"
-        :rows="2"
-        :maxlength="1000"
-        :error="errors[IDS.reason] ?? null"
-        :required="needsReason"
-      />
+      <div class="form-grid">
+        <TextField
+          v-model="displayName"
+          label="Nom affiché"
+          :control-id="IDS.name"
+          :maxlength="180"
+          :error="errors[IDS.name] ?? null"
+          required
+          autocomplete="off"
+        />
+        <TextField
+          v-model="email"
+          label="Adresse électronique (facultative)"
+          type="email"
+          :control-id="IDS.email"
+          :maxlength="254"
+          :error="errors[IDS.email] ?? null"
+          autocomplete="off"
+        />
+        <CheckboxGroup
+          v-model="roles"
+          class="col-span-full"
+          legend="Profils"
+          :hint="
+            props.self
+              ? 'Vous ne modifiez pas vos propres profils : une autre gérante le fait.'
+              : 'Retirer un profil exige un motif.'
+          "
+          :options="roleOptions"
+          :control-id="IDS.roles"
+          :error="errors[IDS.roles] ?? null"
+          :disabled="props.self"
+        />
+        <CheckboxField
+          v-model="active"
+          class="col-span-full"
+          label="Compte actif"
+          :hint="
+            props.self
+              ? 'Vous ne désactivez pas votre propre compte.'
+              : 'Un compte désactivé ne peut plus se connecter ; ses sessions sont fermées. Il n’est jamais supprimé.'
+          "
+          :control-id="IDS.active"
+          :error="errors[IDS.active] ?? null"
+          :disabled="props.self"
+        />
+        <TextAreaField
+          v-model="reason"
+          class="col-span-full"
+          :label="needsReason ? 'Motif (obligatoire)' : 'Motif (facultatif)'"
+          hint="Conservé dans le journal d’audit."
+          :control-id="IDS.reason"
+          :rows="2"
+          :maxlength="1000"
+          :error="errors[IDS.reason] ?? null"
+          :required="needsReason"
+        />
+      </div>
 
       <p
         v-if="submitted && !hasChanges && Object.keys(localErrors).length === 0"
@@ -221,13 +225,15 @@ async function submit(): Promise<void> {
         Aucune modification à enregistrer.
       </p>
 
-      <AppButton
-        type="submit"
-        variant="primary"
-        :pending="writer.state.value === 'saving'"
-        pending-label="Enregistrement en cours…"
-        >Enregistrer le compte</AppButton
-      >
+      <div class="form-actions">
+        <AppButton
+          type="submit"
+          variant="primary"
+          :pending="writer.state.value === 'saving'"
+          pending-label="Enregistrement en cours…"
+          >Enregistrer le compte</AppButton
+        >
+      </div>
     </form>
 
     <PasswordConfirmDialog
@@ -236,5 +242,5 @@ async function submit(): Promise<void> {
       @confirmed="writer.resume()"
       @cancel="writer.cancel()"
     />
-  </section>
+  </SectionCard>
 </template>

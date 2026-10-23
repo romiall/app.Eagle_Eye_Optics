@@ -17,6 +17,7 @@ import type { MutationOutcome } from '@/app/services/mutations'
 import { useMutation } from '@/app/services/useMutation'
 import { revalidateSession } from '@/app/session'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { buildStartConsultationPayload, currentInstant } from '@/domain/clinical/payload'
 import type { Visit } from '@/domain/contracts/generated'
 import { patientDisplayName } from '@/domain/patients/identity'
@@ -119,14 +120,16 @@ async function start(): Promise<void> {
       :disabled="opened"
       :accessible-name="`${unresolved ? 'Réessayer de démarrer' : 'Démarrer'} l’examen de ${name}`"
       @click="start"
-      >{{ unresolved ? 'Réessayer de démarrer l’examen' : 'Démarrer l’examen' }}</AppButton
+      ><AppIcon :name="unresolved ? 'refresh' : 'stethoscope'" :size="18" />{{
+        unresolved ? 'Réessayer de démarrer l’examen' : 'Démarrer l’examen'
+      }}</AppButton
     >
     <p
       v-if="showsFailure && failureMessage"
       role="alert"
-      class="max-w-prose text-sm font-medium text-danger"
+      class="flex max-w-prose items-start gap-1.5 text-sm font-medium text-danger"
     >
-      <span aria-hidden="true">⚠ </span>{{ failureMessage }}
+      <AppIcon name="alert" :size="16" class="mt-0.5" /><span>{{ failureMessage }}</span>
     </p>
   </div>
 </template>

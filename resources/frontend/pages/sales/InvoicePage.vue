@@ -7,7 +7,7 @@
  * et une facture émise ailleurs pendant l'édition est relue puis affichée émise.
  */
 import { computed, shallowRef, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import { getInvoice } from '@/app/services/billing'
@@ -80,6 +80,14 @@ function reload(): void {
         <p class="text-base text-muted">
           <span aria-hidden="true">{{ invoiceStatusSymbol(invoice.status) }}</span>
           {{ invoiceStatusLabel(invoice.status) }}
+        </p>
+        <!-- Provenance (L1D07) : le devis dont cette facture est née reste consultable. -->
+        <p v-if="invoice.quote_id" class="text-sm">
+          <RouterLink
+            :to="{ name: 'devis-detail', params: { id: invoice.quote_id } }"
+            class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+            >Établie depuis un devis : ouvrir le devis d’origine</RouterLink
+          >
         </p>
       </div>
 

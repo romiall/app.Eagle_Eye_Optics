@@ -10,6 +10,8 @@
  * - Rien n'est inféré : aucune valeur n'est calculée, transposée ou complétée ; vente et stock ne sont pas créés.
  * - Sans le droit d'écriture : lecture seule. Hors ligne : « indisponible », jamais une prescription vide.
  * L'ordonnance externe se transcrit depuis la fiche du patient ou la vente (aucune consultation fictive).
+ * Présentation : en-tête d'écran (retour à la consultation une fois celle-ci lue), bandeau patient, brouillon
+ * édité dans une carte, dernière version en carte de lecture, versions précédentes repliées.
  */
 import { computed, ref } from 'vue'
 
@@ -25,8 +27,9 @@ import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import SelectField from '@/components/form/SelectField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import LinkButton from '@/components/ui/LinkButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import { STAGE_LABELS } from '@/domain/clinical/labels'
 import { RX_IDS } from '@/domain/clinical/prescriptions'
 import { REFRACTION_STAGES, type RefractionStage } from '@/domain/clinical/refraction'
@@ -160,10 +163,20 @@ function confirmCopyCentering(): void {
 </script>
 
 <template>
-  <section aria-labelledby="titre-prescriptions" class="max-w-3xl space-y-6">
-    <h1 id="titre-prescriptions" class="text-2xl font-semibold tracking-tight">
-      Prescription optique
-    </h1>
+  <section aria-labelledby="titre-prescriptions" class="page-stack max-w-4xl">
+    <PageHeader
+      title-id="titre-prescriptions"
+      title="Prescription optique"
+      icon="glasses"
+      :back="
+        consultation === null
+          ? undefined
+          : {
+              to: { name: 'consultation', params: { id: props.consultationId } },
+              label: 'Retour à la consultation',
+            }
+      "
+    />
 
     <ConsultationReadMessage
       v-if="consultation === null"
@@ -175,13 +188,6 @@ function confirmCopyCentering(): void {
 
     <template v-else>
       <PatientBanner :consultation="consultation" />
-      <p class="flex flex-wrap gap-3">
-        <LinkButton
-          :to="{ name: 'consultation', params: { id: props.consultationId } }"
-          variant="secondary"
-          >Retour à la consultation</LinkButton
-        >
-      </p>
 
       <StateMessage
         v-if="listRead.state.value === 'loading'"
@@ -231,19 +237,21 @@ function confirmCopyCentering(): void {
         <!-- Édition -->
         <form
           v-if="editing && draft"
-          class="space-y-6"
+          class="card space-y-6 p-4 lg:p-6"
           novalidate
           @submit.prevent="editor.saveDraft"
         >
-          <h2 :id="RX_IDS.form" tabindex="-1" class="text-xl font-semibold focus:outline-none">
-            {{ heading }}
-          </h2>
-          <p
-            class="inline-flex items-center gap-1 rounded-lg border-2 border-warning bg-warning-soft px-2 py-1 text-sm font-semibold"
-          >
-            <span aria-hidden="true">○</span>BROUILLON : ne pas remettre au patient tant qu’elle
-            n’est pas validée.
-          </p>
+          <div class="space-y-3 border-b border-line pb-4">
+            <h2 :id="RX_IDS.form" tabindex="-1" class="text-xl font-semibold focus:outline-none">
+              {{ heading }}
+            </h2>
+            <p
+              class="flex max-w-prose items-start gap-2 rounded-lg border border-warning bg-warning-soft px-3 py-2 text-sm font-semibold text-ink"
+            >
+              <AppIcon name="alert" :size="18" class="mt-px text-warning" />
+              <span>BROUILLON : ne pas remettre au patient tant qu’elle n’est pas validée.</span>
+            </p>
+          </div>
           <PrescriptionForm
             v-model="draft"
             :errors="errorMap"
@@ -259,7 +267,7 @@ function confirmCopyCentering(): void {
           <p v-if="dirty" class="text-sm font-medium text-warning">
             <span aria-hidden="true">● </span>Modifications non enregistrées.
           </p>
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="form-actions">
             <AppButton
               v-if="canWrite"
               type="submit"
@@ -294,19 +302,21 @@ function confirmCopyCentering(): void {
             Aucune prescription optique n’est enregistrée pour cette consultation.
             <template v-if="canWrite" #action>
               <AppButton variant="primary" @click="editor.startNew"
-                >Nouvelle prescription</AppButton
+                ><AppIcon name="plus" :size="18" />Nouvelle prescription</AppButton
               >
             </template>
           </StateMessage>
 
           <template v-else-if="latest">
-            <PrescriptionView :prescription="latest" />
-            <AppButton
-              v-if="latest.status === 'VALIDATED' && canAmend && canWrite"
-              variant="secondary"
-              @click="editor.startRevision"
-              >Créer une nouvelle version</AppButton
-            >
+            <div class="space-y-3">
+              <h2 class="section-title">Dernière version</h2>
+              <PrescriptionView :prescription="latest" />
+              <p v-if="latest.status === 'VALIDATED' && canAmend && canWrite">
+                <AppButton variant="secondary" @click="editor.startRevision"
+                  ><AppIcon name="edit" :size="18" />Créer une nouvelle version</AppButton
+                >
+              </p>
+            </div>
             <ClinicalPrintActions
               v-if="printable && printActions.length > 0"
               :key="printable.id"
@@ -319,11 +329,21 @@ function confirmCopyCentering(): void {
                 Un brouillon ne s’imprime pas ; il ne se remet pas au patient.
               </p>
             </ClinicalPrintActions>
-            <details v-if="olderVersions.length > 0" class="space-y-3">
-              <summary class="min-h-11 cursor-pointer py-2 text-base font-semibold">
-                Versions précédentes ({{ olderVersions.length }})
+            <details
+              v-if="olderVersions.length > 0"
+              class="group rounded-xl border border-line bg-canvas"
+            >
+              <summary
+                class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-base font-semibold hover:bg-primary-soft"
+              >
+                <span class="flex items-center gap-2"
+                  ><AppIcon name="history" :size="18" class="text-gold" />Versions précédentes ({{
+                    olderVersions.length
+                  }})</span
+                >
+                <AppIcon name="chevron-down" :size="18" class="group-open:rotate-180" />
               </summary>
-              <div class="mt-3 space-y-4">
+              <div class="space-y-4 px-4 pt-1 pb-4">
                 <PrescriptionView
                   v-for="version in olderVersions"
                   :key="version.id"

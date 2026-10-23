@@ -8,6 +8,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import FollowUpPanel from '@/pages/follow-ups/FollowUpPanel.vue'
+
 import ConsultationEditor from './ConsultationEditor.vue'
 
 const route = useRoute()
@@ -15,5 +17,9 @@ const id = computed(() => String(route.params['id']))
 </script>
 
 <template>
-  <ConsultationEditor :key="id" :consultation-id="id" />
+  <div class="space-y-10">
+    <ConsultationEditor :key="id" :consultation-id="id" />
+    <!-- Contrôle recommandé (S02) : module « agenda » ouvert, lecture clinique et de l'agenda. -->
+    <FollowUpPanel :key="`suivi-${id}`" :consultation-id="id" />
+  </div>
 </template>

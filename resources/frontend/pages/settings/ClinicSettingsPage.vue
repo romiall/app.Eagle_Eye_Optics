@@ -11,7 +11,6 @@
  * pièces suivantes.
  */
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import {
@@ -25,8 +24,11 @@ import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
 import TextAreaField from '@/components/form/TextAreaField.vue'
 import TextField from '@/components/form/TextField.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import SectionCard from '@/components/layout/SectionCard.vue'
 import PasswordConfirmDialog from '@/components/session/PasswordConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import type { ClinicSettings } from '@/domain/contracts/generated'
 import { readDocumentSettings } from '@/documents/data/clinic'
 import { useServerRead } from '@/pages/today/useServerRead'
@@ -191,15 +193,14 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-cabinet" class="max-w-2xl space-y-6">
-    <div class="space-y-1">
-      <h1 id="titre-cabinet" class="text-2xl font-semibold tracking-tight">Cabinet et documents</h1>
-      <p class="text-muted">
-        <RouterLink :to="{ name: 'parametres' }" class="text-primary underline underline-offset-4"
-          >Paramètres</RouterLink
-        >
-      </p>
-    </div>
+  <section aria-labelledby="titre-cabinet" class="page-stack max-w-3xl">
+    <PageHeader
+      title-id="titre-cabinet"
+      title="Cabinet et documents"
+      icon="building"
+      subtitle="Identité du cabinet imprimée sur les reçus, factures et ordonnances, saisie par la gérante."
+      :back="{ to: { name: 'parametres' }, label: 'Paramètres' }"
+    />
 
     <ReadNotice
       v-if="
@@ -229,18 +230,27 @@ async function submit(): Promise<void> {
         </template>
       </StateMessage>
 
-      <dl class="grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
-        <dt class="font-medium">Fuseau horaire</dt>
-        <dd>{{ read.data.value.timezone }}</dd>
-        <dt class="font-medium">Monnaie</dt>
-        <dd>{{ read.data.value.currency }}</dd>
-      </dl>
-      <p class="text-sm text-muted">
-        Le fuseau et la monnaie ne se modifient pas : les dates et montants déjà enregistrés en
-        dépendent.
-      </p>
+      <SectionCard flat>
+        <dl class="detail-list">
+          <div>
+            <dt>Fuseau horaire</dt>
+            <dd class="font-medium">{{ read.data.value.timezone }}</dd>
+          </div>
+          <div>
+            <dt>Monnaie</dt>
+            <dd class="font-medium">{{ read.data.value.currency }}</dd>
+          </div>
+        </dl>
+        <p class="mt-4 flex items-start gap-2 text-sm text-muted">
+          <AppIcon name="lock" :size="16" class="mt-0.5 text-gold" />
+          <span>
+            Le fuseau et la monnaie ne se modifient pas : les dates et montants déjà enregistrés en
+            dépendent.
+          </span>
+        </p>
+      </SectionCard>
 
-      <form class="space-y-5" novalidate @submit.prevent="submit">
+      <form class="space-y-6" novalidate @submit.prevent="submit">
         <ErrorSummary :errors="summary" />
         <StateMessage
           v-if="writer.message.value && Object.keys(writer.fieldErrors.value).length === 0"
@@ -258,97 +268,117 @@ async function submit(): Promise<void> {
           garde l’identité de son émission.
         </StateMessage>
 
-        <TextField
-          v-model="name"
-          label="Nom du cabinet"
-          :control-id="IDS.name"
-          :maxlength="180"
-          :error="errors[IDS.name] ?? null"
-          required
-          autocomplete="organization"
-        />
-        <TextAreaField
-          v-model="address"
-          label="Adresse"
-          :control-id="IDS.address"
-          :rows="3"
-          :maxlength="2000"
-          :error="errors[IDS.address] ?? null"
-          autocomplete="street-address"
-        />
-        <TextField
-          v-model="phone"
-          label="Téléphone"
-          type="tel"
-          :control-id="IDS.phone"
-          :maxlength="32"
-          :error="errors[IDS.phone] ?? null"
-          autocomplete="tel"
-        />
-        <TextField
-          v-model="email"
-          label="Adresse électronique"
-          type="email"
-          :control-id="IDS.email"
-          :maxlength="254"
-          :error="errors[IDS.email] ?? null"
-          autocomplete="email"
-        />
-        <TextField
-          v-model="taxIdentifier"
-          label="Identifiant fiscal"
-          hint="Tel qu’il doit figurer sur les factures (à fournir par la cliente)."
-          :control-id="IDS.tax"
-          :maxlength="100"
-          :error="errors[IDS.tax] ?? null"
-          autocomplete="off"
-        />
-        <TextAreaField
-          v-model="mentions"
-          label="Mentions professionnelles"
-          hint="Mentions légales ou professionnelles imprimées sur les documents, telles que validées par la cliente."
-          :control-id="IDS.mentions"
-          :rows="4"
-          :maxlength="4000"
-          :error="errors[IDS.mentions] ?? null"
-        />
+        <SectionCard title="Identité du cabinet" title-id="titre-cabinet-identite" icon="id-card">
+          <div class="form-grid">
+            <TextField
+              v-model="name"
+              class="col-span-full"
+              label="Nom du cabinet"
+              :control-id="IDS.name"
+              :maxlength="180"
+              :error="errors[IDS.name] ?? null"
+              required
+              autocomplete="organization"
+            />
+            <TextAreaField
+              v-model="address"
+              class="col-span-full"
+              label="Adresse"
+              :control-id="IDS.address"
+              :rows="3"
+              :maxlength="2000"
+              :error="errors[IDS.address] ?? null"
+              autocomplete="street-address"
+            />
+            <TextField
+              v-model="phone"
+              label="Téléphone"
+              type="tel"
+              :control-id="IDS.phone"
+              :maxlength="32"
+              :error="errors[IDS.phone] ?? null"
+              autocomplete="tel"
+            />
+            <TextField
+              v-model="email"
+              label="Adresse électronique"
+              type="email"
+              :control-id="IDS.email"
+              :maxlength="254"
+              :error="errors[IDS.email] ?? null"
+              autocomplete="email"
+            />
+            <TextField
+              v-model="taxIdentifier"
+              class="col-span-full"
+              label="Identifiant fiscal"
+              hint="Tel qu’il doit figurer sur les factures (à fournir par la cliente)."
+              :control-id="IDS.tax"
+              :maxlength="100"
+              :error="errors[IDS.tax] ?? null"
+              autocomplete="off"
+            />
+            <TextAreaField
+              v-model="mentions"
+              class="col-span-full"
+              label="Mentions professionnelles"
+              hint="Mentions légales ou professionnelles imprimées sur les documents, telles que validées par la cliente."
+              :control-id="IDS.mentions"
+              :rows="4"
+              :maxlength="4000"
+              :error="errors[IDS.mentions] ?? null"
+            />
+          </div>
+        </SectionCard>
 
-        <fieldset class="space-y-4 rounded-lg border-2 border-line p-3">
-          <legend class="px-1 text-base font-semibold">Documents</legend>
-          <TextAreaField
-            v-model="headerLines"
-            label="Lignes d’en-tête"
-            :hint="`Une ligne par information, ${LINES_MAX} lignes au plus, sous les coordonnées du cabinet.`"
-            :control-id="IDS.header"
-            :rows="3"
-            :error="errors[IDS.header] ?? null"
-          />
-          <TextAreaField
-            v-model="footerLines"
-            label="Lignes de pied de page"
-            :hint="`Une ligne par information, ${LINES_MAX} lignes au plus.`"
-            :control-id="IDS.footer"
-            :rows="3"
-            :error="errors[IDS.footer] ?? null"
-          />
-          <TextAreaField
-            v-model="paymentTerms"
-            label="Conditions de règlement des factures"
-            hint="Texte validé par la cliente ; laissé vide, rien n’est imprimé."
-            :control-id="IDS.terms"
-            :rows="3"
-            :maxlength="TERMS_LENGTH"
-            :error="errors[IDS.terms] ?? null"
-          />
-        </fieldset>
+        <SectionCard>
+          <fieldset class="m-0 min-w-0 space-y-5 border-0 p-0">
+            <legend class="flex items-center gap-3 p-0 text-lg font-semibold text-ink">
+              <span
+                aria-hidden="true"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold-soft text-gold-ink"
+              >
+                <AppIcon name="file" :size="18" />
+              </span>
+              Documents
+            </legend>
+            <TextAreaField
+              v-model="headerLines"
+              label="Lignes d’en-tête"
+              :hint="`Une ligne par information, ${LINES_MAX} lignes au plus, sous les coordonnées du cabinet.`"
+              :control-id="IDS.header"
+              :rows="3"
+              :error="errors[IDS.header] ?? null"
+            />
+            <TextAreaField
+              v-model="footerLines"
+              label="Lignes de pied de page"
+              :hint="`Une ligne par information, ${LINES_MAX} lignes au plus.`"
+              :control-id="IDS.footer"
+              :rows="3"
+              :error="errors[IDS.footer] ?? null"
+            />
+            <TextAreaField
+              v-model="paymentTerms"
+              label="Conditions de règlement des factures"
+              hint="Texte validé par la cliente ; laissé vide, rien n’est imprimé."
+              :control-id="IDS.terms"
+              :rows="3"
+              :maxlength="TERMS_LENGTH"
+              :error="errors[IDS.terms] ?? null"
+            />
+          </fieldset>
+        </SectionCard>
 
-        <AppButton
-          type="submit"
-          variant="primary"
-          :pending="writer.state.value === 'saving'"
-          pending-label="Enregistrement en cours…"
-          >Enregistrer les paramètres</AppButton
-        >
+        <div class="form-actions">
+          <AppButton
+            type="submit"
+            variant="primary"
+            :pending="writer.state.value === 'saving'"
+            pending-label="Enregistrement en cours…"
+            >Enregistrer les paramètres</AppButton
+          >
+        </div>
       </form>
 
       <FreshnessNote

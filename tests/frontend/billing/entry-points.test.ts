@@ -55,11 +55,19 @@ describe('routes et navigation des ventes', () => {
         ['invoice.read', 'payment.collect', 'cash.own_session', 'exam_fee.collect'],
       ],
       caisse: ['sales', ['cash.own_session']],
+      // Catégories de dépenses de la caisse (L1D05) : gérante.
+      'categories-depenses': ['sales', ['cash.manage']],
       'caisse-du-jour': ['sales', ['finance.global.read', 'cash.own_session']],
       factures: ['sales', ['invoice.read']],
       'facture-nouvelle': ['sales', ['invoice.create', 'exam_fee.collect']],
       facture: ['sales', ['invoice.read']],
+      // Devis (L1D07) : lecture invoice.read, établissement invoice.create.
+      devis: ['sales', ['invoice.read']],
+      'devis-nouveau': ['sales', ['invoice.create']],
+      'devis-detail': ['sales', ['invoice.read']],
       catalogue: ['sales', ['catalog.manage']],
+      // Import contrôlé du catalogue (X01) : catalog.manage.
+      'import-catalogue': ['sales', ['catalog.manage']],
       taxes: ['sales', ['catalog.manage']],
       stock: ['stock', ['stock.read']],
     })
@@ -273,7 +281,8 @@ describe('règle fiscale : réauthentification puis reprise sans doublon', () =>
     await click(buttonByName(root, 'Enregistrer la règle'))
 
     expect(textOf(root)).toContain('Confirmer votre mot de passe')
-    await typeInto(root, 'confirmation-mot-de-passe', 'mot-de-passe-fictif')
+    const confirmationId = root.querySelector('[id^="confirmation-mot-de-passe"]')?.id ?? ''
+    await typeInto(root, confirmationId, 'mot-de-passe-fictif')
     await click(dialogButton(root, 'Confirmer et reprendre'))
     await vi.waitFor(() => expect(callsTo(api, 'POST', /^\/api\/v1\/tax-rules$/)).toHaveLength(2))
     await vi.waitFor(() => expect(textOf(root)).toContain('enregistrée sur le serveur'))

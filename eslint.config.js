@@ -131,12 +131,15 @@ export default defineConfig([
                 '@/offline/**',
                 '!@/offline/projections',
                 '!@/offline/projections/**',
+                // Façade du coffre (vault.md D26) : seul autre point d'entrée admis, sans table ni CryptoKey.
+                '!@/offline/api',
                 '**/offline/**',
                 '!**/offline/projections',
                 '!**/offline/projections/**',
+                '!**/offline/api',
               ],
               message:
-                'Les services d’application ne lisent que les projections du moteur local (@/offline/projections/…).',
+                'Les services d’application ne lisent que les projections du moteur local (@/offline/projections/…) et sa façade (@/offline/api).',
             },
           ],
         },

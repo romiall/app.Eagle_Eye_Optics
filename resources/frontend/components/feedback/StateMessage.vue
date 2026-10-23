@@ -25,29 +25,47 @@ const ICONS: Record<ScreenState, string> = {
 const role = computed(() =>
   props.state === 'error' || props.state === 'conflict' ? 'alert' : 'status',
 )
+/** Fond, bordure et filet gauche de l'état (filet doré pour un état neutre). */
 const TONES: Record<ScreenState, string> = {
-  loading: 'border-line bg-surface',
-  empty: 'border-line bg-surface',
+  loading: 'border-line border-l-gold bg-surface',
+  empty: 'border-line border-l-gold bg-surface',
   success: 'border-accent bg-accent-soft',
   error: 'border-danger bg-danger-soft',
   conflict: 'border-warning bg-warning-soft',
   forbidden: 'border-danger bg-danger-soft',
   offline: 'border-warning bg-warning-soft',
 }
+/** Pastille du symbole de l'état. */
+const BADGES: Record<ScreenState, string> = {
+  loading: 'border-gold bg-gold-soft text-gold-ink',
+  empty: 'border-gold bg-gold-soft text-gold-ink',
+  success: 'border-accent bg-surface text-accent',
+  error: 'border-danger bg-surface text-danger',
+  conflict: 'border-warning bg-surface text-warning',
+  forbidden: 'border-danger bg-surface text-danger',
+  offline: 'border-warning bg-surface text-warning',
+}
 const tone = computed(() => TONES[props.state])
+const badge = computed(() => BADGES[props.state])
 </script>
 
 <template>
   <div
     :role="role"
     :aria-busy="props.state === 'loading' ? 'true' : undefined"
-    :class="['rounded-lg border-2 p-4 text-ink', tone]"
+    :class="['rounded-xl border border-l-4 p-4 text-ink shadow-card sm:p-5', tone]"
   >
-    <p class="flex items-center gap-2 font-semibold">
-      <span aria-hidden="true">{{ ICONS[props.state] }}</span
+    <p class="flex items-center gap-3 font-semibold">
+      <span
+        aria-hidden="true"
+        :class="[
+          'flex size-7 shrink-0 items-center justify-center rounded-full border text-sm leading-none',
+          badge,
+        ]"
+        >{{ ICONS[props.state] }}</span
       >{{ props.title }}
     </p>
-    <div class="mt-1 text-base text-ink"><slot /></div>
-    <div v-if="$slots.action" class="mt-3"><slot name="action" /></div>
+    <div class="mt-2 text-base text-ink sm:pl-10"><slot /></div>
+    <div v-if="$slots.action" class="mt-3 sm:pl-10"><slot name="action" /></div>
   </div>
 </template>

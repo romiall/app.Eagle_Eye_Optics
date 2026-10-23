@@ -26,6 +26,7 @@ import ConfirmDialog from '@/components/feedback/ConfirmDialog.vue'
 import ErrorSummary from '@/components/feedback/ErrorSummary.vue'
 import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import DuplicateSuggestions from '@/components/patients/DuplicateSuggestions.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
@@ -212,21 +213,18 @@ async function retry(): Promise<void> {
 </script>
 
 <template>
-  <section aria-labelledby="titre-nouveau-patient" class="max-w-3xl space-y-6">
-    <div class="space-y-1">
-      <h1 id="titre-nouveau-patient" class="text-2xl font-semibold tracking-tight">
-        Nouveau patient
-      </h1>
-      <p class="max-w-prose text-muted">
+  <section aria-labelledby="titre-nouveau-patient" class="page-stack max-w-4xl">
+    <PageHeader title-id="titre-nouveau-patient" title="Nouveau patient" icon="user-plus">
+      <p class="max-w-prose text-base text-muted">
         Ne créez une fiche que si le patient n’existe pas déjà<template v-if="canSearch">
           (<RouterLink
             to="/patients"
-            class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+            class="text-link inline-flex min-h-11 items-center font-semibold"
             >chercher dans la liste</RouterLink
           >)</template
         >. Le numéro de dossier est attribué par le serveur à l’enregistrement.
       </p>
-    </div>
+    </PageHeader>
 
     <ErrorSummary ref="summaryBox" :errors="summary" />
 
@@ -242,7 +240,7 @@ async function retry(): Promise<void> {
     <form class="space-y-6" novalidate @submit.prevent="submit">
       <PatientFormFields ref="fields" v-model="form" :errors="errors" :disabled="busy" />
 
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="form-actions">
         <AppButton
           type="submit"
           :pending="busy"

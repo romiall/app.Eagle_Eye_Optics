@@ -143,7 +143,7 @@ describe('création d’un compte', () => {
     // 423 : la boîte de confirmation du mot de passe de la gérante s'ouvre, la saisie reste derrière.
     expect(textOf(root)).toContain('Confirmer votre mot de passe')
     const confirmation = root.ownerDocument.querySelector<HTMLInputElement>(
-      '#confirmation-mot-de-passe',
+      '[id^="confirmation-mot-de-passe"]',
     )
     if (confirmation === null) throw new Error('Champ de confirmation introuvable.')
     confirmation.value = 'MotDePasseGerante1'

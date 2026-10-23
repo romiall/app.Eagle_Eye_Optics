@@ -1,6 +1,7 @@
 import { session } from '@/app/session'
 import { clinicFromIdentity, clinicFromSummary, type DocumentClinic } from '@/documents/data/clinic'
 
+import { brandLogo } from './brandLogo'
 import { getClinicDocumentIdentity } from './staff'
 
 /**
@@ -17,9 +18,11 @@ export async function currentDocumentClinic(): Promise<DocumentClinic> {
   if (account === null) {
     throw new RangeError('Session non vérifiée : reconnectez-vous pour imprimer.')
   }
+  // Logo de la marque dans l'en-tête (fichier de l'application, sans logo s'il ne se lit pas).
+  const logo = await brandLogo()
   try {
-    return clinicFromIdentity(await getClinicDocumentIdentity())
+    return clinicFromIdentity(await getClinicDocumentIdentity(), logo)
   } catch {
-    return clinicFromSummary(account.clinic)
+    return { ...clinicFromSummary(account.clinic), logo }
   }
 }

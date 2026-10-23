@@ -59,7 +59,7 @@ function downloadPdf(): void {
     <ul
       v-if="props.document.warnings.length > 0"
       aria-label="Points à vérifier avant d’imprimer"
-      class="space-y-1 rounded-lg border-2 border-warning bg-warning-soft p-3 text-ink"
+      class="space-y-1 rounded-xl border border-warning bg-warning-soft p-3 text-ink"
     >
       <li v-for="warning in props.document.warnings" :key="warning" class="flex gap-2">
         <span aria-hidden="true">⚠</span><span>{{ warning }}</span>
@@ -73,7 +73,7 @@ function downloadPdf(): void {
     </p>
 
     <figure v-for="page in pages" :key="page.number" class="space-y-2">
-      <div class="overflow-x-auto rounded-lg border-2 border-line bg-surface p-2">
+      <div class="overflow-x-auto rounded-xl border border-line bg-surface shadow-card p-2">
         <svg
           :viewBox="`0 0 ${page.widthMm} ${page.heightMm}`"
           role="img"
@@ -128,7 +128,7 @@ function downloadPdf(): void {
       <figcaption class="text-sm text-muted">
         Page {{ page.number }} sur {{ pages.length }}
       </figcaption>
-      <details class="rounded-lg border-2 border-line bg-surface p-3">
+      <details class="rounded-xl border border-line bg-surface shadow-card p-3">
         <summary class="flex min-h-11 cursor-pointer items-center font-semibold text-primary">
           Lire le contenu de la page {{ page.number }} en texte
         </summary>

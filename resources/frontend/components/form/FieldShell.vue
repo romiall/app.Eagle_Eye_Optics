@@ -38,7 +38,8 @@ const describedBy = computed(
         props.hideLabel ? 'sr-only' : props.hideLabelWide ? 'sm:sr-only' : '',
       ]"
     >
-      {{ props.label }}<span v-if="props.required" class="text-danger"> (obligatoire)</span>
+      {{ props.label
+      }}<span v-if="props.required" class="font-normal text-danger"> (obligatoire)</span>
     </label>
     <p v-if="props.hint" :id="hintId" class="text-sm text-muted">{{ props.hint }}</p>
     <slot :id="id" :described-by="describedBy" :invalid="Boolean(props.error)" />

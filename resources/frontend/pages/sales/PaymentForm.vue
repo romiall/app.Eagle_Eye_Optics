@@ -89,12 +89,16 @@ const serverDue = ref<number | null>(null)
 let effectiveAt: string | null = null
 /** Identifiant du paiement de la tentative envoyée (pour la constater à la relecture). */
 const sentPaymentId = ref<string | null>(null)
+/** Instant du commit sur CE poste préparé (O04, O05) : l'encaissement partira au serveur ; jamais « sur le serveur ». */
+const savedLocallyAt = ref<string | null>(null)
 
 const method = computed(() => (isPaymentMethod(methodValue.value) ? methodValue.value : null))
 const amountDue = computed(() => Math.max(0, props.invoice.balance.balance_due))
 const methodOptions = PAYMENT_METHODS.map((value) => ({ value, label: paymentMethodLabel(value) }))
 const sending = computed(() => mutation.state.value === 'saving')
-const locked = computed(() => sending.value || unconfirmed(mutation.state.value))
+const locked = computed(
+  () => sending.value || unconfirmed(mutation.state.value) || savedLocallyAt.value !== null,
+)
 const failure = computed(() =>
   mutation.state.value === 'conflict' ? null : salesFailureView(mutation.state.value),
 )
@@ -240,6 +244,12 @@ async function afterOutcome(result: MutationOutcome): Promise<void> {
       await summaryBox.value?.focus()
       return
     }
+    case 'saved-local':
+      // Poste préparé : commit local durable, numéro de reçu pris dans la plage du poste ; transmis au serveur à la
+      // synchronisation (O05). Le formulaire reste verrouillé : une nouvelle intention passe par « Nouvel encaissement ».
+      savedLocallyAt.value = result.at
+      sentPaymentId.value = null
+      return
     case 'session-expired':
     case 'reauthentication-required':
       void revalidateSession().catch(() => undefined)
@@ -308,6 +318,7 @@ function reset(): void {
   mutation.reset()
   effectiveAt = null
   sentPaymentId.value = null
+  savedLocallyAt.value = null
   amount.value = null
   methodValue.value = null
   reference.value = ''
@@ -323,7 +334,7 @@ defineExpose({ reset })
   <form
     novalidate
     aria-labelledby="titre-encaisser"
-    class="space-y-4 rounded-lg border-2 border-line bg-surface p-4"
+    class="space-y-4 rounded-xl border border-line bg-surface shadow-card p-4"
     @submit.prevent="submit"
   >
     <h2 id="titre-encaisser" class="text-lg font-semibold">Encaisser</h2>
@@ -353,6 +364,11 @@ defineExpose({ reset })
         </div>
       </template>
     </StateMessage>
+
+    <p v-if="savedLocallyAt" role="status" class="font-medium">
+      <span aria-hidden="true">✓ </span>Encaissement enregistré sur ce poste, en attente de
+      synchronisation avec le serveur.
+    </p>
 
     <div class="space-y-2">
       <MoneyField

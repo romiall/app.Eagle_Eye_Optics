@@ -1,37 +1,56 @@
 /*
- * Palette du fichier 04 (proposition de design, aucune charte fournie) : fond #F6F8FB, surface blanche,
- * texte #172B3A, action principale #155E75, accent #167D65. Les autres teintes en dérivent pour les
- * états. Les associations employées par la coquille et les composants sont listées et vérifiées
- * dans tests/frontend/shell/palette.test.ts (texte ≥ 4,5:1, bordures de champ et focus ≥ 3:1, états
- * désactivés compris). Un état n'est jamais signalé par la seule couleur : chaque état a aussi un
- * libellé ou un symbole.
+ * Charte de la marque Eagle’s Eye Optics (logo fourni par le demandeur le 2026-10-23, il remplace la
+ * proposition de palette du fichier 04 faite « sans charte fournie ») : encre du logo #231F20, or du
+ * logo #8D7827, blanc. Fond très légèrement chaud, surfaces blanches, action principale à l'encre,
+ * l'or en ACCENT seulement (filets, repère de l'élément actif, badges, titres de marque). L'or du logo
+ * (≈ 4,3:1 sur blanc) ne sert jamais pour du petit texte : le texte doré prend `gold-ink`.
+ *
+ * Les associations employées par la coquille et les composants sont listées et vérifiées dans
+ * tests/frontend/shell/palette.test.ts (texte ≥ 4,5:1, bordures de champ, focus et repères ≥ 3:1,
+ * états désactivés compris). Un état n'est jamais signalé par la seule couleur : chaque état a aussi
+ * un libellé ou un symbole.
  *
  * Une teinte ajoutée ici, ou un nouvel usage d'une teinte sur un fond, s'ajoute aux associations du
  * test de contraste.
  */
 @theme {
-  --color-canvas: #f6f8fb;
+  --color-canvas: #f7f5f1;
   --color-surface: #ffffff;
-  --color-ink: #172b3a;
-  --color-muted: #4a5b6a;
-  --color-line: #d5dde5;
-  --color-field: #6b7a88;
-  --color-primary: #155e75;
-  --color-primary-strong: #0f4a5d;
+  /* Encre du logo : texte courant. */
+  --color-ink: #231f20;
+  --color-muted: #5c5650;
+  /* Séparateurs et bordures de carte : décoratifs (une bordure porteuse d'état prend une teinte vérifiée). */
+  --color-line: #e7e2d9;
+  --color-field: #847c71;
+  /* Action principale : encre chaude (boutons pleins, liens, focus). */
+  --color-primary: #2b2520;
+  --color-primary-strong: #120f0d;
   --color-primary-contrast: #ffffff;
-  --color-primary-soft: #e6f1f4;
-  --color-accent: #167d65;
-  --color-accent-soft: #e8f5f1;
+  /* Fond doré très léger : navigation active, survol, option choisie. */
+  --color-primary-soft: #f4efe3;
+  /* Or du logo : filets, repère de l'élément actif, icônes (éléments non textuels). */
+  --color-gold: #8d7827;
+  /* Or foncé : texte doré (titres de marque, badges). */
+  --color-gold-ink: #6c5a16;
+  --color-gold-soft: #f6f0dc;
+  --color-accent: #2f6b4f;
+  --color-accent-soft: #e9f3ed;
   --color-danger: #b42318;
   --color-danger-strong: #912018;
-  --color-danger-soft: #fef3f2;
+  --color-danger-soft: #fdf2f0;
   --color-warning: #8a5a00;
-  --color-warning-soft: #fff6e0;
+  --color-warning-soft: #fdf4dc;
   /* Désactivé : teintes pleines lisibles, jamais une opacité qui rendrait le texte illisible. */
-  --color-disabled: #e4e9ee;
-  --color-disabled-ink: #4a5b6a;
+  --color-disabled: #ebe7e0;
+  --color-disabled-ink: #57514b;
 
   /* Police système : accents français, aucune fonte distante (hors-ligne, fichier 04). */
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+
+  /* Coins arrondis modérés et ombres légères (cartes, menus, dialogues). */
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --shadow-card: 0 1px 2px 0 rgb(35 31 32 / 0.05), 0 2px 8px -2px rgb(35 31 32 / 0.06);
+  --shadow-raised: 0 4px 12px -2px rgb(35 31 32 / 0.1), 0 2px 4px -2px rgb(35 31 32 / 0.06);
 }

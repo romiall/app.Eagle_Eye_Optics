@@ -3,19 +3,25 @@
  * Personnel du cabinet (F05, écran F09) : comptes nominatifs par ordre alphabétique, 50 par page, avec
  * leurs profils et leur état (actif, désactivé). Un compte n'est jamais supprimé : il est désactivé et
  * reste l'auteur de ses actions passées. Gérante seulement (`users.manage`). Une liste qui n'a pas pu être
- * lue est « indisponible », jamais « aucun compte ». Cartes plutôt qu'un tableau large (360 px).
+ * lue est « indisponible », jamais « aucun compte ». Tableau lisible à 360 px : sur téléphone, deux colonnes
+ * (compte avec son identifiant et ses profils, état) ; dès la tablette, identifiant et profils ont chacun la
+ * leur.
  */
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import { clinicTimeZone } from '@/app/clinicTime'
 import { listStaff } from '@/app/services/staff'
+import StaffRoleChips from '@/components/admin/StaffRoleChips.vue'
+import StaffStateChip from '@/components/admin/StaffStateChip.vue'
 import FreshnessNote from '@/components/feedback/FreshnessNote.vue'
 import ReadNotice from '@/components/feedback/ReadNotice.vue'
 import StateMessage from '@/components/feedback/StateMessage.vue'
+import EmptyState from '@/components/layout/EmptyState.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import LinkButton from '@/components/ui/LinkButton.vue'
 import PaginationControls from '@/components/ui/PaginationControls.vue'
-import { rolesLabel } from '@/domain/access/staff'
 import type { StaffMemberPage } from '@/domain/contracts/generated'
 import { useServerRead } from '@/pages/today/useServerRead'
 
@@ -38,20 +44,21 @@ function goToPage(next: number): void {
 </script>
 
 <template>
-  <section aria-labelledby="titre-personnel" class="max-w-3xl space-y-6">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="space-y-1">
-        <h1 id="titre-personnel" class="text-2xl font-semibold tracking-tight">Personnel</h1>
-        <p class="text-muted">
-          <RouterLink :to="{ name: 'parametres' }" class="text-primary underline underline-offset-4"
-            >Paramètres</RouterLink
-          >
-        </p>
-      </div>
-      <LinkButton :to="{ name: 'parametres-personnel-nouveau' }" variant="primary"
-        >Créer un compte</LinkButton
-      >
-    </div>
+  <section aria-labelledby="titre-personnel" class="page-stack max-w-5xl">
+    <PageHeader
+      title-id="titre-personnel"
+      title="Personnel"
+      icon="users"
+      subtitle="Comptes nominatifs du cabinet. Un compte n’est jamais supprimé : il est désactivé et reste l’auteur de ses actions passées."
+      :back="{ to: { name: 'parametres' }, label: 'Paramètres' }"
+    >
+      <template #actions>
+        <LinkButton :to="{ name: 'parametres-personnel-nouveau' }" variant="primary">
+          <AppIcon name="user-plus" :size="20" />
+          Créer un compte
+        </LinkButton>
+      </template>
+    </PageHeader>
 
     <StateMessage v-if="flash" state="success" :title="flash" />
 
@@ -63,34 +70,52 @@ function goToPage(next: number): void {
       @retry="read.reload()"
     />
 
-    <StateMessage v-else-if="read.state.value === 'empty'" state="empty" title="Aucun compte">
-      Le serveur n’a aucun compte pour ce cabinet.
-    </StateMessage>
+    <div v-else-if="read.state.value === 'empty'" role="status">
+      <EmptyState title="Aucun compte" icon="users">
+        Le serveur n’a aucun compte pour ce cabinet.
+      </EmptyState>
+    </div>
 
     <template v-else-if="result !== null">
-      <ul class="space-y-3">
-        <li
-          v-for="member in result.data"
-          :key="member.id"
-          class="space-y-1 rounded-lg border-2 border-line bg-surface p-3"
-        >
-          <p class="flex flex-wrap items-baseline justify-between gap-x-3">
-            <RouterLink
-              :to="{ name: 'parametres-compte', params: { id: member.id } }"
-              class="inline-flex min-h-11 items-center font-semibold break-words text-primary underline underline-offset-4"
-              >{{ member.display_name }}</RouterLink
-            >
-            <span class="text-base">
-              <template v-if="member.active"><span aria-hidden="true">● </span>Actif</template>
-              <template v-else><span aria-hidden="true">○ </span>Désactivé</template>
-            </span>
-          </p>
-          <p class="text-sm break-words text-muted">Identifiant : {{ member.login }}</p>
-          <p class="text-base">
-            {{ rolesLabel(member.roles) }}
-          </p>
-        </li>
-      </ul>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <caption class="sr-only">
+            Comptes du personnel, par ordre alphabétique
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Compte</th>
+              <th scope="col" class="hidden sm:table-cell">Identifiant</th>
+              <th scope="col" class="hidden sm:table-cell">Profils</th>
+              <th scope="col">État</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="member in result.data" :key="member.id">
+              <th scope="row">
+                <RouterLink
+                  :to="{ name: 'parametres-compte', params: { id: member.id } }"
+                  class="text-link inline-flex min-h-11 items-center font-semibold break-words"
+                  >{{ member.display_name }}</RouterLink
+                >
+                <span class="block text-sm font-normal break-all text-muted sm:hidden"
+                  >Identifiant : {{ member.login }}</span
+                >
+                <div class="mt-2 font-normal sm:hidden">
+                  <StaffRoleChips :roles="member.roles" />
+                </div>
+              </th>
+              <td class="hidden break-all text-muted sm:table-cell">{{ member.login }}</td>
+              <td class="hidden sm:table-cell">
+                <StaffRoleChips :roles="member.roles" />
+              </td>
+              <td>
+                <StaffStateChip :active="member.active" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <PaginationControls
         :current-page="result.meta.current_page"
