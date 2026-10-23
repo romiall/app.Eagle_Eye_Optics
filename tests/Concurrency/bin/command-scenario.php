@@ -12,6 +12,7 @@
  *   consume  une commande de test du chemin central (compteur), avec barrière facultative à un point nommé ;
  *   command  une commande du catalogue (charge et version attendue fournies : consultation clinique) ;
  *   pull     une page du journal des changements ;
+ *   sync-push un lot signé d'un poste (inbox et application ordonnée, O05) ;
  *   deadlock deux lignes verrouillées en sens opposé dans TransactionRunner (défaut d'ordre simulé).
  *
  * Barrière : `barrier_at` (point du chemin) et `barrier` (nom d'un verrou nommé MySQL). Au point demandé,
@@ -31,6 +32,7 @@ use App\Application\TransactionRunner;
 use App\Domain\Shared\BusinessError;
 use App\Domain\Shared\CommandContext;
 use App\Models\User;
+use App\Offline\PushCommands;
 use App\Support\Testing\IsolatedDatabaseGuard;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +136,16 @@ try {
             );
 
             return ['replayed' => $result->replayed, 'result' => $result->result];
+        })(),
+        'sync-push' => (static function () use ($app, $arguments, $barrierProbe): array {
+            // Envoi d'un lot signé par un poste (O05) : inbox puis application ordonnée par le chemin central.
+            $app->instance(CommandBusProbe::class, $barrierProbe);
+
+            /** @var User $actor */
+            $actor = User::query()->findOrFail((string) $arguments['actor_id']);
+            $response = $app->make(PushCommands::class)->push($actor, (string) $arguments['body'], (string) ($arguments['correlation_id'] ?? 'corr-child-sync'));
+
+            return ['statuses' => array_column($response['results'], 'status'), 'prefix' => $response['finalized_prefix']];
         })(),
         'pull' => (static function () use ($app, $arguments): array {
             $page = $app->make(ChangeFeed::class)->page((string) $arguments['clinic_id'], (int) $arguments['after']);
