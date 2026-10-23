@@ -1,12 +1,34 @@
 # Exercice de restauration serveur (X03 ; AT27)
 
-**État : NON EXÉCUTÉ.** Ce document est le modèle de preuve à compléter lors de l'exercice sur l'hébergement cible
+**État : exercice sur l'hébergement NON EXÉCUTÉ** (répétition locale faite le 2026-10-24, voir ci-dessous). Ce document est le modèle de preuve à compléter lors de l'exercice sur l'hébergement cible
 (Hostinger, accès SSH), puis chaque mois. Aucune valeur ci-dessous n'est constatée tant qu'une ligne `restore_tests`
 de statut `PASSED` ne la justifie pas. Procédure : `docs/runbooks/server-restore.md`.
 
 Le code est prêt : sauvegarde chiffrée et journal `backup_runs` (`tools/deploy/backup.sh`, `eeo:backup:record`),
 restauration sur base jetable et contrôles (`tools/deploy/restore-check.sh`, `eeo:restore:verify`), tests
 `tests/Feature/Operations/RestoreVerifierTest.php` (base MySQL isolée de test, données fictives).
+
+## Répétition locale du 2026-10-24 (poste de développement, données fictives)
+
+Ce n'est PAS l'exercice sur l'hébergement : il reste à faire sur Hostinger (tableau « Exercice » ci-dessous, à compléter).
+Elle a validé la chaîne de scripts sur l'archive de livraison réellement construite (`tools/deploy/build-release.sh`,
+commit `43f1057`), MySQL 8.4.9, Git Bash sous Windows (`openssl` natif : chemins relatifs dans le `.env` de la répétition).
+
+| Élément | Constaté |
+| --- | --- |
+| Base source | base de test e2e : 3 fiches patient, 4 factures, 4 paiements, 4 reçus fictifs |
+| Sauvegarde | `backup.sh` avec clé (`openssl rand -base64 48`) : `database.sql.gz.enc`, `storage-app.tar.gz.enc`, `env.backup.enc`, `SHA256SUMS` ; `backup_runs` : `SERVER_DATABASE` et `SERVER_FILES` `SUCCEEDED` |
+| Restauration | `restore-check.sh` dans une base jetable `eeo_rehearsal_restore` : empreintes OK, schéma équivalent à la baseline (117 tables, 464 clés étrangères, 484 CHECK, 10 vues, 88 guards) |
+| `eeo:restore:verify` | 7 contrôles `PASS` : catalogue (117 tables), diagnostics d'intégrité, séquences, pièces numérotées, 48 empreintes d'audit, fichiers privés, postes à synchroniser |
+| Dernier reçu | `TEST-REC-2026-000004` restauré = dernier reçu de la base vivante ; 0 reçu et 0 facture émise absents |
+| Durée | moins d'une minute (volume fictif minime : sans valeur pour le RTO réel) |
+
+Défaut trouvé et corrigé grâce à cette répétition : l'archive retirait `database/schema_catalog.json` et
+`database/05_integrity_checks.sql`, lus à l'exécution par `eeo:restore:verify` et par le dictionnaire des exports.
+`build-release.sh` les conserve désormais et refuse d'emballer une archive qui en manque.
+
+Non couvert par cette répétition : Linux/Hostinger (versions de `mysqldump`, `openssl`, droits de la base), `--record`
+dans `restore_tests`, copie hors serveur.
 
 ## Exercice
 

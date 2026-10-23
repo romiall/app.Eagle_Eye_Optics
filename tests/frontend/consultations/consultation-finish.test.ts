@@ -1,4 +1,4 @@
-import { webcrypto } from 'node:crypto'
+import { createHash, webcrypto } from 'node:crypto'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -35,9 +35,20 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-10-22T09:42:00.000Z'))
   // Empreinte SHA-256 par Web Crypto : l'implémentation de Node quand l'environnement de test n'en fournit pas.
   if (globalThis.crypto?.subtle === undefined) vi.stubGlobal('crypto', webcrypto)
+  // Web Crypto calcule le SHA-256 hors du fil principal : sur un poste chargé (CI Linux, Node 22, 130 fichiers de
+  // test en parallèle) la résolution arrive après les tours de promesses d'un clic. Même algorithme, mais résolu
+  // dans la file des promesses : l'envoi observé ne dépend plus de l'ordonnancement du système.
+  vi.spyOn(globalThis.crypto.subtle, 'digest').mockImplementation(async (_algorithm, data) => {
+    const bytes = ArrayBuffer.isView(data)
+      ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+      : new Uint8Array(data)
+    const hash = createHash('sha256').update(bytes).digest()
+    return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength)
+  })
 })
 
 afterEach(() => {
+  vi.restoreAllMocks()
   vi.useRealTimers()
   resetEverything()
 })
