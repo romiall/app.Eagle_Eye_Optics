@@ -11,6 +11,19 @@ import { demoAccount } from './support/accounts'
 async function signIn(page: Page, role: string): Promise<void> {
   const account = demoAccount(role)
   await page.goto('/connexion')
+  // Diagnostic lisible dans les annotations de la CI si le formulaire n'apparaît pas (adresse et texte de la page).
+  await page
+    .getByLabel('Identifiant')
+    .waitFor({ timeout: 20_000 })
+    .catch(async (error: unknown) => {
+      const text = await page
+        .locator('body')
+        .innerText({ timeout: 2_000 })
+        .catch(() => 'illisible')
+      throw new Error(
+        `Formulaire de connexion absent : ${page.url()} — ${text.replace(/\s+/g, ' ').slice(0, 500)} — ${String(error).slice(0, 200)}`,
+      )
+    })
   await page.getByLabel('Identifiant').fill(account.login)
   await page.getByLabel('Mot de passe').fill(account.password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
