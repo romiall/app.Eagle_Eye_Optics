@@ -14,7 +14,9 @@ export default defineConfig({
   workers: 1,
   forbidOnly: Boolean(process.env['CI']),
   retries: process.env['CI'] ? 1 : 0,
-  reporter: process.env['CI'] ? [['github'], ['list']] : [['list']],
+  reporter: process.env['CI']
+    ? [['github'], ['list'], ['./tests/e2e/support/ci-diagnostics.ts']]
+    : [['list']],
   outputDir: 'test-results',
   // Marges pour un poste Windows partagé et chargé, où une requête Laravel prend parfois plusieurs
   // secondes (serveur intégré : une requête à la fois, précache du service worker compris). Ce qui
@@ -45,7 +47,8 @@ export default defineConfig({
   // comme « artisan serve » (répertoire public/, routeur de Laravel), avec OPcache pour ce seul
   // processus (tests/e2e/support/php.ts).
   webServer: {
-    command: `node tests/e2e/prepare-env.mjs && cd public && php ${phpServerOptions().join(' ')} -S 127.0.0.1:${MAIN_PORT} ../${LARAVEL_ROUTER}`,
+    // La sortie du serveur est gardée dans storage/logs (ignoré par git) : la CI en publie la fin quand un test échoue.
+    command: `node tests/e2e/prepare-env.mjs && cd public && php ${phpServerOptions().join(' ')} -S 127.0.0.1:${MAIN_PORT} ../${LARAVEL_ROUTER} >> ../storage/logs/e2e-php-server.log 2>&1`,
     url: `${BASE_URL}/up`,
     reuseExistingServer: !process.env['CI'],
     // La préparation remet à zéro et migre toute la base (117 tables, 464 FK) : environ 35 s sur un
