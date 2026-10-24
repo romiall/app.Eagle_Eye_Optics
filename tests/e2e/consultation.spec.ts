@@ -25,6 +25,8 @@ async function signIn(page: Page, role: string): Promise<void> {
 
 /** Change de compte sans autre état partagé : cookies effacés, puis connexion du profil demandé. */
 async function switchTo(page: Page, context: BrowserContext, role: string): Promise<void> {
+  // Quitter la page d'abord : une requête encore en vol ne doit pas recréer le cookie de session après son effacement.
+  await page.goto('about:blank')
   await context.clearCookies()
   await page.goto('/connexion')
   await signIn(page, role)

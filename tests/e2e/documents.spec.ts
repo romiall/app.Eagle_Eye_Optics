@@ -134,6 +134,8 @@ test.describe('aperçu et PDF des documents (D01, D02)', () => {
       ).toBe(false)
     }
 
+    // Quitter la page d'abord : une requête encore en vol ne doit pas recréer le cookie de session après son effacement.
+    await page.goto('about:blank')
     await context.clearCookies()
     await signIn(page, 'CLINICIAN')
     await page.goto('/documents/apercu')
