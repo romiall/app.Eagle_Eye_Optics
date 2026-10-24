@@ -207,32 +207,41 @@
    "notes": "Livré au commit bf4e165, première revue (6 majeurs) traitée au commit 36e380b (CI run 26), seconde revue pass=false (14 majeurs, 26 mineurs) : majeurs de base traités au commit 8892e22 avec test (session expirée, compte épinglé, solde, lectures vides, accessibilité), reste reporté avec motif et tâche destinataire (tableau de local-reads.md : réauthentification B06, contrôle serveur de l'acteur, CreatePrescription C04, etc.). Vitest 853 (29 fichiers), 14 mutations ciblées tuées. CI GitHub verte : run 39702365074 sur 85717e4 (PHP, Frontend, Playwright). Aucune écriture Dexie depuis un écran ; le moteur du poste (O04) et le hors-ligne restent à faire."
   },
   "O01": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/vault.md"
+    "docs/implementation/vault.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/frontend/offline/vault.test.ts"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Coffre IndexedDB chiffré (AES-GCM, PBKDF2, compartiments), VaultDocumentStore ; module offline fermé ; écran de verrouillage non fait."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Coffre IndexedDB chiffré (AES-GCM, PBKDF2, compartiments), VaultDocumentStore ; module offline fermé ; écran de verrouillage non fait. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "O02": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/vault.md"
+    "docs/implementation/vault.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Offline/DevicesTest.php"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Enrôlement des postes, grants signés ES256/JCS (firebase/php-jwt), révocation, rotation de clé ; vérification locale des grants."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Enrôlement des postes, grants signés ES256/JCS (firebase/php-jwt), révocation, rotation de clé ; vérification locale des grants. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "O03": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/vault.md"
+    "docs/implementation/vault.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Offline/PrepareResourcesTest.php",
+    "tests/Feature/Offline/ReleaseResourcesTest.php"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : PrepareDevice/ReleaseDevice (plages sans chevauchement, propriété d'émission, quotas), ressources du poste."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : PrepareDevice/ReleaseDevice (plages sans chevauchement, propriété d'émission, quotas), ressources du poste. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "O04": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/vault.md"
+    "docs/implementation/vault.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/frontend/offline/local-command-bus.test.ts"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : LocalCommandBus (commit local atomique, CAS, idempotence), journal commun append-only, moteur local branché derrière le module offline fermé."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : LocalCommandBus (commit local atomique, CAS, idempotence), journal commun append-only, moteur local branché derrière le module offline fermé. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "P01": {
    "status": "IN_REVIEW",
@@ -320,9 +329,10 @@
   "O05": {
    "status": "IN_PROGRESS",
    "evidence": [
-    "docs/implementation/vault.md"
+    "docs/implementation/vault.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785"
    ],
-   "notes": "Codage en cours le 2026-10-23 (push, pull, ACK, conflits durables)."
+   "notes": "Codage en cours le 2026-10-23 (push, pull, ACK, conflits durables). Serveur vérifié (PHPUnit : SyncPushTest, SyncPullTest, SignedCommandsTest, SyncConcurrencyTest) ; le parcours e2e tests/e2e/offline-sync.spec.ts est en test.fixme (coffre non ouvert dans les 20 s) : preuve G1 à produire après la mise en ligne. Module offline fermé en production."
   },
   "D01": {
    "status": "IN_REVIEW",
@@ -349,30 +359,44 @@
    "notes": "Réauthentification (existante, réutilisée) et approbations exactes à usage unique ; contrôle du paiement de l'examen branché (EEO_EXAM_FEE_CONTROL=off par défaut). Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "B07": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/e2e/billing.spec.ts",
+    "tests/Feature/Billing/"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écrans de contre-écriture et d'avoir, PDF de l'avoir, lectures des pièces liées (GET /credit-notes/{id}) ; serveur vérifié au lot 1."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écrans de contre-écriture et d'avoir, PDF de l'avoir, lectures des pièces liées (GET /credit-notes/{id}) ; serveur vérifié au lot 1. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "B08": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/billing.md",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/e2e/billing.spec.ts",
+    "tests/Feature/Billing/"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écran de remboursement, PDF du remboursement (GET /refunds/{id}) ; serveur vérifié au lot 1."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Écran de remboursement, PDF du remboursement (GET /refunds/{id}) ; serveur vérifié au lot 1. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "I01": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Codage en cours le 2026-10-23 (remises sous réserve et quota)."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Billing/DeliveryTest.php",
+    "tests/e2e/deliveries.spec.ts"
+   ],
+   "notes": "Codage en cours le 2026-10-23 (remises sous réserve et quota). Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "I02": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Codage en cours le 2026-10-23 (retours physiques, sorties exceptionnelles)."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Billing/PhysicalReturnTest.php",
+    "tests/e2e/deliveries.spec.ts"
+   ],
+   "notes": "Codage en cours le 2026-10-23 (retours physiques, sorties exceptionnelles). Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "O06": {
    "status": "NOT_STARTED",
@@ -390,16 +414,18 @@
    "notes": ""
   },
   "P03": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "tests/Feature/Patients/VisitTest.php",
     "resources/frontend/pages/today/",
     "tests/frontend/visits/",
     "tests/e2e/today.spec.ts",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39762595087",
-    "docs/implementation/patients.md"
+    "docs/implementation/patients.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Patients/CancelVisitTest.php"
    ],
-   "notes": "Arrivée (RegisterVisit) et file du jour livrées en ligne, premier jalon SANS contrôle du paiement de l'examen (statuts d'attente jamais écrits, marqueur « non contrôlé »). Reste : démarrage de l'examen (avec C01), annulation d'une visite (commande absente du contrat), contrôle examen payé ou dérogation (B04, B06), hors-ligne. Mise à jour 2026-10-22 : démarrage de l'examen livré avec C01 ; contrôle examen (B04/B06) codé, non exécuté, désactivé par défaut. Lot 2 : annulation d'une visite (CancelVisit), codée non exécutée."
+   "notes": "Arrivée (RegisterVisit) et file du jour livrées en ligne, premier jalon SANS contrôle du paiement de l'examen (statuts d'attente jamais écrits, marqueur « non contrôlé »). Reste : démarrage de l'examen (avec C01), annulation d'une visite (commande absente du contrat), contrôle examen payé ou dérogation (B04, B06), hors-ligne. Mise à jour 2026-10-22 : démarrage de l'examen livré avec C01 ; contrôle examen (B04/B06) codé, non exécuté, désactivé par défaut. Lot 2 : annulation d'une visite (CancelVisit), codée non exécutée. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "C01": {
    "status": "IN_REVIEW",
@@ -457,14 +483,21 @@
    "notes": ""
   },
   "S01": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : agenda interne (ressources, horaires, exceptions, prestations, rendez-vous, arrivée depuis un rendez-vous), module agenda."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Scheduling/",
+    "tests/e2e/agenda.spec.ts"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : agenda interne (ressources, horaires, exceptions, prestations, rendez-vous, arrivée depuis un rendez-vous), module agenda. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "S02": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : contrôles recommandés, tâches de contact internes (une par source et échéance), aucun envoi externe (L2)."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Scheduling/FollowUpsTest.php"
+   ],
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : contrôles recommandés, tâches de contact internes (une par source et échéance), aucun envoi externe (L2). Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "R01": {
    "status": "IN_PROGRESS",
@@ -475,37 +508,47 @@
    "notes": "Caisse du jour minimale en ligne, vérifiée ; tableaux de soldes et finance complets à faire. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
   },
   "R02": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/patients.md",
     "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
-    "docs/implementation/reports.md"
+    "docs/implementation/reports.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Reports/StatisticsTest.php",
+    "tests/e2e/manager-tools.spec.ts"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Statistiques DP : activité (statistics.activity) et examens (statistics.clinical) séparés, module reports ; activité du patient vérifiée au lot 1."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ (vérification transversale en fin de lot). Statistiques DP : activité (statistics.activity) et examens (statistics.clinical) séparés, module reports ; activité du patient vérifiée au lot 1. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "X01": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/e2e/manager-tools.spec.ts",
+    "tests/e2e/legacy-balances.spec.ts"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : import contrôlé du catalogue (aperçu sans écriture, tout ou rien, ImportCatalog) et stock d'ouverture par fichier (remplit le formulaire RegisterOpeningStock). Reste : créances papier LEGACY_BALANCE (justificatif scanné, dépôt de fichiers)."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : import contrôlé du catalogue (aperçu sans écriture, tout ou rien, ImportCatalog) et stock d'ouverture par fichier (remplit le formulaire RegisterOpeningStock). Reste : créances papier LEGACY_BALANCE (justificatif scanné, dépôt de fichiers). Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "X02": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/operations.md",
-    "tools/deploy/backup.sh"
+    "tools/deploy/backup.sh",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Operations/ExportsTest.php"
    ],
-   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : exports contrôlés (RequestExport réauthentifié, archive ZIP privée par la tâche planifiée eeo:exports:process, dictionnaire, manifeste, 48 h, aucun secret) ; sauvegarde quotidienne par tools/deploy/backup.sh (Fork 1). Reste : backup_runs, copie chiffrée des exports."
+   "notes": "Lot 2 (2026-10-23) codé, NON EXÉCUTÉ : exports contrôlés (RequestExport réauthentifié, archive ZIP privée par la tâche planifiée eeo:exports:process, dictionnaire, manifeste, 48 h, aucun secret) ; sauvegarde quotidienne par tools/deploy/backup.sh (Fork 1). Reste : backup_runs, copie chiffrée des exports. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "X03": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
     "docs/implementation/operations.md",
     "docs/runbooks/server-restore.md",
-    "docs/evidence/restore-rehearsal.md"
+    "docs/evidence/restore-rehearsal.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Operations/RestoreVerifierTest.php"
    ],
-   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : sauvegarde chiffrée et journal backup_runs (backup.sh, eeo:backup:record), restauration sur base jetable et contrôles (restore-check.sh, eeo:restore:verify : intégrité, séquences, numéros, audit, fichiers, postes à réconcilier, perte et durée), restore_tests via --record. Reste : exercice réel sur l'hébergement (RTO/RPO constatés) et vérification de fin de lot."
+   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : sauvegarde chiffrée et journal backup_runs (backup.sh, eeo:backup:record), restauration sur base jetable et contrôles (restore-check.sh, eeo:restore:verify : intégrité, séquences, numéros, audit, fichiers, postes à réconcilier, perte et durée), restore_tests via --record. Reste : exercice réel sur l'hébergement (RTO/RPO constatés) et vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "U01": {
    "status": "NOT_STARTED",
@@ -522,9 +565,10 @@
    "evidence": [
     "docs/implementation/deploiement.md",
     "tools/deploy/",
-    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020"
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/39879707020",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785"
    ],
-   "notes": "Kit mis à jour pour la phase 1 (sauvegarde, restauration, diagnostic, fumée) ; jamais exécuté sur Hostinger. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait)."
+   "notes": "Kit mis à jour pour la phase 1 (sauvegarde, restauration, diagnostic, fumée) ; jamais exécuté sur Hostinger. Vérification transversale de fin de phase 1 (2026-10-23, tools/dev/phase-check.sh --with-e2e) : contrats, Pint, PHPStan, PHPUnit complet, vue-tsc, ESLint, Prettier, Vitest complet, build, Playwright 47/47 verts sur le poste local ; CI GitHub verte (run 39879707020 sur 19d2bda). EN LIGNE seulement (hors-ligne O01–O05 non fait). Archive construite (tools/deploy/build-release.sh), répétition locale de sauvegarde/restauration PASS (docs/evidence/restore-rehearsal.md). Reste sur Hostinger : eeo:preflight, installation, eeo:setup-clinic, cron, exercice de restauration réel, smoke."
   },
   "G4": {
    "status": "NOT_STARTED",
@@ -532,19 +576,19 @@
    "notes": ""
   },
   "L1D01": {
-   "status": "IN_PROGRESS",
+   "status": "NOT_STARTED",
    "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23."
+   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
   },
   "L1D02": {
-   "status": "IN_PROGRESS",
+   "status": "NOT_STARTED",
    "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23."
+   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
   },
   "L1D03": {
-   "status": "IN_PROGRESS",
+   "status": "NOT_STARTED",
    "evidence": [],
-   "notes": "En codage (fork J) le 2026-10-23."
+   "notes": "En codage (fork J) le 2026-10-23. Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne."
   },
   "L1D04": {
    "status": "NOT_STARTED",
@@ -552,28 +596,36 @@
    "notes": ""
   },
   "L1D05": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Billing/CashMovementsTest.php"
    ],
-   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : mouvements de caisse hors vente (dépense catégorisée, dépôt, retrait, correction d'ouverture) avec approbation exacte CASH_MOVEMENT ou exécution directe de la gérante, refus après clôture, catégories, revue d'écart auditée. Vérification de fin de lot."
+   "notes": "Codé le 2026-10-23, NON EXÉCUTÉ : mouvements de caisse hors vente (dépense catégorisée, dépôt, retrait, correction d'ouverture) avec approbation exacte CASH_MOVEMENT ou exécution directe de la gérante, refus après clôture, catégories, revue d'écart auditée. Vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "L1D06": {
    "status": "NOT_STARTED",
    "evidence": [],
-   "notes": ""
+   "notes": " Abandonné pour l'instant (rapprochements mobile money), recentrage L0 du 2026-10-23."
   },
   "L1D07": {
-   "status": "IN_PROGRESS",
+   "status": "IN_REVIEW",
    "evidence": [
-    "docs/implementation/billing.md"
+    "docs/implementation/billing.md",
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Billing/QuotesTest.php",
+    "tests/e2e/quotes.spec.ts"
    ],
-   "notes": "Codé le 2026-10-23 (fork I), NON EXÉCUTÉ : devis versionnés, émission numérotée, révisions immuables, conversion idempotente en brouillon de facture, hors CA. Non codé : abandon d'un brouillon (pas de statut). Vérification de fin de lot."
+   "notes": "Codé le 2026-10-23 (fork I), NON EXÉCUTÉ : devis versionnés, émission numérotée, révisions immuables, conversion idempotente en brouillon de facture, hors CA. Non codé : abandon d'un brouillon (pas de statut). Vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "L1D08": {
-   "status": "IN_PROGRESS",
-   "evidence": [],
-   "notes": "Codé le 2026-10-23, non exécuté : fusion manuelle (aperçu, garde-fous, aucune réécriture, activité réunie) et comparaison de deux examens (pages/clinical/Compare.vue, visitCompare.ts). Reste : liens d'entrée vers la comparaison après la passe visuelle ; vérification de fin de lot."
+   "status": "IN_REVIEW",
+   "evidence": [
+    "https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785",
+    "tests/Feature/Patients/PatientMergeTest.php"
+   ],
+   "notes": "Codé le 2026-10-23, non exécuté : fusion manuelle (aperçu, garde-fous, aucune réécriture, activité réunie) et comparaison de deux examens (pages/clinical/Compare.vue, visitCompare.ts). Reste : liens d'entrée vers la comparaison après la passe visuelle ; vérification de fin de lot. Vérifié le 2026-10-24 (PHPUnit 2432, PHPStan, Vitest 2496, Playwright, CI 40044078785)."
   },
   "L1D09": {
    "status": "NOT_STARTED",

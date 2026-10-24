@@ -6,7 +6,7 @@ Initialisé le 2026-10-14 depuis `specifications/developpement/JOURNAL.md`. Le b
 
 - Branche : `claude/developpement-l0` (dépôt public : données fictives uniquement). Le travail cloud F01–F06 a été poussé sur `claude/developpement-l0-3pkhne`, dont l'historique est repris tel quel ; le développement se poursuit sur un poste local depuis le 2026-10-15 (une seule session à la fois dans ce dossier).
 - Lot et gate visés : L0 ; **G0 acquis** (voir `docs/evidence/G0.md`), prochain gate G1.
-- Tâche courante (2026-10-23) : **phase 1** (fonctions de base de la cliente) codée puis vérifiée en fin de phase, tout vert en local et en CI (run 39879707020) ; prochaine étape : mise en ligne sur Hostinger. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
+- Tâche courante (2026-10-24) : **lot 2 vérifié** (voir la section « Vérification de fin de lot 2 ») : tout vert en local et en CI (run 40044078785, commit `cb7a008`) ; archive de livraison construite ; prochaine étape : mise en ligne sur Hostinger (H01, `docs/implementation/deploiement.md`). Phase 1 : CI verte, run 39879707020. F10 est DONE (CI verte, run 39702365074). Priorité du demandeur du 2026-10-22 : écrans de base d'abord (section suivante).
 - Dernière preuve acquise : F09 — CI GitHub verte sur `7de8e2b` (run 38782531589 : PHP, Frontend, Playwright Linux 27/27) après revue contradictoire traitée ; Vitest 621. F07 et F08 : CI verte sur `78d9cb2` et `2a83599`. La validation SQL d'origine (`database/VALIDATION.md`) et G0 restent **distincts d'une recette applicative**.
 - Tâches DONE : F01, F02, F03, F04, G0, F05, F06, F07, F08, F09, F10.
 - Blocages externes : Q01–Q04/Q14 (production seulement) ; développement fictif possible.
@@ -97,13 +97,13 @@ tâche n'est DONE.
 | Chantier | Tâches | État au 2026-10-22 | Documentation |
 | --- | --- | --- | --- |
 | Clinique | C01 (corrections de revue), C02, C03, C04 | Codé, non exécuté (la première tranche C01 était vérifiée au commit `c0c8918`) | `clinical.md` |
-| Documents PDF locaux | D01, D02, impression clinique | Codé, non exécuté | `documents.md` |
-| Facturation serveur | B01, B02, I00, B03, B05, B04 | Codé, non exécuté | `billing.md` |
-| Écrans de vente, caisse, stock | B02–B05, I00 (écrans) | Codé, non exécuté | `billing.md` (Écrans) |
-| Activité du patient | R02 (partie activité) | Codé, non exécuté | `patients.md` |
-| Réauthentification, approbations, contrôle examen, avoirs, remboursements | B06, P03 (contrôle), B07, B08 (serveur) | En codage | `billing.md`, `access.md` |
-| Paramètres, personnel, accueil, liste des consultations, déploiement | F05 (écrans), H01, X02/X03 minimal | En codage | `access.md`, `deploiement.md` |
-| Compléments ventes et rapport de caisse du jour | B02–B05 (écarts), R01 minimal | En codage | `billing.md` |
+| Documents PDF locaux | D01, D02, impression clinique | Vérifié en local et en CI (run 40044078785) | `documents.md` |
+| Facturation serveur | B01, B02, I00, B03, B05, B04 | Vérifié en local et en CI (run 40044078785) | `billing.md` |
+| Écrans de vente, caisse, stock | B02–B05, I00 (écrans) | Vérifié en local et en CI (run 40044078785) | `billing.md` (Écrans) |
+| Activité du patient | R02 (partie activité) | Vérifié en local et en CI (run 40044078785) | `patients.md` |
+| Réauthentification, approbations, contrôle examen, avoirs, remboursements | B06, P03 (contrôle), B07, B08 (serveur) | Vérifié (phase 1, CI run 39879707020) | `billing.md`, `access.md` |
+| Paramètres, personnel, accueil, liste des consultations, déploiement | F05 (écrans), H01, X02/X03 minimal | Vérifié (phase 1, CI run 39879707020) | `access.md`, `deploiement.md` |
+| Compléments ventes et rapport de caisse du jour | B02–B05 (écarts), R01 minimal | Vérifié (phase 1, CI run 39879707020) | `billing.md` |
 
 **Hypothèses prises pour avancer (à faire confirmer par la cliente, fichier 15 non modifié).**
 Empreinte des révisions cliniques = SHA-256 de JCS (G8) ; une consultation incomplète (motif ou
@@ -146,27 +146,54 @@ toute aide destinée à la cliente est intégrée à l'interface (jamais un docu
 
 | Chantier | Tâches | État |
 | --- | --- | --- |
-| Corrections financières à l'écran, autorisation depuis la facture, annulation d'une visite | B07, B08 (écrans), P03 | Codé, non exécuté |
-| Coffre chiffré et enrôlement des postes | O01, O02 | Codé, non exécuté (module `offline` fermé) |
-| Statistiques du dossier patient | R02 | Codé, non exécuté (`reports.md`) |
-| Aide intégrée par profil | hors backlog (consigne du demandeur) | Codé, non exécuté |
-| Ordonnances externes à l'écran | C04 (A13) | Codé, non exécuté |
-| Agenda interne et suivis | S01, S02 | Codé, non exécuté (agenda jour/semaine, configuration, arrivée depuis un rendez-vous, patients à rappeler, aucun envoi externe) |
-| Remises au patient et retours, sorties exceptionnelles | I01, I02 | Codé, non exécuté |
+| Corrections financières à l'écran, autorisation depuis la facture, annulation d'une visite | B07, B08 (écrans), P03 | Vérifié en local et en CI (run 40044078785) |
+| Coffre chiffré et enrôlement des postes | O01, O02 | Vérifié (PHPUnit, Vitest) ; module `offline` fermé |
+| Statistiques du dossier patient | R02 | Vérifié en local et en CI (`reports.md`) |
+| Aide intégrée par profil | hors backlog (consigne du demandeur) | Vérifié en local et en CI (run 40044078785) |
+| Ordonnances externes à l'écran | C04 (A13) | Vérifié en local et en CI (run 40044078785) |
+| Agenda interne et suivis | S01, S02 | Vérifié en local et en CI (agenda jour/semaine, configuration, arrivée depuis un rendez-vous, patients à rappeler, aucun envoi externe) |
+| Remises au patient et retours, sorties exceptionnelles | I01, I02 | Vérifié en local et en CI (run 40044078785) |
 | Plages, quotas, commit local et journal du poste | O03, O04 | Codé, non exécuté (corrige aussi l'ordre des verrous d'O02) |
 | Identité visuelle professionnelle et logo de la marque | hors backlog (demande du demandeur) | Codé, non exécuté (charte, icônes SVG, en-tête mobile) |
-| Import contrôlé du catalogue et stock d'ouverture par fichier | X01 (partie catalogue et stock) | Codé, non exécuté |
-| Créances papier | X01 (partie créances) | Codé, non exécuté (série `LEGACY_BALANCE`, justificatif scanné, hors chiffre d'affaires) |
-| Originaux PDF conservés sur le serveur, logo sur les documents | D01 | Codé, non exécuté |
-| Push, pull, ACK et conflits | O05 | En codage |
-| Exports contrôlés | X02 | Codé, non exécuté (`operations.md`, tâche planifiée `eeo:exports:process`) |
-| Sauvegardes chiffrées, restauration vérifiée et réconciliation | X03 | Codé, non exécuté (`operations.md`, runbook `docs/runbooks/server-restore.md`) ; exercice réel sur l'hébergement à faire |
-| Seconde passe visuelle des écrans (hors ventes, caisse, stock, hors-ligne) | hors backlog (demande du demandeur) | En codage (workflow) |
-| Fusion manuelle de deux fiches patient et comparaison de deux examens | L1D08 | Codé, non exécuté (liens vers la comparaison à ajouter après la passe visuelle) |
-| Devis versionnés et conversion en facture | L1D07 | Codé, non exécuté (fork I) |
-| Remises au patient et retours, sorties exceptionnelles | I01, I02 (fin) | Codé, non exécuté (fork H) |
-| Dépenses, mouvements de caisse, catégories et revue d'écart | L1D05 | Codé, non exécuté (`billing.md`) |
-| Fournisseurs et réceptions, inventaires, seuils et péremption | L1D01, L1D02, L1D03 | En codage (fork J) |
+| Import contrôlé du catalogue et stock d'ouverture par fichier | X01 (partie catalogue et stock) | Vérifié en local et en CI (run 40044078785) |
+| Créances papier | X01 (partie créances) | Vérifié en local et en CI (série `LEGACY_BALANCE`, justificatif scanné, hors chiffre d'affaires) |
+| Originaux PDF conservés sur le serveur, logo sur les documents | D01 | Vérifié en local et en CI (run 40044078785) |
+| Push, pull, ACK et conflits | O05 | Serveur vérifié (PHPUnit) ; parcours e2e différé (`test.fixme`) jusqu'à la preuve G1 ; module `offline` fermé |
+| Exports contrôlés | X02 | Vérifié en local et en CI (`operations.md`, tâche planifiée `eeo:exports:process`) |
+| Sauvegardes chiffrées, restauration vérifiée et réconciliation | X03 | Vérifié ; répétition locale PASS (`docs/evidence/restore-rehearsal.md`) ; exercice réel sur l'hébergement à faire |
+| Seconde passe visuelle des écrans (hors ventes, caisse, stock, hors-ligne) | hors backlog (demande du demandeur) | Faite ; vérifiée par vue-tsc, ESLint, Vitest et Playwright |
+| Fusion manuelle de deux fiches patient et comparaison de deux examens | L1D08 | Vérifié en local et en CI (liens vers la comparaison à ajouter après la mise en ligne) |
+| Devis versionnés et conversion en facture | L1D07 | Vérifié en local et en CI |
+| Remises au patient et retours, sorties exceptionnelles | I01, I02 (fin) | Vérifié en local et en CI |
+| Dépenses, mouvements de caisse, catégories et revue d'écart | L1D05 | Vérifié en local et en CI (`billing.md`) |
+| Fournisseurs et réceptions, inventaires, seuils et péremption | L1D01, L1D02, L1D03 | Code mis de côté hors du dépôt (2026-10-23) ; à reprendre après la mise en ligne |
+
+## Vérification de fin de lot 2 (2026-10-24)
+
+Une seule vérification transversale (`tools/dev/phase-check.sh --with-e2e`), puis une seconde passe ciblée. Résultat final :
+PHPUnit 2432 tests (1 ignoré : liens symboliques sous Windows), PHPStan, Pint, vue-tsc, ESLint, Prettier, Vitest 2496 tests,
+build, Playwright (Edge en local, Chromium en CI). **CI verte : [run 40044078785](https://github.com/romiall/app.Eagle_Eye_Optics/actions/runs/40044078785) sur `cb7a008`** (PHP, Frontend, E2E).
+
+Défauts réels trouvés et corrigés par cette vérification (jamais vus avant, code écrit sans exécution) :
+- sources hors ligne ou serveur sans auteur : garde commune `AuthoredSource` sur six actions (au lieu d'erreurs SQL ou de verrous) ;
+- export du dossier d'un patient : requête sur une colonne inexistante (`consultation_history_terms.consultation_id`) ;
+- révocation d'un poste : motif d'audit passé sous forme de tableau ;
+- `useMutation` : `structuredClone` refusait les tableaux réactifs de Vue (import du catalogue muet) ;
+- boîtes de confirmation du mot de passe : identifiant en double sur une page qui en porte deux (champ sans libellé) ;
+- `Dexie` : un client plus ancien pouvait ouvrir et écrire dans un coffre plus récent (`VAULT_FORMAT_TOO_NEW`) ;
+- `ContactTaskCard` : la route de tentative de contact partait sans identifiant ;
+- archive de livraison : `database/schema_catalog.json` et `database/05_integrity_checks.sql` retirés alors que l'application les lit
+  (exports, `eeo:restore:verify`) ; `build-release.sh` les garde et refuse une archive qui en manque.
+
+Écarts connus, tous hors de la mise en ligne L0 :
+- `tests/e2e/offline-sync.spec.ts` est en `test.fixme` : le coffre ne s'ouvre pas dans les 20 s. Preuve G1/G2 à produire ensuite ;
+- O06/O07 (mises à jour PWA, export/restauration d'un poste) : code partiel, non terminé, module `offline` fermé ;
+- L1D01–L1D03 (chaîne stock L1) mis de côté hors du dépôt ; L1D06 abandonné pour l'instant ;
+- tests e2e : les changements de compte quittent la page avant d'effacer les cookies (une requête en vol recréait la session) ;
+- poste Windows : `OPENSSL_CONF` à exporter pour les clés EC P-256 (sans effet en CI Linux).
+
+Archive de livraison : `tools/deploy/build-release.sh` (commit `43f1057`, 5,9 Mo). Répétition locale de sauvegarde chiffrée et de
+restauration : PASS (`docs/evidence/restore-rehearsal.md`). L'exercice réel reste à faire sur Hostinger.
 
 Règle de mise en service : le module `offline` ne s'ouvre pas en production avant O05 vérifié (sans lui, une
 commande enregistrée sur un poste n'atteint jamais le serveur).
